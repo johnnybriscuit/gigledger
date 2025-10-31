@@ -1,0 +1,84 @@
+{
+  "description": "Sample output from useDashboardData hook for YTD (Year-to-Date) filter",
+  "dateRange": "ytd",
+  "data": {
+    "monthly": [
+      {
+        "month": "Jan 2025",
+        "income": 2500,
+        "expenses": 450,
+        "taxes": 420,
+        "net": 1630
+      },
+      {
+        "month": "Feb 2025",
+        "income": 3200,
+        "expenses": 580,
+        "taxes": 537,
+        "net": 2083
+      },
+      {
+        "month": "Mar 2025",
+        "income": 2800,
+        "expenses": 390,
+        "taxes": 470,
+        "net": 1940
+      }
+    ],
+    "cumulativeNet": [
+      {
+        "month": "Jan 2025",
+        "value": 1630
+      },
+      {
+        "month": "Feb 2025",
+        "value": 3713
+      },
+      {
+        "month": "Mar 2025",
+        "value": 5653
+      }
+    ],
+    "expenseBreakdown": [
+      {
+        "category": "Equipment",
+        "amount": 520
+      },
+      {
+        "category": "Travel",
+        "amount": 380
+      },
+      {
+        "category": "Mileage",
+        "amount": 245
+      },
+      {
+        "category": "Supplies",
+        "amount": 175
+      },
+      {
+        "category": "Marketing",
+        "amount": 100
+      }
+    ],
+    "incomeBreakdown": {
+      "gross": 7200,
+      "tips": 950,
+      "perDiem": 350,
+      "other": 0
+    },
+    "totals": {
+      "net": 5653,
+      "taxes": 1427,
+      "effectiveTaxRate": 20.2
+    }
+  },
+  "notes": [
+    "Monthly data aggregates all gigs and expenses by month",
+    "Taxes are distributed proportionally based on income per month",
+    "Mileage is converted to deduction using IRS standard rate",
+    "Cumulative net shows running total of net profit",
+    "Expense breakdown shows top 8 categories, rest grouped as 'Other'",
+    "All amounts in USD"
+  ]
+}

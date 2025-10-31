@@ -1,5 +1,8 @@
-import { registerRootComponent } from 'expo';
+// Import polyfills FIRST to prevent web 500 errors
+import 'react-native-url-polyfill/auto';
+import 'react-native-get-random-values';
 
+import { registerRootComponent } from 'expo';
 import App from './App';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
