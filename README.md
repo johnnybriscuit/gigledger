@@ -1,161 +1,241 @@
-# GigLedger - Musician Finance Tracker
+# 💼 GigLedger
 
-A production-ready, cross-platform finance tracker for musicians built with Expo, React Native, and Supabase.
+> A premium expense tracking and tax management platform for freelancers and gig workers, built with React Native and Supabase.
 
-## Features
+[![React Native](https://img.shields.io/badge/React%20Native-0.74-blue.svg)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-51-black.svg)](https://expo.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-green.svg)](https://supabase.com/)
 
-- 📊 Track gigs, expenses, and mileage
-- 💰 Real-time financial dashboard with KPIs
-- 📄 Export CPA/TurboTax-ready CSVs
-- 📱 Works on Web and iOS (via Expo Go)
-- 🔐 Secure authentication with Supabase
-- 📎 Receipt uploads with private storage
-- 🎯 Tax-year tracking and reporting
+## ✨ Features
 
-## Prerequisites
+### 📊 Premium Dashboard
+- **Interactive Charts** - Monthly overview, cumulative net profit, expense breakdown, and top payers
+- **Real-time Tax Estimates** - Automatic calculation of SE, federal, and state taxes
+- **Drill-Through Analysis** - Click any chart to see detailed transactions
+- **Smart Date Ranges** - YTD, Last 30/90 days, Last Year, or custom ranges
+- **Light/Dark Theme** - Professional design system with theme support
 
-- Node.js 18+ (use `nvm use` if you have .nvmrc)
-- npm or yarn
-- Expo CLI
-- Supabase account
-- iOS Simulator (for iOS testing)
+### 💰 Gig Management
+- **Inline Expenses & Mileage** - Add expenses and mileage directly when creating gigs
+- **Automatic Mileage Calculation** - Google Maps Distance Matrix API integration
+- **Live Net Calculator** - Real-time net profit calculation with tax estimates
+- **Payer Tracking** - Manage clients and track 1099 expectations
+- **Bulk Import** - CSV import for quick data entry
 
-## Setup
+### 📉 Expense Tracking
+- **7 Categories** - Travel, Meals, Lodging, Supplies, Equipment, Fees, Other
+- **IRS Mileage Rate** - Automatic deduction calculation ($0.70/mile for 2025)
+- **Receipt Storage** - Upload and attach receipts to expenses
+- **Recurring Expenses** - Set up monthly/quarterly recurring expenses
 
-### 1. Install Dependencies
+### 📊 Export Center
+- **Schedule C Export** - IRS-ready CSV format for tax filing
+- **Custom Date Ranges** - Export any time period
+- **TXF Format** - Compatible with TurboTax and other tax software
+- **Detailed Reports** - Income, expenses, and mileage breakdowns
+
+### 🎯 Tax Planning
+- **Withholding Calculator** - Estimates based on filing status and state
+- **Quarterly Reminders** - Track estimated tax payment deadlines
+- **Effective Tax Rate** - See your real tax burden
+- **Set Aside Recommendations** - Know how much to save from each gig
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm
+- Expo CLI (`npm install -g expo-cli`)
+- iOS Simulator (Mac) or Android Studio
+- Supabase account (free tier works great)
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/johnnybriscuit/gigledger.git
+cd gigledger
+
+# Install dependencies
 npm install
-```
 
-### 2. Configure Supabase
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your Supabase credentials
 
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Run the SQL schema in Supabase SQL Editor:
-   - Copy contents from `supabase/schema.sql`
-   - Execute in your Supabase project
-3. Create a storage bucket named `receipts`:
-   - Go to Storage in Supabase Dashboard
-   - Create new bucket: `receipts`
-   - Make it **private**
-   - Set file size limit: 5MB
-   - Allowed types: `image/*`, `application/pdf`
-4. Configure Auth redirects in Supabase Dashboard > Authentication > URL Configuration:
-   - Add these to "Redirect URLs":
-     ```
-     gigledger://auth-callback
-     http://localhost:8090
-     http://localhost:8090/auth-callback
-     exp://localhost:19000/--/auth-callback
-     exp://*.exp.direct/--/auth-callback
-     ```
-
-### 3. Environment Variables
-
-1. Copy the example env file:
-   ```bash
-   cp .env.local.example .env.local
-   ```
-
-2. Fill in your Supabase credentials in `.env.local`:
-   ```
-   EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-   EXPO_PUBLIC_DEEP_LINK_SCHEME=gigledger
-   EXPO_PUBLIC_DEFAULT_MILEAGE_RATE=0.67
-   ```
-
-### 4. Generate TypeScript Types (Optional)
-
-If you have Supabase CLI installed:
-
-```bash
-npm run supabase:types
-```
-
-## Running the App
-
-### Web (Recommended for Development)
-
-```bash
-npm run start:web
-```
-
-Then open: http://localhost:8090
-
-### iOS Simulator
-
-```bash
-npm run start:ios
-```
-
-In the Expo terminal:
-- Press `s` to switch to Expo Go
-- Press `i` to open iOS Simulator
-
-### Standard Expo Start
-
-```bash
+# Start the development server
 npm start
 ```
 
-## Project Structure
+### Environment Setup
 
+Create a `.env.local` file with:
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key  # Optional
+EXPO_PUBLIC_DEFAULT_MILEAGE_RATE=0.70
+```
+
+### Database Setup
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Run migrations in order from `supabase/migrations/`
+3. Enable Row Level Security (RLS) policies
+4. Set up Storage bucket for receipts (optional)
+
+See [SUPABASE_SETUP_CHECKLIST.md](./SUPABASE_SETUP_CHECKLIST.md) for detailed instructions.
+
+## 📱 Platform Support
+
+- **Web** - Full-featured dashboard with Recharts
+- **iOS** - Native app with optimized mobile UI
+- **Android** - Native app with optimized mobile UI
+
+## 🏗️ Architecture
+
+### Tech Stack
+- **Frontend**: React Native + Expo
+- **Backend**: Supabase (PostgreSQL + Auth + Storage)
+- **State Management**: React Query (TanStack Query)
+- **Charts**: Recharts (web) + Victory Native (mobile)
+- **Styling**: React Native StyleSheet
+- **Type Safety**: TypeScript throughout
+
+### Project Structure
 ```
 gigledger/
 ├── src/
-│   ├── app/              # Navigation and screens
-│   ├── components/       # Reusable UI components
-│   ├── features/         # Feature modules (gigs, expenses, etc.)
-│   ├── lib/              # Supabase client, utilities
-│   ├── hooks/            # Custom React hooks
-│   ├── utils/            # Helper functions
-│   └── types/            # TypeScript types
+│   ├── components/          # Reusable UI components
+│   │   ├── dashboard/       # Premium dashboard components
+│   │   ├── charts/          # Chart wrappers
+│   │   └── gigs/            # Gig-specific components
+│   ├── screens/             # Main app screens
+│   ├── hooks/               # Custom React hooks
+│   ├── lib/                 # Utilities and helpers
+│   │   ├── charts/          # Chart color tokens
+│   │   └── tax/             # Tax calculation logic
+│   ├── services/            # API services
+│   ├── contexts/            # React contexts (Theme, etc.)
+│   └── types/               # TypeScript definitions
 ├── supabase/
-│   └── schema.sql        # Database schema and RLS policies
-├── App.tsx               # App entry point
-└── index.ts              # Root entry with polyfills
+│   └── migrations/          # Database migrations
+└── docs/                    # Additional documentation
 ```
 
-## Key Technologies
+## 📚 Documentation
 
-- **Expo** - Cross-platform development
-- **React Native** - Mobile UI framework
-- **Supabase** - Backend (Auth, Database, Storage)
-- **TanStack Query** - Data fetching and caching
-- **React Navigation** - Navigation
-- **NativeWind** - Tailwind CSS for React Native
-- **Zod** - Schema validation
-- **TypeScript** - Type safety
+- [Premium Dashboard Guide](./PREMIUM_DASHBOARD_SUMMARY.md) - Complete dashboard documentation
+- [Quick Start Guide](./DASHBOARD_QUICKSTART.md) - Get started with the dashboard
+- [Automatic Mileage](./AUTOMATIC_MILEAGE_SUMMARY.md) - Google Maps integration
+- [Gig Form Upgrade](./GIGFORM_UPGRADE_SUMMARY.md) - Inline expenses & mileage
+- [Export Center](./EXPORT_CENTER_COMPLETE.md) - Tax export features
+- [CSV Import Guide](./CSV_IMPORT_GUIDE.md) - Bulk import instructions
+- [Backup Guide](./BACKUP_GUIDE.md) - How to backup and restore
 
-## Development Commands
+## 🎨 Screenshots
 
-- `npm start` - Start Expo dev server
-- `npm run start:web` - Start web on port 8090
-- `npm run start:ios` - Start with iOS focus
-- `npm run typecheck` - Run TypeScript checks
-- `npm run supabase:types` - Generate DB types
+### Dashboard
+*Premium dashboard with interactive charts and real-time tax estimates*
 
-## Troubleshooting
+### Gig Management
+*Inline expenses and automatic mileage calculation*
 
-### Metro bundler issues
+### Charts & Analytics
+*Click any bar to drill through to detailed transactions*
+
+> **Note**: Screenshots coming soon! The app is fully functional.
+
+## 🔧 Development
+
+### Available Scripts
+
 ```bash
-# Clear all caches
-npx expo start --clear
-watchman watch-del-all
-rm -rf node_modules/.cache
+npm start          # Start Expo dev server
+npm run web        # Start web version
+npm run ios        # Start iOS simulator
+npm run android    # Start Android emulator
+npm test           # Run tests (if configured)
 ```
 
-### Web 500 errors
-- Ensure polyfills are imported at app entry (`index.ts`)
-- Check that config files use `.cjs` extension
-- Verify environment variables are set
+### Key Features in Development
 
-### Authentication not working
-- Check Supabase redirect URLs are configured
-- Verify deep link scheme matches in `app.json`
-- Check `.env.local` has correct Supabase credentials
+- [ ] Receipt OCR scanning
+- [ ] Mobile push notifications for tax deadlines
+- [ ] Multi-year tax comparisons
+- [ ] Payer performance analytics
+- [ ] Quarterly tax payment tracking
 
-## License
+## 🤝 Contributing
 
-MIT
+This is a personal project, but suggestions and bug reports are welcome!
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is private and proprietary. All rights reserved.
+
+## 🙏 Acknowledgments
+
+- [Expo](https://expo.dev/) - Amazing React Native framework
+- [Supabase](https://supabase.com/) - Backend as a service
+- [Recharts](https://recharts.org/) - Beautiful charts for React
+- [React Query](https://tanstack.com/query) - Powerful data fetching
+- [Google Maps API](https://developers.google.com/maps) - Mileage calculations
+
+## 📞 Support
+
+For questions or issues:
+- Check the [documentation](./docs/)
+- Review [existing issues](https://github.com/johnnybriscuit/gigledger/issues)
+- Create a new issue with detailed information
+
+## 🗺️ Roadmap
+
+### Phase 1: Core Features ✅
+- [x] User authentication
+- [x] Gig management
+- [x] Expense tracking
+- [x] Mileage logging
+- [x] Basic dashboard
+- [x] Tax estimates
+
+### Phase 2: Premium Dashboard ✅
+- [x] Interactive charts
+- [x] Drill-through analysis
+- [x] Theme support
+- [x] Date range filtering
+- [x] Quick actions
+
+### Phase 3: Advanced Features ✅
+- [x] Inline expenses/mileage
+- [x] Automatic mileage calculation
+- [x] CSV import
+- [x] Export center
+- [ ] Receipt OCR
+- [ ] Goal tracking
+
+### Phase 4: Mobile Optimization 📱
+- [ ] Victory Native charts
+- [ ] Offline mode
+- [ ] Push notifications
+- [ ] Camera integration
+- [ ] Biometric auth
+
+### Phase 5: Analytics & Insights 📊
+- [ ] Year-over-year comparisons
+- [ ] Trend predictions
+- [ ] Tax optimization suggestions
+- [ ] Payer performance analysis
+
+---
+
+**Built with ❤️ for freelancers and gig workers**
+
+*Last updated: October 31, 2025*
