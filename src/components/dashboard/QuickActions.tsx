@@ -76,7 +76,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
     flexWrap: 'wrap',
   },
   actionButton: {

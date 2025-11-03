@@ -148,37 +148,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 24,
+    paddingBottom: 48,
   },
   topRow: {
     flexDirection: 'row',
-    gap: 20,
-    marginBottom: 20,
+    gap: 24,
+    marginBottom: 32,
     flexWrap: 'wrap',
   },
   heroContainer: {
     flex: 2,
-    minWidth: 300,
+    minWidth: 320,
   },
   actionsContainer: {
     flex: 1,
-    minWidth: 250,
+    minWidth: 280,
     justifyContent: 'flex-start',
   },
   chartsGrid: {
-    gap: 0,
+    gap: 24,
   },
   fullWidth: {
     width: '100%',
   },
   twoColumn: {
     flexDirection: 'row',
-    gap: 20,
+    gap: 24,
     flexWrap: 'wrap',
   },
   column: {
     flex: 1,
-    minWidth: 300,
+    minWidth: 320,
   },
 });

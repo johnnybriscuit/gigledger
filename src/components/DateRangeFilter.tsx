@@ -54,9 +54,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e5e7eb',
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    gap: 12,
   },
   filterButton: {
     paddingHorizontal: 16,
