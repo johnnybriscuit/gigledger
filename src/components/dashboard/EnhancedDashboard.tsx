@@ -14,6 +14,7 @@ import { TopPayers } from './TopPayers';
 import { TaxSummaryCard } from './TaxSummaryCard';
 import { SidePanel } from '../SidePanel';
 import { MonthDrillThrough } from './MonthDrillThrough';
+import { PayerDrillThrough } from './PayerDrillThrough';
 import { useDashboardData, type DateRange } from '../../hooks/useDashboardData';
 import { DateRangeFilter } from '../DateRangeFilter';
 
@@ -53,8 +54,7 @@ export function EnhancedDashboard({
 
   const handlePayerClick = (payer: string) => {
     setSelectedPayer(payer);
-    // Navigate to gigs tab with payer filter
-    onNavigateToGigs?.(payer);
+    // Don't navigate - show filtered view in side panel instead
   };
 
   const handleViewAllExpenses = () => {
@@ -126,7 +126,7 @@ export function EnhancedDashboard({
         </View>
       </ScrollView>
 
-      {/* Drill-Through Panel */}
+      {/* Month Drill-Through Panel */}
       <SidePanel
         visible={!!drillThroughMonth}
         onClose={() => setDrillThroughMonth(null)}
@@ -135,6 +135,16 @@ export function EnhancedDashboard({
         onExport={handleExportMonth}
       >
         {drillThroughMonth && <MonthDrillThrough month={drillThroughMonth} />}
+      </SidePanel>
+
+      {/* Payer Drill-Through Panel */}
+      <SidePanel
+        visible={!!selectedPayer}
+        onClose={() => setSelectedPayer(null)}
+        title={selectedPayer || ''}
+        subtitle="All gigs from this payer"
+      >
+        {selectedPayer && <PayerDrillThrough payer={selectedPayer} />}
       </SidePanel>
     </View>
   );
