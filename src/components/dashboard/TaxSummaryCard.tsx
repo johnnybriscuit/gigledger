@@ -3,7 +3,7 @@
  * Shows YTD effective tax rate and recommended set-aside
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useTaxProfile } from '../../hooks/useTaxProfile';
 import { calcYTDEffectiveRate, formatTaxAmount, formatTaxRate } from '../../tax/engine';
@@ -17,6 +17,7 @@ interface TaxSummaryCardProps {
 export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummaryCardProps) {
   const { data: taxProfile, isLoading } = useTaxProfile();
   const dashboardData = useDashboardData(dateRange);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   if (isLoading) {
     return (
@@ -117,11 +118,66 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
             </View>
           </View>
 
-          {/* Recommendation */}
+          {/* Recommendation with Explanation */}
           <View style={styles.recommendation}>
-            <Text style={styles.recommendationText}>
-              💡 Set aside {formatTaxRate(taxSummary.effectiveRate)} of each gig for taxes
-            </Text>
+            <TouchableOpacity 
+              style={styles.recommendationHeader}
+              onPress={() => setShowExplanation(!showExplanation)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.recommendationText}>
+                💡 Set aside {formatTaxRate(taxSummary.effectiveRate)} of each gig for taxes
+              </Text>
+              <Text style={styles.expandIcon}>
+                {showExplanation ? '▼' : '▶'}
+              </Text>
+            </TouchableOpacity>
+            
+            {showExplanation && (
+              <View style={styles.explanation}>
+                <Text style={styles.explanationTitle}>How is this calculated?</Text>
+                
+                <Text style={styles.explanationText}>
+                  Your effective tax rate is based on your year-to-date income and your tax profile settings.
+                </Text>
+                
+                <View style={styles.explanationSection}>
+                  <Text style={styles.explanationSubtitle}>📊 What's included:</Text>
+                  <Text style={styles.explanationBullet}>
+                    • <Text style={styles.bold}>Federal Income Tax:</Text> Based on 2025 IRS tax brackets for your filing status
+                  </Text>
+                  <Text style={styles.explanationBullet}>
+                    • <Text style={styles.bold}>State Tax:</Text> {taxProfile.state === 'TN' || taxProfile.state === 'TX' ? 'No state income tax in your state' : `Based on ${taxProfile.state} state tax rates`}
+                  </Text>
+                  {taxSummary.breakdown.local > 0 && (
+                    <Text style={styles.explanationBullet}>
+                      • <Text style={styles.bold}>Local Tax:</Text> Additional local taxes for your area
+                    </Text>
+                  )}
+                  <Text style={styles.explanationBullet}>
+                    • <Text style={styles.bold}>Self-Employment Tax:</Text> 15.3% (Social Security + Medicare) on net earnings
+                  </Text>
+                </View>
+                
+                <View style={styles.explanationSection}>
+                  <Text style={styles.explanationSubtitle}>💰 Why set aside this amount?</Text>
+                  <Text style={styles.explanationText}>
+                    As a self-employed musician, taxes aren't automatically withheld from your gigs. Setting aside {formatTaxRate(taxSummary.effectiveRate)} ensures you'll have enough saved when quarterly estimated taxes are due.
+                  </Text>
+                </View>
+                
+                <View style={styles.explanationSection}>
+                  <Text style={styles.explanationSubtitle}>📅 When to pay:</Text>
+                  <Text style={styles.explanationText}>
+                    Quarterly estimated taxes are due April 15, June 15, September 15, and January 15. You can also pay annually when filing your tax return.
+                  </Text>
+                </View>
+                
+                <Text style={styles.disclaimer}>
+                  💡 This is an estimate based on your profile. Consult a tax professional for personalized advice.
+                </Text>
+              </View>
+            )}
           </View>
         </>
       ) : (
@@ -248,12 +304,66 @@ const styles = StyleSheet.create({
   recommendation: {
     backgroundColor: '#fef3c7',
     borderRadius: 8,
+    overflow: 'hidden',
+  },
+  recommendationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 12,
   },
   recommendationText: {
     fontSize: 13,
     color: '#92400e',
-    textAlign: 'center',
+    flex: 1,
+  },
+  expandIcon: {
+    fontSize: 12,
+    color: '#92400e',
+    marginLeft: 8,
+  },
+  explanation: {
+    borderTopWidth: 1,
+    borderTopColor: '#fde68a',
+    padding: 16,
+    paddingTop: 12,
+  },
+  explanationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#92400e',
+    marginBottom: 12,
+  },
+  explanationText: {
+    fontSize: 13,
+    color: '#78350f',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  explanationSection: {
+    marginBottom: 16,
+  },
+  explanationSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#92400e',
+    marginBottom: 8,
+  },
+  explanationBullet: {
+    fontSize: 13,
+    color: '#78350f',
+    lineHeight: 20,
+    marginBottom: 6,
+    paddingLeft: 8,
+  },
+  bold: {
+    fontWeight: '600',
+  },
+  disclaimer: {
+    fontSize: 11,
+    color: '#a16207',
+    fontStyle: 'italic',
+    marginTop: 8,
   },
   noData: {
     paddingVertical: 32,
