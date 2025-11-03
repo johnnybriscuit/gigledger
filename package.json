@@ -2,6 +2,7 @@
   "name": "gigledger",
   "version": "1.0.0",
   "main": "index.ts",
+  "description": "Self-employed musician income and tax tracking",
   "scripts": {
     "start": "expo start",
     "start:web": "EXPO_DEBUG=1 npx expo start --web --clear --host localhost --port 8090",
