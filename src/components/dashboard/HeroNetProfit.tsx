@@ -8,6 +8,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemeColors, chartColors, getStatusColor } from '../../lib/charts/colors';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { useTaxProfile } from '../../hooks/useTaxProfile';
+import { calcYTDEffectiveRate } from '../../tax/engine';
 
 interface HeroNetProfitProps {
   dateRange?: 'ytd' | 'last30' | 'last90' | 'lastYear' | 'custom';
@@ -31,8 +33,28 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
   const delta = netProfit - last30Net;
   const deltaPercent = last30Net !== 0 ? (delta / Math.abs(last30Net)) * 100 : 0;
 
-  const totalTaxes = currentData.totals.taxes;
-  const effectiveRate = currentData.totals.effectiveTaxRate;
+  // Get tax profile and calculate accurate breakdown
+  const { data: taxProfile } = useTaxProfile();
+  
+  let taxBreakdown = null;
+  let totalTaxes = currentData.totals.taxes;
+  let effectiveRate = currentData.totals.effectiveTaxRate;
+  
+  if (taxProfile && currentData.totals.net > 0) {
+    try {
+      const ytdData = {
+        grossIncome: currentData.totals.net + currentData.totals.taxes,
+        adjustments: 0,
+        netSE: currentData.totals.net,
+      };
+      const taxSummary = calcYTDEffectiveRate(ytdData, taxProfile);
+      taxBreakdown = taxSummary.breakdown;
+      totalTaxes = taxSummary.totalTax;
+      effectiveRate = taxSummary.effectiveRate * 100;
+    } catch (error) {
+      console.error('Error calculating tax breakdown:', error);
+    }
+  }
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -86,27 +108,35 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
       </TouchableOpacity>
 
       {/* Tax Breakdown (expandable) */}
-      {showTaxBreakdown && (
+      {showTaxBreakdown && taxBreakdown && (
         <View style={[styles.breakdown, { backgroundColor: colors.chartBg, borderColor: colors.border }]}>
           <Text style={[styles.breakdownTitle, { color: colors.text }]}>Tax Breakdown</Text>
           <View style={styles.breakdownRow}>
             <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Self-Employment (15.3%)</Text>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
-              {formatCurrency(totalTaxes * 0.5)} {/* Rough estimate */}
+              {formatCurrency(taxBreakdown.seTax)}
             </Text>
           </View>
           <View style={styles.breakdownRow}>
-            <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Federal Income (est.)</Text>
+            <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Federal Income</Text>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
-              {formatCurrency(totalTaxes * 0.35)}
+              {formatCurrency(taxBreakdown.federal)}
             </Text>
           </View>
           <View style={styles.breakdownRow}>
-            <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>State Income (est.)</Text>
+            <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>State Income</Text>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
-              {formatCurrency(totalTaxes * 0.15)}
+              {formatCurrency(taxBreakdown.state)}
             </Text>
           </View>
+          {taxBreakdown.local > 0 && (
+            <View style={styles.breakdownRow}>
+              <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Local Income</Text>
+              <Text style={[styles.breakdownValue, { color: colors.text }]}>
+                {formatCurrency(taxBreakdown.local)}
+              </Text>
+            </View>
+          )}
           <View style={[styles.breakdownRow, styles.breakdownTotal]}>
             <Text style={[styles.breakdownLabel, { color: colors.text, fontWeight: '600' }]}>Total</Text>
             <Text style={[styles.breakdownValue, { color: chartColors.amber, fontWeight: '600' }]}>
