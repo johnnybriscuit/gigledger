@@ -16,6 +16,7 @@ interface NetBarProps {
   expenses: number;
   mileageDeduction: number;
   taxEstimate: TaxEstimate;
+  hideOldTaxEstimate?: boolean; // Hide old tax estimate when new 2025 engine is active
 }
 
 export function NetBar({
@@ -27,6 +28,7 @@ export function NetBar({
   expenses,
   mileageDeduction,
   taxEstimate,
+  hideOldTaxEstimate = false,
 }: NetBarProps) {
   const totalIncome = grossAmount + tips + perDiem + otherIncome;
   const totalDeductions = fees + expenses + mileageDeduction;
@@ -64,7 +66,7 @@ export function NetBar({
           </View>
         )}
 
-        {taxEstimate.total > 0 && (
+        {taxEstimate.total > 0 && !hideOldTaxEstimate && (
           <>
             <View style={styles.divider} />
             <View style={styles.row}>

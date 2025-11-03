@@ -755,6 +755,7 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
             expenses={totalExpenses}
             mileageDeduction={mileageDeduction}
             taxEstimate={taxEstimate}
+            hideOldTaxEstimate={!!gigSetAside}
           />
 
           {/* Tax Set-Aside Display - Compact */}
