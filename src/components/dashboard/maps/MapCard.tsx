@@ -12,6 +12,8 @@ import { useMapStats } from '../../../hooks/useMapStats';
 import type { DateRange } from '../../../hooks/useDashboardData';
 import { USMap } from './USMap.web';
 import { RegionTooltip } from './RegionTooltip';
+import { RegionDrawer } from './RegionDrawer';
+import { SidePanel } from '../../SidePanel';
 import { getColorScaleLegend } from '../../../lib/maps/colorScale';
 
 interface MapCardProps {
@@ -26,6 +28,7 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
   const isDark = theme === 'dark';
 
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | undefined>();
 
   // Fetch map data
@@ -46,8 +49,7 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
   };
 
   const handleRegionClick = (code: string) => {
-    // TODO: Open drawer with region details
-    console.log('Clicked region:', code, statsMap?.[code]);
+    setSelectedRegion(code);
   };
 
   if (isLoading) {
@@ -136,6 +138,21 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
           <RegionTooltip region={hoveredStats} position={tooltipPosition} />
         )}
       </View>
+
+      {/* Region Drawer */}
+      <SidePanel
+        visible={!!selectedRegion}
+        onClose={() => setSelectedRegion(null)}
+        title={selectedRegion && statsMap?.[selectedRegion] ? statsMap[selectedRegion].label : ''}
+        subtitle="Gig details"
+      >
+        {selectedRegion && statsMap?.[selectedRegion] && (
+          <RegionDrawer
+            region={statsMap[selectedRegion]}
+            onClose={() => setSelectedRegion(null)}
+          />
+        )}
+      </SidePanel>
     </ChartCard>
   );
 }
