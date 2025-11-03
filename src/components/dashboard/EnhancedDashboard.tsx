@@ -11,6 +11,7 @@ import { MonthlyOverview } from './MonthlyOverview';
 import { CumulativeNet } from './CumulativeNet';
 import { ExpenseBreakdown } from './ExpenseBreakdown';
 import { TopPayers } from './TopPayers';
+import { TaxSummaryCard } from './TaxSummaryCard';
 import { SidePanel } from '../SidePanel';
 import { MonthDrillThrough } from './MonthDrillThrough';
 import { useDashboardData, type DateRange } from '../../hooks/useDashboardData';
@@ -103,6 +104,11 @@ export function EnhancedDashboard({
           {/* Cumulative Net - Full Width */}
           <View style={styles.fullWidth}>
             <CumulativeNet data={data.cumulativeNet} />
+          </View>
+
+          {/* Tax Summary - Full Width */}
+          <View style={styles.fullWidth}>
+            <TaxSummaryCard dateRange={dateRange} />
           </View>
 
           {/* Two Column Layout */}
