@@ -15,6 +15,7 @@ import { TaxSummaryCard } from './TaxSummaryCard';
 import { SidePanel } from '../SidePanel';
 import { MonthDrillThrough } from './MonthDrillThrough';
 import { PayerDrillThrough } from './PayerDrillThrough';
+import { MapCard } from './maps/MapCard';
 import { useDashboardData, type DateRange } from '../../hooks/useDashboardData';
 import { DateRangeFilter } from '../DateRangeFilter';
 
@@ -109,6 +110,15 @@ export function EnhancedDashboard({
           {/* Tax Summary - Full Width */}
           <View style={styles.fullWidth}>
             <TaxSummaryCard dateRange={dateRange} />
+          </View>
+
+          {/* Map - Full Width */}
+          <View style={styles.fullWidth}>
+            <MapCard 
+              dateRange={dateRange}
+              customStart={customStart}
+              customEnd={customEnd}
+            />
           </View>
 
           {/* Two Column Layout */}
