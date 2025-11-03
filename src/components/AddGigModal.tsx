@@ -80,6 +80,7 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
   const [payerId, setPayerId] = useState('');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
+  const [showTaxBreakdown, setShowTaxBreakdown] = useState(false);
   const [location, setLocation] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -730,22 +731,31 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
             taxEstimate={taxEstimate}
           />
 
-          {/* Tax Set-Aside Display */}
+          {/* Tax Set-Aside Display - Compact */}
           {gigSetAside && (
-            <View style={styles.taxSetAsideContainer}>
-              <View style={styles.taxSetAsideHeader}>
-                <Text style={styles.taxSetAsideLabel}>💰 Set Aside for Taxes</Text>
-                <Text style={styles.taxSetAsideHint}>Based on your 2025 tax profile</Text>
+            <TouchableOpacity 
+              style={styles.taxSetAsideContainer}
+              onPress={() => setShowTaxBreakdown(!showTaxBreakdown)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.taxSetAsideCompact}>
+                <View style={styles.taxSetAsideLeft}>
+                  <Text style={styles.taxSetAsideLabel}>💰 Set Aside for Taxes</Text>
+                  <Text style={styles.taxSetAsideHint}>
+                    Tap for breakdown {showTaxBreakdown ? '▼' : '▶'}
+                  </Text>
+                </View>
+                <View style={styles.taxSetAsideRight}>
+                  <Text style={styles.taxSetAsideAmount}>
+                    {formatTaxAmount(gigSetAside.amount)}
+                  </Text>
+                  <Text style={styles.taxSetAsideRate}>
+                    {formatTaxRate(gigSetAside.rate)}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.taxSetAsidePill}>
-                <Text style={styles.taxSetAsideAmount}>
-                  {formatTaxAmount(gigSetAside.amount)}
-                </Text>
-                <Text style={styles.taxSetAsideRate}>
-                  {formatTaxRate(gigSetAside.rate)}
-                </Text>
-              </View>
-              {gigSetAside.breakdown && (
+              
+              {showTaxBreakdown && gigSetAside.breakdown && (
                 <View style={styles.taxBreakdown}>
                   <Text style={styles.taxBreakdownItem}>
                     Federal: {formatTaxAmount(gigSetAside.breakdown.federal)}
@@ -763,7 +773,7 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
                   </Text>
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
           )}
 
           {/* Submit Button */}
@@ -1229,53 +1239,57 @@ const styles = StyleSheet.create({
   },
   taxSetAsideContainer: {
     backgroundColor: '#eff6ff',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#2563eb',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
     marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  taxSetAsideHeader: {
     marginBottom: 12,
+    overflow: 'hidden',
   },
-  taxSetAsideLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e40af',
-    marginBottom: 4,
-  },
-  taxSetAsideHint: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  taxSetAsidePill: {
+  taxSetAsideCompact: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
+    padding: 12,
+  },
+  taxSetAsideLeft: {
+    flex: 1,
+  },
+  taxSetAsideLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e40af',
+    marginBottom: 2,
+  },
+  taxSetAsideHint: {
+    fontSize: 11,
+    color: '#6b7280',
+  },
+  taxSetAsideRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   taxSetAsideAmount: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700',
     color: '#1e40af',
   },
   taxSetAsideRate: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
     color: '#2563eb',
   },
   taxBreakdown: {
     backgroundColor: '#fff',
     padding: 12,
-    borderRadius: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#bfdbfe',
     gap: 6,
   },
   taxBreakdownItem: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#374151',
   },
   submitButtonContainer: {
