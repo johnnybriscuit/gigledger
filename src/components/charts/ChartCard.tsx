@@ -71,7 +71,6 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 12,
     padding: 20,
-    marginBottom: 16,
     ...Platform.select({
       web: {
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
