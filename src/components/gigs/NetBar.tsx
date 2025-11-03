@@ -3,8 +3,8 @@
  * Shows live calculation of net income after all additions, subtractions, and estimated taxes
  */
 
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import type { TaxEstimate } from '../../hooks/useTaxEstimate';
 
 interface NetBarProps {
@@ -30,6 +30,8 @@ export function NetBar({
   taxEstimate,
   hideOldTaxEstimate = false,
 }: NetBarProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
+  
   const totalIncome = grossAmount + tips + perDiem + otherIncome;
   const totalDeductions = fees + expenses + mileageDeduction;
   const netBeforeTax = totalIncome - totalDeductions;
@@ -40,20 +42,40 @@ export function NetBar({
 
   return (
     <View style={styles.container}>
-      {/* Warning Badges */}
-      {isNegative && (
-        <View style={styles.warningBadge}>
-          <Text style={styles.warningText}>⚠️ Net is negative</Text>
+      {/* Header with Toggle */}
+      <TouchableOpacity 
+        style={styles.header}
+        onPress={() => setIsExpanded(!isExpanded)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Net After Tax</Text>
+          <Text style={styles.headerSubtitle}>
+            {isExpanded ? 'Tap to collapse ▼' : 'Tap to expand ▶'}
+          </Text>
         </View>
-      )}
-      {hasUnusualFees && !isNegative && (
-        <View style={styles.warningBadge}>
-          <Text style={styles.warningText}>⚠️ High fees ({((fees / grossAmount) * 100).toFixed(0)}%)</Text>
-        </View>
-      )}
+        <Text style={[styles.headerValue, isNegative && styles.netNegative]}>
+          ${netAfterTax.toFixed(2)}
+        </Text>
+      </TouchableOpacity>
 
-      {/* Calculation Breakdown */}
-      <View style={styles.breakdown}>
+      {/* Expandable Content */}
+      {isExpanded && (
+        <>
+          {/* Warning Badges */}
+          {isNegative && (
+            <View style={styles.warningBadge}>
+              <Text style={styles.warningText}>⚠️ Net is negative</Text>
+            </View>
+          )}
+          {hasUnusualFees && !isNegative && (
+            <View style={styles.warningBadge}>
+              <Text style={styles.warningText}>⚠️ High fees ({((fees / grossAmount) * 100).toFixed(0)}%)</Text>
+            </View>
+          )}
+
+          {/* Calculation Breakdown */}
+          <View style={styles.breakdown}>
         <View style={styles.row}>
           <Text style={styles.label}>Income</Text>
           <Text style={styles.value}>+${totalIncome.toFixed(2)}</Text>
@@ -81,18 +103,20 @@ export function NetBar({
           </>
         )}
 
-        <View style={styles.divider} />
+            <View style={styles.divider} />
 
-        {/* Net After Tax */}
-        <View style={styles.netRow}>
-          <Text style={styles.netLabel}>Net After Tax</Text>
-          <Text style={[styles.netValue, isNegative && styles.netNegative]}>
-            ${netAfterTax.toFixed(2)}
-          </Text>
-        </View>
-      </View>
+            {/* Net After Tax - Shown in breakdown when expanded */}
+            <View style={styles.netRow}>
+              <Text style={styles.netLabel}>Final Net</Text>
+              <Text style={[styles.netValue, isNegative && styles.netNegative]}>
+                ${netAfterTax.toFixed(2)}
+              </Text>
+            </View>
+          </View>
 
-      <Text style={styles.disclaimer}>Estimates only. Not tax advice.</Text>
+          <Text style={styles.disclaimer}>Estimates only. Not tax advice.</Text>
+        </>
+      )}
     </View>
   );
 }
@@ -102,12 +126,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 2,
     borderTopColor: '#e5e7eb',
-    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    paddingBottom: 12,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: '#6b7280',
+  },
+  headerValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#10b981',
   },
   warningBadge: {
     backgroundColor: '#fef3c7',
@@ -126,6 +174,8 @@ const styles = StyleSheet.create({
   },
   breakdown: {
     gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   row: {
     flexDirection: 'row',
