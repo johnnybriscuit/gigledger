@@ -3,14 +3,16 @@
  * 
  * This file contains all tax rates, brackets, and deductions for tax year 2025.
  * 
- * TODO: Update with official 2025 values from:
- * - Federal: IRS Revenue Procedure for 2025 (inflation adjustments)
+ * FEDERAL: Official 2025 values from IRS Revenue Procedure 2024-40 ✅
+ * STATE TODO: Update with official 2025 values from:
  * - California: CA Franchise Tax Board annual tables
  * - New York: NY Dept of Taxation + NYC Finance + Yonkers
  * - Maryland: MD Comptroller state brackets + county piggyback rates
  * - Tennessee: No state income tax on wages
  * - Texas: No state income tax
  */
+
+import { FEDERAL_2025, type FilingStatus as FederalFilingStatus } from './federal_2025';
 
 export type FilingStatus = 'single' | 'married_joint' | 'married_separate' | 'head';
 
@@ -62,54 +64,22 @@ export interface TaxConfig2025 {
  */
 const config2025: TaxConfig2025 = {
   // ============================================================================
-  // FEDERAL TAX (2025)
+  // FEDERAL TAX (2025) - Official IRS Values 
   // ============================================================================
-  // TODO: Update from IRS Revenue Procedure for 2025
-  // Source: https://www.irs.gov/newsroom/irs-provides-tax-inflation-adjustments-for-tax-year-2025
+  // Source: IRS Revenue Procedure 2024-40
+  // https://www.irs.gov/pub/irs-drop/rp-24-40.pdf
   federal: {
     standardDeduction: {
-      single: 14600,           // TODO: 2025 value (2024 was $14,600)
-      married_joint: 29200,    // TODO: 2025 value (2024 was $29,200)
-      married_separate: 14600, // TODO: 2025 value
-      head: 21900,            // TODO: 2025 value (2024 was $21,900)
+      single: FEDERAL_2025.standardDeduction.single,                    // $15,000
+      married_joint: FEDERAL_2025.standardDeduction.married_joint,      // $30,000
+      married_separate: FEDERAL_2025.standardDeduction.single,          // $15,000 (same as single)
+      head: FEDERAL_2025.standardDeduction.head,                        // $22,500
     },
     brackets: {
-      single: [
-        { upTo: 11600, rate: 0.10 },   // TODO: 2025 brackets
-        { upTo: 47150, rate: 0.12 },
-        { upTo: 100525, rate: 0.22 },
-        { upTo: 191950, rate: 0.24 },
-        { upTo: 243725, rate: 0.32 },
-        { upTo: 609350, rate: 0.35 },
-        { upTo: null, rate: 0.37 },
-      ],
-      married_joint: [
-        { upTo: 23200, rate: 0.10 },
-        { upTo: 94300, rate: 0.12 },
-        { upTo: 201050, rate: 0.22 },
-        { upTo: 383900, rate: 0.24 },
-        { upTo: 487450, rate: 0.32 },
-        { upTo: 731200, rate: 0.35 },
-        { upTo: null, rate: 0.37 },
-      ],
-      married_separate: [
-        { upTo: 11600, rate: 0.10 },
-        { upTo: 47150, rate: 0.12 },
-        { upTo: 100525, rate: 0.22 },
-        { upTo: 191950, rate: 0.24 },
-        { upTo: 243725, rate: 0.32 },
-        { upTo: 365600, rate: 0.35 },
-        { upTo: null, rate: 0.37 },
-      ],
-      head: [
-        { upTo: 16550, rate: 0.10 },
-        { upTo: 63100, rate: 0.12 },
-        { upTo: 100500, rate: 0.22 },
-        { upTo: 191950, rate: 0.24 },
-        { upTo: 243700, rate: 0.32 },
-        { upTo: 609350, rate: 0.35 },
-        { upTo: null, rate: 0.37 },
-      ],
+      single: FEDERAL_2025.brackets.single,
+      married_joint: FEDERAL_2025.brackets.married_joint,
+      married_separate: FEDERAL_2025.brackets.single,  // MFS uses same brackets as Single
+      head: FEDERAL_2025.brackets.head,
     },
   },
 
