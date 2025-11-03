@@ -205,8 +205,23 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
       expenses: totalExpenses,
     };
     
+    // Debug logging
+    console.log('Tax Calculation Debug:', {
+      ytdGross: ytdData.ytdGross,
+      ytdExpenses: ytdData.ytdExpenses,
+      ytdNetSE: ytdInput.netSE,
+      gigGross: gigData.gross,
+      gigExpenses: gigData.expenses,
+      taxProfile: {
+        state: taxProfile.state,
+        filingStatus: taxProfile.filingStatus,
+      }
+    });
+    
     try {
-      return taxDeltaForGig(ytdInput, gigData, taxProfile);
+      const result = taxDeltaForGig(ytdInput, gigData, taxProfile);
+      console.log('Tax Result:', result);
+      return result;
     } catch (error) {
       console.error('Error calculating tax set-aside:', error);
       return null;
