@@ -155,38 +155,49 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
   const { data: taxProfile } = useTaxProfile();
   
   // Get YTD data for tax calculation
-  const { data: ytdGigs } = useQuery<Array<{
-    gross_amount: number;
-    tips: number;
-    per_diem: number;
-    other_income: number;
-    fees: number;
-  }>>({
-    queryKey: ['ytd-gigs-for-tax'],
+  const { data: ytdData } = useQuery<{
+    ytdGross: number;
+    ytdExpenses: number;
+  }>({
+    queryKey: ['ytd-tax-data'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+      
+      // Get YTD gigs
+      const { data: gigs, error: gigsError } = await supabase
         .from('gigs')
         .select('gross_amount, tips, per_diem, other_income, fees')
-        .gte('date', new Date(new Date().getFullYear(), 0, 1).toISOString());
-      if (error) throw error;
-      return (data || []) as any;
+        .gte('date', yearStart);
+      
+      if (gigsError) throw gigsError;
+      
+      // Get YTD expenses
+      const { data: expenses, error: expensesError } = await supabase
+        .from('expenses')
+        .select('amount')
+        .gte('date', yearStart);
+      
+      if (expensesError) throw expensesError;
+      
+      const ytdGross = (gigs || []).reduce((sum, gig: any) => 
+        sum + (gig.gross_amount || 0) + (gig.tips || 0) + 
+        (gig.per_diem || 0) + (gig.other_income || 0) - (gig.fees || 0), 0
+      );
+      
+      const ytdExpenses = (expenses || []).reduce((sum, exp: any) => sum + (exp.amount || 0), 0);
+      
+      return { ytdGross, ytdExpenses };
     },
   });
   
   // Calculate set-aside for this gig
   const gigSetAside = React.useMemo(() => {
-    if (!taxProfile || !ytdGigs) return null;
+    if (!taxProfile || !ytdData) return null;
     
-    // Calculate YTD gross income
-    const ytdGross = ytdGigs.reduce((sum, gig) => 
-      sum + (gig.gross_amount || 0) + (gig.tips || 0) + 
-      (gig.per_diem || 0) + (gig.other_income || 0) - (gig.fees || 0), 0
-    );
-    
-    const ytdData = {
-      grossIncome: ytdGross,
+    const ytdInput = {
+      grossIncome: ytdData.ytdGross,
       adjustments: 0,
-      netSE: ytdGross - totalExpenses, // Simplified - should include all YTD expenses
+      netSE: ytdData.ytdGross - ytdData.ytdExpenses,
     };
     
     const gigData = {
@@ -195,12 +206,12 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
     };
     
     try {
-      return taxDeltaForGig(ytdData, gigData, taxProfile);
+      return taxDeltaForGig(ytdInput, gigData, taxProfile);
     } catch (error) {
       console.error('Error calculating tax set-aside:', error);
       return null;
     }
-  }, [taxProfile, ytdGigs, grossAmount, totalExpenses]);
+  }, [taxProfile, ytdData, grossAmount, totalExpenses]);
 
   useEffect(() => {
     if (editingGig) {
