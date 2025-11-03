@@ -47,8 +47,15 @@ export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion }: US
       <Geographies geography={{ type: 'FeatureCollection', features: geographies }}>
         {({ geographies }: any) =>
           geographies.map((geo: any) => {
-            // Get state code from properties (id is FIPS code, we need postal code)
-            const stateCode = geo.properties.name ? getStateCodeFromName(geo.properties.name) : null;
+            // Get state code from properties
+            // TopoJSON might use 'name' or 'NAME' property
+            const stateName = geo.properties.name || geo.properties.NAME;
+            const stateCode = stateName ? getStateCodeFromName(stateName) : null;
+            
+            // Debug: log if we can't find a state code
+            if (!stateCode && stateName) {
+              console.warn('Could not map state name to code:', stateName, geo.properties);
+            }
             if (!stateCode) return null;
 
             const regionStats = stats[stateCode];
