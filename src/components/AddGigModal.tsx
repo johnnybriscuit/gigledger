@@ -586,8 +586,8 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
               </Text>
             </View>
 
-            {/* Withholding Recommendation Card */}
-            {withholdingAmount > 0 && withholdingBreakdown && (
+            {/* Withholding Recommendation Card - Only show if no new tax profile */}
+            {withholdingAmount > 0 && withholdingBreakdown && !gigSetAside && (
               <View style={styles.withholdingCard}>
                 <View style={styles.withholdingHeader}>
                   <Text style={styles.withholdingTitle}>💰 Recommended Set-Aside</Text>
