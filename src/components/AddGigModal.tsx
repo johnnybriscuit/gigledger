@@ -331,7 +331,7 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
 
   const handleSubmit = async () => {
     try {
-      const formData: GigFormData = {
+      const formData: any = {
         payer_id: payerId,
         date,
         title,
@@ -339,6 +339,8 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
         city: city || undefined,
         state: state || undefined,
         country: country || undefined,
+        country_code: country || 'US', // Map to database column
+        state_code: state || undefined, // Map to database column
         gross_amount: parseFloat(grossAmount) || 0,
         tips: parseFloat(tips) || 0,
         fees: parseFloat(fees) || 0,
