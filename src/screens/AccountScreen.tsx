@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateUserTaxProfile } from '../services/taxService';
+import { TaxSettingsSection } from '../components/TaxSettingsSection';
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' },
@@ -68,24 +68,15 @@ const US_STATES = [
   { code: 'DC', name: 'District of Columbia' },
 ];
 
-const FILING_STATUSES = [
-  { value: 'single', label: 'Single' },
-  { value: 'married', label: 'Married Filing Jointly' },
-  { value: 'hoh', label: 'Head of Household' },
-];
 
 export function AccountScreen() {
   const queryClient = useQueryClient();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isEditingTax, setIsEditingTax] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [showStatePicker, setShowStatePicker] = useState(false);
 
   // Form states
   const [fullName, setFullName] = useState('');
   const [homeAddress, setHomeAddress] = useState('');
-  const [selectedState, setSelectedState] = useState<string | null>(null);
-  const [selectedFilingStatus, setSelectedFilingStatus] = useState<'single' | 'married' | 'hoh'>('single');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -117,8 +108,6 @@ export function AccountScreen() {
       // Set initial form values
       setFullName(profile.full_name || '');
       setHomeAddress(profile.home_address || '');
-      setSelectedState(profile.state_code || null);
-      setSelectedFilingStatus(profile.filing_status || 'single');
       
       return profile;
     },
@@ -139,9 +128,9 @@ export function AccountScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await (supabase
+      const { error } = await supabase
         .from('profiles')
-        .update(updates) as any)
+        .update(updates)
         .eq('id', user.id);
 
       if (error) throw error;
@@ -153,22 +142,6 @@ export function AccountScreen() {
     },
     onError: (error: any) => {
       Alert.alert('Error', error.message || 'Failed to update profile');
-    },
-  });
-
-  // Update tax settings mutation
-  const updateTaxMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedState) throw new Error('State is required');
-      await updateUserTaxProfile(selectedState, selectedFilingStatus);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      setIsEditingTax(false);
-      Alert.alert('Success', 'Tax settings updated successfully');
-    },
-    onError: (error: any) => {
-      Alert.alert('Error', error.message || 'Failed to update tax settings');
     },
   });
 
@@ -235,20 +208,9 @@ export function AccountScreen() {
     });
   };
 
-  const handleSaveTax = () => {
-    if (!selectedState) {
-      Alert.alert('Error', 'State is required');
-      return;
-    }
-    updateTaxMutation.mutate();
-  };
-
   const handleChangePassword = () => {
     changePasswordMutation.mutate();
   };
-
-  const selectedStateName = US_STATES.find((s) => s.code === selectedState)?.name;
-  const selectedFilingStatusLabel = FILING_STATUSES.find((s) => s.value === selectedFilingStatus)?.label;
 
   if (profileLoading) {
     return (
@@ -339,86 +301,7 @@ export function AccountScreen() {
         </View>
 
         {/* Tax Settings Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Tax Settings</Text>
-            {!isEditingTax && (
-              <TouchableOpacity onPress={() => setIsEditingTax(true)}>
-                <Text style={styles.editButton}>Edit</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>State of Residence</Text>
-              {isEditingTax ? (
-                <TouchableOpacity
-                  style={styles.selectButton}
-                  onPress={() => setShowStatePicker(true)}
-                >
-                  <Text style={[styles.selectButtonText, !selectedState && styles.placeholder]}>
-                    {selectedStateName || 'Select your state'}
-                  </Text>
-                  <Text style={styles.selectButtonIcon}>▼</Text>
-                </TouchableOpacity>
-              ) : (
-                <Text style={styles.fieldValue}>{selectedStateName || 'Not set'}</Text>
-              )}
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Filing Status</Text>
-              {isEditingTax ? (
-                <View style={styles.radioGroup}>
-                  {FILING_STATUSES.map((status) => (
-                    <TouchableOpacity
-                      key={status.value}
-                      style={[
-                        styles.radioOption,
-                        selectedFilingStatus === status.value && styles.radioOptionSelected,
-                      ]}
-                      onPress={() => setSelectedFilingStatus(status.value as 'single' | 'married' | 'hoh')}
-                    >
-                      <View style={styles.radioCircle}>
-                        {selectedFilingStatus === status.value && <View style={styles.radioCircleInner} />}
-                      </View>
-                      <Text style={styles.radioLabel}>{status.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.fieldValue}>{selectedFilingStatusLabel || 'Not set'}</Text>
-              )}
-            </View>
-
-            {isEditingTax && (
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonSecondary]}
-                  onPress={() => {
-                    setIsEditingTax(false);
-                    setSelectedState(profile?.state_code || null);
-                    setSelectedFilingStatus(profile?.filing_status || 'single');
-                  }}
-                >
-                  <Text style={styles.buttonSecondaryText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonPrimary]}
-                  onPress={handleSaveTax}
-                  disabled={updateTaxMutation.isPending}
-                >
-                  {updateTaxMutation.isPending ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Text style={styles.buttonPrimaryText}>Save</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
+        <TaxSettingsSection />
 
         {/* Security Section */}
         <View style={styles.section}>
@@ -496,40 +379,6 @@ export function AccountScreen() {
         </View>
       </View>
 
-      {/* State Picker Modal */}
-      {showStatePicker && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select State</Text>
-              <TouchableOpacity onPress={() => setShowStatePicker(false)}>
-                <Text style={styles.modalClose}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.stateList}>
-              {US_STATES.map((state) => (
-                <TouchableOpacity
-                  key={state.code}
-                  style={styles.stateOption}
-                  onPress={() => {
-                    setSelectedState(state.code);
-                    setShowStatePicker(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.stateOptionText,
-                      selectedState === state.code && styles.stateOptionTextSelected,
-                    ]}
-                  >
-                    {state.name} ({state.code})
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      )}
     </ScrollView>
   );
 }
