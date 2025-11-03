@@ -23,6 +23,8 @@ import { useTaxEstimate, calculateMileageDeduction } from '../hooks/useTaxEstima
 import { createGigWithLines } from '../services/gigService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { useTaxProfile } from '../hooks/useTaxProfile';
+import { taxDeltaForGig, formatTaxAmount, formatTaxRate } from '../tax/engine';
 
 interface AddGigModalProps {
   visible: boolean;
@@ -147,6 +149,57 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
   // Legacy withholding for backward compatibility
   const withholdingAmount = netBeforeTax;
   const { breakdown: withholdingBreakdown, loading: withholdingLoading, hasProfile } = useWithholding(withholdingAmount);
+
+  // New 2025 tax engine calculation
+  const { data: taxProfile } = useTaxProfile();
+  
+  // Get YTD data for tax calculation
+  const { data: ytdGigs } = useQuery<Array<{
+    gross_amount: number;
+    tips: number;
+    per_diem: number;
+    other_income: number;
+    fees: number;
+  }>>({
+    queryKey: ['ytd-gigs-for-tax'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('gigs')
+        .select('gross_amount, tips, per_diem, other_income, fees')
+        .gte('date', new Date(new Date().getFullYear(), 0, 1).toISOString());
+      if (error) throw error;
+      return (data || []) as any;
+    },
+  });
+  
+  // Calculate set-aside for this gig
+  const gigSetAside = React.useMemo(() => {
+    if (!taxProfile || !ytdGigs) return null;
+    
+    // Calculate YTD gross income
+    const ytdGross = ytdGigs.reduce((sum, gig) => 
+      sum + (gig.gross_amount || 0) + (gig.tips || 0) + 
+      (gig.per_diem || 0) + (gig.other_income || 0) - (gig.fees || 0), 0
+    );
+    
+    const ytdData = {
+      grossIncome: ytdGross,
+      adjustments: 0,
+      netSE: ytdGross - totalExpenses, // Simplified - should include all YTD expenses
+    };
+    
+    const gigData = {
+      gross: parseFloat(grossAmount) || 0,
+      expenses: totalExpenses,
+    };
+    
+    try {
+      return taxDeltaForGig(ytdData, gigData, taxProfile);
+    } catch (error) {
+      console.error('Error calculating tax set-aside:', error);
+      return null;
+    }
+  }, [taxProfile, ytdGigs, grossAmount, totalExpenses]);
 
   useEffect(() => {
     if (editingGig) {
@@ -677,6 +730,42 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
             taxEstimate={taxEstimate}
           />
 
+          {/* Tax Set-Aside Display */}
+          {gigSetAside && (
+            <View style={styles.taxSetAsideContainer}>
+              <View style={styles.taxSetAsideHeader}>
+                <Text style={styles.taxSetAsideLabel}>💰 Set Aside for Taxes</Text>
+                <Text style={styles.taxSetAsideHint}>Based on your 2025 tax profile</Text>
+              </View>
+              <View style={styles.taxSetAsidePill}>
+                <Text style={styles.taxSetAsideAmount}>
+                  {formatTaxAmount(gigSetAside.amount)}
+                </Text>
+                <Text style={styles.taxSetAsideRate}>
+                  {formatTaxRate(gigSetAside.rate)}
+                </Text>
+              </View>
+              {gigSetAside.breakdown && (
+                <View style={styles.taxBreakdown}>
+                  <Text style={styles.taxBreakdownItem}>
+                    Federal: {formatTaxAmount(gigSetAside.breakdown.federal)}
+                  </Text>
+                  <Text style={styles.taxBreakdownItem}>
+                    State: {formatTaxAmount(gigSetAside.breakdown.state)}
+                  </Text>
+                  {gigSetAside.breakdown.local > 0 && (
+                    <Text style={styles.taxBreakdownItem}>
+                      Local: {formatTaxAmount(gigSetAside.breakdown.local)}
+                    </Text>
+                  )}
+                  <Text style={styles.taxBreakdownItem}>
+                    SE Tax: {formatTaxAmount(gigSetAside.breakdown.seTax)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Submit Button */}
           <View style={styles.submitButtonContainer}>
             <TouchableOpacity 
@@ -1137,6 +1226,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     fontWeight: '500',
+  },
+  taxSetAsideContainer: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 2,
+    borderColor: '#2563eb',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  taxSetAsideHeader: {
+    marginBottom: 12,
+  },
+  taxSetAsideLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  taxSetAsideHint: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  taxSetAsidePill: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  taxSetAsideAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e40af',
+  },
+  taxSetAsideRate: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#2563eb',
+  },
+  taxBreakdown: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  taxBreakdownItem: {
+    fontSize: 13,
+    color: '#374151',
   },
   submitButtonContainer: {
     padding: 16,
