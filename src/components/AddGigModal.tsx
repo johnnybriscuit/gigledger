@@ -235,8 +235,11 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
       setTitle(editingGig.title);
       setLocation(editingGig.location || '');
       setCity(editingGig.city || '');
-      setState(editingGig.state || '');
-      setCountry(editingGig.country || 'US');
+      // Prefer state_code if available, fallback to state (for old gigs)
+      const stateValue = (editingGig as any).state_code || editingGig.state || '';
+      setState(stateValue);
+      const countryValue = (editingGig as any).country_code || editingGig.country || 'US';
+      setCountry(countryValue);
       setGrossAmount(editingGig.gross_amount.toString());
       setTips(editingGig.tips.toString());
       setFees(editingGig.fees.toString());
