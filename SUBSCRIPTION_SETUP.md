@@ -5,8 +5,8 @@ This guide will help you set up Stripe subscriptions for GigLedger.
 ## Overview
 
 The subscription system includes:
-- **Monthly Plan**: $9.99/month
-- **Yearly Plan**: $99.99/year (17% savings)
+- **Monthly Plan**: $4.99/month
+- **Yearly Plan**: $49.99/year (16% savings)
 - Stripe Checkout for payments
 - Stripe Customer Portal for subscription management
 - Webhook integration for automatic subscription updates
@@ -26,13 +26,13 @@ The subscription system includes:
 2. **Create Monthly Subscription:**
    - Name: `GigLedger Monthly`
    - Description: `Monthly subscription to GigLedger Premium`
-   - Pricing: `$9.99 USD` recurring monthly
+   - Pricing: `$4.99 USD` recurring monthly
    - Copy the **Price ID** (starts with `price_...`)
 
 3. **Create Yearly Subscription:**
    - Name: `GigLedger Yearly`
    - Description: `Yearly subscription to GigLedger Premium`
-   - Pricing: `$99.99 USD` recurring yearly
+   - Pricing: `$49.99 USD` recurring yearly
    - Copy the **Price ID** (starts with `price_...`)
 
 ## Step 3: Set Up Webhook
@@ -193,11 +193,11 @@ function AddGigButton() {
 
 ## Pricing Recommendations
 
-Based on similar apps:
+Current pricing (can be changed anytime):
 
 - **Free Tier**: 10-20 gigs, basic features
-- **Monthly**: $9.99 - $14.99/month
-- **Yearly**: $99 - $149/year (offer 15-20% discount)
+- **Monthly**: $4.99/month
+- **Yearly**: $49.99/year (16% savings)
 
 ## Features to Gate
 

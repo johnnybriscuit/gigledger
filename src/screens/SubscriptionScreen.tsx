@@ -24,8 +24,8 @@ import {
 const STRIPE_MONTHLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID || 'price_monthly';
 const STRIPE_YEARLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID || 'price_yearly';
 
-const MONTHLY_PRICE = 9.99;
-const YEARLY_PRICE = 99.99;
+const MONTHLY_PRICE = 4.99;
+const YEARLY_PRICE = 49.99;
 
 export function SubscriptionScreen() {
   const { data: subscription, isLoading } = useSubscription();
@@ -148,7 +148,7 @@ export function SubscriptionScreen() {
             onPress={() => setSelectedPlan('yearly')}
           >
             <View style={styles.planBadge}>
-              <Text style={styles.planBadgeText}>Save 17%</Text>
+              <Text style={styles.planBadgeText}>Save 16%</Text>
             </View>
             <View style={styles.planHeader}>
               <Text style={styles.planOptionTitle}>Yearly</Text>
