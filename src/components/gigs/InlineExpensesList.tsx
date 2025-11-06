@@ -9,8 +9,9 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 
 export interface InlineExpense {
   id: string; // Temporary ID for UI
   category: string;
+  description: string; // Main description (e.g., "Gas for tour")
   amount: string;
-  note?: string;
+  note?: string; // Optional additional notes
   receiptUri?: string;
 }
 
@@ -34,6 +35,7 @@ export function InlineExpensesList({ expenses, onChange }: InlineExpensesListPro
     const newExpense: InlineExpense = {
       id: `temp-${Date.now()}`,
       category: 'Other',
+      description: '',
       amount: '',
       note: '',
     };
@@ -97,6 +99,15 @@ export function InlineExpensesList({ expenses, onChange }: InlineExpensesListPro
                   </TouchableOpacity>
                 ))}
               </ScrollView>
+
+              {/* Description */}
+              <TextInput
+                style={[styles.input, styles.descriptionInput]}
+                value={expense.description}
+                onChangeText={(text) => updateExpense(expense.id, { description: text })}
+                placeholder="e.g., Gas for tour"
+                placeholderTextColor="#9ca3af"
+              />
 
               {/* Amount and Note */}
               <View style={styles.inputRow}>
@@ -210,6 +221,9 @@ const styles = StyleSheet.create({
   },
   amountInput: {
     width: 80,
+  },
+  descriptionInput: {
+    marginBottom: 8,
   },
   noteInput: {
     flex: 1,

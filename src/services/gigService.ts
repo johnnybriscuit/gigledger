@@ -12,6 +12,7 @@ type MileageInsert = Database['public']['Tables']['mileage']['Insert'];
 
 export interface InlineExpenseData {
   category: string;
+  description: string;
   amount: number;
   note?: string;
 }
@@ -60,7 +61,7 @@ export async function createGigWithLines({
         user_id: user.id,
         gig_id: gigId,
         category: exp.category,
-        description: exp.category, // Use category as description
+        description: exp.description || exp.category, // Use provided description or fallback to category
         amount: exp.amount,
         notes: exp.note || null,
         date: gig.date, // Use gig date for expenses

@@ -380,6 +380,7 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
         // Prepare inline expenses data
         const expensesData = inlineExpenses.map(exp => ({
           category: exp.category,
+          description: exp.description,
           amount: parseFloat(exp.amount) || 0,
           note: exp.note,
         }));
