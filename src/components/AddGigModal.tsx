@@ -333,6 +333,16 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
   };
 
   const handleSubmit = async () => {
+    // Early validation for payer
+    if (!payerId) {
+      Alert.alert(
+        'Payer Required',
+        'Please select a payer before adding this gig. You can add a new payer from the Payers tab if needed.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
       const formData: any = {
         payer_id: payerId,
@@ -458,6 +468,14 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
                 <Text style={styles.helperText}>
                   No payers yet. Add one from the Payers tab first.
                 </Text>
+              )}
+              {payers && payers.length > 0 && !payerId && (
+                <View style={styles.reminderBox}>
+                  <Text style={styles.reminderIcon}>⚠️</Text>
+                  <Text style={styles.reminderText}>
+                    Please select a payer above to continue
+                  </Text>
+                </View>
               )}
             </View>
 
@@ -1183,6 +1201,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
     fontStyle: 'italic',
+  },
+  reminderBox: {
+    backgroundColor: '#fef3c7',
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reminderIcon: {
+    fontSize: 16,
+  },
+  reminderText: {
+    fontSize: 13,
+    color: '#92400e',
+    fontWeight: '500',
+    flex: 1,
   },
   row: {
     flexDirection: 'row',
