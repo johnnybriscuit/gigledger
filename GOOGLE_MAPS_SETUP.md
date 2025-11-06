@@ -29,7 +29,7 @@ You need to set the `GOOGLE_MAPS_API_KEY` environment variable in Vercel:
 2. Navigate to **Settings** → **Environment Variables**
 3. Add a new variable:
    - **Name**: `GOOGLE_MAPS_API_KEY`
-   - **Value**: Your Google Maps API key
+   - **Value**: AIzaSyBNJRJ7kKDS1bGHaKmbpQf9D9nFc51wZqw
    - **Environments**: Production, Preview, Development
 
 ### 3. How It Works

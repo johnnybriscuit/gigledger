@@ -125,6 +125,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          gig_id: string | null
           date: string
           vendor: string | null
           description: string
@@ -138,6 +139,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
+          gig_id?: string | null
           date: string
           vendor?: string | null
           description: string
@@ -151,6 +153,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
+          gig_id?: string | null
           date?: string
           vendor?: string | null
           description?: string
@@ -166,6 +169,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          gig_id: string | null
           date: string
           purpose: string
           start_location: string
@@ -178,6 +182,7 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
+          gig_id?: string | null
           date: string
           purpose: string
           start_location: string
@@ -190,6 +195,7 @@ export interface Database {
         Update: {
           id?: string
           user_id?: string
+          gig_id?: string | null
           date?: string
           purpose?: string
           start_location?: string
