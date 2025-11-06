@@ -57,6 +57,7 @@
     "@types/react": "~19.1.0",
     "@types/react-simple-maps": "^3.0.6",
     "@types/topojson-client": "^3.1.5",
+    "@vercel/node": "^5.5.4",
     "babel-preset-expo": "^54.0.4",
     "tailwindcss": "^3.4.1",
     "typescript": "~5.9.2"

@@ -23,33 +23,44 @@ export async function calculateDrivingDistance(
   destination: string,
   roundTrip: boolean = true
 ): Promise<MileageCalculation | null> {
-  // Hardcoded API key for now - move to secure backend in production
-  const apiKey = 'AIzaSyBNJRJ7kKDS1bGHaKmbpQf9D9nFc51wZqw';
-  
-  if (!apiKey) {
-    console.log('No Google Maps API key found');
-    return null;
-  }
-  
-  // Use CORS proxy for web, direct API for mobile
+  // Determine if we're running on web or native
   const isWeb = typeof window !== 'undefined' && window.document;
-  const baseUrl = isWeb 
-    ? 'https://cors-anywhere.herokuapp.com/https://maps.googleapis.com/maps/api/distancematrix/json'
-    : 'https://maps.googleapis.com/maps/api/distancematrix/json';
   
-  const url = `${baseUrl}?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${apiKey}`;
+  // For web, use our serverless function proxy to avoid CORS
+  // For native, use the API directly
+  const url = isWeb
+    ? `/api/distance?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
+    : (() => {
+        const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+        if (!apiKey) {
+          throw new Error('API_KEY_MISSING');
+        }
+        return `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${apiKey}`;
+      })();
   
   try {
     console.log('Calculating distance from:', origin, 'to:', destination);
-    const response = await fetch(url, {
-      headers: isWeb ? {
-        'X-Requested-With': 'XMLHttpRequest'
-      } : {}
-    });
+    const response = await fetch(url);
     
     if (!response.ok) {
       console.error('API response not OK:', response.status, response.statusText);
-      return null;
+      
+      // Try to get error details from response
+      try {
+        const errorData = await response.json();
+        if (errorData.code === 'API_KEY_MISSING') {
+          throw new Error('API_KEY_MISSING');
+        } else if (errorData.code === 'API_KEY_INVALID') {
+          throw new Error('API_KEY_INVALID');
+        }
+      } catch (e) {
+        // If we can't parse error, continue with status-based error
+      }
+      
+      if (response.status === 403) {
+        throw new Error('API_KEY_INVALID');
+      }
+      throw new Error('API_ERROR');
     }
     
     const data = await response.json();
@@ -66,14 +77,25 @@ export async function calculateDrivingDistance(
         duration: element.duration.text,
         distance: element.distance.text,
       };
+    } else if (data.status === 'REQUEST_DENIED') {
+      console.error('Distance API error: REQUEST_DENIED -', data.error_message);
+      throw new Error('API_KEY_INVALID');
+    } else if (data.status === 'ZERO_RESULTS') {
+      console.error('Distance API error: No route found between addresses');
+      throw new Error('NO_ROUTE');
     } else {
       console.error('Distance API error:', data.status, data.error_message);
+      throw new Error('API_ERROR');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error calculating distance:', error);
+    // Re-throw specific errors, wrap others
+    if (error.message?.startsWith('API_') || error.message === 'NO_ROUTE') {
+      throw error;
+    }
+    // Network error
+    throw new Error('NETWORK_ERROR');
   }
-  
-  return null;
 }
 
 /**

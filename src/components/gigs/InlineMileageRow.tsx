@@ -46,13 +46,26 @@ export function InlineMileageRow({ mileage, onChange, homeAddress, venueAddress 
           venueAddress,
           roundTrip,
         });
-      } else {
-        // API not configured, show message
-        alert('Google Maps API not configured. Please enter miles manually or add API key in settings.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error calculating mileage:', error);
-      alert('Failed to calculate mileage. Please enter manually.');
+      
+      // Provide specific error messages based on error type
+      let errorMessage = 'Failed to calculate mileage. Please enter manually.';
+      
+      if (error.message === 'API_KEY_MISSING') {
+        errorMessage = 'Google Maps API not configured. Please enter miles manually or add API key in settings.';
+      } else if (error.message === 'API_KEY_INVALID') {
+        errorMessage = 'Google Maps API key is invalid or restricted. Please check your API key configuration.';
+      } else if (error.message === 'NO_ROUTE') {
+        errorMessage = 'No route found between addresses. Please check the addresses and try again.';
+      } else if (error.message === 'NETWORK_ERROR') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message === 'API_ERROR') {
+        errorMessage = 'Google Maps API error. Please try again or enter miles manually.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setCalculating(false);
     }
