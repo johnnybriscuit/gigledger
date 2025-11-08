@@ -14,15 +14,16 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import Constants from 'expo-constants';
 import {
   useSubscription,
   useCreateCheckoutSession,
   useCreatePortalSession,
 } from '../hooks/useSubscription';
 
-// Replace these with your actual Stripe Price IDs from your Stripe Dashboard
-const STRIPE_MONTHLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID || 'price_monthly';
-const STRIPE_YEARLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID || 'price_yearly';
+// Get Stripe Price IDs from app.json
+const STRIPE_MONTHLY_PRICE_ID = Constants.expoConfig?.extra?.stripeMonthlyPriceId || 'price_1SREuh1zc5DHhlVtxhHYiIwG';
+const STRIPE_YEARLY_PRICE_ID = Constants.expoConfig?.extra?.stripeYearlyPriceId || 'price_1SQZzb1zc5DHhlVtIejNSBvx';
 
 const MONTHLY_PRICE = 4.99;
 const YEARLY_PRICE = 49.99;
