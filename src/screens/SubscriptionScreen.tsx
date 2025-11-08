@@ -102,6 +102,30 @@ export function SubscriptionScreen() {
             )}
           </View>
 
+          {/* Show upgrade option for monthly subscribers */}
+          {subscription.tier === 'monthly' && !subscription.cancel_at_period_end && (
+            <View style={styles.upgradeContainer}>
+              <View style={styles.upgradeBadge}>
+                <Text style={styles.upgradeBadgeText}>💰 Save 16%</Text>
+              </View>
+              <Text style={styles.upgradeTitle}>Upgrade to Yearly</Text>
+              <Text style={styles.upgradeDescription}>
+                Pay ${YEARLY_PRICE}/year instead of ${(MONTHLY_PRICE * 12).toFixed(2)}/year
+              </Text>
+              <TouchableOpacity
+                style={styles.upgradeButton}
+                onPress={() => handleSubscribe('yearly')}
+                disabled={createCheckout.isPending}
+              >
+                {createCheckout.isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.upgradeButtonText}>Upgrade to Yearly Plan</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
           <TouchableOpacity
             style={styles.manageButton}
             onPress={handleManageSubscription}
@@ -275,6 +299,50 @@ const styles = StyleSheet.create({
   renewalText: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  upgradeContainer: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#fbbf24',
+  },
+  upgradeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#10b981',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  upgradeBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  upgradeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  upgradeDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 12,
+  },
+  upgradeButton: {
+    backgroundColor: '#10b981',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   planOption: {
     backgroundColor: '#f9fafb',
