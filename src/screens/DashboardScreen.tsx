@@ -7,6 +7,7 @@ import { ExpensesScreen } from './ExpensesScreen';
 import { MileageScreen } from './MileageScreen';
 import { ExportsScreen } from './ExportsScreen';
 import { AccountScreen } from './AccountScreen';
+import { SubscriptionScreen } from './SubscriptionScreen';
 import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { TaxProfileOnboarding } from '../components/TaxProfileOnboarding';
@@ -15,7 +16,7 @@ import { useDateRange } from '../hooks/useDateRange';
 import { useHasTaxProfile } from '../hooks/useTaxProfile';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
 
-type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'account';
+type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'subscription' | 'account';
 
 export function DashboardScreen() {
   // Load active tab from localStorage on mount
@@ -78,6 +79,8 @@ export function DashboardScreen() {
         return <MileageScreen />;
       case 'exports':
         return <ExportsScreen />;
+      case 'subscription':
+        return <SubscriptionScreen />;
       case 'account':
         return <AccountScreen />;
       default:
@@ -165,6 +168,15 @@ export function DashboardScreen() {
         >
           <Text style={[styles.tabText, activeTab === 'exports' && styles.tabTextActive]}>
             Exports
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'subscription' && styles.tabActive]}
+          onPress={() => setActiveTab('subscription')}
+        >
+          <Text style={[styles.tabText, activeTab === 'subscription' && styles.tabTextActive]}>
+            Subscription
           </Text>
         </TouchableOpacity>
 
