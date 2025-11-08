@@ -14,6 +14,21 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY! // Use service role key for admin access
 );
 
+// Disable body parsing, need raw body for webhook signature verification
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+async function getRawBody(req: VercelRequest): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -25,7 +40,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    const rawBody = await getRawBody(req);
+    console.log('Webhook received, signature:', sig?.substring(0, 20) + '...');
+    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    console.log('Webhook verified, event type:', event.type);
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).json({ error: `Webhook Error: ${err.message}` });
@@ -77,8 +95,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
+  console.log('Processing subscription update:', subscription.id);
   const customerId = subscription.customer as string;
   const priceId = subscription.items.data[0]?.price.id;
+  console.log('Price ID:', priceId);
+  console.log('Expected monthly:', process.env.STRIPE_MONTHLY_PRICE_ID);
+  console.log('Expected yearly:', process.env.STRIPE_YEARLY_PRICE_ID);
 
   // Determine tier based on price ID
   let tier: 'free' | 'monthly' | 'yearly' = 'free';
@@ -87,10 +109,12 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   } else if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) {
     tier = 'yearly';
   }
+  console.log('Determined tier:', tier);
 
   // Get user_id from customer metadata
   const customer = await stripe.customers.retrieve(customerId);
   const userId = (customer as Stripe.Customer).metadata?.supabase_user_id;
+  console.log('User ID from metadata:', userId);
 
   if (!userId) {
     throw new Error('No user_id found in customer metadata');
@@ -114,6 +138,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       : null,
   };
 
+  console.log('Upserting subscription data:', subscriptionData);
   const { error } = await supabase
     .from('subscriptions')
     .upsert(subscriptionData, { onConflict: 'user_id' });
@@ -122,6 +147,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     console.error('Error upserting subscription:', error);
     throw error;
   }
+  console.log('Subscription successfully upserted for user:', userId);
 }
 
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
