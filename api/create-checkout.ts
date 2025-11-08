@@ -6,9 +6,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-10-29.clover',
-});
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not set');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -16,9 +18,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    console.log('Create checkout request:', { body: req.body });
+    
     const { priceId, userId, userEmail } = req.body;
 
     if (!priceId || !userId || !userEmail) {
+      console.error('Missing fields:', { priceId: !!priceId, userId: !!userId, userEmail: !!userEmail });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -63,9 +68,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     });
 
+    console.log('Checkout session created:', session.id);
     res.status(200).json({ sessionId: session.id, url: session.url });
   } catch (error: any) {
     console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: error.message,
+      details: error.stack,
+      type: error.type 
+    });
   }
 }
