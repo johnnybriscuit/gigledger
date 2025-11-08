@@ -64,8 +64,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
       }
 
-      case 'invoice.payment_succeeded': {
+      case 'invoice.payment_succeeded':
+      case 'invoice.paid':
+      case 'invoice.finalized': {
         const invoice = event.data.object as any;
+        console.log('Invoice event:', event.type, 'Status:', invoice.status);
         if (invoice.subscription) {
           const subscription = await stripe.subscriptions.retrieve(
             invoice.subscription as string
