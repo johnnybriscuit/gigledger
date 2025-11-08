@@ -109,6 +109,12 @@ export function SubscriptionScreen() {
             )}
           </View>
 
+          {/* Debug info - remove after testing */}
+          <View style={{ padding: 10, backgroundColor: '#fee', marginVertical: 10 }}>
+            <Text>DEBUG: tier={subscription.tier}, cancel_at_period_end={String(subscription.cancel_at_period_end)}</Text>
+            <Text>Show upgrade? {String(subscription.tier === 'monthly' && !subscription.cancel_at_period_end)}</Text>
+          </View>
+
           {/* Show upgrade option for monthly subscribers */}
           {subscription.tier === 'monthly' && !subscription.cancel_at_period_end && (
             <View style={styles.upgradeContainer}>
