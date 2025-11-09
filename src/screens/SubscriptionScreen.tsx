@@ -70,13 +70,6 @@ export function SubscriptionScreen() {
   const hasActiveSubscription = subscription?.status === 'active' || subscription?.status === 'trialing';
   const isPaidPlan = subscription?.tier === 'monthly' || subscription?.tier === 'yearly';
 
-  // Debug logging
-  console.log('Subscription data:', subscription);
-  console.log('Has active subscription:', hasActiveSubscription);
-  console.log('Is paid plan:', isPaidPlan);
-  console.log('Tier:', subscription?.tier);
-  console.log('Cancel at period end:', subscription?.cancel_at_period_end);
-
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -107,12 +100,6 @@ export function SubscriptionScreen() {
                 {new Date(subscription.current_period_end).toLocaleDateString()}
               </Text>
             )}
-          </View>
-
-          {/* Debug info - remove after testing */}
-          <View style={{ padding: 10, backgroundColor: '#fee', marginVertical: 10 }}>
-            <Text>DEBUG: tier={subscription.tier}, cancel_at_period_end={String(subscription.cancel_at_period_end)}</Text>
-            <Text>Show upgrade? {String(subscription.tier === 'monthly' && !subscription.cancel_at_period_end)}</Text>
           </View>
 
           {/* Show upgrade option for monthly subscribers */}
