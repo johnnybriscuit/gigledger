@@ -10,10 +10,8 @@ import { AccountScreen } from './AccountScreen';
 import { SubscriptionScreen } from './SubscriptionScreen';
 import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
-import { TaxProfileOnboarding } from '../components/TaxProfileOnboarding';
 import { useQuery } from '@tanstack/react-query';
 import { useDateRange } from '../hooks/useDateRange';
-import { useHasTaxProfile } from '../hooks/useTaxProfile';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
 import { Toast } from '../components/Toast'; // Import Toast component
 
@@ -31,11 +29,7 @@ export function DashboardScreen() {
   const { range, customStart, customEnd, setRange, setCustomRange } = useDateRange();
   const [showAddGigModal, setShowAddGigModal] = useState(false);
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
-  const [showTaxOnboarding, setShowTaxOnboarding] = useState(false);
   const [showOnboardingToast, setShowOnboardingToast] = useState(false);
-  
-  // Check if user has tax profile
-  const { hasProfile, isLoading: isLoadingTaxProfile } = useHasTaxProfile();
 
   // Check if we should show onboarding completion toast
   useEffect(() => {
@@ -54,13 +48,6 @@ export function DashboardScreen() {
       localStorage.setItem('activeTab', activeTab);
     }
   }, [activeTab]);
-
-  // Show tax onboarding if user doesn't have a profile
-  useEffect(() => {
-    if (!isLoadingTaxProfile && !hasProfile) {
-      setShowTaxOnboarding(true);
-    }
-  }, [hasProfile, isLoadingTaxProfile]);
 
   // Fetch user profile
   const { data: profile } = useQuery<{ full_name: string } | null>({
@@ -236,11 +223,6 @@ export function DashboardScreen() {
       <AddExpenseModal
         visible={showAddExpenseModal}
         onClose={() => setShowAddExpenseModal(false)}
-      />
-
-      <TaxProfileOnboarding
-        visible={showTaxOnboarding}
-        onComplete={() => setShowTaxOnboarding(false)}
       />
 
       <Toast
