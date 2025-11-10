@@ -83,15 +83,18 @@ export function AuthScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>GigLedger</Text>
-        <Text style={styles.subtitle}>Track your music income & expenses</Text>
+    <View style={styles.authPage}>
+      <View style={styles.authCard}>
+        {/* Header */}
+        <View style={styles.authHeader}>
+          <Text style={styles.authTitle}>GigLedger</Text>
+          <Text style={styles.authSubtitle}>Track your music income & expenses</Text>
+        </View>
 
-        {/* Tab Switcher */}
-        <View style={styles.tabContainer}>
+        {/* Toggle Bar */}
+        <View style={styles.authToggle}>
           <TouchableOpacity
-            style={[styles.tab, !isSignUp && styles.tabActive]}
+            style={[styles.toggleButton, !isSignUp && styles.toggleButtonActive]}
             onPress={() => {
               setIsSignUp(false);
               setEmailError('');
@@ -99,12 +102,12 @@ export function AuthScreen() {
             }}
             disabled={loading}
           >
-            <Text style={[styles.tabText, !isSignUp && styles.tabTextActive]}>
+            <Text style={[styles.toggleText, !isSignUp && styles.toggleTextActive]}>
               Sign In
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, isSignUp && styles.tabActive]}
+            style={[styles.toggleButton, isSignUp && styles.toggleButtonActive]}
             onPress={() => {
               setIsSignUp(true);
               setEmailError('');
@@ -112,17 +115,18 @@ export function AuthScreen() {
             }}
             disabled={loading}
           >
-            <Text style={[styles.tabText, isSignUp && styles.tabTextActive]}>
+            <Text style={[styles.toggleText, isSignUp && styles.toggleTextActive]}>
               Sign Up
             </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.form}>
-          <View>
-            <Text style={styles.label}>Email</Text>
+        {/* Form */}
+        <View style={styles.authForm}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.authLabel}>Email</Text>
             <TextInput
-              style={[styles.input, emailError && styles.inputError]}
+              style={[styles.authInput, emailError && styles.inputError]}
               placeholder="your@email.com"
               value={email}
               onChangeText={(text) => {
@@ -137,10 +141,10 @@ export function AuthScreen() {
             {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
           </View>
 
-          <View>
-            <Text style={styles.label}>Password</Text>
+          <View style={styles.inputGroup}>
+            <Text style={styles.authLabel}>Password</Text>
             <TextInput
-              style={[styles.input, passwordError && styles.inputError]}
+              style={[styles.authInput, passwordError && styles.inputError]}
               placeholder={isSignUp ? "Create password (min 6 characters)" : "Enter your password"}
               value={password}
               onChangeText={(text) => {
@@ -171,19 +175,18 @@ export function AuthScreen() {
           )}
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[styles.authSubmit, loading && styles.buttonDisabled]}
             onPress={handleAuth}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>
+              <Text style={styles.authSubmitText}>
                 {isSignUp ? 'Create your free account' : 'Sign In'}
               </Text>
             )}
           </TouchableOpacity>
-
         </View>
       </View>
     </View>
@@ -191,52 +194,94 @@ export function AuthScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  // Page container
+  authPage: {
     flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  content: {
-    flex: 1,
+    backgroundColor: '#f3f4f6',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    maxWidth: 400,
-    width: '100%',
-    alignSelf: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
   },
-  title: {
-    fontSize: 36,
+  // Centered card
+  authCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  // Header
+  authHeader: {
+    marginBottom: 24,
+  },
+  authTitle: {
+    fontSize: 32,
     fontWeight: '700',
     color: '#111827',
     textAlign: 'center',
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
+  authSubtitle: {
+    fontSize: 15,
     color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 48,
   },
-  form: {
-    gap: 16,
+  // Toggle bar
+  authToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 32,
   },
-  label: {
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  toggleButtonActive: {
+    backgroundColor: '#2563eb',
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  toggleTextActive: {
+    color: '#ffffff',
+  },
+  // Form
+  authForm: {
+    gap: 20,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  authLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#374151',
-    marginBottom: -8,
   },
-  input: {
-    backgroundColor: '#fff',
+  authInput: {
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#d1d5db',
     borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
     color: '#111827',
   },
-  button: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 16,
+  authSubmit: {
+    backgroundColor: '#2563eb',
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
@@ -244,48 +289,10 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
-  buttonText: {
-    color: '#fff',
+  authSubmitText: {
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  switchButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  switchText: {
-    fontSize: 14,
-    color: '#3b82f6',
-    fontWeight: '600',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 24,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 6,
-  },
-  tabActive: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  tabTextActive: {
-    color: '#3b82f6',
   },
   inputError: {
     borderColor: '#ef4444',
@@ -311,8 +318,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
   },
   checkmark: {
     color: '#fff',
