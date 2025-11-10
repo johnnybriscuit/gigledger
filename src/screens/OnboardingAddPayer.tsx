@@ -39,7 +39,7 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
     try {
       const result = await createPayer.mutateAsync({
         name: name.trim(),
-        type: type as any,
+        payer_type: type as any,
       });
 
       if (result) {

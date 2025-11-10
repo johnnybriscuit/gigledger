@@ -17,7 +17,7 @@ export interface Database {
           id: string
           user_id: string
           name: string
-          type: 'Venue' | 'Client' | 'Platform' | 'Other' | 'Individual' | 'Corporation'
+          payer_type: 'Venue' | 'Client' | 'Platform' | 'Other' | 'Individual' | 'Corporation'
           contact_email: string | null
           notes: string | null
           expect_1099: boolean
@@ -28,7 +28,7 @@ export interface Database {
           id?: string
           user_id: string
           name: string
-          type: 'Venue' | 'Client' | 'Platform' | 'Other' | 'Individual' | 'Corporation'
+          payer_type: 'Venue' | 'Client' | 'Platform' | 'Other' | 'Individual' | 'Corporation'
           contact_email?: string | null
           notes?: string | null
           expect_1099?: boolean
@@ -39,7 +39,7 @@ export interface Database {
           id?: string
           user_id?: string
           name?: string
-          type?: 'Venue' | 'Client' | 'Platform' | 'Other' | 'Individual' | 'Corporation'
+          payer_type?: 'Venue' | 'Client' | 'Platform' | 'Other' | 'Individual' | 'Corporation'
           contact_email?: string | null
           notes?: string | null
           expect_1099?: boolean
