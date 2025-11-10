@@ -105,16 +105,39 @@ export function DashboardScreen() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Auth state change will be handled by App.tsx
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>GigLedger</Text>
-        <TouchableOpacity 
-          style={styles.addGigButton}
-          onPress={() => setShowAddGigModal(true)}
-        >
-          <Text style={styles.addGigButtonText}>+ Add Gig</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.addGigButton}
+            onPress={() => setShowAddGigModal(true)}
+          >
+            <Text style={styles.addGigButtonText}>+ Add Gig</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.accountButton}
+            onPress={() => setActiveTab('account')}
+          >
+            <Text style={styles.accountButtonText}>Account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.signOutButton}
+            onPress={handleSignOut}
+          >
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Getting Started Card - inline onboarding for new users */}
@@ -237,10 +260,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  accountButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#fff',
+  },
+  accountButtonText: {
+    color: '#374151',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   signOutButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
     backgroundColor: '#f3f4f6',
   },
   signOutText: {
