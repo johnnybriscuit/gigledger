@@ -11,7 +11,7 @@ import { SubscriptionScreen } from './SubscriptionScreen';
 import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { TaxProfileOnboarding } from '../components/TaxProfileOnboarding';
-import { OnboardingWizard } from '../components/OnboardingWizard';
+import { InteractiveOnboarding } from '../components/InteractiveOnboarding';
 import { useQuery } from '@tanstack/react-query';
 import { useDateRange } from '../hooks/useDateRange';
 import { useHasTaxProfile } from '../hooks/useTaxProfile';
@@ -117,8 +117,11 @@ export function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Onboarding Wizard - shows for new users */}
-      {activeTab === 'dashboard' && <OnboardingWizard />}
+      {/* Interactive Onboarding - guides users through the app */}
+      <InteractiveOnboarding 
+        activeTab={activeTab}
+        onNavigateToTab={setActiveTab}
+      />
 
       <ScrollView 
         horizontal 
