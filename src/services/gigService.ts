@@ -5,6 +5,7 @@
 
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
+import { FREE_GIG_LIMIT } from '../config/plans';
 
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
 type ExpenseInsert = Database['public']['Tables']['expenses']['Insert'];
@@ -39,6 +40,29 @@ export async function createGigWithLines({
 }: CreateGigWithLinesParams) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+
+  // Check user's plan and gig count
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', user.id)
+    .single();
+
+  const plan = profile?.plan || 'free';
+
+  // If free plan, check gig limit
+  if (plan === 'free') {
+    const { count } = await supabase
+      .from('gigs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    if (count !== null && count >= FREE_GIG_LIMIT) {
+      const error: any = new Error('Free plan limit reached');
+      error.code = 'FREE_PLAN_LIMIT_REACHED';
+      throw error;
+    }
+  }
 
   // 1. Create the gig
   const { data: createdGig, error: gigError } = await (supabase

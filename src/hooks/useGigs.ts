@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
+import { FREE_GIG_LIMIT } from '../config/plans';
 
 type Gig = Database['public']['Tables']['gigs']['Row'];
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
@@ -57,6 +58,29 @@ export function useCreateGig() {
     mutationFn: async (gig: Omit<GigInsert, 'user_id'>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // Check user's plan and gig count
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', user.id)
+        .single();
+
+      const plan = profile?.plan || 'free';
+
+      // If free plan, check gig limit
+      if (plan === 'free') {
+        const { count } = await supabase
+          .from('gigs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        if (count !== null && count >= FREE_GIG_LIMIT) {
+          const error: any = new Error('Free plan limit reached');
+          error.code = 'FREE_PLAN_LIMIT_REACHED';
+          throw error;
+        }
+      }
 
       // Calculate net amount (database trigger will also do this, but we set it for consistency)
       const netAmount = (gig.gross_amount || 0) 

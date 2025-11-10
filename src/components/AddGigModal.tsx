@@ -26,10 +26,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useTaxProfile } from '../hooks/useTaxProfile';
 import { taxDeltaForGig, formatTaxAmount, formatTaxRate } from '../tax/engine';
+import { UpgradeModal } from './UpgradeModal';
 
 interface AddGigModalProps {
   visible: boolean;
   onClose: () => void;
+  onNavigateToSubscription?: () => void;
   editingGig?: GigWithPayer | null;
 }
 

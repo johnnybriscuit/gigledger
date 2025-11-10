@@ -12,6 +12,44 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string
+          email: string | null
+          full_name: string | null
+          avatar_url: string | null
+          state_code: string | null
+          filing_status: 'single' | 'married' | 'hoh' | null
+          plan: 'free' | 'pro_monthly' | 'pro_yearly'
+          onboarding_complete: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          state_code?: string | null
+          filing_status?: 'single' | 'married' | 'hoh' | null
+          plan?: 'free' | 'pro_monthly' | 'pro_yearly'
+          onboarding_complete?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          state_code?: string | null
+          filing_status?: 'single' | 'married' | 'hoh' | null
+          plan?: 'free' | 'pro_monthly' | 'pro_yearly'
+          onboarding_complete?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
       payers: {
         Row: {
           id: string
@@ -214,6 +252,7 @@ export interface Database {
       [_ in never]: never
     }
     Enums: {
+      user_plan: 'free' | 'pro_monthly' | 'pro_yearly'
       payer_type: 'Venue' | 'Client' | 'Platform' | 'Other' | 'Individual' | 'Corporation'
       expense_category: 'Travel' | 'Meals' | 'Lodging' | 'Supplies' | 'Marketing' | 'Education' | 'Software' | 'Fees' | 'Equipment' | 'Other'
     }
