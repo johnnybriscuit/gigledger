@@ -7,6 +7,7 @@ import { supabase } from './src/lib/supabase';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { OnboardingFlow } from './src/screens/OnboardingFlow';
+import { TermsScreen } from './src/screens/TermsScreen';
 import { initializeUserData } from './src/services/profileService';
 import type { Session } from '@supabase/supabase-js';
 
@@ -28,6 +29,7 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
+  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms'>('auth');
 
   useEffect(() => {
     // Get initial session
@@ -109,12 +111,22 @@ function AppContent() {
     );
   }
 
+  // Allow Terms page to be accessed without authentication
+  if (currentRoute === 'terms') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <TermsScreen onNavigateBack={() => setCurrentRoute('auth')} />
+      </>
+    );
+  }
+
   // Show appropriate screen based on auth and onboarding status
   if (!session) {
     return (
       <>
         <StatusBar style="dark" />
-        <AuthScreen />
+        <AuthScreen onNavigateToTerms={() => setCurrentRoute('terms')} />
       </>
     );
   }

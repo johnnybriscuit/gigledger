@@ -3,7 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityInd
 import { supabase } from '../lib/supabase';
 import { initializeUserData } from '../services/profileService';
 
-export function AuthScreen() {
+interface AuthScreenProps {
+  onNavigateToTerms?: () => void;
+}
+
+export function AuthScreen({ onNavigateToTerms }: AuthScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
@@ -188,6 +192,15 @@ export function AuthScreen() {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* Footer with Terms link */}
+        {onNavigateToTerms && (
+          <View style={styles.authFooter}>
+            <TouchableOpacity onPress={onNavigateToTerms}>
+              <Text style={styles.footerLink}>Terms of Service</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -330,5 +343,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     flex: 1,
+  },
+  authFooter: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    alignItems: 'center',
+  },
+  footerLink: {
+    fontSize: 13,
+    color: '#2563eb',
+    textDecorationLine: 'underline',
   },
 });
