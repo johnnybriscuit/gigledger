@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Platform,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { initializeUserData } from '../services/profileService';
 
 export function AuthScreen() {
   const [email, setEmail] = useState('');
@@ -39,22 +31,9 @@ export function AuthScreen() {
 
         if (error) throw error;
 
-        // Create profile for new user
+        // Initialize user data (profile + settings) - idempotent
         if (data.user) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: data.user.id,
-              email: data.user.email || email,
-              full_name: '',
-              state_code: null,
-              filing_status: 'single',
-            });
-
-          if (profileError) {
-            console.error('Error creating profile:', profileError);
-            // Don't throw - profile creation failure shouldn't block sign-up
-          }
+          await initializeUserData(data.user.id, data.user.email || email);
         }
 
         Alert.alert(

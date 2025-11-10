@@ -8,6 +8,7 @@ import { AuthScreen } from './src/screens/AuthScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { OnboardingTaxInfo } from './src/screens/OnboardingTaxInfo';
 import { hasCompletedTaxProfile } from './src/services/taxService';
+import { initializeUserData } from './src/services/profileService';
 import type { Session } from '@supabase/supabase-js';
 
 const queryClient = new QueryClient({
@@ -50,7 +51,11 @@ function AppContent() {
         }
         
         // Refetch all data on sign in to get the new user's data
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Ensure user profile and settings exist (idempotent)
+          initializeUserData(session.user.id, session.user.email || '').catch(err => {
+            console.error('[App] Error initializing user data:', err);
+          });
           queryClient.invalidateQueries();
         }
       }
