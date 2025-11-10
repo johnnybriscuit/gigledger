@@ -218,6 +218,10 @@ export function DashboardScreen() {
       <AddGigModal
         visible={showAddGigModal}
         onClose={() => setShowAddGigModal(false)}
+        onNavigateToSubscription={() => {
+          setShowAddGigModal(false);
+          setActiveTab('subscription');
+        }}
       />
 
       <AddExpenseModal

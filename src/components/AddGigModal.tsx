@@ -79,7 +79,7 @@ const COUNTRIES = [
   { code: 'NZ', name: 'New Zealand' },
 ];
 
-export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) {
+export function AddGigModal({ visible, onClose, onNavigateToSubscription, editingGig }: AddGigModalProps) {
   const [payerId, setPayerId] = useState('');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
@@ -109,6 +109,7 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
   const [inlineExpenses, setInlineExpenses] = useState<InlineExpense[]>([]);
   const [inlineMileage, setInlineMileage] = useState<InlineMileage | null>(null);
   const [showAddPayerModal, setShowAddPayerModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showEditPayerModal, setShowEditPayerModal] = useState(false);
   const [editingPayer, setEditingPayer] = useState<Payer | null>(null);
   const [showPayerPicker, setShowPayerPicker] = useState(false);
@@ -415,6 +416,10 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
       resetForm();
       onClose();
     } catch (error: any) {
+      if (error.code === 'FREE_PLAN_LIMIT_REACHED') {
+        setShowUpgradeModal(true);
+        return;
+      }
       if (error.errors) {
         // Zod validation error
         Alert.alert('Validation Error', error.errors[0].message);
@@ -937,6 +942,19 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
           setEditingPayer(null);
         }}
         editingPayer={editingPayer}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={() => {
+          setShowUpgradeModal(false);
+          onClose();
+          onNavigateToSubscription?.();
+        }}
+        title="Free plan limit reached"
+        message="You can track up to 20 gigs on the free plan. Upgrade to keep logging shows and unlock exports & advanced tax tools."
       />
 
       {/* Date Picker Modal */}
