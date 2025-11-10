@@ -38,7 +38,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
   }, [grossAmount, fees, otherIncome]);
 
   const { estimate: taxEstimate } = useTaxEstimate(netBeforeTax);
-  const estimatedNet = netBeforeTax - (taxEstimate || 0);
+  const estimatedNet = netBeforeTax - (taxEstimate?.total || 0);
 
   const handleComplete = async () => {
     if (!payerId) {
@@ -195,7 +195,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Est. taxes to set aside:</Text>
-                <Text style={styles.summaryValue}>${(taxEstimate || 0).toFixed(2)}</Text>
+                <Text style={styles.summaryValue}>${(taxEstimate?.total || 0).toFixed(2)}</Text>
               </View>
               <View style={[styles.summaryRow, styles.summaryRowTotal]}>
                 <Text style={styles.summaryLabelTotal}>Est. net after taxes & fees:</Text>
