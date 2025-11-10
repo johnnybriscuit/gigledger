@@ -10,6 +10,10 @@ import {
 } from 'react-native';
 import { useAllExportData, type ExportFilters } from '../hooks/useExports';
 import { downloadAllCSVs, downloadJSONBackup } from '../lib/csvExport';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
+import { canExport } from '../config/plans';
+import { UpgradeModal } from '../components/UpgradeModal';
 
 export function ExportsScreen() {
   const currentYear = new Date().getFullYear();
@@ -19,6 +23,24 @@ export function ExportsScreen() {
   const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
   const [includeTips, setIncludeTips] = useState(true);
   const [includeFees, setIncludeFees] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Fetch user's plan
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', user.id)
+        .single();
+      return data;
+    },
+  });
+
+  const userPlan = profile?.plan || 'free';
 
   // Build filters
   const filters: ExportFilters = {
@@ -32,6 +54,11 @@ export function ExportsScreen() {
   const { gigs, expenses, mileage, payers, scheduleC, isLoading, isError } = useAllExportData(filters);
 
   const handleDownloadCSVs = () => {
+    if (!canExport(userPlan)) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     if (!gigs.data || !expenses.data || !mileage.data || !payers.data || !scheduleC.data) {
       Alert.alert('Error', 'Data not loaded yet. Please wait.');
       return;
@@ -50,6 +77,11 @@ export function ExportsScreen() {
   };
 
   const handleDownloadJSON = () => {
+    if (!canExport(userPlan)) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     if (!gigs.data || !expenses.data || !mileage.data || !payers.data || !scheduleC.data) {
       Alert.alert('Error', 'Data not loaded yet. Please wait.');
       return;
@@ -249,6 +281,13 @@ export function ExportsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Tax Prep Helper Text */}
+          <View style={styles.taxHelperSection}>
+            <Text style={styles.taxHelperText}>
+              These exports are formatted so you or your CPA can easily use them in tools like TurboTax. Always review for accuracy.
+            </Text>
+          </View>
+
           {/* Help Text */}
           <View style={styles.helpSection}>
             <Text style={styles.helpTitle}>📋 What gets exported?</Text>
@@ -265,6 +304,19 @@ export function ExportsScreen() {
           </View>
         </>
       )}
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={() => {
+          setShowUpgradeModal(false);
+          // Navigation to subscription tab would happen here
+          // For now, just close the modal
+        }}
+        title="Exports are a Pro feature"
+        message="Upgrade to Pro to export your gigs, expenses, mileage, and tax summaries in formats ready for tax prep tools."
+      />
     </ScrollView>
   );
 }
@@ -462,6 +514,21 @@ const styles = StyleSheet.create({
   exportButtonDescription: {
     fontSize: 13,
     color: '#6b7280',
+  },
+  taxHelperSection: {
+    backgroundColor: '#fef3c7',
+    padding: 12,
+    marginTop: 16,
+    marginHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  taxHelperText: {
+    fontSize: 13,
+    color: '#92400e',
+    lineHeight: 18,
+    textAlign: 'center',
   },
   helpSection: {
     backgroundColor: '#eff6ff',
