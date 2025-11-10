@@ -7,18 +7,45 @@ export function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const validateForm = () => {
+    setEmailError('');
+    setPasswordError('');
+    
+    if (!email) {
+      setEmailError('Email is required');
+      return false;
+    }
+    
+    if (!email.includes('@')) {
+      setEmailError('Please enter a valid email');
+      return false;
+    }
+    
+    if (!password) {
+      setPasswordError('Password is required');
+      return false;
+    }
+    
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return false;
+    }
+    
+    if (isSignUp && !agreeToTerms) {
+      Alert.alert('Terms Required', 'Please agree to the terms and conditions');
+      return false;
+    }
+    
+    return true;
+  };
 
   const handleAuth = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
@@ -36,11 +63,8 @@ export function AuthScreen() {
           await initializeUserData(data.user.id, data.user.email || email);
         }
 
-        Alert.alert(
-          'Success!',
-          'Account created! You can now sign in.'
-        );
-        setIsSignUp(false);
+        // Success - App.tsx will handle redirect to onboarding
+        console.log('[Auth] Sign up successful, user will be redirected to onboarding');
       } else {
         // Sign in
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -64,30 +88,87 @@ export function AuthScreen() {
         <Text style={styles.title}>GigLedger</Text>
         <Text style={styles.subtitle}>Track your music income & expenses</Text>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="your@email.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            editable={!loading}
-          />
+        {/* Tab Switcher */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, !isSignUp && styles.tabActive]}
+            onPress={() => {
+              setIsSignUp(false);
+              setEmailError('');
+              setPasswordError('');
+            }}
+            disabled={loading}
+          >
+            <Text style={[styles.tabText, !isSignUp && styles.tabTextActive]}>
+              Sign In
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, isSignUp && styles.tabActive]}
+            onPress={() => {
+              setIsSignUp(true);
+              setEmailError('');
+              setPasswordError('');
+            }}
+            disabled={loading}
+          >
+            <Text style={[styles.tabText, isSignUp && styles.tabTextActive]}>
+              Sign Up
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter password (min 6 characters)"
-            value={password}
-            onChangeText={setPassword}
-            autoCapitalize="none"
-            secureTextEntry
-            autoComplete="password"
-            editable={!loading}
-          />
+        <View style={styles.form}>
+          <View>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={[styles.input, emailError && styles.inputError]}
+              placeholder="your@email.com"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                setEmailError('');
+              }}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+              editable={!loading}
+            />
+            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+          </View>
+
+          <View>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={[styles.input, passwordError && styles.inputError]}
+              placeholder={isSignUp ? "Create password (min 6 characters)" : "Enter your password"}
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                setPasswordError('');
+              }}
+              autoCapitalize="none"
+              secureTextEntry
+              autoComplete="password"
+              editable={!loading}
+            />
+            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+          </View>
+
+          {isSignUp && (
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setAgreeToTerms(!agreeToTerms)}
+              disabled={loading}
+            >
+              <View style={[styles.checkbox, agreeToTerms && styles.checkboxChecked]}>
+                {agreeToTerms && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>
+                I agree to the Terms of Service and Privacy Policy
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -98,22 +179,11 @@ export function AuthScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.buttonText}>
-                {isSignUp ? 'Sign Up' : 'Sign In'}
+                {isSignUp ? 'Create your free account' : 'Sign In'}
               </Text>
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.switchButton}
-            onPress={() => setIsSignUp(!isSignUp)}
-            disabled={loading}
-          >
-            <Text style={styles.switchText}>
-              {isSignUp
-                ? 'Already have an account? Sign In'
-                : "Don't have an account? Sign Up"}
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -187,5 +257,71 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#3b82f6',
     fontWeight: '600',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 24,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  tabActive: {
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  tabTextActive: {
+    color: '#3b82f6',
+  },
+  inputError: {
+    borderColor: '#ef4444',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#ef4444',
+    marginTop: 4,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: -8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 4,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  checkboxLabel: {
+    fontSize: 13,
+    color: '#6b7280',
+    flex: 1,
   },
 });

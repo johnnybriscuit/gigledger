@@ -35,6 +35,7 @@ export async function ensureUserProfile(userId: string, email: string) {
         full_name: '',
         state_code: null,
         filing_status: 'single',
+        onboarding_complete: false,
       });
 
     if (insertError) {

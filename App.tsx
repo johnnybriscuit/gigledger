@@ -6,8 +6,7 @@ import { ThemeProvider } from './src/contexts/ThemeContext';
 import { supabase } from './src/lib/supabase';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
-import { OnboardingTaxInfo } from './src/screens/OnboardingTaxInfo';
-import { hasCompletedTaxProfile } from './src/services/taxService';
+import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { initializeUserData } from './src/services/profileService';
 import type { Session } from '@supabase/supabase-js';
 
@@ -69,8 +68,30 @@ function AppContent() {
     async function checkOnboarding() {
       if (session) {
         setCheckingProfile(true);
-        const completed = await hasCompletedTaxProfile();
-        setNeedsOnboarding(!completed);
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            setNeedsOnboarding(false);
+            setCheckingProfile(false);
+            return;
+          }
+
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('onboarding_complete')
+            .eq('id', user.id)
+            .single();
+
+          if (error) {
+            console.error('[App] Error checking onboarding status:', error);
+            setNeedsOnboarding(false);
+          } else {
+            setNeedsOnboarding(!(profile as any)?.onboarding_complete);
+          }
+        } catch (error) {
+          console.error('[App] Error in checkOnboarding:', error);
+          setNeedsOnboarding(false);
+        }
         setCheckingProfile(false);
       } else {
         setNeedsOnboarding(false);
@@ -102,9 +123,8 @@ function AppContent() {
     return (
       <>
         <StatusBar style="dark" />
-        <OnboardingTaxInfo
+        <OnboardingFlow
           onComplete={() => setNeedsOnboarding(false)}
-          onSkip={() => setNeedsOnboarding(false)}
         />
       </>
     );
