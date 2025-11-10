@@ -11,7 +11,13 @@ import {
 } from 'react-native';
 import { useCreatePayer } from '../hooks/usePayers';
 
-const PAYER_TYPES = ['Artist/Band', 'Venue', 'Church', 'Corporate/Private', 'Other'] as const;
+const PAYER_TYPES = [
+  { value: 'Individual', label: 'Artist/Band' },
+  { value: 'Venue', label: 'Venue' },
+  { value: 'Client', label: 'Church' },
+  { value: 'Corporation', label: 'Corporate/Private' },
+  { value: 'Other', label: 'Other' },
+] as const;
 
 interface OnboardingAddPayerProps {
   onNext: (payerId: string) => void;
@@ -21,7 +27,7 @@ interface OnboardingAddPayerProps {
 
 export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPayerProps) {
   const [name, setName] = useState('');
-  const [type, setType] = useState<string>('Venue');
+  const [type, setType] = useState<string>('Venue'); // Store the value, not the object
   const createPayer = useCreatePayer();
 
   const handleContinue = async () => {
@@ -69,23 +75,17 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Type</Text>
+            <Text style={styles.label}>Type *</Text>
             <View style={styles.typeButtons}>
               {PAYER_TYPES.map((payerType) => (
                 <TouchableOpacity
-                  key={payerType}
-                  style={[
-                    styles.typeButton,
-                    type === payerType && styles.typeButtonActive,
-                  ]}
-                  onPress={() => setType(payerType)}
+                  key={payerType.value}
+                  style={[styles.typeButton, type === payerType.value && styles.typeButtonActive]}
+                  onPress={() => setType(payerType.value)}
                   disabled={createPayer.isPending}
                 >
-                  <Text style={[
-                    styles.typeButtonText,
-                    type === payerType && styles.typeButtonTextActive,
-                  ]}>
-                    {payerType}
+                  <Text style={[styles.typeButtonText, type === payerType.value && styles.typeButtonTextActive]}>
+                    {payerType.label}
                   </Text>
                 </TouchableOpacity>
               ))}
