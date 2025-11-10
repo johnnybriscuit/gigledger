@@ -48,7 +48,7 @@ export type MileageExport = {
 export type PayerExport = {
   user_id: string;
   name: string;
-  type: string;
+  payer_type: string;
   contact_email: string | null;
   expect_1099: boolean;
   notes: string | null;
@@ -182,7 +182,7 @@ export function usePayersExport() {
 
       const { data, error } = await supabase
         .from('payers')
-        .select('user_id, name, type, contact_email, expect_1099, notes')
+        .select('user_id, name, payer_type, contact_email, expect_1099, notes')
         .eq('user_id', user.id)
         .order('name');
 
