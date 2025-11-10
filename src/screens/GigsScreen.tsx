@@ -13,6 +13,9 @@ import { useGigs, useDeleteGig, type GigWithPayer } from '../hooks/useGigs';
 import { AddGigModal } from '../components/AddGigModal';
 import { ImportGigsModal } from '../components/ImportGigsModal';
 import { useWithholding } from '../hooks/useWithholding';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
+import { FREE_GIG_LIMIT } from '../config/plans';
 
 // Separate component for gig card to use hooks
 function GigCard({ 
@@ -104,6 +107,24 @@ export function GigsScreen() {
   
   const { data: gigs, isLoading, error } = useGigs();
   const deleteGig = useDeleteGig();
+
+  // Fetch user's plan
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', user.id)
+        .single();
+      return data;
+    },
+  });
+
+  const userPlan = profile?.plan || 'free';
+  const gigCount = gigs?.length || 0;
 
   const handleDelete = (id: string, title: string) => {
     if (Platform.OS === 'web') {
@@ -213,6 +234,28 @@ export function GigsScreen() {
           data={gigs}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            userPlan === 'free' ? (
+              <View style={styles.usageIndicator}>
+                <View style={styles.usageHeader}>
+                  <Text style={styles.usageText}>
+                    You've used {gigCount} of {FREE_GIG_LIMIT} gigs on the free plan
+                  </Text>
+                  <TouchableOpacity onPress={() => setModalVisible(true)}>
+                    <Text style={styles.upgradeLink}>Upgrade</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { width: `${Math.min((gigCount / FREE_GIG_LIMIT) * 100, 100)}%` }
+                    ]} 
+                  />
+                </View>
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
             <GigCard
               item={item}
@@ -299,7 +342,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContent: {
-    padding: 20,
+    padding: 16,
+  },
+  usageIndicator: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  usageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  usageText: {
+    fontSize: 13,
+    color: '#92400e',
+    flex: 1,
+  },
+  upgradeLink: {
+    fontSize: 13,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#fef3c7',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#fbbf24',
   },
   card: {
     backgroundColor: '#fff',
