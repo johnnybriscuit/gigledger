@@ -121,6 +121,7 @@ export function DashboardScreen() {
       <InteractiveOnboarding 
         activeTab={activeTab}
         onNavigateToTab={setActiveTab}
+        showTaxOnboarding={showTaxOnboarding}
       />
 
       <ScrollView 
