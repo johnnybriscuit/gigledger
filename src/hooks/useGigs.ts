@@ -30,6 +30,9 @@ export function useGigs() {
   return useQuery({
     queryKey: ['gigs'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('gigs')
         .select(`
@@ -38,6 +41,7 @@ export function useGigs() {
           expenses(id, category, description, amount, notes),
           mileage(id, miles, notes)
         `)
+        .eq('user_id', user.id)
         .order('date', { ascending: false });
 
       if (error) throw error;

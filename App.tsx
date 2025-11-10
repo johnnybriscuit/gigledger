@@ -43,6 +43,16 @@ function AppContent() {
       // Only update session on actual auth events, not on token refresh
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
         setSession(session);
+        
+        // Clear all cached data on sign out to prevent data leakage
+        if (event === 'SIGNED_OUT') {
+          queryClient.clear();
+        }
+        
+        // Refetch all data on sign in to get the new user's data
+        if (event === 'SIGNED_IN') {
+          queryClient.invalidateQueries();
+        }
       }
     });
 

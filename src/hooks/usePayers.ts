@@ -10,9 +10,13 @@ export function usePayers() {
   return useQuery({
     queryKey: ['payers'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('payers')
         .select('*')
+        .eq('user_id', user.id)
         .order('name');
 
       if (error) throw error;

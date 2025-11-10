@@ -39,6 +39,24 @@ export function AuthScreen() {
 
         if (error) throw error;
 
+        // Create profile for new user
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email || email,
+              full_name: '',
+              state_code: null,
+              filing_status: 'single',
+            });
+
+          if (profileError) {
+            console.error('Error creating profile:', profileError);
+            // Don't throw - profile creation failure shouldn't block sign-up
+          }
+        }
+
         Alert.alert(
           'Success!',
           'Account created! You can now sign in.'
