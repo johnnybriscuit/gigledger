@@ -8,6 +8,7 @@ import { AuthScreen } from './src/screens/AuthScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { TermsScreen } from './src/screens/TermsScreen';
+import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { initializeUserData } from './src/services/profileService';
 import type { Session } from '@supabase/supabase-js';
 
@@ -29,7 +30,7 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
-  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms'>('auth');
+  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy'>('auth');
 
   useEffect(() => {
     // Get initial session
@@ -121,12 +122,25 @@ function AppContent() {
     );
   }
 
+  // Allow Privacy page to be accessed without authentication
+  if (currentRoute === 'privacy') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <PrivacyScreen onNavigateBack={() => setCurrentRoute('auth')} />
+      </>
+    );
+  }
+
   // Show appropriate screen based on auth and onboarding status
   if (!session) {
     return (
       <>
         <StatusBar style="dark" />
-        <AuthScreen onNavigateToTerms={() => setCurrentRoute('terms')} />
+        <AuthScreen 
+          onNavigateToTerms={() => setCurrentRoute('terms')}
+          onNavigateToPrivacy={() => setCurrentRoute('privacy')}
+        />
       </>
     );
   }

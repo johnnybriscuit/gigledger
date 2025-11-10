@@ -5,9 +5,10 @@ import { initializeUserData } from '../services/profileService';
 
 interface AuthScreenProps {
   onNavigateToTerms?: () => void;
+  onNavigateToPrivacy?: () => void;
 }
 
-export function AuthScreen({ onNavigateToTerms }: AuthScreenProps) {
+export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
@@ -193,12 +194,24 @@ export function AuthScreen({ onNavigateToTerms }: AuthScreenProps) {
           </TouchableOpacity>
         </View>
 
-        {/* Footer with Terms link */}
-        {onNavigateToTerms && (
+        {/* Footer with Terms and Privacy links */}
+        {(onNavigateToTerms || onNavigateToPrivacy) && (
           <View style={styles.authFooter}>
-            <TouchableOpacity onPress={onNavigateToTerms}>
-              <Text style={styles.footerLink}>Terms of Service</Text>
-            </TouchableOpacity>
+            <View style={styles.footerLinks}>
+              {onNavigateToTerms && (
+                <TouchableOpacity onPress={onNavigateToTerms}>
+                  <Text style={styles.footerLink}>Terms of Service</Text>
+                </TouchableOpacity>
+              )}
+              {onNavigateToTerms && onNavigateToPrivacy && (
+                <Text style={styles.footerSeparator}> • </Text>
+              )}
+              {onNavigateToPrivacy && (
+                <TouchableOpacity onPress={onNavigateToPrivacy}>
+                  <Text style={styles.footerLink}>Privacy Policy</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         )}
       </View>
@@ -351,9 +364,19 @@ const styles = StyleSheet.create({
     borderTopColor: '#e5e7eb',
     alignItems: 'center',
   },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footerLink: {
     fontSize: 13,
     color: '#2563eb',
     textDecorationLine: 'underline',
+  },
+  footerSeparator: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginHorizontal: 8,
   },
 });
