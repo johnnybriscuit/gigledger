@@ -11,8 +11,9 @@ import {
   Alert,
 } from 'react-native';
 import { useCreateGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs';
-import { usePayers } from '../hooks/usePayers';
+import { usePayers, type Payer } from '../hooks/usePayers';
 import { gigSchema, type GigFormData } from '../lib/validations';
+import { PayerFormModal } from './PayerFormModal';
 import { useWithholding } from '../hooks/useWithholding';
 import { formatWithholdingBreakdown } from '../lib/tax/withholding';
 import { hasCompletedTaxProfile } from '../services/taxService';
@@ -105,6 +106,10 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
   const [notes, setNotes] = useState('');
   const [inlineExpenses, setInlineExpenses] = useState<InlineExpense[]>([]);
   const [inlineMileage, setInlineMileage] = useState<InlineMileage | null>(null);
+  const [showAddPayerModal, setShowAddPayerModal] = useState(false);
+  const [showEditPayerModal, setShowEditPayerModal] = useState(false);
+  const [editingPayer, setEditingPayer] = useState<Payer | null>(null);
+  const [showPayerPicker, setShowPayerPicker] = useState(false);
 
   const { data: payers } = usePayers();
   const createGig = useCreateGig();
@@ -440,43 +445,65 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
           <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Payer *</Text>
-              <View style={styles.pickerContainer}>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.payerScroll}
-                >
-                  {payers?.map((payer) => (
-                    <TouchableOpacity
-                      key={payer.id}
-                      style={[
-                        styles.payerChip,
-                        payerId === payer.id && styles.payerChipActive,
-                      ]}
-                      onPress={() => setPayerId(payer.id)}
-                    >
-                      <Text style={[
-                        styles.payerChipText,
-                        payerId === payer.id && styles.payerChipTextActive,
-                      ]}>
-                        {payer.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-              {payers && payers.length === 0 && (
-                <Text style={styles.helperText}>
-                  No payers yet. Add one from the Payers tab first.
-                </Text>
-              )}
-              {payers && payers.length > 0 && !payerId && (
-                <View style={styles.reminderBox}>
-                  <Text style={styles.reminderIcon}>⚠️</Text>
-                  <Text style={styles.reminderText}>
-                    Please select a payer above to continue
-                  </Text>
+              <Text style={styles.helperText}>Who is paying you for this gig?</Text>
+              
+              {payers && payers.length === 0 ? (
+                <View style={styles.emptyPayerContainer}>
+                  <Text style={styles.emptyPayerText}>No payers yet</Text>
+                  <TouchableOpacity
+                    style={styles.addPayerButton}
+                    onPress={() => setShowAddPayerModal(true)}
+                  >
+                    <Text style={styles.addPayerButtonText}>+ Add New Payer</Text>
+                  </TouchableOpacity>
                 </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.pickerButton}
+                    onPress={() => setShowPayerPicker(true)}
+                  >
+                    <Text style={[styles.pickerButtonText, !payerId && styles.placeholderText]}>
+                      {payerId 
+                        ? payers?.find(p => p.id === payerId)?.name || 'Select payer'
+                        : 'Select payer'}
+                    </Text>
+                    <Text style={styles.pickerButtonIcon}>▼</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.payerActions}>
+                    <TouchableOpacity
+                      style={styles.addPayerLink}
+                      onPress={() => setShowAddPayerModal(true)}
+                    >
+                      <Text style={styles.addPayerLinkText}>+ Add new payer</Text>
+                    </TouchableOpacity>
+                    
+                    {payerId && (
+                      <TouchableOpacity
+                        style={styles.editPayerLink}
+                        onPress={() => {
+                          const payer = payers?.find(p => p.id === payerId);
+                          if (payer) {
+                            setEditingPayer(payer);
+                            setShowEditPayerModal(true);
+                          }
+                        }}
+                      >
+                        <Text style={styles.editPayerLinkText}>Edit payer</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  
+                  {!payerId && (
+                    <View style={styles.reminderBox}>
+                      <Text style={styles.reminderIcon}>⚠️</Text>
+                      <Text style={styles.reminderText}>
+                        Please select a payer (who's paying you for this gig)
+                      </Text>
+                    </View>
+                  )}
+                </>
               )}
             </View>
 
@@ -845,6 +872,70 @@ export function AddGigModal({ visible, onClose, editingGig }: AddGigModalProps) 
           </View>
         </View>
       </View>
+
+      {/* Payer Picker Modal */}
+      <Modal
+        visible={showPayerPicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowPayerPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.pickerModal}>
+            <View style={styles.pickerModalHeader}>
+              <Text style={styles.pickerModalTitle}>Select Payer</Text>
+              <TouchableOpacity onPress={() => setShowPayerPicker(false)}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.pickerModalList}>
+              {payers?.map((payer) => (
+                <TouchableOpacity
+                  key={payer.id}
+                  style={[
+                    styles.pickerModalItem,
+                    payerId === payer.id && styles.pickerModalItemActive,
+                  ]}
+                  onPress={() => {
+                    setPayerId(payer.id);
+                    setShowPayerPicker(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.pickerModalItemText,
+                    payerId === payer.id && styles.pickerModalItemTextActive,
+                  ]}>
+                    {payer.name}
+                  </Text>
+                  {payerId === payer.id && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Payer Modal */}
+      <PayerFormModal
+        visible={showAddPayerModal}
+        onClose={() => setShowAddPayerModal(false)}
+        onSuccess={(newPayerId) => {
+          setPayerId(newPayerId);
+          setShowAddPayerModal(false);
+        }}
+      />
+
+      {/* Edit Payer Modal */}
+      <PayerFormModal
+        visible={showEditPayerModal}
+        onClose={() => {
+          setShowEditPayerModal(false);
+          setEditingPayer(null);
+        }}
+        editingPayer={editingPayer}
+      />
 
       {/* Date Picker Modal */}
       <Modal
@@ -1700,5 +1791,94 @@ const styles = StyleSheet.create({
   },
   monthButtonTextSelected: {
     color: '#fff',
+  },
+  // Payer dropdown styles
+  emptyPayerContainer: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  emptyPayerText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 12,
+  },
+  addPayerButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  addPayerButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  payerActions: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 8,
+  },
+  addPayerLink: {
+    paddingVertical: 4,
+  },
+  addPayerLinkText: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  editPayerLink: {
+    paddingVertical: 4,
+  },
+  editPayerLinkText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  // Payer picker modal styles
+  pickerModal: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    width: '100%',
+  },
+  pickerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  pickerModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  pickerModalList: {
+    maxHeight: 400,
+  },
+  pickerModalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  pickerModalItemActive: {
+    backgroundColor: '#eff6ff',
+  },
+  pickerModalItemText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  pickerModalItemTextActive: {
+    color: '#3b82f6',
+    fontWeight: '600',
   },
 });

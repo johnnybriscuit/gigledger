@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 
-type Payer = Database['public']['Tables']['payers']['Row'];
+export type Payer = Database['public']['Tables']['payers']['Row'];
 type PayerInsert = Database['public']['Tables']['payers']['Insert'];
 type PayerUpdate = Database['public']['Tables']['payers']['Update'];
 
