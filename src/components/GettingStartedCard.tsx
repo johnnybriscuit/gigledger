@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,17 @@ export function GettingStartedCard({ onNavigateToTab }: GettingStartedCardProps)
   const { data: payers } = usePayers();
   const { data: gigs } = useGigs();
 
+  const hasPayers = (payers?.length || 0) > 0;
+  const hasGigs = (gigs?.length || 0) > 0;
+
+  // Auto-complete if user already has data
+  useEffect(() => {
+    if (hasPayers && hasGigs && !onboardingState?.onboarding_completed && !isLoading) {
+      // User already has data, mark onboarding as complete
+      completeOnboarding.mutate();
+    }
+  }, [hasPayers, hasGigs, onboardingState?.onboarding_completed, isLoading]);
+
   // Don't show if loading
   if (isLoading) {
     return null;
@@ -25,16 +36,6 @@ export function GettingStartedCard({ onNavigateToTab }: GettingStartedCardProps)
 
   // Don't show if onboarding is completed
   if (onboardingState?.onboarding_completed) {
-    return null;
-  }
-
-  // Auto-complete if user already has data
-  const hasPayers = (payers?.length || 0) > 0;
-  const hasGigs = (gigs?.length || 0) > 0;
-  
-  if (hasPayers && hasGigs && !onboardingState?.onboarding_completed) {
-    // User already has data, mark onboarding as complete
-    completeOnboarding.mutate();
     return null;
   }
 
