@@ -156,12 +156,35 @@ export function SubscriptionScreen() {
               selectedPlan === 'monthly' && styles.planOptionSelected,
             ]}
             onPress={() => setSelectedPlan('monthly')}
+            activeOpacity={0.7}
           >
             <View style={styles.planHeader}>
               <Text style={styles.planOptionTitle}>Monthly</Text>
               <Text style={styles.planOptionPrice}>${MONTHLY_PRICE}/mo</Text>
             </View>
             <Text style={styles.planDescription}>Billed monthly • Cancel anytime</Text>
+            
+            {/* CTA inside selected card */}
+            {selectedPlan === 'monthly' && (
+              <View style={styles.ctaContainer}>
+                <TouchableOpacity
+                  style={styles.subscribeButton}
+                  onPress={() => handleSubscribe('monthly')}
+                  disabled={createCheckout.isPending}
+                >
+                  {createCheckout.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.subscribeButtonText}>
+                      Subscribe to Monthly – ${MONTHLY_PRICE}/mo
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.ctaDisclaimer}>
+                  Secure payment powered by Stripe. Cancel anytime.
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           {/* Yearly Plan */}
@@ -171,6 +194,7 @@ export function SubscriptionScreen() {
               selectedPlan === 'yearly' && styles.planOptionSelected,
             ]}
             onPress={() => setSelectedPlan('yearly')}
+            activeOpacity={0.7}
           >
             <View style={styles.planBadge}>
               <Text style={styles.planBadgeText}>Save 16%</Text>
@@ -182,44 +206,49 @@ export function SubscriptionScreen() {
             <Text style={styles.planDescription}>
               ${(YEARLY_PRICE / 12).toFixed(2)}/mo • Billed annually
             </Text>
-          </TouchableOpacity>
-
-          {/* Features List */}
-          <View style={styles.featuresContainer}>
-            <Text style={styles.featuresTitle}>Premium Features</Text>
-            {[
-              'Unlimited gigs and expenses',
-              'Advanced tax calculations',
-              'Export to CSV and PDF',
-              'Priority support',
-              'Early access to new features',
-              'Ad-free experience',
-            ].map((feature, index) => (
-              <View key={index} style={styles.featureRow}>
-                <Text style={styles.featureIcon}>✓</Text>
-                <Text style={styles.featureText}>{feature}</Text>
+            
+            {/* CTA inside selected card */}
+            {selectedPlan === 'yearly' && (
+              <View style={styles.ctaContainer}>
+                <TouchableOpacity
+                  style={styles.subscribeButton}
+                  onPress={() => handleSubscribe('yearly')}
+                  disabled={createCheckout.isPending}
+                >
+                  {createCheckout.isPending ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.subscribeButtonText}>
+                      Subscribe to Yearly – ${YEARLY_PRICE}/yr
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.ctaDisclaimer}>
+                  Secure payment powered by Stripe. Cancel anytime.
+                </Text>
               </View>
-            ))}
-          </View>
-
-          {/* Subscribe Button */}
-          <TouchableOpacity
-            style={styles.subscribeButton}
-            onPress={() => handleSubscribe(selectedPlan)}
-            disabled={createCheckout.isPending}
-          >
-            {createCheckout.isPending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.subscribeButtonText}>
-                Subscribe to {selectedPlan === 'monthly' ? 'Monthly' : 'Yearly'} Plan
-              </Text>
             )}
           </TouchableOpacity>
 
-          <Text style={styles.disclaimer}>
-            Secure payment powered by Stripe. Cancel anytime.
-          </Text>
+          {/* Features List - More compact */}
+          <View style={styles.featuresContainer}>
+            <Text style={styles.featuresTitle}>Premium Features</Text>
+            <View style={styles.featuresGrid}>
+              {[
+                'Unlimited gigs and expenses',
+                'Advanced tax calculations',
+                'Export to CSV and PDF',
+                'Priority support',
+                'Early access to new features',
+                'Ad-free experience',
+              ].map((feature, index) => (
+                <View key={index} style={styles.featureRow}>
+                  <Text style={styles.featureIcon}>✓</Text>
+                  <Text style={styles.featureText}>{feature}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
         </View>
       )}
     </ScrollView>
@@ -264,17 +293,18 @@ const styles = StyleSheet.create({
   },
   plansContainer: {
     padding: 20,
+    paddingTop: 8,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
     color: '#6b7280',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   planCard: {
     backgroundColor: '#f9fafb',
@@ -347,15 +377,22 @@ const styles = StyleSheet.create({
   planOption: {
     backgroundColor: '#f9fafb',
     borderRadius: 12,
-    padding: 20,
+    padding: 16,
     borderWidth: 2,
     borderColor: '#e5e7eb',
-    marginBottom: 12,
+    marginBottom: 10,
     position: 'relative',
   },
   planOptionSelected: {
     borderColor: '#3b82f6',
     backgroundColor: '#eff6ff',
+    paddingBottom: 20,
+  },
+  ctaContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
   },
   planBadge: {
     position: 'absolute',
@@ -392,41 +429,51 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   featuresContainer: {
-    marginTop: 24,
-    marginBottom: 24,
+    marginTop: 16,
+    marginBottom: 20,
   },
   featuresTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  featuresGrid: {
+    // Container for features list
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   featureIcon: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#10b981',
     marginRight: 8,
     fontWeight: '700',
   },
   featureText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#374151',
+    flex: 1,
   },
   subscribeButton: {
     backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 10,
+    padding: 14,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   subscribeButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
+  },
+  ctaDisclaimer: {
+    fontSize: 11,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 4,
   },
   manageButton: {
     backgroundColor: '#3b82f6',
