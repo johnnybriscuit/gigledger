@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useCreateGig } from '../hooks/useGigs';
 import { supabase } from '../lib/supabase';
+import { useTaxEstimate } from '../hooks/useTaxEstimate';
 
 interface OnboardingAddGigProps {
   payerId: string | null;
@@ -23,7 +24,21 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [title, setTitle] = useState('');
   const [grossAmount, setGrossAmount] = useState('');
+  const [fees, setFees] = useState('');
+  const [otherIncome, setOtherIncome] = useState('');
+  const [taxesWithheld, setTaxesWithheld] = useState(false);
   const createGig = useCreateGig();
+
+  // Calculate live tax estimate
+  const netBeforeTax = useMemo(() => {
+    const gross = parseFloat(grossAmount) || 0;
+    const fee = parseFloat(fees) || 0;
+    const other = parseFloat(otherIncome) || 0;
+    return gross + other - fee;
+  }, [grossAmount, fees, otherIncome]);
+
+  const { estimate: taxEstimate } = useTaxEstimate(netBeforeTax);
+  const estimatedNet = netBeforeTax - (taxEstimate || 0);
 
   const handleComplete = async () => {
     if (!payerId) {
@@ -48,12 +63,12 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
         title: title.trim(),
         gross_amount: parseFloat(grossAmount),
         tips: 0,
-        fees: 0,
+        fees: parseFloat(fees) || 0,
         per_diem: 0,
-        other_income: 0,
-        net_amount: parseFloat(grossAmount),
+        other_income: parseFloat(otherIncome) || 0,
+        net_amount: netBeforeTax,
         paid: false,
-        taxes_withheld: false,
+        taxes_withheld: taxesWithheld,
       });
 
       // Mark onboarding as complete
@@ -94,9 +109,9 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.step}>Step 3 of 3</Text>
-          <Text style={styles.title}>Add your first gig</Text>
+          <Text style={styles.title}>Log your first gig 💰</Text>
           <Text style={styles.subtitle}>
-            Track your income from this gig. You can add expenses and more details later.
+            Use a real or sample gig so you can see your true net after expenses & taxes.
           </Text>
         </View>
 
@@ -124,7 +139,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Amount Earned *</Text>
+            <Text style={styles.label}>Gross Amount *</Text>
             <TextInput
               style={styles.input}
               placeholder="0.00"
@@ -134,6 +149,60 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
               editable={!createGig.isPending}
             />
           </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Fees (optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0.00"
+              value={fees}
+              onChangeText={setFees}
+              keyboardType="decimal-pad"
+              editable={!createGig.isPending}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Other Income (optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0.00"
+              value={otherIncome}
+              onChangeText={setOtherIncome}
+              keyboardType="decimal-pad"
+              editable={!createGig.isPending}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setTaxesWithheld(!taxesWithheld)}
+            disabled={createGig.isPending}
+          >
+            <View style={[styles.checkbox, taxesWithheld && styles.checkboxChecked]}>
+              {taxesWithheld && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.checkboxLabel}>Taxes withheld?</Text>
+          </TouchableOpacity>
+
+          {/* Live Summary Card */}
+          {netBeforeTax > 0 && (
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Your estimated take-home for this gig</Text>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Gross:</Text>
+                <Text style={styles.summaryValue}>${(parseFloat(grossAmount) || 0).toFixed(2)}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Est. taxes to set aside:</Text>
+                <Text style={styles.summaryValue}>${(taxEstimate || 0).toFixed(2)}</Text>
+              </View>
+              <View style={[styles.summaryRow, styles.summaryRowTotal]}>
+                <Text style={styles.summaryLabelTotal}>Est. net after taxes & fees:</Text>
+                <Text style={styles.summaryValueTotal}>${estimatedNet.toFixed(2)}</Text>
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -160,7 +229,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
           {createGig.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.completeButtonText}>Complete Setup</Text>
+            <Text style={styles.completeButtonText}>Save gig & go to your dashboard</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -217,6 +286,78 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: '#111827',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 4,
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  summaryCard: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 24,
+  },
+  summaryTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e40af',
+    marginBottom: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  summaryRowTotal: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#bfdbfe',
+  },
+  summaryLabelTotal: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e40af',
+  },
+  summaryValueTotal: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#10b981',
   },
   footer: {
     flexDirection: 'row',

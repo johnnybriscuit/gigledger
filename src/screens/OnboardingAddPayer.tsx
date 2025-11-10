@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useCreatePayer } from '../hooks/usePayers';
 
-const PAYER_TYPES = ['Venue', 'Client', 'Platform', 'Agency', 'Other'] as const;
+const PAYER_TYPES = ['Artist/Band', 'Venue', 'Church', 'Corporate/Private', 'Other'] as const;
 
 interface OnboardingAddPayerProps {
   onNext: (payerId: string) => void;
@@ -50,9 +50,9 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.step}>Step 2 of 3</Text>
-          <Text style={styles.title}>Add your first payer</Text>
+          <Text style={styles.title}>Who pays you for gigs?</Text>
           <Text style={styles.subtitle}>
-            A payer is anyone who pays you for your work - venues, clients, platforms like Spotify, etc.
+            Add a band, artist, venue, church, or client so we can attach gigs to the right payers.
           </Text>
         </View>
 
@@ -117,7 +117,7 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
           {createPayer.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.continueButtonText}>Continue</Text>
+            <Text style={styles.continueButtonText}>Save payer & continue</Text>
           )}
         </TouchableOpacity>
       </View>

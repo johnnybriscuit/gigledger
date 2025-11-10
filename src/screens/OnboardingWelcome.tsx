@@ -35,6 +35,7 @@ const FILING_STATUSES = [
   { value: 'single', label: 'Single' },
   { value: 'married', label: 'Married Filing Jointly' },
   { value: 'hoh', label: 'Head of Household' },
+  { value: 'not_sure', label: 'Not sure' },
 ];
 
 interface OnboardingWelcomeProps {
@@ -90,9 +91,9 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.step}>Step 1 of 3</Text>
-          <Text style={styles.title}>Welcome to GigLedger! 🎵</Text>
+          <Text style={styles.title}>Welcome to GigLedger 🎵</Text>
           <Text style={styles.subtitle}>
-            Track your music income, expenses, and taxes all in one place. Let's get you set up.
+            Let's set up a few basics so we can estimate your take-home pay correctly. This takes under a minute.
           </Text>
         </View>
 
@@ -156,6 +157,10 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
               ))}
             </View>
           </View>
+
+          <Text style={styles.disclaimer}>
+            GigLedger gives estimates only and isn't tax advice. Please confirm details with a tax professional.
+          </Text>
         </View>
       </ScrollView>
 
@@ -300,6 +305,13 @@ const styles = StyleSheet.create({
   radioLabel: {
     fontSize: 14,
     color: '#374151',
+  },
+  disclaimer: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 24,
+    lineHeight: 18,
   },
   footer: {
     flexDirection: 'row',

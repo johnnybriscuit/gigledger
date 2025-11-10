@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Platform } from 'react-native';
 import { OnboardingWelcome } from './OnboardingWelcome';
 import { OnboardingAddPayer } from './OnboardingAddPayer';
 import { OnboardingAddGig } from './OnboardingAddGig';
@@ -20,8 +21,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     setStep(3);
   };
 
-  const handleSkipToEnd = () => {
+  const handleComplete = () => {
+    // Set flag to show toast on dashboard
+    if (Platform.OS === 'web') {
+      sessionStorage.setItem('onboarding_just_completed', 'true');
+    }
     onComplete();
+  };
+
+  const handleSkipToEnd = () => {
+    handleComplete();
   };
 
   if (step === 1) {
@@ -46,7 +55,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   return (
     <OnboardingAddGig
       payerId={payerId}
-      onComplete={onComplete}
+      onComplete={handleComplete}
       onSkip={handleSkipToEnd}
       onBack={() => setStep(2)}
     />

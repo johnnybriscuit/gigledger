@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useDateRange } from '../hooks/useDateRange';
 import { useHasTaxProfile } from '../hooks/useTaxProfile';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
+import { Toast } from '../components/Toast'; // Import Toast component
 
 type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'subscription' | 'account';
 
@@ -31,9 +32,21 @@ export function DashboardScreen() {
   const [showAddGigModal, setShowAddGigModal] = useState(false);
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showTaxOnboarding, setShowTaxOnboarding] = useState(false);
+  const [showOnboardingToast, setShowOnboardingToast] = useState(false);
   
   // Check if user has tax profile
   const { hasProfile, isLoading: isLoadingTaxProfile } = useHasTaxProfile();
+
+  // Check if we should show onboarding completion toast
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const justCompletedOnboarding = sessionStorage.getItem('onboarding_just_completed');
+      if (justCompletedOnboarding === 'true') {
+        setShowOnboardingToast(true);
+        sessionStorage.removeItem('onboarding_just_completed');
+      }
+    }
+  }, []);
 
   // Save active tab to localStorage when it changes
   useEffect(() => {
@@ -228,6 +241,12 @@ export function DashboardScreen() {
       <TaxProfileOnboarding
         visible={showTaxOnboarding}
         onComplete={() => setShowTaxOnboarding(false)}
+      />
+
+      <Toast
+        message="You're set. Add gigs as you go and we'll keep your year in tune."
+        visible={showOnboardingToast}
+        onHide={() => setShowOnboardingToast(false)}
       />
     </View>
   );
