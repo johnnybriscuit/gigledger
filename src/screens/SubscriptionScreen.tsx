@@ -20,6 +20,8 @@ import {
   useCreateCheckoutSession,
   useCreatePortalSession,
 } from '../hooks/useSubscription';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
 
 // Get Stripe Price IDs from app.json
 const STRIPE_MONTHLY_PRICE_ID = Constants.expoConfig?.extra?.stripeMonthlyPriceId || 'price_1SREuh1zc5DHhlVtxhHYiIwG';
@@ -32,7 +34,26 @@ export function SubscriptionScreen() {
   const { data: subscription, isLoading } = useSubscription();
   const createCheckout = useCreateCheckoutSession();
   const createPortal = useCreatePortalSession();
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+
+  // Fetch user's plan
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', user.id)
+        .single();
+      return data;
+    },
+  });
+
+  const currentPlan = profile?.plan || 'free';
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>(
+    currentPlan === 'pro_yearly' ? 'yearly' : 'monthly'
+  );
 
   const handleSubscribe = async (tier: 'monthly' | 'yearly') => {
     try {
@@ -144,6 +165,15 @@ export function SubscriptionScreen() {
         </View>
       ) : (
         <View style={styles.plansContainer}>
+          {/* Active Plan Banner */}
+          {currentPlan !== 'free' && (
+            <View style={styles.activePlanBanner}>
+              <Text style={styles.activePlanText}>
+                ✓ You're on the {currentPlan === 'pro_monthly' ? 'Monthly' : 'Yearly'} Pro plan
+              </Text>
+            </View>
+          )}
+
           <Text style={styles.sectionTitle}>Choose Your Plan</Text>
           <Text style={styles.subtitle}>
             Unlock premium features and support GigLedger development
@@ -295,6 +325,20 @@ const styles = StyleSheet.create({
   plansContainer: {
     padding: 20,
     paddingTop: 0,
+  },
+  activePlanBanner: {
+    backgroundColor: '#ecfdf5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#10b981',
+  },
+  activePlanText: {
+    fontSize: 14,
+    color: '#065f46',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 20,
