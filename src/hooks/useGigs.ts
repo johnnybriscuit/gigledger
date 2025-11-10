@@ -10,7 +10,7 @@ export interface GigWithPayer extends Gig {
   payer: {
     id: string;
     name: string;
-    type: string;
+    payer_type: string;
   } | null;
   expenses?: Array<{
     id: string;
@@ -37,7 +37,7 @@ export function useGigs() {
         .from('gigs')
         .select(`
           *,
-          payer:payers(id, name, type),
+          payer:payers(id, name, payer_type),
           expenses(id, category, description, amount, notes),
           mileage(id, miles, notes)
         `)
