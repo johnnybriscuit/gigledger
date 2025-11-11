@@ -72,7 +72,7 @@ export function DashboardScreen() {
       case 'payers':
         return <PayersScreen />;
       case 'gigs':
-        return <GigsScreen />;
+        return <GigsScreen onNavigateToSubscription={() => setActiveTab('subscription')} />;
       case 'expenses':
         return <ExpensesScreen />;
       case 'mileage':

@@ -100,7 +100,11 @@ function GigCard({
   );
 }
 
-export function GigsScreen() {
+interface GigsScreenProps {
+  onNavigateToSubscription?: () => void;
+}
+
+export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [editingGig, setEditingGig] = useState<GigWithPayer | null>(null);
@@ -116,7 +120,7 @@ export function GigsScreen() {
       if (!user) return null;
       const { data } = await supabase
         .from('profiles')
-        .select('plan')
+        .select('id, plan')
         .eq('id', user.id)
         .single();
       return data;
@@ -125,6 +129,11 @@ export function GigsScreen() {
 
   const userPlan = profile?.plan || 'free';
   const gigCount = gigs?.length || 0;
+  const isFreePlan = userPlan === 'free';
+  const hasReachedFreeLimit = isFreePlan && gigCount >= FREE_GIG_LIMIT;
+
+  // Debug logging
+  console.log('GigLedger plan debug:', profile?.id, profile?.plan, gigCount);
 
   const handleDelete = (id: string, title: string) => {
     if (Platform.OS === 'web') {
@@ -157,6 +166,20 @@ export function GigsScreen() {
   const handleCloseModal = () => {
     setModalVisible(false);
     setEditingGig(null);
+  };
+
+  const handleAddGigClick = () => {
+    if (hasReachedFreeLimit) {
+      // Don't open modal if at limit
+      return;
+    }
+    setModalVisible(true);
+  };
+
+  const handleUpgradeClick = () => {
+    if (onNavigateToSubscription) {
+      onNavigateToSubscription();
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -213,12 +236,21 @@ export function GigsScreen() {
           >
             <Text style={styles.importButtonText}>📥 Import</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setModalVisible(true)}
-          >
-            <Text style={styles.addButtonText}>+ Add Gig</Text>
-          </TouchableOpacity>
+          {hasReachedFreeLimit ? (
+            <TouchableOpacity
+              style={styles.upgradeButton}
+              onPress={handleUpgradeClick}
+            >
+              <Text style={styles.upgradeButtonText}>⭐ Upgrade to add more</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={handleAddGigClick}
+            >
+              <Text style={styles.addButtonText}>+ Add Gig</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -235,13 +267,13 @@ export function GigsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            userPlan === 'free' ? (
+            isFreePlan ? (
               <View style={styles.usageIndicator}>
                 <View style={styles.usageHeader}>
                   <Text style={styles.usageText}>
                     You've used {gigCount} of {FREE_GIG_LIMIT} gigs on the free plan
                   </Text>
-                  <TouchableOpacity onPress={() => setModalVisible(true)}>
+                  <TouchableOpacity onPress={handleUpgradeClick}>
                     <Text style={styles.upgradeLink}>Upgrade</Text>
                   </TouchableOpacity>
                 </View>
@@ -337,6 +369,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  upgradeButton: {
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  upgradeButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
