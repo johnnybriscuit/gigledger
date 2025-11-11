@@ -10,6 +10,7 @@ import { getThemeColors, chartColors, getStatusColor } from '../../lib/charts/co
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { useTaxProfile } from '../../hooks/useTaxProfile';
 import { calcYTDEffectiveRate } from '../../tax/engine';
+import { FederalTaxInfo } from '../tax/FederalTaxInfo';
 
 interface HeroNetProfitProps {
   dateRange?: 'ytd' | 'last30' | 'last90' | 'lastYear' | 'custom';
@@ -144,6 +145,16 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
             </Text>
           </View>
         </View>
+      )}
+
+      {/* Federal Tax Explanation (when breakdown is shown) */}
+      {showTaxBreakdown && taxBreakdown && taxProfile && (
+        <FederalTaxInfo
+          netProfitYtd={currentData.totals.net}
+          estimatedSelfEmploymentTaxYtd={taxBreakdown.seTax}
+          federalTaxEstimate={taxBreakdown.federal}
+          filingStatus={taxProfile.filingStatus}
+        />
       )}
     </View>
   );
