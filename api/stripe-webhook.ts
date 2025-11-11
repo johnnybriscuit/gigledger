@@ -123,6 +123,28 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     throw new Error('No user_id found in customer metadata');
   }
 
+  // Determine plan for profiles table
+  let plan: 'free' | 'pro_monthly' | 'pro_yearly' = 'free';
+  if (priceId === process.env.STRIPE_MONTHLY_PRICE_ID) {
+    plan = 'pro_monthly';
+  } else if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) {
+    plan = 'pro_yearly';
+  }
+
+  // Update user's plan in profiles table
+  console.log('Updating user plan to:', plan);
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ plan })
+    .eq('id', userId);
+
+  if (profileError) {
+    console.error('Error updating user plan:', profileError);
+    // Don't throw - we still want to update subscription even if plan update fails
+  } else {
+    console.log('User plan successfully updated to:', plan);
+  }
+
   const subscriptionData = {
     user_id: userId,
     stripe_customer_id: customerId,
@@ -154,6 +176,30 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
+  console.log('Processing subscription cancellation:', subscription.id);
+  
+  // Get user_id from customer metadata
+  const customerId = subscription.customer as string;
+  const customer = await stripe.customers.retrieve(customerId);
+  const userId = (customer as Stripe.Customer).metadata?.supabase_user_id;
+  
+  if (userId) {
+    // Reset user's plan to free
+    console.log('Resetting user plan to free for user:', userId);
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ plan: 'free' })
+      .eq('id', userId);
+
+    if (profileError) {
+      console.error('Error resetting user plan:', profileError);
+      // Don't throw - we still want to update subscription status
+    } else {
+      console.log('User plan successfully reset to free');
+    }
+  }
+
+  // Update subscription status
   const { error } = await supabase
     .from('subscriptions')
     .update({
@@ -166,6 +212,8 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
     console.error('Error canceling subscription:', error);
     throw error;
   }
+  
+  console.log('Subscription successfully canceled');
 }
 
 async function handlePaymentFailed(subscriptionId: string) {
