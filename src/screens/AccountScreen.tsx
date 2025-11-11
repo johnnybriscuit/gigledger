@@ -225,25 +225,24 @@ export function AccountScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Account Settings</Text>
 
-        {/* Profile Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Profile</Text>
-            {!isEditingProfile && (
-              <TouchableOpacity onPress={() => setIsEditingProfile(true)}>
-                <Text style={styles.editButton}>Edit</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+        {/* Two-column layout on desktop, stacked on mobile */}
+        <View style={styles.gridContainer}>
+          {/* Left Column: Profile + Tax Settings */}
+          <View style={styles.leftColumn}>
+            {/* Profile Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Profile</Text>
+              </View>
 
           <View style={styles.card}>
-            <View style={styles.field}>
+            <View style={styles.fieldCompact}>
               <Text style={styles.fieldLabel}>Email</Text>
               <Text style={styles.fieldValue}>{user?.email}</Text>
-              <Text style={styles.fieldHint}>Email cannot be changed</Text>
+              <Text style={styles.fieldHintCompact}>Cannot be changed</Text>
             </View>
 
-            <View style={styles.field}>
+            <View style={styles.fieldCompact}>
               <Text style={styles.fieldLabel}>Full Name</Text>
               {isEditingProfile ? (
                 <TextInput
@@ -257,7 +256,7 @@ export function AccountScreen() {
               )}
             </View>
 
-            <View style={styles.field}>
+            <View style={styles.fieldCompact}>
               <Text style={styles.fieldLabel}>Home Address</Text>
               {isEditingProfile ? (
                 <TextInput
@@ -270,7 +269,7 @@ export function AccountScreen() {
               ) : (
                 <Text style={styles.fieldValue}>{profile?.home_address || 'Not set'}</Text>
               )}
-              <Text style={styles.fieldHint}>Used for automatic mileage calculation</Text>
+              <Text style={styles.fieldHintCompact}>For mileage tracking</Text>
             </View>
 
             {isEditingProfile && (
@@ -298,87 +297,113 @@ export function AccountScreen() {
               </View>
             )}
           </View>
-        </View>
+            </View>
 
-        {/* Tax Settings Section */}
-        <TaxSettingsSection />
-
-        {/* Security Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Security</Text>
+            {/* Tax Settings Section */}
+            <TaxSettingsSection />
           </View>
 
-          <View style={styles.card}>
-            {!isChangingPassword ? (
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={() => setIsChangingPassword(true)}
-              >
-                <Text style={styles.linkButtonText}>Change Password</Text>
-              </TouchableOpacity>
-            ) : (
-              <>
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>New Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    placeholder="Enter new password"
-                    secureTextEntry
-                    autoCapitalize="none"
-                  />
-                </View>
+          {/* Right Column: Account Actions */}
+          <View style={styles.rightColumn}>
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Account Actions</Text>
+              </View>
+              <View style={styles.card}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => setIsEditingProfile(true)}
+                >
+                  <Text style={styles.actionButtonText}>✏️ Edit Profile</Text>
+                </TouchableOpacity>
 
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Confirm Password</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    placeholder="Confirm new password"
-                    secureTextEntry
-                    autoCapitalize="none"
-                  />
-                </View>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => {
+                    // Scroll to tax settings or trigger edit
+                    // For now, just alert - can enhance later
+                    Alert.alert('Tax Settings', 'Scroll down to edit your tax settings');
+                  }}
+                >
+                  <Text style={styles.actionButtonText}>📊 Edit Tax Settings</Text>
+                </TouchableOpacity>
 
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity
-                    style={[styles.button, styles.buttonSecondary]}
-                    onPress={() => {
-                      setIsChangingPassword(false);
-                      setNewPassword('');
-                      setConfirmPassword('');
-                    }}
-                  >
-                    <Text style={styles.buttonSecondaryText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.button, styles.buttonPrimary]}
-                    onPress={handleChangePassword}
-                    disabled={changePasswordMutation.isPending}
-                  >
-                    {changePasswordMutation.isPending ? (
-                      <ActivityIndicator color="#fff" size="small" />
-                    ) : (
-                      <Text style={styles.buttonPrimaryText}>Update Password</Text>
-                    )}
-                  </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => setIsChangingPassword(true)}
+                >
+                  <Text style={styles.actionButtonText}>🔒 Change Password</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionButtonDestructive}
+                  onPress={handleSignOut}
+                >
+                  <Text style={styles.actionButtonDestructiveText}>🚪 Sign Out</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Change Password Modal (when active) */}
+            {isChangingPassword && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Change Password</Text>
                 </View>
-              </>
+                <View style={styles.card}>
+                  <View style={styles.fieldCompact}>
+                    <Text style={styles.fieldLabel}>New Password</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      placeholder="Enter new password"
+                      secureTextEntry
+                      autoCapitalize="none"
+                    />
+                  </View>
+
+                  <View style={styles.fieldCompact}>
+                    <Text style={styles.fieldLabel}>Confirm Password</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      placeholder="Confirm new password"
+                      secureTextEntry
+                      autoCapitalize="none"
+                    />
+                  </View>
+
+                  <View style={styles.buttonRow}>
+                    <TouchableOpacity
+                      style={[styles.button, styles.buttonSecondary]}
+                      onPress={() => {
+                        setIsChangingPassword(false);
+                        setNewPassword('');
+                        setConfirmPassword('');
+                      }}
+                    >
+                      <Text style={styles.buttonSecondaryText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.button, styles.buttonPrimary]}
+                      onPress={handleChangePassword}
+                      disabled={changePasswordMutation.isPending}
+                    >
+                      {changePasswordMutation.isPending ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <Text style={styles.buttonPrimaryText}>Update</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
             )}
           </View>
         </View>
-
-        {/* Sign Out */}
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
       </View>
-
     </ScrollView>
   );
 }
@@ -397,6 +422,46 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 40,
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  gridContainer: {
+    ...Platform.select({
+      web: {
+        display: 'flex',
+        flexDirection: 'row',
+        gap: 24,
+        '@media (max-width: 768px)': {
+          flexDirection: 'column',
+        },
+      },
+      default: {
+        flexDirection: 'column',
+      },
+    }),
+  },
+  leftColumn: {
+    ...Platform.select({
+      web: {
+        flex: 1,
+        minWidth: 0,
+      },
+      default: {
+        width: '100%',
+      },
+    }),
+  },
+  rightColumn: {
+    ...Platform.select({
+      web: {
+        width: 320,
+        flexShrink: 0,
+      },
+      default: {
+        width: '100%',
+      },
+    }),
   },
   title: {
     fontSize: 28,
@@ -435,6 +500,14 @@ const styles = StyleSheet.create({
   },
   field: {
     marginBottom: 16,
+  },
+  fieldCompact: {
+    marginBottom: 12,
+  },
+  fieldHintCompact: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginTop: 2,
   },
   fieldLabel: {
     fontSize: 14,
@@ -552,16 +625,30 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#3b82f6',
   },
-  signOutButton: {
+  actionButton: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 10,
+    alignItems: 'flex-start',
+  },
+  actionButtonText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  actionButtonDestructive: {
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#ef4444',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'flex-start',
   },
-  signOutText: {
-    fontSize: 16,
+  actionButtonDestructiveText: {
+    fontSize: 15,
     fontWeight: '600',
     color: '#ef4444',
   },
