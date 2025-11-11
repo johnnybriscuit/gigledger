@@ -111,13 +111,29 @@ export function getDeduction(
 
 /**
  * Calculate federal income tax
+ * 
+ * IMPORTANT: For self-employed individuals, federal income tax is calculated on:
+ * 1. Gross Income
+ * 2. Minus: Adjustments (including half of SE tax)
+ * 3. Minus: Standard Deduction
+ * = Taxable Income
+ * 
+ * The half SE tax deduction is a critical "above-the-line" deduction that
+ * reduces AGI before the standard deduction is applied.
  */
 export function calcFederalTax(
   ytd: YTDData,
   profile: TaxProfile
 ): number {
+  // Calculate SE tax first to get the half-SE-tax deduction
+  const seTax = calcSETax(ytd, profile);
+  const halfSETaxDeduction = seTax * 0.5;
+  
+  // Total adjustments = provided adjustments + half SE tax
+  const totalAdjustments = ytd.adjustments + halfSETaxDeduction;
+  
   const deduction = getDeduction(profile, config2025.federal);
-  const taxableIncome = calcTaxableIncome(ytd.grossIncome, ytd.adjustments, deduction);
+  const taxableIncome = calcTaxableIncome(ytd.grossIncome, totalAdjustments, deduction);
   
   return calcBracketTax(taxableIncome, config2025.federal.brackets[profile.filingStatus]);
 }
@@ -228,17 +244,37 @@ export function calcSETax(
 
 /**
  * Calculate total tax liability
+ * 
+ * CALCULATION ORDER MATTERS:
+ * 1. Calculate SE tax first (needed for federal income tax deduction)
+ * 2. Calculate federal income tax (uses half SE tax as adjustment)
+ * 3. Calculate state/local tax
+ * 4. Sum all components
  */
 export function calcTotalTax(
   ytd: YTDData,
   profile: TaxProfile
 ): TaxResult {
+  // Calculate in correct order (SE tax first, then federal)
+  const seTax = calcSETax(ytd, profile);
   const federal = calcFederalTax(ytd, profile);
   const { state, local } = calcStateTax(ytd, profile);
-  const seTax = calcSETax(ytd, profile);
   
   const total = federal + state + local + seTax;
   const effectiveRate = ytd.grossIncome > 0 ? total / ytd.grossIncome : 0;
+  
+  // Debug logging (dev mode only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Tax debug:', {
+      netProfit: ytd.netSE,
+      seTax,
+      federalTax: federal,
+      stateTax: state,
+      localTax: local,
+      totalSetAside: total,
+      effectiveRate: (effectiveRate * 100).toFixed(2) + '%',
+    });
+  }
   
   return {
     federal,
