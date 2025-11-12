@@ -72,6 +72,7 @@ const US_STATES = [
 export function AccountScreen() {
   const queryClient = useQueryClient();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isEditingTaxSettings, setIsEditingTaxSettings] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Form states
@@ -300,7 +301,11 @@ export function AccountScreen() {
             </View>
 
             {/* Tax Settings Section */}
-            <TaxSettingsSection />
+            <TaxSettingsSection 
+              isEditing={isEditingTaxSettings}
+              onEditChange={setIsEditingTaxSettings}
+              hideEditButton={true}
+            />
           </View>
 
           {/* Right Column: Account Actions */}
@@ -319,11 +324,7 @@ export function AccountScreen() {
 
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => {
-                    // Scroll to tax settings or trigger edit
-                    // For now, just alert - can enhance later
-                    Alert.alert('Tax Settings', 'Scroll down to edit your tax settings');
-                  }}
+                  onPress={() => setIsEditingTaxSettings(true)}
                 >
                   <Text style={styles.actionButtonText}>📊 Edit Tax Settings</Text>
                 </TouchableOpacity>

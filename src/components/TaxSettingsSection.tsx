@@ -34,11 +34,30 @@ const FILING_STATUSES: { value: FilingStatus; label: string }[] = [
   { value: 'head', label: 'Head of Household' },
 ];
 
-export function TaxSettingsSection() {
+interface TaxSettingsSectionProps {
+  isEditing?: boolean;
+  onEditChange?: (editing: boolean) => void;
+  hideEditButton?: boolean;
+}
+
+export function TaxSettingsSection({ 
+  isEditing: externalIsEditing, 
+  onEditChange,
+  hideEditButton = false 
+}: TaxSettingsSectionProps = {}) {
   const { data: currentProfile, isLoading } = useTaxProfile();
   const upsertProfile = useUpsertTaxProfile();
   
-  const [isEditing, setIsEditing] = useState(false);
+  const [internalIsEditing, setInternalIsEditing] = useState(false);
+  const isEditing = externalIsEditing !== undefined ? externalIsEditing : internalIsEditing;
+  
+  const setIsEditing = (editing: boolean) => {
+    if (onEditChange) {
+      onEditChange(editing);
+    } else {
+      setInternalIsEditing(editing);
+    }
+  };
   const [profile, setProfile] = useState<Partial<TaxProfile>>({
     filingStatus: 'single',
     state: 'TN',
@@ -106,7 +125,7 @@ export function TaxSettingsSection() {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Tax Settings</Text>
-        {!isEditing && (
+        {!isEditing && !hideEditButton && (
           <TouchableOpacity onPress={() => setIsEditing(true)}>
             <Text style={styles.editButton}>Edit</Text>
           </TouchableOpacity>
