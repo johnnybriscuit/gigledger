@@ -183,27 +183,17 @@ export function TaxSettingsSection({
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Filing Status</Text>
           {isEditing ? (
-            <View style={styles.optionsContainer}>
+            <select
+              style={styles.select}
+              value={profile.filingStatus}
+              onChange={(e: any) => setProfile({ ...profile, filingStatus: e.target.value as FilingStatus })}
+            >
               {FILING_STATUSES.map((status) => (
-                <TouchableOpacity
-                  key={status.value}
-                  style={[
-                    styles.option,
-                    profile.filingStatus === status.value && styles.optionSelected,
-                  ]}
-                  onPress={() => setProfile({ ...profile, filingStatus: status.value })}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      profile.filingStatus === status.value && styles.optionTextSelected,
-                    ]}
-                  >
-                    {status.label}
-                  </Text>
-                </TouchableOpacity>
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
               ))}
-            </View>
+            </select>
           ) : (
             <Text style={styles.fieldValue}>{filingStatusLabel || 'Not set'}</Text>
           )}
@@ -213,27 +203,17 @@ export function TaxSettingsSection({
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>State of Residence</Text>
           {isEditing ? (
-            <View style={styles.optionsContainer}>
+            <select
+              style={styles.select}
+              value={profile.state}
+              onChange={(e: any) => setProfile({ ...profile, state: e.target.value as StateCode, county: undefined })}
+            >
               {TAX_STATES.map((state) => (
-                <TouchableOpacity
-                  key={state.code}
-                  style={[
-                    styles.option,
-                    profile.state === state.code && styles.optionSelected,
-                  ]}
-                  onPress={() => setProfile({ ...profile, state: state.code, county: undefined })}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      profile.state === state.code && styles.optionTextSelected,
-                    ]}
-                  >
-                    {state.name}
-                  </Text>
-                </TouchableOpacity>
+                <option key={state.code} value={state.code}>
+                  {state.name}
+                </option>
               ))}
-            </View>
+            </select>
           ) : (
             <Text style={styles.fieldValue}>{stateName}</Text>
           )}
@@ -244,27 +224,18 @@ export function TaxSettingsSection({
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>County</Text>
             {isEditing ? (
-              <ScrollView style={styles.countyScroll} nestedScrollEnabled>
+              <select
+                style={styles.select}
+                value={profile.county || ''}
+                onChange={(e: any) => setProfile({ ...profile, county: e.target.value })}
+              >
+                <option value="">Select a county...</option>
                 {getMDCounties().map((county) => (
-                  <TouchableOpacity
-                    key={county}
-                    style={[
-                      styles.option,
-                      profile.county === county && styles.optionSelected,
-                    ]}
-                    onPress={() => setProfile({ ...profile, county })}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        profile.county === county && styles.optionTextSelected,
-                      ]}
-                    >
-                      {county}
-                    </Text>
-                  </TouchableOpacity>
+                  <option key={county} value={county}>
+                    {county}
+                  </option>
                 ))}
-              </ScrollView>
+              </select>
             ) : (
               <Text style={styles.fieldValue}>{profile.county || 'Not set'}</Text>
             )}
@@ -316,41 +287,21 @@ export function TaxSettingsSection({
           <Text style={styles.fieldLabel}>Deduction Method</Text>
           {isEditing ? (
             <>
-              <View style={styles.optionsContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.option,
-                    profile.deductionMethod === 'standard' && styles.optionSelected,
-                  ]}
-                  onPress={() => setProfile({ ...profile, deductionMethod: 'standard', itemizedAmount: undefined })}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      profile.deductionMethod === 'standard' && styles.optionTextSelected,
-                    ]}
-                  >
-                    Standard Deduction
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.option,
-                    profile.deductionMethod === 'itemized' && styles.optionSelected,
-                  ]}
-                  onPress={() => setProfile({ ...profile, deductionMethod: 'itemized' })}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      profile.deductionMethod === 'itemized' && styles.optionTextSelected,
-                    ]}
-                  >
-                    Itemized Deduction
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <select
+                style={styles.select}
+                value={profile.deductionMethod}
+                onChange={(e: any) => {
+                  const method = e.target.value;
+                  setProfile({ 
+                    ...profile, 
+                    deductionMethod: method,
+                    itemizedAmount: method === 'standard' ? undefined : profile.itemizedAmount
+                  });
+                }}
+              >
+                <option value="standard">Standard Deduction</option>
+                <option value="itemized">Itemized Deduction</option>
+              </select>
 
               {profile.deductionMethod === 'itemized' && (
                 <TextInput
@@ -536,4 +487,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  select: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 14,
+    color: '#111827',
+    width: '100%',
+  } as any,
 });
