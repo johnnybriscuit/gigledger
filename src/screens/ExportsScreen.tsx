@@ -321,22 +321,35 @@ export function ExportsScreen() {
           {validationResult && (
             <View style={[
               styles.validationCard,
-              !validationResult.isValid && styles.validationCardError
+              !validationResult.isValid && styles.validationCardError,
+              validationResult.warnings.length > 0 && validationResult.isValid && styles.validationCardWarning
             ]}>
               <Text style={styles.validationIcon}>
-                {validationResult.isValid ? '✅' : '⚠️'}
+                {validationResult.isValid 
+                  ? (validationResult.warnings.length > 0 ? '⚠️' : '✅')
+                  : '❌'}
               </Text>
               <Text style={styles.validationTitle}>
                 {validationResult.isValid 
-                  ? 'All Checks Passed' 
-                  : `${validationResult.summary.blockingErrors} Issue(s) Found`}
+                  ? (validationResult.warnings.length > 0 
+                      ? 'Ready to Export (with warnings)' 
+                      : 'All Checks Passed')
+                  : `${validationResult.summary.blockingErrors} Issue(s) Must Be Fixed`}
               </Text>
               <Text style={styles.validationText}>
-                {getValidationSummary(validationResult)}
+                {validationResult.isValid 
+                  ? (validationResult.warnings.length > 0
+                      ? `${validationResult.warnings.length} warning(s) found. These won't block your export, but you should review them for accuracy.`
+                      : 'Your data is ready to export. No issues found.')
+                  : getValidationSummary(validationResult)}
               </Text>
-              {!validationResult.isValid && (
+              {(validationResult.warnings.length > 0 || !validationResult.isValid) && (
                 <TouchableOpacity onPress={() => setShowValidationDetails(true)}>
-                  <Text style={styles.validationLink}>View Details →</Text>
+                  <Text style={styles.validationLink}>
+                    {validationResult.warnings.length > 0 && validationResult.isValid
+                      ? 'View Warnings →'
+                      : 'View Issues →'}
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -789,6 +802,10 @@ const styles = StyleSheet.create({
   },
   validationCardError: {
     borderColor: '#ef4444',
+  },
+  validationCardWarning: {
+    borderColor: '#f59e0b',
+    backgroundColor: '#fffbeb',
   },
   validationIcon: {
     fontSize: 48,
