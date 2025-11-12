@@ -12,6 +12,9 @@ export * from './validator';
 // Generator
 export * from './generator';
 
+// TXF Generator (TurboTax Desktop)
+export * from './txf-generator';
+
 // Re-export commonly used types
 export type {
   GigExportRow,
@@ -29,3 +32,7 @@ export type {
 export type {
   ScheduleCCalculationInput,
 } from './generator';
+
+export type {
+  TXFGeneratorInput,
+} from './txf-generator';
