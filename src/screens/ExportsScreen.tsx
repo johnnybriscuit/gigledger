@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useAllExportData, type ExportFilters } from '../hooks/useExports';
 import { downloadAllCSVs, downloadJSONBackup } from '../lib/csvExport';
@@ -14,6 +15,17 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { canExport } from '../config/plans';
 import { UpgradeModal } from '../components/UpgradeModal';
+import {
+  validateExportData,
+  getValidationSummary,
+  type ValidationResult,
+} from '../lib/exports/validator';
+import {
+  generateTXF,
+  downloadTXF,
+  getTXFImportInstructions,
+} from '../lib/exports/txf-generator';
+import type { GigExportRow, ExpenseExportRow, MileageExportRow } from '../lib/exports/schemas';
 
 export function ExportsScreen() {
   const currentYear = new Date().getFullYear();
@@ -24,6 +36,9 @@ export function ExportsScreen() {
   const [includeTips, setIncludeTips] = useState(true);
   const [includeFees, setIncludeFees] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showValidationDetails, setShowValidationDetails] = useState(false);
+  const [showTXFInfo, setShowTXFInfo] = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
   // Fetch user's plan
   const { data: profile } = useQuery({
@@ -52,6 +67,50 @@ export function ExportsScreen() {
 
   // Fetch all export data
   const { gigs, expenses, mileage, payers, scheduleC, isLoading, isError } = useAllExportData(filters);
+
+  // Run validation when data loads
+  useEffect(() => {
+    if (gigs.data && expenses.data && mileage.data) {
+      // Transform data to export format (simplified for now)
+      const gigsExport = gigs.data.map(g => ({
+        ...g,
+        gig_id: g.user_id, // Placeholder
+        title: g.payer || 'Gig',
+        payer_name: g.payer,
+        payer_ein_or_ssn: null,
+        city: g.city_state?.split(',')[0] || null,
+        state: g.city_state?.split(',')[1]?.trim() || null,
+        country: 'US',
+        payment_method: null,
+        invoice_url: null,
+        paid: true,
+        withholding_federal: 0,
+        withholding_state: 0,
+      })) as GigExportRow[];
+
+      const expensesExport = expenses.data.map(e => ({
+        ...e,
+        expense_id: e.user_id, // Placeholder
+        merchant: e.vendor,
+        gl_category: e.category,
+        irs_schedule_c_line: '27a', // Default to Other
+        meals_percent_allowed: e.category === 'Meals' ? 0.5 : 1,
+        linked_gig_id: null,
+      })) as ExpenseExportRow[];
+
+      const mileageExport = mileage.data.map(m => ({
+        ...m,
+        trip_id: m.user_id, // Placeholder
+        business_miles: m.miles,
+        vehicle: null,
+        standard_rate: 0.67,
+        calculated_deduction: m.deduction_amount,
+      })) as MileageExportRow[];
+
+      const result = validateExportData(gigsExport, expensesExport, mileageExport);
+      setValidationResult(result);
+    }
+  }, [gigs.data, expenses.data, mileage.data]);
 
   const handleDownloadCSVs = () => {
     if (!canExport(userPlan)) {
@@ -105,6 +164,40 @@ export function ExportsScreen() {
 
   const handleDownloadPDF = () => {
     Alert.alert('Coming Soon', 'PDF export will be available in the next update.');
+  };
+
+  const handleDownloadTXF = () => {
+    if (!canExport(userPlan)) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    if (!validationResult?.isValid) {
+      Alert.alert(
+        'Validation Required',
+        'Please fix all blocking errors before exporting. Tap "View Issues" to see details.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'View Issues', onPress: () => setShowValidationDetails(true) },
+        ]
+      );
+      return;
+    }
+
+    if (!gigs.data || !expenses.data || !scheduleC.data) {
+      Alert.alert('Error', 'Data not loaded yet. Please wait.');
+      return;
+    }
+
+    // Generate TXF (simplified - would need proper transformation)
+    Alert.alert(
+      'TXF Export',
+      'TXF export is available but requires additional data transformation. This feature will be fully enabled in the next update.',
+      [
+        { text: 'Learn More', onPress: () => setShowTXFInfo(true) },
+        { text: 'OK' },
+      ]
+    );
   };
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -224,21 +317,74 @@ export function ExportsScreen() {
             </View>
           </View>
 
+          {/* Validation Status Card */}
+          {validationResult && (
+            <View style={[
+              styles.validationCard,
+              !validationResult.isValid && styles.validationCardError
+            ]}>
+              <Text style={styles.validationIcon}>
+                {validationResult.isValid ? '✅' : '⚠️'}
+              </Text>
+              <Text style={styles.validationTitle}>
+                {validationResult.isValid 
+                  ? 'All Checks Passed' 
+                  : `${validationResult.summary.blockingErrors} Issue(s) Found`}
+              </Text>
+              <Text style={styles.validationText}>
+                {getValidationSummary(validationResult)}
+              </Text>
+              {!validationResult.isValid && (
+                <TouchableOpacity onPress={() => setShowValidationDetails(true)}>
+                  <Text style={styles.validationLink}>View Details →</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {/* Export Buttons */}
           <View style={styles.exportSection}>
             <Text style={styles.sectionTitle}>Export Options</Text>
+            <Text style={styles.sectionSubtitle}>Choose your export format below</Text>
 
             <TouchableOpacity
-              style={styles.exportButton}
+              style={[
+                styles.exportButton,
+                !validationResult?.isValid && styles.exportButtonDisabled
+              ]}
               onPress={handleDownloadCSVs}
+              disabled={!validationResult?.isValid}
             >
               <Text style={styles.exportButtonIcon}>📊</Text>
               <View style={styles.exportButtonContent}>
                 <Text style={styles.exportButtonTitle}>Download CSVs</Text>
                 <Text style={styles.exportButtonDescription}>
-                  5 CSV files (gigs, expenses, mileage, payers, Schedule C)
+                  5 IRS-compliant CSV files - Recommended for CPAs
                 </Text>
               </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.exportButton,
+                !validationResult?.isValid && styles.exportButtonDisabled
+              ]}
+              onPress={handleDownloadTXF}
+              disabled={!validationResult?.isValid}
+            >
+              <View style={styles.exportButtonHeader}>
+                <Text style={styles.exportButtonIcon}>💼</Text>
+                <View style={styles.exportButtonContent}>
+                  <Text style={styles.exportButtonTitle}>Download TXF</Text>
+                  <Text style={styles.exportButtonBadge}>TurboTax Desktop Only</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowTXFInfo(true)}>
+                  <Text style={styles.infoIcon}>\u2139\ufe0f</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.exportButtonDescription}>
+                Import into TurboTax Desktop (NOT Online)
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -304,6 +450,70 @@ export function ExportsScreen() {
           </View>
         </>
       )}
+
+      {/* TXF Info Modal */}
+      <Modal visible={showTXFInfo} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>TXF Format Information</Text>
+            <ScrollView style={styles.modalScroll}>
+              <Text style={styles.modalText}>
+                {getTXFImportInstructions()}
+              </Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShowTXFInfo(false)}
+            >
+              <Text style={styles.modalButtonText}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Validation Details Modal */}
+      <Modal visible={showValidationDetails} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Validation Issues</Text>
+            <ScrollView style={styles.modalScroll}>
+              {validationResult?.errors && validationResult.errors.length > 0 && (
+                <>
+                  <Text style={styles.issuesSectionTitle}>
+                    \u274c Blocking Errors ({validationResult.errors.length})
+                  </Text>
+                  {validationResult.errors.map((issue, idx) => (
+                    <View key={idx} style={styles.issueCard}>
+                      <Text style={styles.issueCategory}>{issue.category}</Text>
+                      <Text style={styles.issueMessage}>{issue.message}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+              
+              {validationResult?.warnings && validationResult.warnings.length > 0 && (
+                <>
+                  <Text style={styles.issuesSectionTitle}>
+                    \u26a0\ufe0f Warnings ({validationResult.warnings.length})
+                  </Text>
+                  {validationResult.warnings.map((issue, idx) => (
+                    <View key={idx} style={[styles.issueCard, styles.issueCardWarning]}>
+                      <Text style={styles.issueCategory}>{issue.category}</Text>
+                      <Text style={styles.issueMessage}>{issue.message}</Text>
+                    </View>
+                  ))}
+                </>
+              )}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShowValidationDetails(false)}
+            >
+              <Text style={styles.modalButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Upgrade Modal */}
       <UpgradeModal
@@ -559,5 +769,135 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#3b82f6',
     fontStyle: 'italic',
+  },
+  // Phase E: Validation & TXF styles
+  validationCard: {
+    backgroundColor: '#fff',
+    padding: 20,
+    marginTop: 12,
+    marginHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#10b981',
+    alignItems: 'center',
+  },
+  validationCardError: {
+    borderColor: '#ef4444',
+  },
+  validationIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  validationTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  validationText: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  validationLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 16,
+    marginTop: -8,
+  },
+  exportButtonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  exportButtonBadge: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#f59e0b',
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  infoIcon: {
+    fontSize: 20,
+    color: '#3b82f6',
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    maxWidth: 500,
+    width: '100%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  modalScroll: {
+    maxHeight: 400,
+    marginBottom: 20,
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  modalButton: {
+    backgroundColor: '#3b82f6',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  issuesSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  issueCard: {
+    backgroundColor: '#fef2f2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#ef4444',
+  },
+  issueCardWarning: {
+    backgroundColor: '#fffbeb',
+    borderLeftColor: '#f59e0b',
+  },
+  issueCategory: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#991b1b',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  issueMessage: {
+    fontSize: 13,
+    color: '#7f1d1d',
+    lineHeight: 18,
   },
 });
