@@ -44,7 +44,13 @@ export interface JurisdictionConfig {
   };
 }
 
-export type StateCode = 'TN' | 'TX' | 'CA' | 'NY' | 'MD';
+export type StateCode = 
+  | 'AL' | 'AK' | 'AZ' | 'AR' | 'CA' | 'CO' | 'CT' | 'DE' | 'FL' | 'GA'
+  | 'HI' | 'ID' | 'IL' | 'IN' | 'IA' | 'KS' | 'KY' | 'LA' | 'ME' | 'MD'
+  | 'MA' | 'MI' | 'MN' | 'MS' | 'MO' | 'MT' | 'NE' | 'NV' | 'NH' | 'NJ'
+  | 'NM' | 'NY' | 'NC' | 'ND' | 'OH' | 'OK' | 'OR' | 'PA' | 'RI' | 'SC'
+  | 'SD' | 'TN' | 'TX' | 'UT' | 'VT' | 'VA' | 'WA' | 'WV' | 'WI' | 'WY'
+  | 'DC';
 
 export interface TaxConfig2025 {
   federal: JurisdictionConfig;
@@ -360,6 +366,63 @@ const config2025: TaxConfig2025 = {
       },
     },
   },
+
+  // ============================================================================
+  // FALLBACK STATES (Conservative 5% flat rate estimate)
+  // ============================================================================
+  // For states without full tax engine support, we use a conservative 5% flat rate.
+  // This provides reasonable estimates until we add full bracket support.
+  // States with no income tax are marked with 0% rate.
+  
+  // No income tax states
+  AL: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  AK: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0 }], married_joint: [{ upTo: null, rate: 0 }], married_separate: [{ upTo: null, rate: 0 }], head: [{ upTo: null, rate: 0 }] } },
+  FL: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0 }], married_joint: [{ upTo: null, rate: 0 }], married_separate: [{ upTo: null, rate: 0 }], head: [{ upTo: null, rate: 0 }] } },
+  NV: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0 }], married_joint: [{ upTo: null, rate: 0 }], married_separate: [{ upTo: null, rate: 0 }], head: [{ upTo: null, rate: 0 }] } },
+  NH: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0 }], married_joint: [{ upTo: null, rate: 0 }], married_separate: [{ upTo: null, rate: 0 }], head: [{ upTo: null, rate: 0 }] } },
+  SD: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0 }], married_joint: [{ upTo: null, rate: 0 }], married_separate: [{ upTo: null, rate: 0 }], head: [{ upTo: null, rate: 0 }] } },
+  WA: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0 }], married_joint: [{ upTo: null, rate: 0 }], married_separate: [{ upTo: null, rate: 0 }], head: [{ upTo: null, rate: 0 }] } },
+  WY: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0 }], married_joint: [{ upTo: null, rate: 0 }], married_separate: [{ upTo: null, rate: 0 }], head: [{ upTo: null, rate: 0 }] } },
+  
+  // States with income tax (5% flat rate estimate)
+  AZ: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  AR: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  CO: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  CT: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  DE: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  GA: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  HI: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  ID: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  IL: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  IN: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  IA: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  KS: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  KY: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  LA: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  ME: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  MA: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  MI: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  MN: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  MS: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  MO: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  MT: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  NE: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  NJ: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  NM: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  NC: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  ND: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  OH: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  OK: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  OR: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  PA: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  RI: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  SC: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  UT: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  VT: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  VA: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  WV: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  WI: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
+  DC: { standardDeduction: { single: 0, married_joint: 0, married_separate: 0, head: 0 }, brackets: { single: [{ upTo: null, rate: 0.05 }], married_joint: [{ upTo: null, rate: 0.05 }], married_separate: [{ upTo: null, rate: 0.05 }], head: [{ upTo: null, rate: 0.05 }] } },
   }, // end states
 
   // ============================================================================
