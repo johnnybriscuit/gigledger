@@ -167,12 +167,20 @@ export function ExportsScreen() {
   };
 
   const handleDownloadTXF = () => {
+    console.log('TXF button clicked!', { 
+      userPlan, 
+      canExport: canExport(userPlan),
+      isValid: validationResult?.isValid 
+    });
+
     if (!canExport(userPlan)) {
+      console.log('Blocked: User plan does not allow exports');
       setShowUpgradeModal(true);
       return;
     }
 
     if (!validationResult?.isValid) {
+      console.log('Blocked: Validation errors exist');
       Alert.alert(
         'Validation Required',
         'Please fix all blocking errors before exporting. Tap "View Issues" to see details.',
@@ -184,17 +192,18 @@ export function ExportsScreen() {
       return;
     }
 
-    if (!gigs.data || !expenses.data || !scheduleC.data) {
-      Alert.alert('Error', 'Data not loaded yet. Please wait.');
-      return;
-    }
-
-    // Generate TXF (simplified - would need proper transformation)
+    console.log('Showing TXF coming soon alert');
+    // Show TXF info and coming soon message
     Alert.alert(
-      'TXF Export',
-      'TXF export is available but requires additional data transformation. This feature will be fully enabled in the next update.',
+      'TXF Export Coming Soon',
+      'TXF export for TurboTax Desktop is currently in development. For now, please use the CSV exports and send them to your CPA, or manually enter data into TurboTax.',
       [
-        { text: 'Learn More', onPress: () => setShowTXFInfo(true) },
+        { 
+          text: 'Learn More About TXF', 
+          onPress: () => {
+            setShowTXFInfo(true);
+          }
+        },
         { text: 'OK' },
       ]
     );
