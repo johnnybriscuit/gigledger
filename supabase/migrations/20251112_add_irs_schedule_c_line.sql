@@ -20,42 +20,40 @@ COMMENT ON COLUMN expenses.meals_percent_allowed IS 'For meals/entertainment exp
 
 -- Backfill irs_schedule_c_line based on existing categories
 -- This is a best-effort mapping - users should review and correct
+-- Categories: Rent, Travel, Meals, Lodging, Supplies, Marketing, Education, Software, Fees, Equipment, Other
 
 UPDATE expenses
 SET irs_schedule_c_line = CASE
-  -- Equipment & Gear
-  WHEN category IN ('Equipment', 'Instruments', 'Gear') THEN '22' -- Supplies
+  -- Equipment
+  WHEN category = 'Equipment' THEN '22' -- Supplies
   
-  -- Marketing & Promotion
-  WHEN category IN ('Marketing', 'Advertising', 'Website') THEN '8' -- Advertising
+  -- Supplies
+  WHEN category = 'Supplies' THEN '22' -- Supplies
   
-  -- Professional Services
-  WHEN category IN ('Legal', 'Accounting', 'Professional Services') THEN '17' -- Legal/Professional
+  -- Marketing
+  WHEN category = 'Marketing' THEN '8' -- Advertising
   
-  -- Travel
-  WHEN category IN ('Travel', 'Lodging') THEN '24a' -- Travel
+  -- Travel & Lodging
+  WHEN category = 'Travel' THEN '24a' -- Travel
+  WHEN category = 'Lodging' THEN '24a' -- Travel
   
   -- Meals
-  WHEN category IN ('Meals', 'Food') THEN '24b' -- Meals (50% limitation)
+  WHEN category = 'Meals' THEN '24b' -- Meals (50% limitation)
   
-  -- Office & Supplies
-  WHEN category IN ('Office Supplies', 'Software', 'Subscriptions') THEN '18' -- Office Expense
+  -- Software & Education
+  WHEN category = 'Software' THEN '18' -- Office Expense
+  WHEN category = 'Education' THEN '27a' -- Other expenses (or could be 18 Office)
   
-  -- Utilities & Communications
-  WHEN category IN ('Phone', 'Internet', 'Utilities') THEN '25' -- Utilities
-  
-  -- Insurance
-  WHEN category = 'Insurance' THEN '15' -- Insurance
-  WHEN category = 'Health Insurance' THEN '14' -- Employee Benefit
-  
-  -- Repairs & Maintenance
-  WHEN category IN ('Repairs', 'Maintenance') THEN '21' -- Repairs/Maintenance
+  -- Fees
+  WHEN category = 'Fees' THEN '10' -- Commissions and fees
   
   -- Rent
-  WHEN category = 'Vehicle Rent' THEN '20a' -- Rent - Vehicles
-  WHEN category IN ('Rent', 'Studio Rent') THEN '20b' -- Rent - Other
+  WHEN category = 'Rent' THEN '20b' -- Rent - Other
   
-  -- Default to Other
+  -- Other
+  WHEN category = 'Other' THEN '27a' -- Other expenses
+  
+  -- Default to Other for any unmapped categories
   ELSE '27a' -- Other expenses
 END
 WHERE irs_schedule_c_line IS NULL;

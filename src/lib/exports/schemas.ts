@@ -279,54 +279,36 @@ export type IRSScheduleCLineCode = typeof IRS_SCHEDULE_C_LINE_CODES[keyof typeof
 // ============================================================================
 // GIGLEDGER CATEGORY TO IRS LINE MAPPING
 // ============================================================================
+// Maps GigLedger expense categories to IRS Schedule C line codes
+// Categories: Rent, Travel, Meals, Lodging, Supplies, Marketing, Education, Software, Fees, Equipment, Other
+
 export const CATEGORY_TO_IRS_LINE: Record<string, IRSScheduleCLineCode> = {
-  // Equipment & Gear
-  'Equipment': IRS_SCHEDULE_C_LINE_CODES.SUPPLIES,
-  'Instruments': IRS_SCHEDULE_C_LINE_CODES.SUPPLIES,
-  'Gear': IRS_SCHEDULE_C_LINE_CODES.SUPPLIES,
+  // Equipment & Supplies
+  'Equipment': IRS_SCHEDULE_C_LINE_CODES.SUPPLIES, // Line 22
+  'Supplies': IRS_SCHEDULE_C_LINE_CODES.SUPPLIES, // Line 22
   
-  // Marketing & Promotion
-  'Marketing': IRS_SCHEDULE_C_LINE_CODES.ADVERTISING,
-  'Advertising': IRS_SCHEDULE_C_LINE_CODES.ADVERTISING,
-  'Website': IRS_SCHEDULE_C_LINE_CODES.ADVERTISING,
+  // Marketing & Advertising
+  'Marketing': IRS_SCHEDULE_C_LINE_CODES.ADVERTISING, // Line 8
   
-  // Professional Services
-  'Legal': IRS_SCHEDULE_C_LINE_CODES.LEGAL_PROFESSIONAL,
-  'Accounting': IRS_SCHEDULE_C_LINE_CODES.LEGAL_PROFESSIONAL,
-  'Professional Services': IRS_SCHEDULE_C_LINE_CODES.LEGAL_PROFESSIONAL,
+  // Travel & Lodging
+  'Travel': IRS_SCHEDULE_C_LINE_CODES.TRAVEL, // Line 24a
+  'Lodging': IRS_SCHEDULE_C_LINE_CODES.TRAVEL, // Line 24a
   
-  // Travel & Meals
-  'Travel': IRS_SCHEDULE_C_LINE_CODES.TRAVEL,
-  'Lodging': IRS_SCHEDULE_C_LINE_CODES.TRAVEL,
-  'Meals': IRS_SCHEDULE_C_LINE_CODES.MEALS,
-  'Food': IRS_SCHEDULE_C_LINE_CODES.MEALS,
+  // Meals (50% limitation)
+  'Meals': IRS_SCHEDULE_C_LINE_CODES.MEALS, // Line 24b
   
-  // Office & Supplies
-  'Office Supplies': IRS_SCHEDULE_C_LINE_CODES.OFFICE_EXPENSE,
-  'Software': IRS_SCHEDULE_C_LINE_CODES.OFFICE_EXPENSE,
-  'Subscriptions': IRS_SCHEDULE_C_LINE_CODES.OFFICE_EXPENSE,
+  // Software & Education
+  'Software': IRS_SCHEDULE_C_LINE_CODES.OFFICE_EXPENSE, // Line 18
+  'Education': IRS_SCHEDULE_C_LINE_CODES.OTHER, // Line 27a (or could be Office Expense)
   
-  // Utilities & Communications
-  'Phone': IRS_SCHEDULE_C_LINE_CODES.UTILITIES,
-  'Internet': IRS_SCHEDULE_C_LINE_CODES.UTILITIES,
-  'Utilities': IRS_SCHEDULE_C_LINE_CODES.UTILITIES,
-  
-  // Insurance
-  'Insurance': IRS_SCHEDULE_C_LINE_CODES.INSURANCE,
-  'Health Insurance': IRS_SCHEDULE_C_LINE_CODES.EMPLOYEE_BENEFIT,
-  
-  // Repairs & Maintenance
-  'Repairs': IRS_SCHEDULE_C_LINE_CODES.REPAIRS_MAINTENANCE,
-  'Maintenance': IRS_SCHEDULE_C_LINE_CODES.REPAIRS_MAINTENANCE,
+  // Fees & Commissions
+  'Fees': IRS_SCHEDULE_C_LINE_CODES.COMMISSIONS, // Line 10
   
   // Rent
-  'Rent': IRS_SCHEDULE_C_LINE_CODES.RENT_OTHER,
-  'Studio Rent': IRS_SCHEDULE_C_LINE_CODES.RENT_OTHER,
-  'Vehicle Rent': IRS_SCHEDULE_C_LINE_CODES.RENT_VEHICLES,
+  'Rent': IRS_SCHEDULE_C_LINE_CODES.RENT_OTHER, // Line 20b
   
   // Other
-  'Other': IRS_SCHEDULE_C_LINE_CODES.OTHER,
-  'Miscellaneous': IRS_SCHEDULE_C_LINE_CODES.OTHER,
+  'Other': IRS_SCHEDULE_C_LINE_CODES.OTHER, // Line 27a
 };
 
 /**
