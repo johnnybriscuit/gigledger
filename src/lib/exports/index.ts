@@ -15,6 +15,9 @@ export * from './generator';
 // TXF Generator (TurboTax Desktop)
 export * from './txf-generator';
 
+// PDF Generator (Schedule C Summary)
+export * from './pdf-generator';
+
 // Re-export commonly used types
 export type {
   GigExportRow,
