@@ -372,19 +372,25 @@ export function ExportsScreen() {
               onPress={handleDownloadTXF}
               disabled={!validationResult?.isValid}
             >
-              <View style={styles.exportButtonHeader}>
-                <Text style={styles.exportButtonIcon}>💼</Text>
-                <View style={styles.exportButtonContent}>
+              <Text style={styles.exportButtonIcon}>💼</Text>
+              <View style={styles.exportButtonContent}>
+                <View style={styles.exportButtonHeader}>
                   <Text style={styles.exportButtonTitle}>Download TXF</Text>
-                  <Text style={styles.exportButtonBadge}>TurboTax Desktop Only</Text>
+                  <TouchableOpacity 
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setShowTXFInfo(true);
+                    }}
+                    style={styles.infoIconButton}
+                  >
+                    <Text style={styles.infoIcon}>ℹ️</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={() => setShowTXFInfo(true)}>
-                  <Text style={styles.infoIcon}>\u2139\ufe0f</Text>
-                </TouchableOpacity>
+                <Text style={styles.exportButtonBadge}>TURBOTAX DESKTOP ONLY</Text>
+                <Text style={styles.exportButtonDescription}>
+                  Import into TurboTax Desktop (NOT Online)
+                </Text>
               </View>
-              <Text style={styles.exportButtonDescription}>
-                Import into TurboTax Desktop (NOT Online)
-              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -814,7 +820,8 @@ const styles = StyleSheet.create({
   exportButtonHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   exportButtonBadge: {
     fontSize: 11,
@@ -822,11 +829,15 @@ const styles = StyleSheet.create({
     color: '#f59e0b',
     textTransform: 'uppercase',
     marginTop: 2,
+    marginBottom: 4,
+  },
+  infoIconButton: {
+    padding: 4,
+    marginLeft: 8,
   },
   infoIcon: {
-    fontSize: 20,
+    fontSize: 18,
     color: '#3b82f6',
-    marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,
