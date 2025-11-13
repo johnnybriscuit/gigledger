@@ -16,6 +16,26 @@ import { supabase } from '../lib/supabase';
 import { useTaxEstimate } from '../hooks/useTaxEstimate';
 import { useQueryClient } from '@tanstack/react-query';
 
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
+  { code: 'AR', name: 'Arkansas' }, { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' }, { code: 'FL', name: 'Florida' },
+  { code: 'GA', name: 'Georgia' }, { code: 'HI', name: 'Hawaii' }, { code: 'ID', name: 'Idaho' },
+  { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' }, { code: 'IA', name: 'Iowa' },
+  { code: 'KS', name: 'Kansas' }, { code: 'KY', name: 'Kentucky' }, { code: 'LA', name: 'Louisiana' },
+  { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' }, { code: 'MA', name: 'Massachusetts' },
+  { code: 'MI', name: 'Michigan' }, { code: 'MN', name: 'Minnesota' }, { code: 'MS', name: 'Mississippi' },
+  { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' }, { code: 'NE', name: 'Nebraska' },
+  { code: 'NV', name: 'Nevada' }, { code: 'NH', name: 'New Hampshire' }, { code: 'NJ', name: 'New Jersey' },
+  { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' }, { code: 'NC', name: 'North Carolina' },
+  { code: 'ND', name: 'North Dakota' }, { code: 'OH', name: 'Ohio' }, { code: 'OK', name: 'Oklahoma' },
+  { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' }, { code: 'RI', name: 'Rhode Island' },
+  { code: 'SC', name: 'South Carolina' }, { code: 'SD', name: 'South Dakota' }, { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' }, { code: 'VT', name: 'Vermont' },
+  { code: 'VA', name: 'Virginia' }, { code: 'WA', name: 'Washington' }, { code: 'WV', name: 'West Virginia' },
+  { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' }
+];
+
 interface OnboardingAddGigProps {
   payerId: string | null;
   onComplete: () => void;
@@ -28,6 +48,8 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date>(new Date());
   const [title, setTitle] = useState('');
+  const [stateCode, setStateCode] = useState('');
+  const [showStatePicker, setShowStatePicker] = useState(false);
   const [grossAmount, setGrossAmount] = useState('');
   const [fees, setFees] = useState('');
   const [otherIncome, setOtherIncome] = useState('');
@@ -96,6 +118,8 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
         payer_id: payerId,
         date,
         title: title.trim(),
+        state_code: stateCode || undefined,
+        country_code: 'US',
         gross_amount: parseFloat(grossAmount),
         tips: 0,
         fees: parseFloat(fees) || 0,
@@ -188,6 +212,20 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
               onChangeText={setTitle}
               editable={!createGig.isPending}
             />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>State (optional)</Text>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowStatePicker(true)}
+              disabled={createGig.isPending}
+            >
+              <Text style={[styles.dateButtonText, !stateCode && styles.placeholderText]}>
+                {stateCode ? US_STATES.find(s => s.code === stateCode)?.name : 'Select state'}
+              </Text>
+              <Text style={styles.dateButtonIcon}>📍</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
@@ -361,6 +399,53 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* State Picker Modal */}
+      <Modal
+        visible={showStatePicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowStatePicker(false)}
+      >
+        <View style={styles.pickerModalOverlay}>
+          <View style={styles.calendarModalContent}>
+            <View style={styles.calendarHeader}>
+              <Text style={styles.calendarMonthText}>Select State</Text>
+              <TouchableOpacity onPress={() => setShowStatePicker(false)}>
+                <Text style={styles.calendarNavText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.stateList}>
+              <TouchableOpacity
+                style={styles.stateItem}
+                onPress={() => {
+                  setStateCode('');
+                  setShowStatePicker(false);
+                }}
+              >
+                <Text style={[styles.stateItemText, !stateCode && styles.stateItemTextSelected]}>
+                  None
+                </Text>
+              </TouchableOpacity>
+              {US_STATES.map((state) => (
+                <TouchableOpacity
+                  key={state.code}
+                  style={styles.stateItem}
+                  onPress={() => {
+                    setStateCode(state.code);
+                    setShowStatePicker(false);
+                  }}
+                >
+                  <Text style={[styles.stateItemText, stateCode === state.code && styles.stateItemTextSelected]}>
+                    {state.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -675,5 +760,22 @@ const styles = StyleSheet.create({
   },
   calendarFooterButtonTextPrimary: {
     color: '#fff',
+  },
+  // State Picker
+  stateList: {
+    maxHeight: 400,
+  },
+  stateItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  stateItemText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  stateItemTextSelected: {
+    color: '#3b82f6',
+    fontWeight: '600',
   },
 });
