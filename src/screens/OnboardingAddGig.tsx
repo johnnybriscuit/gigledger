@@ -539,4 +539,141 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
+  // Date Button
+  dateButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 16,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  placeholderText: {
+    color: '#9ca3af',
+  },
+  dateButtonIcon: {
+    fontSize: 18,
+  },
+  // Date Picker Modal
+  pickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  calendarModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 10,
+      },
+    }),
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  calendarNavButton: {
+    padding: 8,
+  },
+  calendarNavText: {
+    fontSize: 24,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  calendarMonthText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  calendarDayHeader: {
+    width: '13.28%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarDayHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  calendarDay: {
+    width: '13.28%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  calendarDaySelected: {
+    backgroundColor: '#3b82f6',
+  },
+  calendarDayToday: {
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+  },
+  calendarDayText: {
+    fontSize: 14,
+    color: '#111827',
+  },
+  calendarDayTextSelected: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  calendarDayTextToday: {
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  calendarFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  calendarFooterButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  calendarFooterButtonPrimary: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  calendarFooterButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  calendarFooterButtonTextPrimary: {
+    color: '#fff',
+  },
 });

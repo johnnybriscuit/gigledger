@@ -31,13 +31,16 @@ export function DashboardScreen() {
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showOnboardingToast, setShowOnboardingToast] = useState(false);
 
-  // Check if we should show onboarding completion toast
+  // Check if we should show onboarding completion toast and set tab to dashboard
   useEffect(() => {
     if (Platform.OS === 'web') {
       const justCompletedOnboarding = sessionStorage.getItem('onboarding_just_completed');
       if (justCompletedOnboarding === 'true') {
         setShowOnboardingToast(true);
+        setActiveTab('dashboard'); // Ensure we're on dashboard after onboarding
         sessionStorage.removeItem('onboarding_just_completed');
+        // Clear the saved tab so we start fresh on dashboard
+        localStorage.removeItem('activeTab');
       }
     }
   }, []);
