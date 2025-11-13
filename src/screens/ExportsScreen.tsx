@@ -58,16 +58,6 @@ export function ExportsScreen() {
   });
 
   const userPlan = profile?.plan || 'free';
-  
-  // Debug: Log the user plan
-  useEffect(() => {
-    console.log('ExportsScreen - User Plan:', { 
-      rawPlan: profile?.plan, 
-      userPlan, 
-      canExport: canExport(userPlan),
-      profile 
-    });
-  }, [profile, userPlan]);
 
   // Build filters
   const filters: ExportFilters = {
@@ -241,20 +231,12 @@ export function ExportsScreen() {
   };
 
   const handleDownloadTXF = async () => {
-    console.log('TXF button clicked!', { 
-      userPlan, 
-      canExport: canExport(userPlan),
-      isValid: validationResult?.isValid 
-    });
-
     if (!canExport(userPlan)) {
-      console.log('Blocked: User plan does not allow exports');
       setShowUpgradeModal(true);
       return;
     }
 
     if (!validationResult?.isValid) {
-      console.log('Blocked: Validation errors exist');
       Alert.alert(
         'Validation Required',
         'Please fix all blocking errors before exporting. Tap "View Issues" to see details.',
