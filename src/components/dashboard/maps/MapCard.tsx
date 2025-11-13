@@ -40,6 +40,15 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
     customEnd,
   });
 
+  // Get non-zero gig counts for legend (must be before conditional returns)
+  const nonZeroCounts = useMemo(() => {
+    if (!statsMap) return [];
+    return Object.values(statsMap)
+      .map(s => s.gigsCount || 0)
+      .filter(c => c > 0)
+      .sort((a, b) => a - b);
+  }, [statsMap]);
+
   const handleRegionHover = (code: string | null, event?: React.MouseEvent) => {
     setHoveredRegion(code);
     if (code && event && Platform.OS === 'web') {
@@ -78,15 +87,6 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
   }
 
   const hasData = statsMap && Object.keys(statsMap).length > 0;
-  
-  // Get non-zero gig counts for legend
-  const nonZeroCounts = useMemo(() => {
-    if (!statsMap) return [];
-    return Object.values(statsMap)
-      .map(s => s.gigsCount || 0)
-      .filter(c => c > 0)
-      .sort((a, b) => a - b);
-  }, [statsMap]);
 
   if (!hasData) {
     return (
