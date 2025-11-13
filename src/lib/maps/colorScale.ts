@@ -62,6 +62,11 @@ export function getRegionColorScale(gigsCount: number, allCounts: number[], isDa
     return colors.zeroFill;
   }
   
+  // Safety check for invalid input
+  if (!allCounts || !Array.isArray(allCounts) || allCounts.length === 0) {
+    return colors.nonZeroStops[0]; // Return lightest color as fallback
+  }
+  
   // Get non-zero counts for scale
   const nonZeroCounts = allCounts.filter(c => c > 0);
   
