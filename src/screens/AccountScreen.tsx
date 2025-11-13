@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
 import { supabase } from '../lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaxSettingsSection } from '../components/TaxSettingsSection';
+import { useProfile, useUpdateProfile } from '../hooks/useProfile';
+import { formatRelativeTime } from '../lib/profile';
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' },
@@ -82,39 +84,7 @@ export function AccountScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Fetch user profile
-  const { data: profile, isLoading: profileLoading } = useQuery<{
-    id: string;
-    email: string;
-    full_name: string;
-    home_address: string | null;
-    state_code: string | null;
-    filing_status: 'single' | 'married' | 'hoh';
-  } | null>({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-      
-      const profile = data as any;
-      
-      // Set initial form values
-      setFullName(profile.full_name || '');
-      setHomeAddress(profile.home_address || '');
-      
-      return profile;
-    },
-  });
-
-  // Fetch user email
+  // Fetch user
   const { data: user } = useQuery({
     queryKey: ['user'],
     queryFn: async () => {
@@ -123,28 +93,19 @@ export function AccountScreen() {
     },
   });
 
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: async (updates: any) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+  // Fetch user profile with new hook
+  const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
+  // Update profile mutation with new hook
+  const updateProfileMutation = useUpdateProfile(user?.id || '');
 
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      setIsEditingProfile(false);
-      Alert.alert('Success', 'Profile updated successfully');
-    },
-    onError: (error: any) => {
-      Alert.alert('Error', error.message || 'Failed to update profile');
-    },
-  });
+  // Initialize form values when profile loads
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || '');
+      setHomeAddress(profile.home_address || '');
+    }
+  }, [profile]);
 
   // Change password mutation
   const changePasswordMutation = useMutation({
@@ -198,15 +159,22 @@ export function AccountScreen() {
     }
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!fullName.trim()) {
       Alert.alert('Error', 'Name is required');
       return;
     }
-    updateProfileMutation.mutate({ 
-      full_name: fullName,
-      home_address: homeAddress || null,
-    });
+    
+    try {
+      await updateProfileMutation.mutateAsync({ 
+        full_name: fullName,
+        home_address: homeAddress || undefined,
+      });
+      setIsEditingProfile(false);
+      Alert.alert('Success', 'Profile updated successfully');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update profile');
+    }
   };
 
   const handleChangePassword = () => {
@@ -272,6 +240,15 @@ export function AccountScreen() {
               )}
               <Text style={styles.fieldHintCompact}>For mileage tracking</Text>
             </View>
+
+            {/* Last Saved Indicator */}
+            {!isEditingProfile && profile?.updated_at && (
+              <View style={styles.lastSavedContainer}>
+                <Text style={styles.lastSavedText}>
+                  Last saved {formatRelativeTime(profile.updated_at)}
+                </Text>
+              </View>
+            )}
 
             {isEditingProfile && (
               <View style={styles.buttonRow}>
@@ -701,5 +678,16 @@ const styles = StyleSheet.create({
   stateOptionTextSelected: {
     color: '#3b82f6',
     fontWeight: '600',
+  },
+  lastSavedContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
+  lastSavedText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontStyle: 'italic',
   },
 });
