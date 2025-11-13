@@ -104,7 +104,7 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
         onPress={() => setShowTaxBreakdown(!showTaxBreakdown)}
       >
         <Text style={[styles.setAsideText, { color: chartColors.amber }]}>
-          💰 Set Aside: {formatCurrency(totalTaxes)} • {effectiveRate.toFixed(1)}% eff.
+          💰 Set Aside: {formatCurrency(totalTaxes)} • {effectiveRate.toFixed(1)}% effective rate
         </Text>
       </TouchableOpacity>
 

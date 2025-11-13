@@ -825,7 +825,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             >
               <View style={styles.taxSetAsideCompact}>
                 <View style={styles.taxSetAsideLeft}>
-                  <Text style={styles.taxSetAsideLabel}>💰 Set Aside for Taxes</Text>
+                  <Text style={styles.taxSetAsideLabel}>💰 Set Aside for This Gig</Text>
                   <Text style={styles.taxSetAsideHint}>
                     Tap for breakdown {showTaxBreakdown ? '▼' : '▶'}
                   </Text>
@@ -835,7 +835,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     {formatTaxAmount(gigSetAside.amount)}
                   </Text>
                   <Text style={styles.taxSetAsideRate}>
-                    {formatTaxRate(gigSetAside.rate)}
+                    {formatTaxRate(gigSetAside.rate)} of net
                   </Text>
                 </View>
               </View>
@@ -859,8 +859,13 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   <Text style={styles.taxBreakdownItem}>
                     SE Tax: {formatTaxAmount(gigSetAside.breakdown.seTax)}
                   </Text>
+                  <View style={styles.taxBreakdownSeparator} />
+                  <Text style={styles.taxBreakdownExplainer}>
+                    This is the marginal tax rate for this gig based on your projected annual income.
+                    Your overall effective tax rate may be lower.
+                  </Text>
                   <Text style={styles.taxBreakdownDisclaimer}>
-                    Based on projected annual income. Estimates only.
+                    Estimates only. Not tax advice.
                   </Text>
                 </View>
               )}
@@ -1485,10 +1490,21 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontStyle: 'italic',
   },
+  taxBreakdownSeparator: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 8,
+  },
+  taxBreakdownExplainer: {
+    fontSize: 12,
+    color: '#6b7280',
+    lineHeight: 18,
+    marginBottom: 4,
+  },
   taxBreakdownDisclaimer: {
     fontSize: 11,
     color: '#9ca3af',
-    marginTop: 8,
+    marginTop: 4,
     fontStyle: 'italic',
   },
   submitButtonContainer: {
