@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
+import { queryKeys } from '../lib/queryKeys';
+import { useState, useEffect } from 'react';
 
 type Mileage = Database['public']['Tables']['mileage']['Row'];
 type MileageInsert = Database['public']['Tables']['mileage']['Insert'];
@@ -10,17 +12,30 @@ type MileageUpdate = Database['public']['Tables']['mileage']['Update'];
 export const IRS_MILEAGE_RATE = 0.67;
 
 export function useMileage() {
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+  }, []);
+  
   return useQuery({
-    queryKey: ['mileage'],
+    queryKey: userId ? queryKeys.mileage(userId) : ['mileage-loading'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      
       const { data, error } = await supabase
         .from('mileage')
         .select('*')
-        .order('date', { ascending: false });
+        .eq('user_id', user.id)
+        .order('date', { ascending: false});
 
       if (error) throw error;
       return data as Mileage[];
     },
+    enabled: !!userId,
   });
 }
 
@@ -41,8 +56,11 @@ export function useCreateMileage() {
       if (error) throw error;
       return data as Mileage;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mileage'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
+      }
     },
   });
 }
@@ -62,8 +80,11 @@ export function useUpdateMileage() {
       if (error) throw error;
       return data as Mileage;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mileage'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
+      }
     },
   });
 }
@@ -80,8 +101,11 @@ export function useDeleteMileage() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mileage'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
+      }
     },
   });
 }

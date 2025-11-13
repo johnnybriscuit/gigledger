@@ -1,14 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
+import { queryKeys } from '../lib/queryKeys';
+import { useState, useEffect } from 'react';
 
 type Expense = Database['public']['Tables']['expenses']['Row'];
 type ExpenseInsert = Database['public']['Tables']['expenses']['Insert'];
 type ExpenseUpdate = Database['public']['Tables']['expenses']['Update'];
 
 export function useExpenses() {
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+  }, []);
+  
   return useQuery({
-    queryKey: ['expenses'],
+    queryKey: userId ? queryKeys.expenses(userId) : ['expenses-loading'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -22,6 +32,7 @@ export function useExpenses() {
       if (error) throw error;
       return data as Expense[];
     },
+    enabled: !!userId,
   });
 }
 
@@ -42,8 +53,11 @@ export function useCreateExpense() {
       if (error) throw error;
       return data as Expense;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
+      }
     },
   });
 }
@@ -66,8 +80,11 @@ export function useUpdateExpense() {
       if (error) throw error;
       return data as Expense;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
+      }
     },
   });
 }
@@ -84,8 +101,11 @@ export function useDeleteExpense() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
+      }
     },
   });
 }
