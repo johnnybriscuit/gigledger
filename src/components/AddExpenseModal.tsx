@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { useCreateExpense, useUpdateExpense, uploadReceipt } from '../hooks/useExpenses';
 import { expenseSchema, type ExpenseFormData } from '../lib/validations';
+import { DatePickerModal } from './ui/DatePickerModal';
+import { toUtcDateString, fromUtcDateString } from '../lib/date';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -37,9 +39,6 @@ const EXPENSE_CATEGORIES = [
 export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpenseModalProps) {
   const [date, setDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
-  const monthYearScrollRef = useRef<ScrollView>(null);
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date>(new Date());
   const [category, setCategory] = useState<typeof EXPENSE_CATEGORIES[number]>('Other');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -51,43 +50,9 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
 
-  // Calendar helper functions
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-
-  const formatDateForDisplay = (date: Date) => {
-    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  };
-
-  const navigateMonth = (direction: number) => {
-    const newDate = new Date(selectedCalendarDate);
-    newDate.setMonth(newDate.getMonth() + direction);
-    setSelectedCalendarDate(newDate);
-  };
-
-  const setMonthYear = (month: number, year: number) => {
-    const newDate = new Date(year, month, selectedCalendarDate.getDate());
-    setSelectedCalendarDate(newDate);
-    setShowMonthYearPicker(false);
-  };
-
-  const selectDate = (day: number) => {
-    const selected = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth(), day);
-    setSelectedCalendarDate(selected);
-  };
-
-  const applySelectedDate = () => {
-    // Format date as YYYY-MM-DD in local timezone to avoid timezone shifts
-    const year = selectedCalendarDate.getFullYear();
-    const month = String(selectedCalendarDate.getMonth() + 1).padStart(2, '0');
-    const day = String(selectedCalendarDate.getDate()).padStart(2, '0');
-    setDate(`${year}-${month}-${day}`);
-    setShowDatePicker(false);
+  // Date picker handler
+  const handleDateChange = (selectedDate: Date) => {
+    setDate(toUtcDateString(selectedDate));
   };
 
   useEffect(() => {
@@ -104,7 +69,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
   }, [editingExpense, visible]);
 
   const resetForm = () => {
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(toUtcDateString(new Date()));
     setCategory('Other');
     setDescription('');
     setAmount('');
@@ -215,15 +180,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
               <Text style={styles.label}>Date *</Text>
               <TouchableOpacity
                 style={styles.dateButton}
-                onPress={() => {
-                  // Initialize calendar to current date or today
-                  if (date) {
-                    setSelectedCalendarDate(new Date(date));
-                  } else {
-                    setSelectedCalendarDate(new Date());
-                  }
-                  setShowDatePicker(true);
-                }}
+                onPress={() => setShowDatePicker(true)}
               >
                 <Text style={styles.dateButtonText}>
                   {date || 'YYYY-MM-DD'}
@@ -345,146 +302,14 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
       </View>
 
       {/* Date Picker Modal */}
-      <Modal
-        visible={showDatePicker}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowDatePicker(false)}
-      >
-        <View style={styles.pickerModalOverlay}>
-          <View style={styles.calendarModalContent}>
-            <View style={styles.calendarHeader}>
-              <TouchableOpacity onPress={() => navigateMonth(-1)} style={styles.calendarNavButton}>
-                <Text style={styles.calendarNavText}>‹</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setShowMonthYearPicker(true)}>
-                <Text style={styles.calendarMonthText}>{formatDateForDisplay(selectedCalendarDate)}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigateMonth(1)} style={styles.calendarNavButton}>
-                <Text style={styles.calendarNavText}>›</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.calendarGrid}>
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-                <View key={day} style={styles.calendarDayHeader}>
-                  <Text style={styles.calendarDayHeaderText}>{day}</Text>
-                </View>
-              ))}
-              
-              {Array.from({ length: getFirstDayOfMonth(selectedCalendarDate) }).map((_, i) => (
-                <View key={`empty-${i}`} style={styles.calendarDay} />
-              ))}
-              
-              {Array.from({ length: getDaysInMonth(selectedCalendarDate) }).map((_, i) => {
-                const day = i + 1;
-                const dateStr = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth(), day).toISOString().split('T')[0];
-                const selectedDateStr = selectedCalendarDate.toISOString().split('T')[0];
-                const isSelected = dateStr === selectedDateStr;
-                const isToday = dateStr === new Date().toISOString().split('T')[0];
-                
-                return (
-                  <TouchableOpacity
-                    key={day}
-                    style={[
-                      styles.calendarDay,
-                      isSelected && styles.calendarDaySelected,
-                      isToday && !isSelected && styles.calendarDayToday,
-                    ]}
-                    onPress={() => selectDate(day)}
-                  >
-                    <Text style={[
-                      styles.calendarDayText,
-                      isSelected && styles.calendarDayTextSelected,
-                      isToday && !isSelected && styles.calendarDayTextToday,
-                    ]}>
-                      {day}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            
-            <View style={styles.calendarFooter}>
-              <TouchableOpacity
-                style={styles.calendarFooterButton}
-                onPress={() => setShowDatePicker(false)}
-              >
-                <Text style={styles.calendarFooterButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.calendarFooterButton, styles.calendarFooterButtonPrimary]}
-                onPress={applySelectedDate}
-              >
-                <Text style={[styles.calendarFooterButtonText, styles.calendarFooterButtonTextPrimary]}>Apply</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Month/Year Picker Modal */}
-      <Modal
-        visible={showMonthYearPicker}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowMonthYearPicker(false)}
-      >
-        <View style={styles.pickerModalOverlay}>
-          <View style={styles.monthYearPickerContent}>
-            <View style={styles.pickerHeader}>
-              <Text style={styles.pickerTitle}>Select Month & Year</Text>
-              <TouchableOpacity onPress={() => setShowMonthYearPicker(false)}>
-                <Text style={styles.pickerDone}>Done</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView 
-              ref={monthYearScrollRef}
-              style={styles.monthYearScroll}
-              onLayout={() => {
-                // Auto-scroll to current year when picker opens
-                const currentYear = selectedCalendarDate.getFullYear();
-                const yearsSinceStart = new Date().getFullYear() + 2 - currentYear;
-                const scrollPosition = yearsSinceStart * 280; // Approximate height per year section
-                setTimeout(() => {
-                  monthYearScrollRef.current?.scrollTo({ y: scrollPosition, animated: false });
-                }, 100);
-              }}>
-              {Array.from({ length: new Date().getFullYear() - 2018 }, (_, i) => new Date().getFullYear() + 2 - i).map((year) => (
-                <View key={year} style={styles.yearSection}>
-                  <Text style={styles.yearLabel}>{year}</Text>
-                  <View style={styles.monthGrid}>
-                    {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((monthName, monthIndex) => {
-                      const isSelected = 
-                        selectedCalendarDate.getFullYear() === year && 
-                        selectedCalendarDate.getMonth() === monthIndex;
-                      
-                      return (
-                        <TouchableOpacity
-                          key={monthName}
-                          style={[
-                            styles.monthButton,
-                            isSelected && styles.monthButtonSelected,
-                          ]}
-                          onPress={() => setMonthYear(monthIndex, year)}
-                        >
-                          <Text style={[
-                            styles.monthButtonText,
-                            isSelected && styles.monthButtonTextSelected,
-                          ]}>
-                            {monthName}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      <DatePickerModal
+        open={showDatePicker}
+        onOpenChange={setShowDatePicker}
+        value={date ? fromUtcDateString(date) : null}
+        onChange={handleDateChange}
+        title="Select expense date"
+        showTodayShortcut={true}
+      />
     </Modal>
   );
 }
