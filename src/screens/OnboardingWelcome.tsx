@@ -92,20 +92,29 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
       };
 
       // Save tax settings to user_tax_profile
+      const taxProfileData = {
+        user_id: user.id,
+        tax_year: 2025,
+        filing_status: filingStatusMap[filingStatus] || 'single',
+        state: stateCode,
+        deduction_method: 'standard',
+        se_income: true,
+      };
+      
+      console.log('[OnboardingWelcome] Saving tax profile:', taxProfileData);
+      
       const { error: taxError } = await supabase
         .from('user_tax_profile')
-        .upsert({
-          user_id: user.id,
-          tax_year: 2025,
-          filing_status: filingStatusMap[filingStatus] || 'single',
-          state: stateCode,
-          deduction_method: 'standard',
-          se_income: true,
-        }, {
+        .upsert(taxProfileData, {
           onConflict: 'user_id'
         });
 
-      if (taxError) throw taxError;
+      if (taxError) {
+        console.error('[OnboardingWelcome] Tax profile error:', taxError);
+        throw taxError;
+      }
+      
+      console.log('[OnboardingWelcome] Tax profile saved successfully');
 
       onNext();
     } catch (error: any) {
