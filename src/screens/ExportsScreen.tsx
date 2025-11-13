@@ -25,6 +25,8 @@ import {
   downloadTXF,
   getTXFImportInstructions,
 } from '../lib/exports/txf-generator';
+import { downloadExcel } from '../lib/exports/excel-generator';
+import { openScheduleCPDF } from '../lib/exports/pdf-generator';
 import type { GigExportRow, ExpenseExportRow, MileageExportRow } from '../lib/exports/schemas';
 
 export function ExportsScreen() {
@@ -158,12 +160,74 @@ export function ExportsScreen() {
     Alert.alert('Success', 'JSON backup downloaded successfully.');
   };
 
-  const handleDownloadExcel = () => {
-    Alert.alert('Coming Soon', 'Excel export will be available in the next update.');
+  const handleDownloadExcel = async () => {
+    if (!canExport(userPlan)) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    if (!gigs.data || !expenses.data || !mileage.data || !payers.data || !scheduleC.data) {
+      Alert.alert('Error', 'Data not loaded yet. Please wait.');
+      return;
+    }
+
+    try {
+      await downloadExcel({
+        gigs: gigs.data,
+        expenses: expenses.data,
+        mileage: mileage.data,
+        payers: payers.data,
+        scheduleC: scheduleC.data[0],
+        taxYear,
+      });
+      
+      Alert.alert('Success', 'Excel file has been downloaded!');
+    } catch (error: any) {
+      console.error('Excel export error:', error);
+      Alert.alert('Export Error', error.message || 'Failed to generate Excel file');
+    }
   };
 
-  const handleDownloadPDF = () => {
-    Alert.alert('Coming Soon', 'PDF export will be available in the next update.');
+  const handleDownloadPDF = async () => {
+    if (!canExport(userPlan)) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
+    if (!scheduleC.data) {
+      Alert.alert('Error', 'Schedule C data not loaded yet. Please wait.');
+      return;
+    }
+
+    try {
+      // Get user profile for taxpayer name
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      
+      const taxpayerName = profileData?.full_name || undefined;
+      const generatedDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      
+      // Open PDF in new window
+      openScheduleCPDF({
+        scheduleCSummary: scheduleC.data[0],
+        taxYear,
+        taxpayerName,
+        generatedDate,
+      });
+    } catch (error: any) {
+      console.error('PDF export error:', error);
+      Alert.alert('Export Error', error.message || 'Failed to generate PDF');
+    }
   };
 
   const handleDownloadTXF = async () => {
