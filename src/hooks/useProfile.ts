@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { ensureProfile, getProfile, updateProfile } from '../lib/profile';
+import { queryKeys } from '../lib/queryKeys';
 
 export interface Profile {
   id: string;
@@ -28,7 +29,7 @@ export interface ProfileUpdateData {
  */
 export function useProfile(userId?: string) {
   return useQuery({
-    queryKey: ['profile', userId],
+    queryKey: userId ? queryKeys.profile(userId) : ['profile-loading'],
     queryFn: async () => {
       if (!userId) throw new Error('No user ID provided');
       
@@ -63,10 +64,10 @@ export function useUpdateProfile(userId: string) {
     },
     onSuccess: (data) => {
       // Immediately update the cache with the new data
-      queryClient.setQueryData(['profile', userId], data);
+      queryClient.setQueryData(queryKeys.profile(userId), data);
       
       // Also invalidate to ensure fresh data on next mount
-      queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.profile(userId) });
     },
     onError: (error) => {
       console.error('Profile update failed:', error);
@@ -94,7 +95,7 @@ export function useEnsureProfile(userId?: string, email?: string) {
     onSuccess: () => {
       // Invalidate profile query to fetch the latest data
       if (userId) {
-        queryClient.invalidateQueries({ queryKey: ['profile', userId] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile(userId) });
       }
     },
   });
