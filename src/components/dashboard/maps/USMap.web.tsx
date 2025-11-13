@@ -7,7 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
 import { feature } from 'topojson-client';
 import { useTheme } from '../../../contexts/ThemeContext';
-import { getRegionColor, getStrokeColor } from '../../../lib/maps/colorScale';
+import { getRegionColorScale, getStrokeColor, getStrokeWidth } from '../../../lib/maps/colorScale';
 import type { RegionStatsMap } from '../../../hooks/useMapStats';
 
 // Import TopoJSON
@@ -32,6 +32,11 @@ export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion }: US
     );
     return geoData.features || [];
   }, []);
+
+  // Get all gig counts for color scale calculation
+  const allCounts = useMemo(() => {
+    return Object.values(stats).map(s => s.gigsCount || 0);
+  }, [stats]);
 
   return (
     <ComposableMap
@@ -61,22 +66,35 @@ export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion }: US
             const regionStats = stats[stateCode];
             const gigsCount = regionStats?.gigsCount || 0;
             const isHovered = hoveredRegion === stateCode;
+            const hasGigs = gigsCount > 0;
 
             return (
               <Geography
                 key={geo.rsmKey}
                 geography={geo}
-                fill={getRegionColor(gigsCount, isDark, isHovered)}
-                stroke={getStrokeColor(isDark)}
-                strokeWidth={0.5}
+                fill={getRegionColorScale(gigsCount, allCounts, isDark)}
+                stroke={getStrokeColor(gigsCount, isDark, isHovered)}
+                strokeWidth={getStrokeWidth(isHovered)}
                 style={{
-                  default: { outline: 'none' },
-                  hover: { outline: 'none', cursor: 'pointer' },
-                  pressed: { outline: 'none' },
+                  default: { 
+                    outline: 'none',
+                    transition: 'all 0.15s ease-in-out',
+                  },
+                  hover: { 
+                    outline: 'none', 
+                    cursor: hasGigs ? 'pointer' : 'default',
+                    filter: isHovered && hasGigs ? `drop-shadow(0 1px 2px ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'})` : 'none',
+                  },
+                  pressed: { 
+                    outline: 'none',
+                  },
                 }}
                 onMouseEnter={() => onRegionHover?.(stateCode)}
                 onMouseLeave={() => onRegionHover?.(null)}
-                onClick={() => onRegionClick?.(stateCode)}
+                onClick={() => hasGigs && onRegionClick?.(stateCode)}
+                tabIndex={hasGigs ? 0 : -1}
+                role="button"
+                aria-label={`${stateName}: ${gigsCount} gig${gigsCount === 1 ? '' : 's'}`}
               />
             );
           })

@@ -3,7 +3,7 @@
  * Wrapper for map visualization with legend and controls
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getThemeColors } from '../../../lib/charts/colors';
@@ -14,7 +14,7 @@ import { USMap } from './USMap.web';
 import { RegionTooltip } from './RegionTooltip';
 import { RegionDrawer } from './RegionDrawer';
 import { SidePanel } from '../../SidePanel';
-import { getColorScaleLegend } from '../../../lib/maps/colorScale';
+import { MapLegend } from './MapLegend';
 
 interface MapCardProps {
   dateRange?: DateRange;
@@ -78,22 +78,30 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
   }
 
   const hasData = statsMap && Object.keys(statsMap).length > 0;
+  
+  // Get non-zero gig counts for legend
+  const nonZeroCounts = useMemo(() => {
+    if (!statsMap) return [];
+    return Object.values(statsMap)
+      .map(s => s.gigsCount || 0)
+      .filter(c => c > 0)
+      .sort((a, b) => a - b);
+  }, [statsMap]);
 
   if (!hasData) {
     return (
       <Kard title="Gig Map" icon="🗺️" onInfoPress={() => setShowInfo(true)}>
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>📍</Text>
-          <Text style={styles.emptyText}>No gigs with location data yet</Text>
-          <Text style={styles.emptyHint}>
-            Add state codes to your gigs to see them on the map
+          <Text style={[styles.emptyText, { color: colors.text }]}>No gigs with location data yet</Text>
+          <Text style={[styles.emptyHint, { color: colors.textMuted }]}>
+            Add your first gig with a state to light up the map ✨
           </Text>
         </View>
       </Kard>
     );
   }
 
-  const legendItems = getColorScaleLegend(isDark);
   const hoveredStats = hoveredRegion && statsMap ? statsMap[hoveredRegion] : null;
 
   return (
@@ -104,7 +112,7 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
     >
       <View style={styles.container}>
         {/* Map with aspect ratio constraint */}
-        <View style={styles.mapAspectContainer}>
+        <View style={[styles.mapAspectContainer, { backgroundColor: colors.chartBg }]}>
           <View style={styles.mapWrapper}>
           {Platform.OS === 'web' ? (
             <USMap
@@ -124,16 +132,9 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
         </View>
 
         {/* Legend */}
-        <View style={styles.legend}>
-          {legendItems.map((item, index) => (
-            <View key={index} style={styles.legendItem}>
-              <View style={[styles.legendColor, { backgroundColor: item.color }]} />
-              <Text style={[styles.legendLabel, { color: colors.textMuted }]}>
-                {item.range} gigs
-              </Text>
-            </View>
-          ))}
-        </View>
+        {nonZeroCounts.length > 0 && (
+          <MapLegend values={nonZeroCounts} isDark={isDark} />
+        )}
 
         {/* Tooltip (web only) */}
         {Platform.OS === 'web' && hoveredStats && tooltipPosition && (
@@ -188,80 +189,67 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
+    gap: 12,
   },
-  // Responsive aspect ratio container
   mapAspectContainer: {
     width: '100%',
-    aspectRatio: 16 / 9,
-    maxHeight: 460,
-    marginBottom: 16,
+    minHeight: 320,
+    aspectRatio: 2,
+    position: 'relative',
+    borderRadius: 8,
     overflow: 'hidden',
-    borderRadius: 12,
-    backgroundColor: '#f9fafb',
-    ...Platform.select({
-      web: {
-        '@media (max-width: 768px)': {
-          maxHeight: 420,
-        },
-        '@media (max-width: 640px)': {
-          maxHeight: 300,
-        },
-      },
-    }),
   },
   mapWrapper: {
     width: '100%',
     height: '100%',
     position: 'relative',
   },
-  mapContainer: {
-    width: '100%',
-    minHeight: 400,
-    marginBottom: 16,
-  },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    justifyContent: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  legendItem: {
-    flexDirection: 'row',
+  mobileNotice: {
+    flex: 1,
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    padding: 32,
   },
-  legendColor: {
-    width: 16,
-    height: 16,
-    borderRadius: 3,
+  mobileNoticeText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
-  legendLabel: {
-    fontSize: 12,
-    color: '#6b7280',
+  loading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
   },
-  // Empty State
+  loadingText: {
+    fontSize: 14,
+  },
+  error: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  errorText: {
+    fontSize: 14,
+  },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
-    gap: 8,
+    justifyContent: 'center',
+    paddingVertical: 64,
+    gap: 12,
   },
   emptyIcon: {
-    fontSize: 48,
+    fontSize: 56,
     marginBottom: 8,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    textAlign: 'center',
   },
   emptyHint: {
     fontSize: 14,
-    color: '#6b7280',
     textAlign: 'center',
+    maxWidth: 280,
+    lineHeight: 20,
   },
   // Modal
   modalOverlay: {
@@ -318,27 +306,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
-  },
-  // Loading/Error States
-  loading: {
-    padding: 60,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 14,
-  },
-  error: {
-    padding: 60,
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 14,
-  },
-  mobileNotice: {
-    padding: 60,
-    alignItems: 'center',
-  },
-  mobileNoticeText: {
-    fontSize: 14,
   },
 });

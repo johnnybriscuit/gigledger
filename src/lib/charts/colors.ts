@@ -87,6 +87,36 @@ export function getStatusColor(value: number, type: 'net' | 'change' = 'net') {
   return chartColors.gray[500];
 }
 
+// Map choropleth colors - contrasty palette for readability
+export const mapColors = {
+  light: {
+    zeroFill: '#F1F5F9',      // slate-100 - subtle background for zero states
+    zeroStroke: '#94A3B8',     // slate-400 - visible outline
+    nonZeroStops: [
+      '#93C5FD',  // blue-300 - lightest (1-2 gigs)
+      '#60A5FA',  // blue-400 - light (3-5 gigs)
+      '#3B82F6',  // blue-500 - medium (6-10 gigs)
+      '#2563EB',  // blue-600 - dark (11-20 gigs)
+      '#1E40AF',  // blue-700 - darkest (21+ gigs)
+    ],
+    hoverStroke: '#111827',    // gray-900 - strong contrast on hover
+    hoverShadow: 'rgba(0, 0, 0, 0.2)',
+  },
+  dark: {
+    zeroFill: '#1F2937',       // gray-800 - dark background for zero states
+    zeroStroke: '#374151',     // gray-700 - subtle outline
+    nonZeroStops: [
+      '#93C5FD',  // blue-300 - same vibrant palette works in dark
+      '#60A5FA',  // blue-400
+      '#3B82F6',  // blue-500
+      '#2563EB',  // blue-600
+      '#1E40AF',  // blue-700
+    ],
+    hoverStroke: '#F9FAFB',    // gray-50 - light stroke on hover
+    hoverShadow: 'rgba(255, 255, 255, 0.2)',
+  },
+} as const;
+
 // Export for use in styled components or inline styles
 export const cssVars = `
   --gl-blue: ${chartColors.blue};
