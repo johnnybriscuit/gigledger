@@ -194,12 +194,86 @@ export function ExportsScreen() {
       return;
     }
 
-    if (!scheduleC.data) {
-      Alert.alert('Error', 'Schedule C data not loaded yet. Please wait.');
+    if (!gigs.data || !expenses.data || !mileage.data) {
+      Alert.alert('Error', 'Data not loaded yet. Please wait.');
       return;
     }
 
     try {
+      // Calculate Schedule C summary from raw data
+      const grossReceipts = gigs.data.reduce((sum, g) => sum + (g.gross_amount || 0) + (g.tips || 0) + (g.per_diem || 0) + (g.other_income || 0), 0);
+      const fees = gigs.data.reduce((sum, g) => sum + (g.fees || 0), 0);
+      const totalIncome = grossReceipts - fees;
+      
+      // Expenses by category
+      const expensesByCategory: Record<string, number> = {};
+      expenses.data.forEach(e => {
+        const cat = e.category || 'Other';
+        expensesByCategory[cat] = (expensesByCategory[cat] || 0) + e.amount;
+      });
+      
+      // Mileage deduction
+      const mileageDeduction = mileage.data.reduce((sum, m) => sum + (m.deduction_amount || m.miles * 0.67), 0);
+      
+      // Map to Schedule C lines
+      const advertising = expensesByCategory['Marketing'] || 0;
+      const carTruck = mileageDeduction;
+      const supplies = expensesByCategory['Supplies'] || 0;
+      const travel = (expensesByCategory['Travel'] || 0) + (expensesByCategory['Lodging'] || 0);
+      const meals = (expensesByCategory['Meals'] || 0) * 0.5;
+      const officeExpense = expensesByCategory['Software'] || 0;
+      const legalProfessional = expensesByCategory['Fees'] || 0;
+      const otherExpenses = Object.entries(expensesByCategory)
+        .filter(([cat]) => !['Marketing', 'Supplies', 'Travel', 'Lodging', 'Meals', 'Software', 'Fees'].includes(cat))
+        .reduce((sum, [, amount]) => sum + amount, 0);
+      
+      const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
+      const netProfit = totalIncome - totalExpenses;
+      
+      // Tax estimates
+      const seTax = netProfit * 0.9235 * 0.153;
+      const estimatedIncomeTax = Math.max(0, (netProfit - seTax * 0.5) * 0.22);
+      
+      const calculatedScheduleC = {
+        tax_year: taxYear,
+        filing_status: 'single' as const,
+        state_of_residence: 'XX',
+        standard_or_itemized: 'itemized' as const,
+        gross_receipts: grossReceipts - fees,
+        returns_and_allowances: 0,
+        other_income: 0,
+        total_income: totalIncome,
+        advertising,
+        car_truck: carTruck,
+        commissions: 0,
+        contract_labor: 0,
+        depreciation: 0,
+        employee_benefit: 0,
+        insurance_other: 0,
+        interest_mortgage: 0,
+        interest_other: 0,
+        legal_professional: legalProfessional,
+        office_expense: officeExpense,
+        rent_vehicles: 0,
+        rent_other: 0,
+        repairs_maintenance: 0,
+        supplies,
+        taxes_licenses: 0,
+        travel,
+        meals_allowed: meals,
+        utilities: 0,
+        wages: 0,
+        other_expenses_total: otherExpenses,
+        total_expenses: totalExpenses,
+        net_profit: netProfit,
+        se_tax_basis: netProfit * 0.9235,
+        est_se_tax: seTax,
+        est_federal_income_tax: estimatedIncomeTax,
+        est_state_income_tax: 0,
+        est_total_tax: seTax + estimatedIncomeTax,
+        set_aside_suggested: seTax + estimatedIncomeTax,
+      };
+
       // Get user profile for taxpayer name
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -219,7 +293,7 @@ export function ExportsScreen() {
       
       // Open PDF in new window
       openScheduleCPDF({
-        scheduleCSummary: scheduleC.data[0],
+        scheduleCSummary: calculatedScheduleC,
         taxYear,
         taxpayerName,
         generatedDate,
