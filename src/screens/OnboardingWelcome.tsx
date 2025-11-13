@@ -49,6 +49,13 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
   const [filingStatus, setFilingStatus] = useState<'single' | 'married' | 'hoh'>('single');
   const [loading, setLoading] = useState(false);
   const [showStatePicker, setShowStatePicker] = useState(false);
+  const [stateSearch, setStateSearch] = useState('');
+
+  // Filter states based on search
+  const filteredStates = US_STATES.filter(state =>
+    state.name.toLowerCase().includes(stateSearch.toLowerCase()) ||
+    state.code.toLowerCase().includes(stateSearch.toLowerCase())
+  );
 
   const handleContinue = async () => {
     if (!fullName.trim()) {
@@ -122,20 +129,35 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
               <Text style={styles.pickerButtonIcon}>▼</Text>
             </TouchableOpacity>
             {showStatePicker && (
-              <ScrollView style={styles.pickerList}>
-                {US_STATES.map((state) => (
-                  <TouchableOpacity
-                    key={state.code}
-                    style={styles.pickerItem}
-                    onPress={() => {
-                      setStateCode(state.code);
-                      setShowStatePicker(false);
-                    }}
-                  >
-                    <Text style={styles.pickerItemText}>{state.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <View style={styles.pickerContainer}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search states..."
+                  value={stateSearch}
+                  onChangeText={setStateSearch}
+                  autoFocus
+                />
+                <ScrollView style={styles.pickerList}>
+                  {filteredStates.map((state) => (
+                    <TouchableOpacity
+                      key={state.code}
+                      style={styles.pickerItem}
+                      onPress={() => {
+                        setStateCode(state.code);
+                        setShowStatePicker(false);
+                        setStateSearch('');
+                      }}
+                    >
+                      <Text style={styles.pickerItemText}>{state.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {filteredStates.length === 0 && (
+                    <View style={styles.noResults}>
+                      <Text style={styles.noResultsText}>No states found</Text>
+                    </View>
+                  )}
+                </ScrollView>
+              </View>
             )}
           </View>
 
@@ -259,13 +281,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
   },
-  pickerList: {
-    maxHeight: 200,
+  pickerContainer: {
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderRadius: 8,
     marginTop: 4,
+    overflow: 'hidden',
+  },
+  searchInput: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    fontSize: 14,
+    color: '#111827',
+  },
+  pickerList: {
+    maxHeight: 200,
   },
   pickerItem: {
     padding: 12,
@@ -275,6 +307,14 @@ const styles = StyleSheet.create({
   pickerItemText: {
     fontSize: 14,
     color: '#111827',
+  },
+  noResults: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: '#9ca3af',
   },
   radioGroup: {
     gap: 12,

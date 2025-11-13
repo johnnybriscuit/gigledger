@@ -8,6 +8,8 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Modal,
+  Platform,
 } from 'react-native';
 import { useCreateGig } from '../hooks/useGigs';
 import { supabase } from '../lib/supabase';
@@ -23,6 +25,8 @@ interface OnboardingAddGigProps {
 
 export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: OnboardingAddGigProps) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date>(new Date());
   const [title, setTitle] = useState('');
   const [grossAmount, setGrossAmount] = useState('');
   const [fees, setFees] = useState('');
@@ -30,6 +34,35 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
   const [taxesWithheld, setTaxesWithheld] = useState(false);
   const createGig = useCreateGig();
   const queryClient = useQueryClient();
+
+  // Calendar helper functions
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const formatDateForDisplay = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  const navigateMonth = (direction: number) => {
+    const newDate = new Date(selectedCalendarDate);
+    newDate.setMonth(newDate.getMonth() + direction);
+    setSelectedCalendarDate(newDate);
+  };
+
+  const selectDate = (day: number) => {
+    const selected = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth(), day);
+    setSelectedCalendarDate(selected);
+  };
+
+  const applySelectedDate = () => {
+    setDate(selectedCalendarDate.toISOString().split('T')[0]);
+    setShowDatePicker(false);
+  };
 
   // Calculate live tax estimate
   const netBeforeTax = useMemo(() => {
@@ -127,13 +160,23 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
         <View style={styles.form}>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Date *</Text>
-            <TextInput
-              style={styles.input}
-              value={date}
-              onChangeText={setDate}
-              placeholder="YYYY-MM-DD"
-              editable={!createGig.isPending}
-            />
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => {
+                if (date) {
+                  setSelectedCalendarDate(new Date(date));
+                } else {
+                  setSelectedCalendarDate(new Date());
+                }
+                setShowDatePicker(true);
+              }}
+              disabled={createGig.isPending}
+            >
+              <Text style={[styles.dateButtonText, !date && styles.placeholderText]}>
+                {date || 'Select date'}
+              </Text>
+              <Text style={styles.dateButtonIcon}>📅</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
@@ -242,6 +285,85 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Date Picker Modal */}
+      <Modal
+        visible={showDatePicker}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <View style={styles.pickerModalOverlay}>
+          <View style={styles.calendarModalContent}>
+            <View style={styles.calendarHeader}>
+              <TouchableOpacity onPress={() => navigateMonth(-1)} style={styles.calendarNavButton}>
+                <Text style={styles.calendarNavText}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.calendarMonthText}>{formatDateForDisplay(selectedCalendarDate)}</Text>
+              <TouchableOpacity onPress={() => navigateMonth(1)} style={styles.calendarNavButton}>
+                <Text style={styles.calendarNavText}>›</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.calendarGrid}>
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                <View key={day} style={styles.calendarDayHeader}>
+                  <Text style={styles.calendarDayHeaderText}>{day}</Text>
+                </View>
+              ))}
+              
+              {Array.from({ length: getFirstDayOfMonth(selectedCalendarDate) }).map((_, i) => (
+                <View key={`empty-${i}`} style={styles.calendarDay} />
+              ))}
+              
+              {Array.from({ length: getDaysInMonth(selectedCalendarDate) }).map((_, i) => {
+                const day = i + 1;
+                const dateStr = new Date(selectedCalendarDate.getFullYear(), selectedCalendarDate.getMonth(), day).toISOString().split('T')[0];
+                const selectedDateStr = selectedCalendarDate.toISOString().split('T')[0];
+                const isSelected = dateStr === selectedDateStr;
+                const isToday = dateStr === new Date().toISOString().split('T')[0];
+                
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    style={[
+                      styles.calendarDay,
+                      isSelected && styles.calendarDaySelected,
+                      isToday && !isSelected && styles.calendarDayToday,
+                    ]}
+                    onPress={() => selectDate(day)}
+                  >
+                    <Text style={[
+                      styles.calendarDayText,
+                      isSelected && styles.calendarDayTextSelected,
+                      isToday && !isSelected && styles.calendarDayTextToday,
+                    ]}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.calendarFooter}>
+              <TouchableOpacity
+                style={styles.calendarFooterButton}
+                onPress={() => setShowDatePicker(false)}
+              >
+                <Text style={styles.calendarFooterButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.calendarFooterButton, styles.calendarFooterButtonPrimary]}
+                onPress={applySelectedDate}
+              >
+                <Text style={[styles.calendarFooterButtonText, styles.calendarFooterButtonTextPrimary]}>
+                  Apply
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

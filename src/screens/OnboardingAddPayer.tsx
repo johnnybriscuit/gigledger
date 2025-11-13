@@ -12,10 +12,11 @@ import {
 import { useCreatePayer } from '../hooks/usePayers';
 
 const PAYER_TYPES = [
-  { value: 'Individual', label: 'Artist/Band' },
+  { value: 'Individual', label: 'Individual' },
+  { value: 'Corporation', label: 'Corporation' },
   { value: 'Venue', label: 'Venue' },
-  { value: 'Client', label: 'Church' },
-  { value: 'Corporation', label: 'Corporate/Private' },
+  { value: 'Client', label: 'Client' },
+  { value: 'Platform', label: 'Platform' },
   { value: 'Other', label: 'Other' },
 ] as const;
 
@@ -27,7 +28,7 @@ interface OnboardingAddPayerProps {
 
 export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPayerProps) {
   const [name, setName] = useState('');
-  const [type, setType] = useState<string>('Venue'); // Store the value, not the object
+  const [type, setType] = useState<string>('Individual'); // Store the value, not the object
   const createPayer = useCreatePayer();
 
   const handleContinue = async () => {
