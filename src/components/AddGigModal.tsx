@@ -844,6 +844,9 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 <View style={styles.taxBreakdown}>
                   <Text style={styles.taxBreakdownItem}>
                     Federal: {formatTaxAmount(gigSetAside.breakdown.federal)}
+                    {gigSetAside.breakdown.federal === 0 && (
+                      <Text style={styles.taxBreakdownNote}> (below $30k threshold)</Text>
+                    )}
                   </Text>
                   <Text style={styles.taxBreakdownItem}>
                     State: {formatTaxAmount(gigSetAside.breakdown.state)}
@@ -855,6 +858,9 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   )}
                   <Text style={styles.taxBreakdownItem}>
                     SE Tax: {formatTaxAmount(gigSetAside.breakdown.seTax)}
+                  </Text>
+                  <Text style={styles.taxBreakdownDisclaimer}>
+                    Based on projected annual income. Estimates only.
                   </Text>
                 </View>
               )}
@@ -1473,6 +1479,17 @@ const styles = StyleSheet.create({
   taxBreakdownItem: {
     fontSize: 12,
     color: '#374151',
+  },
+  taxBreakdownNote: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontStyle: 'italic',
+  },
+  taxBreakdownDisclaimer: {
+    fontSize: 11,
+    color: '#9ca3af',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   submitButtonContainer: {
     padding: 16,

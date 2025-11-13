@@ -304,10 +304,27 @@ function addGig(ytd: YTDData, gig: GigData): YTDData {
 }
 
 /**
+ * Federal income tax threshold by filing status
+ * Below these amounts, we don't recommend setting aside federal income tax
+ * (only SE tax applies)
+ */
+const FEDERAL_TAX_THRESHOLDS: Record<FilingStatus, number> = {
+  single: 30000,           // Single filers under $30k typically owe minimal/no federal
+  married_joint: 50000,    // Joint filers under $50k typically owe minimal/no federal
+  married_separate: 30000, // Same as single
+  head: 40000,             // Head of household under $40k typically owe minimal/no federal
+};
+
+/**
  * Calculate marginal tax effect of a gig
  * 
  * This is the key function for "Set Aside for this Gig"
  * It computes how much additional tax the gig creates
+ * 
+ * SMART THRESHOLDS:
+ * - If projected annual income < threshold, federal income tax is zeroed out
+ * - SE tax always applies (it's a flat rate regardless of income level)
+ * - State/local tax rules vary by state
  */
 export function taxDeltaForGig(
   ytd: YTDData,
@@ -330,12 +347,26 @@ export function taxDeltaForGig(
   const after = calcTotalTax(addGig(ytd, gig), profile);
   
   // Marginal tax increase
-  const delta = {
+  let delta = {
     federal: after.federal - before.federal,
     state: after.state - before.state,
     local: after.local - before.local,
     seTax: after.seTax - before.seTax,
   };
+  
+  // SMART THRESHOLD: Don't recommend federal tax for low earners
+  // Check projected annual income (YTD + this gig)
+  const projectedAnnualIncome = ytd.grossIncome + gig.gross;
+  const federalThreshold = FEDERAL_TAX_THRESHOLDS[profile.filingStatus];
+  
+  if (projectedAnnualIncome < federalThreshold) {
+    // Zero out federal tax recommendation for low earners
+    // They'll still owe SE tax, but likely won't owe federal income tax
+    delta = {
+      ...delta,
+      federal: 0,
+    };
+  }
   
   const totalDelta = delta.federal + delta.state + delta.local + delta.seTax;
   const rate = totalDelta / gigNet;
