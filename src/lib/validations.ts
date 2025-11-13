@@ -19,6 +19,8 @@ export const gigSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   country: z.string().optional(),
+  state_code: z.string().optional(), // 2-letter state code for map
+  country_code: z.string().optional(), // 2-letter country code for map
   gross_amount: z.number().min(0, 'Must be 0 or greater'),
   tips: z.number().min(0, 'Must be 0 or greater').default(0),
   fees: z.number().min(0, 'Must be 0 or greater').default(0),
