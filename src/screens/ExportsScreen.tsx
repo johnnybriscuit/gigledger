@@ -522,7 +522,7 @@ export function ExportsScreen() {
               {validationResult?.warnings && validationResult.warnings.length > 0 && (
                 <>
                   <Text style={styles.issuesSectionTitle}>
-                    \u26a0\ufe0f Warnings ({validationResult.warnings.length})
+                    ⚠️ Warnings ({validationResult.warnings.length})
                   </Text>
                   {validationResult.warnings.map((issue, idx) => (
                     <View key={idx} style={[styles.issueCard, styles.issueCardWarning]}>
