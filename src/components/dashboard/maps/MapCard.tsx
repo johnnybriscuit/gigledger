@@ -4,10 +4,10 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, Modal, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getThemeColors } from '../../../lib/charts/colors';
-import { ChartCard } from '../../charts/ChartCard';
+import { Kard } from '../Kard';
 import { useMapStats } from '../../../hooks/useMapStats';
 import type { DateRange } from '../../../hooks/useDashboardData';
 import { USMap } from './USMap.web';
@@ -30,6 +30,7 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | undefined>();
+  const [showInfo, setShowInfo] = useState(false);
 
   // Fetch map data
   const { data: statsMap, isLoading, error } = useMapStats({
@@ -54,25 +55,25 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
 
   if (isLoading) {
     return (
-      <ChartCard title="Gig Map" subtitle="Where you've played">
+      <Kard title="Gig Map" icon="🗺️" onInfoPress={() => setShowInfo(true)}>
         <View style={styles.loading}>
           <Text style={[styles.loadingText, { color: colors.textMuted }]}>
             Loading map...
           </Text>
         </View>
-      </ChartCard>
+      </Kard>
     );
   }
 
   if (error) {
     return (
-      <ChartCard title="Gig Map" subtitle="Where you've played">
+      <Kard title="Gig Map" icon="🗺️" onInfoPress={() => setShowInfo(true)}>
         <View style={styles.error}>
           <Text style={[styles.errorText, { color: colors.textMuted }]}>
             Unable to load map data
           </Text>
         </View>
-      </ChartCard>
+      </Kard>
     );
   }
 
@@ -80,16 +81,15 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
 
   if (!hasData) {
     return (
-      <ChartCard title="Gig Map" subtitle="Where you've played">
-        <View style={styles.empty}>
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-            No gigs with location data yet
-          </Text>
-          <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>
+      <Kard title="Gig Map" icon="🗺️" onInfoPress={() => setShowInfo(true)}>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>📍</Text>
+          <Text style={styles.emptyText}>No gigs with location data yet</Text>
+          <Text style={styles.emptyHint}>
             Add state codes to your gigs to see them on the map
           </Text>
         </View>
-      </ChartCard>
+      </Kard>
     );
   }
 
@@ -97,14 +97,15 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
   const hoveredStats = hoveredRegion && statsMap ? statsMap[hoveredRegion] : null;
 
   return (
-    <ChartCard
-      title="🗺️ Gig Map"
-      subtitle="Where you've played"
-      info="Hover over states to see stats, click for details"
+    <Kard
+      title="Gig Map"
+      icon="🗺️"
+      onInfoPress={() => setShowInfo(true)}
     >
       <View style={styles.container}>
-        {/* Map */}
-        <View style={styles.mapContainer}>
+        {/* Map with aspect ratio constraint */}
+        <View style={styles.mapAspectContainer}>
+          <View style={styles.mapWrapper}>
           {Platform.OS === 'web' ? (
             <USMap
               stats={statsMap || {}}
@@ -119,6 +120,7 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
               </Text>
             </View>
           )}
+          </View>
         </View>
 
         {/* Legend */}
@@ -139,6 +141,34 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
         )}
       </View>
 
+      {/* Info Modal */}
+      <Modal
+        visible={showInfo}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowInfo(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowInfo(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Gig Map</Text>
+            <Text style={styles.modalText}>
+              Shows where you've performed gigs across the United States. 
+              Hover over states to see stats, click for detailed gig information.
+            </Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShowInfo(false)}
+            >
+              <Text style={styles.modalButtonText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Region Drawer */}
       <SidePanel
         visible={!!selectedRegion}
@@ -153,12 +183,37 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
           />
         )}
       </SidePanel>
-    </ChartCard>
+    </Kard>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    position: 'relative',
+  },
+  // Responsive aspect ratio container
+  mapAspectContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    maxHeight: 460,
+    marginBottom: 16,
+    overflow: 'hidden',
+    borderRadius: 12,
+    backgroundColor: '#f9fafb',
+    ...Platform.select({
+      web: {
+        '@media (max-width: 768px)': {
+          maxHeight: 420,
+        },
+        '@media (max-width: 640px)': {
+          maxHeight: 300,
+        },
+      },
+    }),
+  },
+  mapWrapper: {
+    width: '100%',
+    height: '100%',
     position: 'relative',
   },
   mapContainer: {
@@ -171,7 +226,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 16,
     justifyContent: 'center',
-    paddingTop: 8,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
   },
@@ -187,7 +242,80 @@ const styles = StyleSheet.create({
   },
   legendLabel: {
     fontSize: 12,
+    color: '#6b7280',
   },
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    gap: 8,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  emptyHint: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
+    maxWidth: 400,
+    width: '100%',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 10,
+      },
+    }),
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Loading/Error States
   loading: {
     padding: 60,
     alignItems: 'center',
@@ -201,17 +329,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-  },
-  empty: {
-    padding: 60,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 13,
   },
   mobileNotice: {
     padding: 60,
