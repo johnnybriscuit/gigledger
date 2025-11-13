@@ -6,6 +6,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { TaxProfile } from '../tax/engine';
 import type { StateCode } from '../tax/config/2025';
+import { queryKeys } from '../lib/queryKeys';
+import { useState, useEffect } from 'react';
 
 interface TaxProfileRow {
   user_id: string;
@@ -26,8 +28,16 @@ interface TaxProfileRow {
  * Fetch user's tax profile
  */
 export function useTaxProfile() {
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+  }, []);
+  
   return useQuery({
-    queryKey: ['taxProfile'],
+    queryKey: userId ? queryKeys.taxProfile(userId) : ['taxProfile-loading'],
     queryFn: async (): Promise<TaxProfile | null> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
@@ -59,6 +69,7 @@ export function useTaxProfile() {
         seIncome: row.se_income,
       };
     },
+    enabled: !!userId,
   });
 }
 
@@ -92,8 +103,11 @@ export function useUpsertTaxProfile() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['taxProfile'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.taxProfile(user.id) });
+      }
     },
   });
 }

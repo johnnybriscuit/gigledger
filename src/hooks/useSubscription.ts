@@ -4,6 +4,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { queryKeys } from '../lib/queryKeys';
+import { useState, useEffect } from 'react';
 
 export type SubscriptionTier = 'free' | 'monthly' | 'yearly';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
@@ -26,8 +28,16 @@ export interface Subscription {
 }
 
 export function useSubscription() {
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+  }, []);
+  
   return useQuery({
-    queryKey: ['subscription'],
+    queryKey: userId ? queryKeys.subscription(userId) : ['subscription-loading'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
@@ -52,6 +62,7 @@ export function useSubscription() {
 
       return data as Subscription;
     },
+    enabled: !!userId,
   });
 }
 
