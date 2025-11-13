@@ -26,6 +26,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useTaxProfile } from '../hooks/useTaxProfile';
 import { taxDeltaForGig, formatTaxAmount, formatTaxRate } from '../tax/engine';
+import { TaxSummary } from './gigs/TaxSummary';
+import type { TaxEstimate } from './gigs/TaxSummary';
 import { UpgradeModal } from './UpgradeModal';
 
 interface AddGigModalProps {
@@ -816,60 +818,28 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             hideOldTaxEstimate={!!gigSetAside}
           />
 
-          {/* Tax Set-Aside Display - Compact */}
-          {gigSetAside && (
-            <TouchableOpacity 
-              style={styles.taxSetAsideContainer}
-              onPress={() => setShowTaxBreakdown(!showTaxBreakdown)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.taxSetAsideCompact}>
-                <View style={styles.taxSetAsideLeft}>
-                  <Text style={styles.taxSetAsideLabel}>💰 Set Aside for This Gig</Text>
-                  <Text style={styles.taxSetAsideHint}>
-                    Tap for breakdown {showTaxBreakdown ? '▼' : '▶'}
-                  </Text>
-                </View>
-                <View style={styles.taxSetAsideRight}>
-                  <Text style={styles.taxSetAsideAmount}>
-                    {formatTaxAmount(gigSetAside.amount)}
-                  </Text>
-                  <Text style={styles.taxSetAsideRate}>
-                    {formatTaxRate(gigSetAside.rate)} of net
-                  </Text>
-                </View>
-              </View>
-              
-              {showTaxBreakdown && gigSetAside.breakdown && (
-                <View style={styles.taxBreakdown}>
-                  <Text style={styles.taxBreakdownItem}>
-                    Federal: {formatTaxAmount(gigSetAside.breakdown.federal)}
-                    {gigSetAside.breakdown.federal === 0 && (
-                      <Text style={styles.taxBreakdownNote}> (below $30k threshold)</Text>
-                    )}
-                  </Text>
-                  <Text style={styles.taxBreakdownItem}>
-                    State: {formatTaxAmount(gigSetAside.breakdown.state)}
-                  </Text>
-                  {gigSetAside.breakdown.local > 0 && (
-                    <Text style={styles.taxBreakdownItem}>
-                      Local: {formatTaxAmount(gigSetAside.breakdown.local)}
-                    </Text>
-                  )}
-                  <Text style={styles.taxBreakdownItem}>
-                    SE Tax: {formatTaxAmount(gigSetAside.breakdown.seTax)}
-                  </Text>
-                  <View style={styles.taxBreakdownSeparator} />
-                  <Text style={styles.taxBreakdownExplainer}>
-                    This is the marginal tax rate for this gig based on your projected annual income.
-                    Your overall effective tax rate may be lower.
-                  </Text>
-                  <Text style={styles.taxBreakdownDisclaimer}>
-                    Estimates only. Not tax advice.
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
+          {/* Tax Summary - Inline Collapsible */}
+          {gigSetAside && taxProfile && (
+            <TaxSummary
+              gross={parseFloat(grossAmount) || 0}
+              tips={parseFloat(tips) || 0}
+              perDiem={parseFloat(perDiem) || 0}
+              fees={parseFloat(fees) || 0}
+              otherIncome={parseFloat(otherIncome) || 0}
+              filingStatus={taxProfile.filingStatus}
+              state={taxProfile.state}
+              taxYear={2025}
+              estimate={{
+                federal: gigSetAside.breakdown.federal,
+                state: gigSetAside.breakdown.state + gigSetAside.breakdown.local,
+                se: gigSetAside.breakdown.seTax,
+                setAside: gigSetAside.amount,
+                setAsidePct: gigSetAside.rate,
+                thresholdNote: gigSetAside.breakdown.federal === 0 ? 'below $30k threshold' : undefined,
+              }}
+              isExpanded={showTaxBreakdown}
+              onToggle={setShowTaxBreakdown}
+            />
           )}
 
           {/* Submit Button */}
