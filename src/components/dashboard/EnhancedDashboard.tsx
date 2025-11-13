@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { HeroNetProfit } from './HeroNetProfit';
 import { QuickActions } from './QuickActions';
 import { MonthlyOverview } from './MonthlyOverview';
@@ -112,16 +112,7 @@ export function EnhancedDashboard({
             <TaxSummaryCard dateRange={dateRange} />
           </View>
 
-          {/* Map - Full Width */}
-          <View style={styles.fullWidth}>
-            <MapCard 
-              dateRange={dateRange}
-              customStart={customStart}
-              customEnd={customEnd}
-            />
-          </View>
-
-          {/* Two Column Layout */}
+          {/* Two Column Layout: Expense Breakdown + Top Payers */}
           <View style={styles.twoColumn}>
             <View style={styles.column}>
               <ExpenseBreakdown
@@ -132,6 +123,15 @@ export function EnhancedDashboard({
             <View style={styles.column}>
               <TopPayers data={data.payerBreakdown} onPayerClick={handlePayerClick} />
             </View>
+          </View>
+
+          {/* Map - Full Width */}
+          <View style={styles.fullWidth}>
+            <MapCard 
+              dateRange={dateRange}
+              customStart={customStart}
+              customEnd={customEnd}
+            />
           </View>
         </View>
       </ScrollView>
@@ -168,14 +168,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 24,
+    padding: 16,
     paddingBottom: 48,
+    ...Platform.select({
+      web: {
+        '@media (min-width: 768px)': {
+          padding: 24,
+        },
+      },
+    }),
   },
   topRow: {
     flexDirection: 'row',
-    gap: 24,
-    marginBottom: 32,
+    gap: 16,
+    marginBottom: 24,
     flexWrap: 'wrap',
+    ...Platform.select({
+      web: {
+        '@media (min-width: 768px)': {
+          gap: 24,
+          marginBottom: 32,
+        },
+      },
+    }),
   },
   heroContainer: {
     flex: 2,
@@ -187,18 +202,40 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   chartsGrid: {
-    gap: 24,
+    gap: 16,
+    ...Platform.select({
+      web: {
+        '@media (min-width: 768px)': {
+          gap: 24,
+        },
+      },
+    }),
   },
   fullWidth: {
     width: '100%',
   },
   twoColumn: {
     flexDirection: 'row',
-    gap: 24,
+    gap: 16,
     flexWrap: 'wrap',
+    ...Platform.select({
+      web: {
+        '@media (min-width: 768px)': {
+          gap: 24,
+        },
+      },
+    }),
   },
   column: {
     flex: 1,
     minWidth: 320,
+    ...Platform.select({
+      web: {
+        '@media (min-width: 768px)': {
+          // Each column takes 6/12 of the grid (50%)
+          flexBasis: 'calc(50% - 12px)',
+        },
+      },
+    }),
   },
 });
