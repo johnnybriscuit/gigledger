@@ -28,6 +28,8 @@ import {
 import { downloadExcel } from '../lib/exports/excel-generator';
 import { openScheduleCPDF } from '../lib/exports/pdf-generator';
 import type { GigExportRow, ExpenseExportRow, MileageExportRow } from '../lib/exports/schemas';
+import { calcTotalTax } from '../tax/engine';
+import { useTaxProfile } from '../hooks/useTaxProfile';
 
 export function ExportsScreen() {
   const currentYear = new Date().getFullYear();
@@ -58,6 +60,9 @@ export function ExportsScreen() {
   });
 
   const userPlan = profile?.plan || 'free';
+  
+  // Get user's tax profile for accurate tax calculations
+  const { data: taxProfile } = useTaxProfile();
 
   // Build filters
   const filters: ExportFilters = {
@@ -179,6 +184,7 @@ export function ExportsScreen() {
         payers: payers.data,
         scheduleC: scheduleC.data[0],
         taxYear,
+        taxProfile,
       });
       
       Alert.alert('Success', 'Excel file has been downloaded!');
@@ -230,9 +236,32 @@ export function ExportsScreen() {
       const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
       const netProfit = totalIncome - totalExpenses;
       
-      // Tax estimates
-      const seTax = netProfit * 0.9235 * 0.153;
-      const estimatedIncomeTax = Math.max(0, (netProfit - seTax * 0.5) * 0.22);
+      // Calculate accurate tax estimates using tax engine
+      let seTax = 0;
+      let estimatedIncomeTax = 0;
+      let estimatedStateTax = 0;
+      let estimatedLocalTax = 0;
+      let totalTax = 0;
+      
+      if (taxProfile && netProfit > 0) {
+        const ytdData = {
+          grossIncome: totalIncome,
+          expenses: totalExpenses,
+          adjustments: 0,
+          netSE: netProfit,
+        };
+        const taxResult = calcTotalTax(ytdData, taxProfile);
+        seTax = taxResult.seTax;
+        estimatedIncomeTax = taxResult.federal;
+        estimatedStateTax = taxResult.state;
+        estimatedLocalTax = taxResult.local;
+        totalTax = taxResult.total;
+      } else {
+        // Fallback to simplified calculation if no tax profile
+        seTax = netProfit * 0.9235 * 0.153;
+        estimatedIncomeTax = Math.max(0, (netProfit - seTax * 0.5) * 0.22);
+        totalTax = seTax + estimatedIncomeTax;
+      }
       
       const calculatedScheduleC = {
         tax_year: taxYear,
@@ -269,9 +298,9 @@ export function ExportsScreen() {
         se_tax_basis: netProfit * 0.9235,
         est_se_tax: seTax,
         est_federal_income_tax: estimatedIncomeTax,
-        est_state_income_tax: 0,
-        est_total_tax: seTax + estimatedIncomeTax,
-        set_aside_suggested: seTax + estimatedIncomeTax,
+        est_state_income_tax: estimatedStateTax + estimatedLocalTax,
+        est_total_tax: totalTax,
+        set_aside_suggested: totalTax,
       };
 
       // Get user profile for taxpayer name

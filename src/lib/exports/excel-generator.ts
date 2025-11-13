@@ -5,6 +5,7 @@
  */
 
 import type { GigExportRow, ExpenseExportRow, MileageExportRow, PayerExportRow, ScheduleCSummaryRow } from './schemas';
+import { calcTotalTax, type TaxProfile } from '../../tax/engine';
 
 // Type aliases for easier use with actual data from hooks
 type GigExport = any; // Will use actual data from useExports hook
@@ -19,6 +20,7 @@ export interface ExcelGeneratorInput {
   payers: PayerExport[];
   scheduleC: ScheduleCSummaryRow;
   taxYear: number;
+  taxProfile?: TaxProfile | null;
 }
 
 /**
@@ -33,7 +35,7 @@ function formatCurrency(amount: number): number {
  * Returns a data structure that can be converted to Excel
  */
 export function generateExcelData(input: ExcelGeneratorInput) {
-  const { gigs, expenses, mileage, payers, scheduleC, taxYear } = input;
+  const { gigs, expenses, mileage, payers, scheduleC, taxYear, taxProfile } = input;
   
   // Calculate Schedule C summary from raw data if scheduleC is empty/invalid
   const calculateScheduleC = () => {
@@ -67,9 +69,30 @@ export function generateExcelData(input: ExcelGeneratorInput) {
     const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
     const netProfit = totalIncome - totalExpenses;
     
-    // Simple tax estimates (15.3% SE tax + estimated income tax)
-    const seTax = netProfit * 0.9235 * 0.153;
-    const estimatedIncomeTax = Math.max(0, (netProfit - seTax * 0.5) * 0.22); // Rough estimate
+    // Calculate accurate tax estimates using tax engine
+    let seTax = 0;
+    let estimatedIncomeTax = 0;
+    let estimatedStateTax = 0;
+    let totalTax = 0;
+    
+    if (taxProfile && netProfit > 0) {
+      const ytdData = {
+        grossIncome: totalIncome,
+        expenses: totalExpenses,
+        adjustments: 0,
+        netSE: netProfit,
+      };
+      const taxResult = calcTotalTax(ytdData, taxProfile);
+      seTax = taxResult.seTax;
+      estimatedIncomeTax = taxResult.federal;
+      estimatedStateTax = taxResult.state + taxResult.local;
+      totalTax = taxResult.total;
+    } else {
+      // Fallback to simplified calculation if no tax profile
+      seTax = netProfit * 0.9235 * 0.153;
+      estimatedIncomeTax = Math.max(0, (netProfit - seTax * 0.5) * 0.22);
+      totalTax = seTax + estimatedIncomeTax;
+    } // Rough estimate
     
     return {
       gross_receipts: grossReceipts - fees,
@@ -94,9 +117,9 @@ export function generateExcelData(input: ExcelGeneratorInput) {
       net_profit: netProfit,
       est_se_tax: seTax,
       est_federal_income_tax: estimatedIncomeTax,
-      est_state_income_tax: 0,
-      est_total_tax: seTax + estimatedIncomeTax,
-      set_aside_suggested: seTax + estimatedIncomeTax,
+      est_state_income_tax: estimatedStateTax,
+      est_total_tax: totalTax,
+      set_aside_suggested: totalTax,
     };
   };
   
