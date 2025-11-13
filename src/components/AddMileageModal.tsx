@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { useCreateMileage, useUpdateMileage, calculateMileageDeduction, IRS_MILEAGE_RATE } from '../hooks/useMileage';
 import { mileageSchema, type MileageFormData } from '../lib/validations';
+import { DatePickerModal } from './ui/DatePickerModal';
+import { toUtcDateString, fromUtcDateString } from '../lib/date';
 
 interface AddMileageModalProps {
   visible: boolean;
@@ -20,6 +22,7 @@ interface AddMileageModalProps {
 
 export function AddMileageModal({ visible, onClose, editingMileage }: AddMileageModalProps) {
   const [date, setDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [purpose, setPurpose] = useState('');
   const [startLocation, setStartLocation] = useState('');
   const [endLocation, setEndLocation] = useState('');
@@ -43,12 +46,17 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   }, [editingMileage, visible]);
 
   const resetForm = () => {
-    setDate(new Date().toISOString().split('T')[0]);
+    setDate(toUtcDateString(new Date()));
     setPurpose('');
     setStartLocation('');
     setEndLocation('');
     setMiles('');
     setNotes('');
+  };
+
+  // Date picker handler
+  const handleDateChange = (selectedDate: Date) => {
+    setDate(toUtcDateString(selectedDate));
   };
 
   const calculateDeduction = () => {
@@ -117,13 +125,15 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
           <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Date *</Text>
-              <TextInput
-                style={styles.input}
-                value={date}
-                onChangeText={setDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#9ca3af"
-              />
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={styles.dateButtonText}>
+                  {date || 'YYYY-MM-DD'}
+                </Text>
+                <Text style={styles.calendarIcon}>📅</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.inputGroup}>
@@ -211,6 +221,16 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
           </ScrollView>
         </View>
       </View>
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        open={showDatePicker}
+        onOpenChange={setShowDatePicker}
+        value={date ? fromUtcDateString(date) : null}
+        onChange={handleDateChange}
+        title="Select trip date"
+        showTodayShortcut={true}
+      />
     </Modal>
   );
 }
@@ -273,6 +293,23 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: '#111827',
+  },
+  dateButton: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  calendarIcon: {
+    fontSize: 18,
   },
   textArea: {
     minHeight: 100,
