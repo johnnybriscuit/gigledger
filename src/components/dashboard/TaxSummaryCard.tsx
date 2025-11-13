@@ -81,10 +81,10 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
           <View style={styles.mainMetric}>
             <Text style={styles.label}>YTD Effective Tax Rate</Text>
             <Text style={styles.bigNumber}>
-              {formatTaxRate(taxSummary.effectiveRate)}
+              {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)}
             </Text>
             <Text style={styles.subtitle}>
-              {formatTaxAmount(taxSummary.totalTax)} on {formatTaxAmount(ytdData.grossIncome)} income
+              {formatTaxAmount(dashboardData.totals.taxes)} set aside on {formatTaxAmount(dashboardData.totals.net)} net profit
             </Text>
           </View>
 
