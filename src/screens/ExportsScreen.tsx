@@ -58,6 +58,16 @@ export function ExportsScreen() {
   });
 
   const userPlan = profile?.plan || 'free';
+  
+  // Debug: Log the user plan
+  useEffect(() => {
+    console.log('ExportsScreen - User Plan:', { 
+      rawPlan: profile?.plan, 
+      userPlan, 
+      canExport: canExport(userPlan),
+      profile 
+    });
+  }, [profile, userPlan]);
 
   // Build filters
   const filters: ExportFilters = {
