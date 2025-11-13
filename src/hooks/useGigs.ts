@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { FREE_GIG_LIMIT } from '../config/plans';
+import { queryKeys } from '../lib/queryKeys';
+import { useState, useEffect } from 'react';
 
 type Gig = Database['public']['Tables']['gigs']['Row'];
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
@@ -28,8 +30,17 @@ export interface GigWithPayer extends Gig {
 }
 
 export function useGigs() {
+  // Get user ID synchronously from session
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+  }, []);
+  
   return useQuery({
-    queryKey: ['gigs'],
+    queryKey: userId ? queryKeys.gigs(userId) : ['gigs-loading'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -48,6 +59,7 @@ export function useGigs() {
       if (error) throw error;
       return data as GigWithPayer[];
     },
+    enabled: !!userId, // Only run query when we have a user ID
   });
 }
 
@@ -142,8 +154,11 @@ export function useUpdateGig() {
       if (error) throw error;
       return data as Gig;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gigs'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.gigs(user.id) });
+      }
     },
   });
 }
@@ -160,11 +175,14 @@ export function useDeleteGig() {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gigs'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['mileage'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.gigs(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
+      }
     },
   });
 }
