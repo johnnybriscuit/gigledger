@@ -363,7 +363,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         state: state || undefined,
         country: country || undefined,
         country_code: country || 'US', // Map to database column
-        state_code: state || undefined, // Map to database column
+        state_code: state && US_STATES.find(s => s.code === state || s.name === state)?.code, // Always use 2-letter code
         gross_amount: parseFloat(grossAmount) || 0,
         tips: parseFloat(tips) || 0,
         fees: parseFloat(fees) || 0,

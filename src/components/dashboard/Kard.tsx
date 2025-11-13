@@ -89,12 +89,17 @@ const styles = StyleSheet.create({
     color: '#111827', // text-gray-900
   },
   infoButton: {
-    padding: 4,
+    padding: 8,
     borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    minWidth: 32,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   infoIcon: {
-    fontSize: 16,
-    opacity: 0.6,
+    fontSize: 18,
+    opacity: 0.8,
   },
   content: {
     gap: 16, // space-y-4
