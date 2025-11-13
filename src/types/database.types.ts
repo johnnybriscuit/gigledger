@@ -59,6 +59,7 @@ export interface Database {
           contact_email: string | null
           notes: string | null
           expect_1099: boolean
+          tax_id: string | null
           created_at: string
           updated_at: string
         }
@@ -70,6 +71,7 @@ export interface Database {
           contact_email?: string | null
           notes?: string | null
           expect_1099?: boolean
+          tax_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -81,6 +83,7 @@ export interface Database {
           contact_email?: string | null
           notes?: string | null
           expect_1099?: boolean
+          tax_id?: string | null
           created_at?: string
           updated_at?: string
         }

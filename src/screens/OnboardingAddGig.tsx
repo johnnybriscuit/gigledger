@@ -12,6 +12,7 @@ import {
 import { useCreateGig } from '../hooks/useGigs';
 import { supabase } from '../lib/supabase';
 import { useTaxEstimate } from '../hooks/useTaxEstimate';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface OnboardingAddGigProps {
   payerId: string | null;
@@ -28,6 +29,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
   const [otherIncome, setOtherIncome] = useState('');
   const [taxesWithheld, setTaxesWithheld] = useState(false);
   const createGig = useCreateGig();
+  const queryClient = useQueryClient();
 
   // Calculate live tax estimate
   const netBeforeTax = useMemo(() => {
@@ -80,6 +82,9 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
           .eq('id', user.id);
       }
 
+      // Invalidate all queries to ensure dashboard loads with fresh data
+      queryClient.invalidateQueries();
+
       onComplete();
     } catch (error: any) {
       console.error('[OnboardingAddGig] Error creating gig:', error);
@@ -97,6 +102,10 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
           .update({ onboarding_complete: true })
           .eq('id', user.id);
       }
+      
+      // Invalidate all queries to ensure dashboard loads with fresh data
+      queryClient.invalidateQueries();
+      
       onSkip();
     } catch (error) {
       console.error('[OnboardingAddGig] Error marking onboarding complete:', error);

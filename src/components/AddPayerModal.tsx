@@ -27,6 +27,7 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
   const [contactEmail, setContactEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [expect1099, setExpect1099] = useState(false);
+  const [taxId, setTaxId] = useState('');
 
   const createPayer = useCreatePayer();
   const updatePayer = useUpdatePayer();
@@ -38,6 +39,7 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
       setContactEmail(editingPayer.contact_email || '');
       setNotes(editingPayer.notes || '');
       setExpect1099(editingPayer.expect_1099 || false);
+      setTaxId(editingPayer.tax_id || '');
     } else {
       resetForm();
     }
@@ -49,6 +51,7 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
     setContactEmail('');
     setNotes('');
     setExpect1099(false);
+    setTaxId('');
   };
 
   const handleSubmit = async () => {
@@ -59,17 +62,22 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
         contact_email: contactEmail || undefined,
         notes: notes || undefined,
         expect_1099: expect1099,
+        tax_id: taxId || undefined,
       };
 
       const validated = payerSchema.parse(formData);
 
+      // Map 'type' from validation to 'payer_type' for database
+      const { type: payer_type, ...rest } = validated;
+      const dbData = { payer_type, ...rest };
+
       if (editingPayer) {
         await updatePayer.mutateAsync({
           id: editingPayer.id,
-          ...validated,
+          ...dbData,
         });
       } else {
-        await createPayer.mutateAsync(validated);
+        await createPayer.mutateAsync(dbData);
       }
 
       resetForm();
@@ -153,6 +161,20 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
                   Will receive 1099 form from this payer
                 </Text>
               </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>EIN or SSN (Optional)</Text>
+              <Text style={styles.helperText}>Required for 1099 reconciliation</Text>
+              <TextInput
+                style={styles.input}
+                value={taxId}
+                onChangeText={setTaxId}
+                placeholder="XX-XXXXXXX or XXX-XX-XXXX"
+                placeholderTextColor="#9ca3af"
+                keyboardType="default"
+                autoCapitalize="none"
+              />
             </View>
 
             <View style={styles.inputGroup}>
@@ -319,6 +341,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     flex: 1,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: -4,
+    marginBottom: 4,
   },
   submitButton: {
     backgroundColor: '#3b82f6',

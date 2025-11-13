@@ -25,6 +25,8 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
   const [type, setType] = useState<string>('');
   const [contactEmail, setContactEmail] = useState('');
   const [notes, setNotes] = useState('');
+  const [expect1099, setExpect1099] = useState(false);
+  const [taxId, setTaxId] = useState('');
 
   const createPayer = useCreatePayer();
   const updatePayer = useUpdatePayer();
@@ -32,9 +34,11 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
   useEffect(() => {
     if (editingPayer) {
       setName(editingPayer.name);
-      setType(editingPayer.type || '');
+      setType(editingPayer.payer_type || '');
       setContactEmail(editingPayer.contact_email || '');
       setNotes(editingPayer.notes || '');
+      setExpect1099(editingPayer.expect_1099 || false);
+      setTaxId(editingPayer.tax_id || '');
     } else {
       resetForm();
     }
@@ -45,6 +49,8 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
     setType('');
     setContactEmail('');
     setNotes('');
+    setExpect1099(false);
+    setTaxId('');
   };
 
   const handleSubmit = async () => {
@@ -58,17 +64,21 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
         await updatePayer.mutateAsync({
           id: editingPayer.id,
           name: name.trim(),
-          type: (type as any) || undefined,
+          payer_type: (type as any) || undefined,
           contact_email: contactEmail || undefined,
           notes: notes || undefined,
+          expect_1099: expect1099,
+          tax_id: taxId || undefined,
         });
         Alert.alert('Success', 'Payer updated successfully');
       } else {
         const result = await createPayer.mutateAsync({
           name: name.trim(),
-          type: (type as any) || undefined,
+          payer_type: (type as any) || undefined,
           contact_email: contactEmail || undefined,
           notes: notes || undefined,
+          expect_1099: expect1099,
+          tax_id: taxId || undefined,
         });
         
         // Call onSuccess with the new payer ID
@@ -135,6 +145,35 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Expect 1099?</Text>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setExpect1099(!expect1099)}
+              >
+                <View style={[styles.checkbox, expect1099 && styles.checkboxChecked]}>
+                  {expect1099 && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  Will receive 1099 form from this payer
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>EIN or SSN (Optional)</Text>
+              <Text style={styles.helperText}>Required for 1099 reconciliation</Text>
+              <TextInput
+                style={styles.input}
+                value={taxId}
+                onChangeText={setTaxId}
+                placeholder="XX-XXXXXXX or XXX-XX-XXXX"
+                placeholderTextColor="#9ca3af"
+                keyboardType="default"
+                autoCapitalize="none"
+              />
             </View>
 
             <View style={styles.inputGroup}>
@@ -312,5 +351,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: -4,
+    marginBottom: 4,
   },
 });

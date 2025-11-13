@@ -150,7 +150,11 @@ function AppContent() {
       <>
         <StatusBar style="dark" />
         <OnboardingFlow
-          onComplete={() => setNeedsOnboarding(false)}
+          onComplete={() => {
+            // Invalidate all queries before transitioning to dashboard
+            queryClient.invalidateQueries();
+            setNeedsOnboarding(false);
+          }}
         />
       </>
     );

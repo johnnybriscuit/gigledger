@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { OnboardingWelcome } from './OnboardingWelcome';
 import { OnboardingAddPayer } from './OnboardingAddPayer';
 import { OnboardingAddGig } from './OnboardingAddGig';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -11,6 +12,7 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState(1);
   const [payerId, setPayerId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const handleWelcomeNext = () => {
     setStep(2);
@@ -26,6 +28,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     if (Platform.OS === 'web') {
       sessionStorage.setItem('onboarding_just_completed', 'true');
     }
+    
+    // Invalidate all queries to ensure fresh data loads
+    queryClient.invalidateQueries();
+    
     onComplete();
   };
 
