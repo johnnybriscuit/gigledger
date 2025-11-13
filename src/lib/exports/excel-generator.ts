@@ -34,6 +34,74 @@ function formatCurrency(amount: number): number {
  */
 export function generateExcelData(input: ExcelGeneratorInput) {
   const { gigs, expenses, mileage, payers, scheduleC, taxYear } = input;
+  
+  // Calculate Schedule C summary from raw data if scheduleC is empty/invalid
+  const calculateScheduleC = () => {
+    // Income
+    const grossReceipts = gigs.reduce((sum, g) => sum + (g.gross_amount || 0) + (g.tips || 0) + (g.per_diem || 0) + (g.other_income || 0), 0);
+    const fees = gigs.reduce((sum, g) => sum + (g.fees || 0), 0);
+    const totalIncome = grossReceipts - fees;
+    
+    // Expenses by category
+    const expensesByCategory: Record<string, number> = {};
+    expenses.forEach(e => {
+      const cat = e.category || 'Other';
+      expensesByCategory[cat] = (expensesByCategory[cat] || 0) + e.amount;
+    });
+    
+    // Mileage deduction
+    const mileageDeduction = mileage.reduce((sum, m) => sum + (m.deduction_amount || m.miles * 0.67), 0);
+    
+    // Map to Schedule C lines
+    const advertising = expensesByCategory['Marketing'] || 0;
+    const carTruck = mileageDeduction;
+    const supplies = expensesByCategory['Supplies'] || 0;
+    const travel = (expensesByCategory['Travel'] || 0) + (expensesByCategory['Lodging'] || 0);
+    const meals = (expensesByCategory['Meals'] || 0) * 0.5; // 50% deductible
+    const officeExpense = expensesByCategory['Software'] || 0;
+    const legalProfessional = expensesByCategory['Fees'] || 0;
+    const otherExpenses = Object.entries(expensesByCategory)
+      .filter(([cat]) => !['Marketing', 'Supplies', 'Travel', 'Lodging', 'Meals', 'Software', 'Fees'].includes(cat))
+      .reduce((sum, [, amount]) => sum + amount, 0);
+    
+    const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
+    const netProfit = totalIncome - totalExpenses;
+    
+    // Simple tax estimates (15.3% SE tax + estimated income tax)
+    const seTax = netProfit * 0.9235 * 0.153;
+    const estimatedIncomeTax = Math.max(0, (netProfit - seTax * 0.5) * 0.22); // Rough estimate
+    
+    return {
+      gross_receipts: grossReceipts - fees,
+      other_income: 0,
+      total_income: totalIncome,
+      advertising,
+      car_truck: carTruck,
+      commissions: 0,
+      depreciation: 0,
+      insurance_other: 0,
+      legal_professional: legalProfessional,
+      office_expense: officeExpense,
+      repairs_maintenance: 0,
+      supplies,
+      taxes_licenses: 0,
+      travel,
+      meals_allowed: meals,
+      utilities: 0,
+      wages: 0,
+      other_expenses_total: otherExpenses,
+      total_expenses: totalExpenses,
+      net_profit: netProfit,
+      est_se_tax: seTax,
+      est_federal_income_tax: estimatedIncomeTax,
+      est_state_income_tax: 0,
+      est_total_tax: seTax + estimatedIncomeTax,
+      set_aside_suggested: seTax + estimatedIncomeTax,
+    };
+  };
+  
+  // Use calculated data if scheduleC is empty or has zero values
+  const scheduleCSummary = (scheduleC && scheduleC.gross_receipts > 0) ? scheduleC : calculateScheduleC();
 
   // Sheet 1: Schedule C Summary
   const scheduleCSheet = [
@@ -42,36 +110,36 @@ export function generateExcelData(input: ExcelGeneratorInput) {
     ['Generated:', new Date().toLocaleDateString(), '', ''],
     ['', '', '', ''],
     ['INCOME', '', '', ''],
-    ['Gross Receipts', formatCurrency(scheduleC.gross_receipts), '', ''],
-    ['Other Income', formatCurrency(scheduleC.other_income), '', ''],
-    ['Total Income', formatCurrency(scheduleC.total_income), '', ''],
+    ['Gross Receipts', formatCurrency(scheduleCSummary.gross_receipts), '', ''],
+    ['Other Income', formatCurrency(scheduleCSummary.other_income), '', ''],
+    ['Total Income', formatCurrency(scheduleCSummary.total_income), '', ''],
     ['', '', '', ''],
     ['EXPENSES', '', '', ''],
-    ['Advertising', formatCurrency(scheduleC.advertising), '', ''],
-    ['Car and Truck', formatCurrency(scheduleC.car_truck), '', ''],
-    ['Commissions', formatCurrency(scheduleC.commissions), '', ''],
-    ['Depreciation', formatCurrency(scheduleC.depreciation), '', ''],
-    ['Insurance', formatCurrency(scheduleC.insurance_other), '', ''],
-    ['Legal & Professional', formatCurrency(scheduleC.legal_professional), '', ''],
-    ['Office Expense', formatCurrency(scheduleC.office_expense), '', ''],
-    ['Repairs & Maintenance', formatCurrency(scheduleC.repairs_maintenance), '', ''],
-    ['Supplies', formatCurrency(scheduleC.supplies), '', ''],
-    ['Taxes & Licenses', formatCurrency(scheduleC.taxes_licenses), '', ''],
-    ['Travel', formatCurrency(scheduleC.travel), '', ''],
-    ['Meals (50% allowed)', formatCurrency(scheduleC.meals_allowed), '', ''],
-    ['Utilities', formatCurrency(scheduleC.utilities), '', ''],
-    ['Wages', formatCurrency(scheduleC.wages), '', ''],
-    ['Other Expenses', formatCurrency(scheduleC.other_expenses_total), '', ''],
-    ['Total Expenses', formatCurrency(scheduleC.total_expenses), '', ''],
+    ['Advertising', formatCurrency(scheduleCSummary.advertising), '', ''],
+    ['Car and Truck', formatCurrency(scheduleCSummary.car_truck), '', ''],
+    ['Commissions', formatCurrency(scheduleCSummary.commissions), '', ''],
+    ['Depreciation', formatCurrency(scheduleCSummary.depreciation), '', ''],
+    ['Insurance', formatCurrency(scheduleCSummary.insurance_other), '', ''],
+    ['Legal & Professional', formatCurrency(scheduleCSummary.legal_professional), '', ''],
+    ['Office Expense', formatCurrency(scheduleCSummary.office_expense), '', ''],
+    ['Repairs & Maintenance', formatCurrency(scheduleCSummary.repairs_maintenance), '', ''],
+    ['Supplies', formatCurrency(scheduleCSummary.supplies), '', ''],
+    ['Taxes & Licenses', formatCurrency(scheduleCSummary.taxes_licenses), '', ''],
+    ['Travel', formatCurrency(scheduleCSummary.travel), '', ''],
+    ['Meals (50% allowed)', formatCurrency(scheduleCSummary.meals_allowed), '', ''],
+    ['Utilities', formatCurrency(scheduleCSummary.utilities), '', ''],
+    ['Wages', formatCurrency(scheduleCSummary.wages), '', ''],
+    ['Other Expenses', formatCurrency(scheduleCSummary.other_expenses_total), '', ''],
+    ['Total Expenses', formatCurrency(scheduleCSummary.total_expenses), '', ''],
     ['', '', '', ''],
-    ['NET PROFIT', formatCurrency(scheduleC.net_profit), '', ''],
+    ['NET PROFIT', formatCurrency(scheduleCSummary.net_profit), '', ''],
     ['', '', '', ''],
     ['TAX ESTIMATES', '', '', ''],
-    ['Self-Employment Tax', formatCurrency(scheduleC.est_se_tax), '', ''],
-    ['Federal Income Tax', formatCurrency(scheduleC.est_federal_income_tax), '', ''],
-    ['State Income Tax', formatCurrency(scheduleC.est_state_income_tax), '', ''],
-    ['Total Tax', formatCurrency(scheduleC.est_total_tax), '', ''],
-    ['Suggested Set Aside', formatCurrency(scheduleC.set_aside_suggested), '', ''],
+    ['Self-Employment Tax', formatCurrency(scheduleCSummary.est_se_tax), '', ''],
+    ['Federal Income Tax', formatCurrency(scheduleCSummary.est_federal_income_tax), '', ''],
+    ['State Income Tax', formatCurrency(scheduleCSummary.est_state_income_tax), '', ''],
+    ['Total Tax', formatCurrency(scheduleCSummary.est_total_tax), '', ''],
+    ['Suggested Set Aside', formatCurrency(scheduleCSummary.set_aside_suggested), '', ''],
   ];
 
   // Sheet 2: Gigs
