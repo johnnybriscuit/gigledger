@@ -28,8 +28,7 @@ import {
 import { downloadExcel } from '../lib/exports/excel-generator';
 import { openScheduleCPDF } from '../lib/exports/pdf-generator';
 import type { GigExportRow, ExpenseExportRow, MileageExportRow } from '../lib/exports/schemas';
-import { calcTotalTax } from '../tax/engine';
-import { useTaxProfile } from '../hooks/useTaxProfile';
+import { useWithholding } from '../hooks/useWithholding';
 
 export function ExportsScreen() {
   const currentYear = new Date().getFullYear();
@@ -60,9 +59,6 @@ export function ExportsScreen() {
   });
 
   const userPlan = profile?.plan || 'free';
-  
-  // Get user's tax profile for accurate tax calculations
-  const { data: taxProfile } = useTaxProfile();
 
   // Build filters
   const filters: ExportFilters = {
@@ -74,6 +70,28 @@ export function ExportsScreen() {
 
   // Fetch all export data
   const { gigs, expenses, mileage, payers, scheduleC, isLoading, isError } = useAllExportData(filters);
+  
+  // Calculate net profit for tax estimation (same as dashboard)
+  const netProfit = useMemo(() => {
+    if (!gigs.data || !expenses.data || !mileage.data) return 0;
+    
+    const totalGross = gigs.data.reduce((sum, g) => sum + (g.gross_amount || 0), 0);
+    const totalTips = gigs.data.reduce((sum, g) => sum + (g.tips || 0), 0);
+    const totalPerDiem = gigs.data.reduce((sum, g) => sum + (g.per_diem || 0), 0);
+    const totalOtherIncome = gigs.data.reduce((sum, g) => sum + (g.other_income || 0), 0);
+    const totalFees = gigs.data.reduce((sum, g) => sum + (g.fees || 0), 0);
+    const totalIncome = totalGross + totalTips + totalPerDiem + totalOtherIncome - totalFees;
+    
+    const totalExpenses = expenses.data.reduce((sum, e) => sum + e.amount, 0);
+    const totalMiles = mileage.data.reduce((sum, m) => sum + m.miles, 0);
+    const totalMileageDeduction = totalMiles * 0.67; // Standard mileage rate
+    const totalDeductions = totalExpenses + totalMileageDeduction;
+    
+    return totalIncome - totalDeductions;
+  }, [gigs.data, expenses.data, mileage.data]);
+  
+  // Get tax breakdown using same hook as dashboard
+  const { breakdown: taxBreakdown } = useWithholding(netProfit);
 
   // Run validation when data loads
   useEffect(() => {
@@ -184,7 +202,7 @@ export function ExportsScreen() {
         payers: payers.data,
         scheduleC: scheduleC.data[0],
         taxYear,
-        taxProfile,
+        taxBreakdown,
       });
       
       Alert.alert('Success', 'Excel file has been downloaded!');
@@ -236,32 +254,11 @@ export function ExportsScreen() {
       const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
       const netProfit = totalIncome - totalExpenses;
       
-      // Calculate accurate tax estimates using tax engine
-      let seTax = 0;
-      let estimatedIncomeTax = 0;
-      let estimatedStateTax = 0;
-      let estimatedLocalTax = 0;
-      let totalTax = 0;
-      
-      if (taxProfile && netProfit > 0) {
-        const ytdData = {
-          grossIncome: totalIncome,
-          expenses: totalExpenses,
-          adjustments: 0,
-          netSE: netProfit,
-        };
-        const taxResult = calcTotalTax(ytdData, taxProfile);
-        seTax = taxResult.seTax;
-        estimatedIncomeTax = taxResult.federal;
-        estimatedStateTax = taxResult.state;
-        estimatedLocalTax = taxResult.local;
-        totalTax = taxResult.total;
-      } else {
-        // Fallback to simplified calculation if no tax profile
-        seTax = netProfit * 0.9235 * 0.153;
-        estimatedIncomeTax = Math.max(0, (netProfit - seTax * 0.5) * 0.22);
-        totalTax = seTax + estimatedIncomeTax;
-      }
+      // Use tax breakdown from useWithholding hook (same as dashboard)
+      const seTax = taxBreakdown?.selfEmployment || 0;
+      const estimatedIncomeTax = taxBreakdown?.federalIncome || 0;
+      const estimatedStateTax = taxBreakdown?.stateIncome || 0;
+      const totalTax = taxBreakdown?.total || 0;
       
       const calculatedScheduleC = {
         tax_year: taxYear,
