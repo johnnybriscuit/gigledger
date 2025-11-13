@@ -453,6 +453,19 @@ export function ExportsScreen() {
                 <Text style={styles.summaryLabel}>Payers</Text>
               </View>
             </View>
+            
+            {/* No data warning */}
+            {(gigs.data?.length === 0 && expenses.data?.length === 0 && mileage.data?.length === 0) && (
+              <View style={styles.noDataWarning}>
+                <Text style={styles.noDataIcon}>📭</Text>
+                <Text style={styles.noDataText}>
+                  No data found for {customDateRange ? 'selected date range' : taxYear}
+                </Text>
+                <Text style={styles.noDataHint}>
+                  Try selecting a different year or date range above
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Validation Status Card */}
@@ -1057,13 +1070,38 @@ const styles = StyleSheet.create({
   issueCategory: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#991b1b',
+    color: '#dc2626',
     textTransform: 'uppercase',
     marginBottom: 4,
   },
   issueMessage: {
-    fontSize: 13,
-    color: '#7f1d1d',
-    lineHeight: 18,
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  noDataWarning: {
+    backgroundColor: '#fef3c7',
+    padding: 20,
+    borderRadius: 12,
+    marginTop: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  noDataIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  noDataText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#92400e',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  noDataHint: {
+    fontSize: 14,
+    color: '#b45309',
+    textAlign: 'center',
   },
 });
