@@ -545,27 +545,27 @@ export function ExportsScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.exportButton, styles.exportButtonDisabled]}
+              style={styles.exportButton}
               onPress={handleDownloadExcel}
             >
               <Text style={styles.exportButtonIcon}>📗</Text>
               <View style={styles.exportButtonContent}>
                 <Text style={styles.exportButtonTitle}>Download Excel</Text>
                 <Text style={styles.exportButtonDescription}>
-                  One .xlsx file with separate sheets (Coming Soon)
+                  One .xlsx file with separate sheets
                 </Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.exportButton, styles.exportButtonDisabled]}
+              style={styles.exportButton}
               onPress={handleDownloadPDF}
             >
               <Text style={styles.exportButtonIcon}>📄</Text>
               <View style={styles.exportButtonContent}>
                 <Text style={styles.exportButtonTitle}>Download PDF Summary</Text>
                 <Text style={styles.exportButtonDescription}>
-                  Tax-ready summary for your CPA (Coming Soon)
+                  Tax-ready summary for your CPA
                 </Text>
               </View>
             </TouchableOpacity>
