@@ -166,7 +166,7 @@ export function ExportsScreen() {
     Alert.alert('Coming Soon', 'PDF export will be available in the next update.');
   };
 
-  const handleDownloadTXF = () => {
+  const handleDownloadTXF = async () => {
     console.log('TXF button clicked!', { 
       userPlan, 
       canExport: canExport(userPlan),
@@ -192,21 +192,86 @@ export function ExportsScreen() {
       return;
     }
 
-    console.log('Showing TXF coming soon alert');
-    // Show TXF info and coming soon message
-    Alert.alert(
-      'TXF Export Coming Soon',
-      'TXF export for TurboTax Desktop is currently in development. For now, please use the CSV exports and send them to your CPA, or manually enter data into TurboTax.',
-      [
-        { 
-          text: 'Learn More About TXF', 
-          onPress: () => {
-            setShowTXFInfo(true);
-          }
-        },
-        { text: 'OK' },
-      ]
-    );
+    // Generate and download TXF file
+    try {
+      console.log('Generating TXF file...');
+      
+      // Get user profile for taxpayer info
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+      
+      const taxpayerName = profileData?.full_name || 'Taxpayer';
+      
+      // Check if data is loaded
+      if (!gigs.data || !expenses.data || !scheduleC.data) {
+        throw new Error('Export data not loaded yet. Please wait.');
+      }
+      
+      // Transform data to export format (same as validation)
+      const gigsExport = gigs.data.map(g => ({
+        ...g,
+        gig_id: g.user_id,
+        title: g.payer || 'Gig',
+        payer_name: g.payer,
+        payer_ein_or_ssn: null,
+        city: g.city_state?.split(',')[0] || null,
+        state: g.city_state?.split(',')[1]?.trim() || null,
+        country: 'US',
+        payment_method: null,
+        invoice_url: null,
+        paid: true,
+        withholding_federal: 0,
+        withholding_state: 0,
+      })) as GigExportRow[];
+
+      const expensesExport = expenses.data.map(e => ({
+        ...e,
+        expense_id: e.user_id,
+        merchant: e.vendor,
+        gl_category: e.category,
+        irs_schedule_c_line: '27a',
+        meals_percent_allowed: e.category === 'Meals' ? 0.5 : 1,
+        linked_gig_id: null,
+      })) as ExpenseExportRow[];
+      
+      const scheduleCSummaryData = scheduleC.data[0];
+      
+      // Generate TXF content
+      const txfContent = generateTXF({
+        taxYear,
+        taxpayerName,
+        gigs: gigsExport,
+        expenses: expensesExport,
+        scheduleCSummary: scheduleCSummaryData,
+      });
+      
+      // Download the file
+      downloadTXF(txfContent, taxYear);
+      
+      console.log('TXF file downloaded successfully');
+      
+      // Show success message with instructions
+      Alert.alert(
+        'TXF Export Complete',
+        'Your TXF file has been downloaded. This file can be imported into TurboTax Desktop (NOT TurboTax Online).\n\nTap "View Instructions" to see how to import it.',
+        [
+          { 
+            text: 'View Instructions', 
+            onPress: () => setShowTXFInfo(true)
+          },
+          { text: 'Done' },
+        ]
+      );
+    } catch (error: any) {
+      console.error('TXF export error:', error);
+      Alert.alert('Export Error', error.message || 'Failed to generate TXF file');
+    }
   };
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
