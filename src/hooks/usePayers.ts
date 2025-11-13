@@ -1,14 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
+import { queryKeys } from '../lib/queryKeys';
+import { useState, useEffect } from 'react';
 
 export type Payer = Database['public']['Tables']['payers']['Row'];
 type PayerInsert = Database['public']['Tables']['payers']['Insert'];
 type PayerUpdate = Database['public']['Tables']['payers']['Update'];
 
 export function usePayers() {
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+  }, []);
+  
   return useQuery({
-    queryKey: ['payers'],
+    queryKey: userId ? queryKeys.payers(userId) : ['payers-loading'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -22,6 +32,7 @@ export function usePayers() {
       if (error) throw error;
       return data as Payer[];
     },
+    enabled: !!userId,
   });
 }
 
@@ -42,8 +53,11 @@ export function useCreatePayer() {
       if (error) throw error;
       return data as Payer;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payers'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.payers(user.id) });
+      }
     },
   });
 }
@@ -63,8 +77,11 @@ export function useUpdatePayer() {
       if (error) throw error;
       return data as Payer;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['payers'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.payers(user.id) });
+      }
     },
   });
 }
@@ -91,9 +108,12 @@ export function useDeletePayer() {
       
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       console.log('Delete successful, invalidating cache');
-      queryClient.invalidateQueries({ queryKey: ['payers'] });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.payers(user.id) });
+      }
     },
     onError: (error) => {
       console.error('Delete mutation error:', error);
