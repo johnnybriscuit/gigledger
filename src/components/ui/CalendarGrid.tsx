@@ -135,14 +135,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 4,
+    minHeight: 240, // Fixed height for 6 rows (40px each + gaps)
   },
   dayCell: {
     width: '13.28%', // ~1/7th with gaps
-    aspectRatio: 1,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 999,
-    minHeight: 40,
     ...Platform.select({
       web: {
         cursor: 'pointer',

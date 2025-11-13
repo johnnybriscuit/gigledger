@@ -11,8 +11,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  ScrollView,
 } from 'react-native';
-import { addMonths, subMonths, startOfMonth, format } from 'date-fns';
+import { addMonths, subMonths, startOfMonth, format, setMonth as setDateMonth, setYear } from 'date-fns';
 import { CalendarGrid } from './CalendarGrid';
 import { getToday } from '../../lib/date';
 
@@ -57,6 +58,8 @@ export function DatePickerModal({
   const [month, setMonth] = useState<Date>(
     startOfMonth(value ?? initialMonth ?? getToday())
   );
+  // Month/year picker state
+  const [showMonthYearPicker, setShowMonthYearPicker] = useState(false);
 
   // Update draft when value changes externally
   useEffect(() => {
@@ -86,6 +89,13 @@ export function DatePickerModal({
     const today = getToday();
     setDraft(today);
     setMonth(startOfMonth(today));
+  };
+
+  // Handle month/year selection
+  const handleMonthYearSelect = (monthIndex: number, yearValue: number) => {
+    const newMonth = setYear(setDateMonth(month, monthIndex), yearValue);
+    setMonth(startOfMonth(newMonth));
+    setShowMonthYearPicker(false);
   };
 
   // Handle Apply button
@@ -135,11 +145,18 @@ export function DatePickerModal({
               </Text>
             </TouchableOpacity>
 
-            <View style={styles.headerTitle}>
+            <TouchableOpacity
+              style={styles.headerTitle}
+              onPress={() => setShowMonthYearPicker(true)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Select month and year"
+            >
               <Text style={[styles.monthText, isDark && styles.monthTextDark]}>
                 {format(month, 'MMMM yyyy')}
               </Text>
-            </View>
+              <Text style={[styles.dropdownIcon, isDark && styles.dropdownIconDark]}>▼</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleNextMonth}
@@ -208,6 +225,88 @@ export function DatePickerModal({
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
+
+      {/* Month/Year Picker Modal */}
+      {showMonthYearPicker && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowMonthYearPicker(false)}
+        >
+          <TouchableOpacity
+            style={styles.overlay}
+            activeOpacity={1}
+            onPress={() => setShowMonthYearPicker(false)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={[styles.pickerContent, isDark && styles.pickerContentDark]}
+            >
+              <View style={styles.pickerHeader}>
+                <Text style={[styles.pickerTitle, isDark && styles.pickerTitleDark]}>
+                  Select Month & Year
+                </Text>
+                <TouchableOpacity onPress={() => setShowMonthYearPicker(false)}>
+                  <Text style={[styles.pickerClose, isDark && styles.pickerCloseDark]}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.pickerScroll}>
+                {/* Generate years from 2020 to current year + 2 */}
+                {Array.from(
+                  { length: new Date().getFullYear() - 2018 },
+                  (_, i) => new Date().getFullYear() + 2 - i
+                ).map((year) => (
+                  <View key={year} style={styles.yearSection}>
+                    <Text style={[styles.yearLabel, isDark && styles.yearLabelDark]}>{year}</Text>
+                    <View style={styles.monthGrid}>
+                      {[
+                        'Jan',
+                        'Feb',
+                        'Mar',
+                        'Apr',
+                        'May',
+                        'Jun',
+                        'Jul',
+                        'Aug',
+                        'Sep',
+                        'Oct',
+                        'Nov',
+                        'Dec',
+                      ].map((monthName, monthIndex) => {
+                        const isSelected =
+                          month.getFullYear() === year && month.getMonth() === monthIndex;
+                        return (
+                          <TouchableOpacity
+                            key={monthName}
+                            style={[
+                              styles.monthButton,
+                              isDark && styles.monthButtonDark,
+                              isSelected && styles.monthButtonSelected,
+                            ]}
+                            onPress={() => handleMonthYearSelect(monthIndex, year)}
+                          >
+                            <Text
+                              style={[
+                                styles.monthButtonText,
+                                isDark && styles.monthButtonTextDark,
+                                isSelected && styles.monthButtonTextSelected,
+                              ]}
+                            >
+                              {monthName}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </Modal>
   );
 }
@@ -259,7 +358,15 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
   },
   monthText: {
     fontSize: 18,
@@ -268,6 +375,14 @@ const styles = StyleSheet.create({
   },
   monthTextDark: {
     color: '#f9fafb',
+  },
+  dropdownIcon: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  dropdownIconDark: {
+    color: '#9ca3af',
   },
   navButton: {
     width: 40,
@@ -359,5 +474,108 @@ const styles = StyleSheet.create({
   },
   buttonTextApply: {
     color: '#ffffff',
+  },
+  // Month/Year Picker Styles
+  pickerContent: {
+    width: '85%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 10,
+      },
+      web: {
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+      },
+    }),
+  },
+  pickerContentDark: {
+    backgroundColor: '#1f2937',
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  pickerTitleDark: {
+    color: '#f9fafb',
+  },
+  pickerClose: {
+    fontSize: 20,
+    color: '#6b7280',
+    paddingHorizontal: 8,
+  },
+  pickerCloseDark: {
+    color: '#9ca3af',
+  },
+  pickerScroll: {
+    maxHeight: 400,
+  },
+  yearSection: {
+    marginBottom: 24,
+  },
+  yearLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  yearLabelDark: {
+    color: '#f9fafb',
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  monthButton: {
+    width: '30%',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+      },
+    }),
+  },
+  monthButtonDark: {
+    backgroundColor: '#374151',
+  },
+  monthButtonSelected: {
+    backgroundColor: '#3b82f6',
+  },
+  monthButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  monthButtonTextDark: {
+    color: '#d1d5db',
+  },
+  monthButtonTextSelected: {
+    color: '#ffffff',
+    fontWeight: '600',
   },
 });
