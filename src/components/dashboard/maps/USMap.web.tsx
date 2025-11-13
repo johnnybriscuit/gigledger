@@ -35,7 +35,8 @@ export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion }: US
 
   // Get all gig counts for color scale calculation
   const allCounts = useMemo(() => {
-    return Object.values(stats).map(s => s.gigsCount || 0);
+    if (!stats || typeof stats !== 'object') return [];
+    return Object.values(stats).map(s => s?.gigsCount || 0);
   }, [stats]);
 
   return (
