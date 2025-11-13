@@ -73,16 +73,39 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
+      // Save full name to profiles
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           full_name: fullName.trim(),
-          state_code: stateCode,
-          filing_status: filingStatus,
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Map filing status to user_tax_profile format
+      const filingStatusMap: Record<string, string> = {
+        'single': 'single',
+        'married': 'married_joint',
+        'hoh': 'head',
+        'not_sure': 'single', // Default to single if not sure
+      };
+
+      // Save tax settings to user_tax_profile
+      const { error: taxError } = await supabase
+        .from('user_tax_profile')
+        .upsert({
+          user_id: user.id,
+          tax_year: 2025,
+          filing_status: filingStatusMap[filingStatus] || 'single',
+          state: stateCode,
+          deduction_method: 'standard',
+          se_income: true,
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (taxError) throw taxError;
 
       onNext();
     } catch (error: any) {
