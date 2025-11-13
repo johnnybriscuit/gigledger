@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Platform, Modal, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getThemeColors } from '../../../lib/charts/colors';
 import { Kard } from '../Kard';
@@ -142,18 +142,17 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
       </View>
 
       {/* Info Modal */}
-      <Modal
-        visible={showInfo}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowInfo(false)}
-      >
+      {showInfo && (
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => setShowInfo(false)}
         >
-          <View style={styles.modalContent}>
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
             <Text style={styles.modalTitle}>Gig Map</Text>
             <Text style={styles.modalText}>
               Shows where you've performed gigs across the United States. 
@@ -165,9 +164,9 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
             >
               <Text style={styles.modalButtonText}>Got it</Text>
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
-      </Modal>
+      )}
 
       {/* Region Drawer */}
       <SidePanel
@@ -266,12 +265,17 @@ const styles = StyleSheet.create({
   },
   // Modal
   modalOverlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-  },
+    zIndex: 1000,
+  } as any, // Cast to any to allow position: absolute on web
   modalContent: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
