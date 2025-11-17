@@ -42,6 +42,12 @@ export interface DashboardData {
     taxes: number;
     effectiveTaxRate: number;
   };
+  taxBreakdown: {
+    federal: number;
+    state: number;
+    local: number;
+    seTax: number;
+  };
 }
 
 interface DateRangeConfig {
@@ -307,8 +313,14 @@ export function useDashboardData(
         taxes: totalTaxes,
         effectiveTaxRate,
       },
+      taxBreakdown: {
+        federal: taxResult?.federal || 0,
+        state: taxResult?.state || 0,
+        local: taxResult?.local || 0,
+        seTax: taxResult?.seTax || 0,
+      },
     };
-  }, [allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, netProfit, totalTaxes, effectiveTaxRate]);
+  }, [allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, netProfit, totalTaxes, effectiveTaxRate, taxResult]);
 
   return data;
 }

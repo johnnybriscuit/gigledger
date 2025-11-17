@@ -42,27 +42,9 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
     );
   }
 
-  // Calculate YTD effective rate
-  const ytdData = {
-    grossIncome: dashboardData.totals.net + dashboardData.totals.taxes, // Approximate
-    adjustments: 0,
-    netSE: dashboardData.totals.net,
-  };
-
-  let taxSummary;
-  try {
-    taxSummary = calcYTDEffectiveRate(ytdData, taxProfile);
-  } catch (error) {
-    console.error('Error calculating YTD tax rate:', error);
-    return (
-      <View style={styles.card}>
-        <Text style={styles.title}>Tax Summary</Text>
-        <Text style={styles.error}>Unable to calculate tax estimate</Text>
-      </View>
-    );
-  }
-
-  const hasIncome = ytdData.grossIncome > 0;
+  // Use tax breakdown from dashboard data (already calculated with new engine)
+  const taxBreakdown = dashboardData.taxBreakdown;
+  const hasIncome = dashboardData.totals.net > 0;
 
   return (
     <View style={styles.card}>
@@ -93,27 +75,27 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>Federal</Text>
               <Text style={styles.breakdownValue}>
-                {formatTaxAmount(taxSummary.breakdown.federal)}
+                {formatTaxAmount(taxBreakdown.federal)}
               </Text>
             </View>
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>State</Text>
               <Text style={styles.breakdownValue}>
-                {formatTaxAmount(taxSummary.breakdown.state)}
+                {formatTaxAmount(taxBreakdown.state)}
               </Text>
             </View>
-            {taxSummary.breakdown.local > 0 && (
+            {taxBreakdown.local > 0 && (
               <View style={styles.breakdownRow}>
                 <Text style={styles.breakdownLabel}>Local</Text>
                 <Text style={styles.breakdownValue}>
-                  {formatTaxAmount(taxSummary.breakdown.local)}
+                  {formatTaxAmount(taxBreakdown.local)}
                 </Text>
               </View>
             )}
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>SE Tax</Text>
               <Text style={styles.breakdownValue}>
-                {formatTaxAmount(taxSummary.breakdown.seTax)}
+                {formatTaxAmount(taxBreakdown.seTax)}
               </Text>
             </View>
           </View>
@@ -126,7 +108,7 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
               activeOpacity={0.7}
             >
               <Text style={styles.recommendationText}>
-                💡 Set aside {formatTaxRate(taxSummary.effectiveRate)} of each gig for taxes
+                💡 Set aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} of each gig for taxes
               </Text>
               <Text style={styles.expandIcon}>
                 {showExplanation ? '▼' : '▶'}
@@ -149,7 +131,7 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
                   <Text style={styles.explanationBullet}>
                     • <Text style={styles.bold}>State Tax:</Text> {taxProfile.state === 'TN' || taxProfile.state === 'TX' ? 'No state income tax in your state' : `Based on ${taxProfile.state} state tax rates`}
                   </Text>
-                  {taxSummary.breakdown.local > 0 && (
+                  {taxBreakdown.local > 0 && (
                     <Text style={styles.explanationBullet}>
                       • <Text style={styles.bold}>Local Tax:</Text> Additional local taxes for your area
                     </Text>
@@ -162,7 +144,7 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
                 <View style={styles.explanationSection}>
                   <Text style={styles.explanationSubtitle}>💰 Why set aside this amount?</Text>
                   <Text style={styles.explanationText}>
-                    As a self-employed musician, taxes aren't automatically withheld from your gigs. Setting aside {formatTaxRate(taxSummary.effectiveRate)} ensures you'll have enough saved when quarterly estimated taxes are due.
+                    As a self-employed musician, taxes aren't automatically withheld from your gigs. Setting aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} ensures you'll have enough saved when quarterly estimated taxes are due.
                   </Text>
                 </View>
                 
