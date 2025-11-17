@@ -14,6 +14,7 @@ export interface CardProps extends ViewProps {
   variant?: 'elevated' | 'flat' | 'muted';
   padding?: 'none' | 'sm' | 'md' | 'lg';
   style?: ViewStyle;
+  accessibilityLabel?: string;
 }
 
 export function Card({
@@ -21,6 +22,7 @@ export function Card({
   variant = 'elevated',
   padding = 'md',
   style,
+  accessibilityLabel,
   ...props
 }: CardProps) {
   const containerStyle: ViewStyle[] = [
@@ -31,7 +33,12 @@ export function Card({
   ].filter(Boolean) as ViewStyle[];
 
   return (
-    <View style={containerStyle} {...props}>
+    <View 
+      style={containerStyle}
+      accessible={!!accessibilityLabel}
+      accessibilityLabel={accessibilityLabel}
+      {...props}
+    >
       {children}
     </View>
   );

@@ -19,21 +19,55 @@ export interface FieldProps {
 }
 
 export function Field({ label, children, help, error, required, style }: FieldProps) {
+  // Clone child element and add accessibility props
+  const enhancedChild = React.isValidElement(children)
+    ? React.cloneElement(children as React.ReactElement<any>, {
+        accessibilityLabel: label,
+        accessibilityRequired: required,
+        accessibilityInvalid: !!error,
+        accessibilityHint: help || undefined,
+      })
+    : children;
+
   return (
     <View style={[styles.container, style]}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
-        {required && <Text style={styles.required}>*</Text>}
+        <Text 
+          style={styles.label}
+          accessibilityRole="text"
+        >
+          {label}
+        </Text>
+        {required && (
+          <Text 
+            style={styles.required}
+            accessibilityLabel="required"
+            accessibilityRole="text"
+          >
+            *
+          </Text>
+        )}
       </View>
       
-      {children}
+      {enhancedChild}
       
       {help && !error && (
-        <Text style={styles.help}>{help}</Text>
+        <Text 
+          style={styles.help}
+          accessibilityRole="text"
+        >
+          {help}
+        </Text>
       )}
       
       {error && (
-        <Text style={styles.error}>{error}</Text>
+        <Text 
+          style={styles.error}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="assertive"
+        >
+          {error}
+        </Text>
       )}
     </View>
   );

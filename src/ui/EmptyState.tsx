@@ -23,9 +23,27 @@ export interface EmptyStateProps {
 }
 
 export function EmptyState({ icon, title, description, action, style }: EmptyStateProps) {
+  // Combine title and description for screen readers
+  const accessibilityLabel = description 
+    ? `${title}. ${description}`
+    : title;
+
   return (
-    <View style={[styles.container, style]}>
-      {icon && <View style={styles.icon}>{icon}</View>}
+    <View 
+      style={[styles.container, style]}
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={accessibilityLabel}
+    >
+      {icon && (
+        <View 
+          style={styles.icon}
+          accessibilityElementsHidden={true}
+          importantForAccessibility="no"
+        >
+          {icon}
+        </View>
+      )}
       
       <View style={styles.content}>
         <H3 center>{title}</H3>
@@ -40,6 +58,8 @@ export function EmptyState({ icon, title, description, action, style }: EmptySta
         <Button
           variant="primary"
           onPress={action.onPress}
+          accessibilityLabel={action.label}
+          accessibilityHint="Double tap to perform this action"
         >
           {action.label}
         </Button>

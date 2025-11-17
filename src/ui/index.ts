@@ -14,4 +14,6 @@ export { Stat, type StatProps } from './Stat';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { Field, type FieldProps } from './Field';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
+export { LoadingState, type LoadingStateProps } from './LoadingState';
+export { ErrorState, type ErrorStateProps } from './ErrorState';
 export { Modal, type ModalProps } from './Modal';
