@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -12,6 +11,8 @@ import {
 import { usePayers, useDeletePayer } from '../hooks/usePayers';
 import { useGigs } from '../hooks/useGigs';
 import { AddPayerModal } from '../components/AddPayerModal';
+import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
+import { colors, spacing, radius, typography } from '../styles/theme';
 
 export function PayersScreen() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -90,7 +91,7 @@ export function PayersScreen() {
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
       </View>
     );
   }
@@ -98,8 +99,8 @@ export function PayersScreen() {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Error loading payers</Text>
-        <Text style={styles.errorDetail}>{(error as Error).message}</Text>
+        <H3 style={{ color: colors.danger.DEFAULT }}>Error loading payers</H3>
+        <Text muted>{(error as Error).message}</Text>
       </View>
     );
   }
@@ -107,38 +108,39 @@ export function PayersScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Payers</Text>
-        <TouchableOpacity
-          style={styles.addButton}
+        <H1>Payers</H1>
+        <Button
+          variant="primary"
+          size="sm"
           onPress={() => setModalVisible(true)}
         >
-          <Text style={styles.addButtonText}>+ Add Payer</Text>
-        </TouchableOpacity>
+          + Add Payer
+        </Button>
       </View>
 
       {payers && payers.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No payers yet</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Add venues, clients, or platforms you work with
-          </Text>
-        </View>
+        <EmptyState
+          title="No payers yet"
+          description="Add venues, clients, or platforms you work with"
+          action={{
+            label: 'Add Payer',
+            onPress: () => setModalVisible(true),
+          }}
+        />
       ) : (
         <FlatList
           data={payers}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <Card variant="elevated" style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={styles.cardInfo}>
-                  <Text style={styles.payerName}>{item.name}</Text>
+                  <H3>{item.name}</H3>
                   <View style={styles.metaRow}>
-                    <Text style={styles.payerType}>{item.type}</Text>
+                    <Text muted>{item.payer_type}</Text>
                     {item.expect_1099 && (
-                      <View style={styles.badge1099}>
-                        <Text style={styles.badge1099Text}>1099</Text>
-                      </View>
+                      <Badge variant="neutral" size="sm">1099</Badge>
                     )}
                   </View>
                 </View>
@@ -147,25 +149,25 @@ export function PayersScreen() {
                     onPress={() => handleEdit(item)}
                     style={styles.actionButton}
                   >
-                    <Text style={styles.editText}>Edit</Text>
+                    <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDelete(item.id, item.name)}
                     style={styles.actionButton}
                   >
-                    <Text style={styles.deleteText}>Delete</Text>
+                    <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
                   </TouchableOpacity>
                 </View>
               </View>
               {item.contact_email && (
-                <Text style={styles.email}>{item.contact_email}</Text>
+                <Text muted style={styles.email}>{item.contact_email}</Text>
               )}
               {item.notes && (
                 <Text style={styles.notes} numberOfLines={2}>
                   {item.notes}
                 </Text>
               )}
-            </View>
+            </Card>
           )}
         />
       )}
@@ -182,143 +184,60 @@ export function PayersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
+    gap: parseInt(spacing[2]),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: parseInt(spacing[5]),
+    paddingVertical: parseInt(spacing[4]),
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    borderBottomColor: colors.border.DEFAULT,
   },
   listContent: {
-    padding: 20,
+    padding: parseInt(spacing[5]),
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: parseInt(spacing[3]),
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: parseInt(spacing[2]),
   },
   cardInfo: {
     flex: 1,
-  },
-  payerName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    gap: parseInt(spacing[1]),
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  payerType: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  badge1099: {
-    backgroundColor: '#dbeafe',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  badge1099Text: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#1e40af',
+    gap: parseInt(spacing[2]),
   },
   cardActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: parseInt(spacing[3]),
   },
   actionButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  editText: {
-    color: '#3b82f6',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  deleteText: {
-    color: '#ef4444',
-    fontSize: 14,
-    fontWeight: '600',
+    paddingHorizontal: parseInt(spacing[2]),
+    paddingVertical: parseInt(spacing[1]),
   },
   email: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    marginBottom: parseInt(spacing[1]),
   },
   notes: {
-    fontSize: 14,
-    color: '#4b5563',
-    lineHeight: 20,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#9ca3af',
-    marginBottom: 8,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#d1d5db',
-    textAlign: 'center',
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ef4444',
-    marginBottom: 8,
-  },
-  errorDetail: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.DEFAULT,
+    lineHeight: parseInt(typography.fontSize.subtle.size) * 1.4,
   },
 });
