@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -22,6 +21,8 @@ import {
 } from '../hooks/useSubscription';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { H1, H2, H3, Text, Button, Card, Badge } from '../ui';
+import { colors, spacing, radius, typography } from '../styles/theme';
 
 // Get Stripe Price IDs from app.json
 const STRIPE_MONTHLY_PRICE_ID = Constants.expoConfig?.extra?.stripeMonthlyPriceId || 'price_1SREuh1zc5DHhlVtxhHYiIwG';
@@ -83,7 +84,7 @@ export function SubscriptionScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
       </View>
     );
   }
@@ -94,72 +95,71 @@ export function SubscriptionScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Subscription</Text>
+        <H1>Subscription</H1>
         {hasActiveSubscription && isPaidPlan && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {subscription.tier === 'monthly' ? 'Monthly' : 'Yearly'} Plan
-            </Text>
-          </View>
+          <Badge variant="neutral" size="sm">
+            {subscription.tier === 'monthly' ? 'Monthly' : 'Yearly'} Plan
+          </Badge>
         )}
       </View>
 
       {hasActiveSubscription && isPaidPlan ? (
         <View style={styles.currentPlanContainer}>
-          <Text style={styles.sectionTitle}>Current Plan</Text>
-          <View style={styles.planCard}>
-            <Text style={styles.planName}>
+          <H2>Current Plan</H2>
+          <Card variant="elevated" style={styles.planCard}>
+            <H3>
               {subscription.tier === 'monthly' ? 'Monthly' : 'Yearly'} Subscription
-            </Text>
+            </H3>
             <Text style={styles.planPrice}>
               ${subscription.tier === 'monthly' ? MONTHLY_PRICE : YEARLY_PRICE}
               {subscription.tier === 'monthly' ? '/month' : '/year'}
             </Text>
             {subscription.current_period_end && (
-              <Text style={styles.renewalText}>
+              <Text muted>
                 {subscription.cancel_at_period_end ? 'Expires' : 'Renews'} on{' '}
                 {new Date(subscription.current_period_end).toLocaleDateString()}
               </Text>
             )}
-          </View>
+          </Card>
 
           {/* Show upgrade option for monthly subscribers */}
           {subscription.tier === 'monthly' && !subscription.cancel_at_period_end && (
-            <View style={styles.upgradeContainer}>
-              <View style={styles.upgradeBadge}>
-                <Text style={styles.upgradeBadgeText}>💰 Save 16%</Text>
-              </View>
-              <Text style={styles.upgradeTitle}>Upgrade to Yearly</Text>
-              <Text style={styles.upgradeDescription}>
+            <Card variant="elevated" style={styles.upgradeContainer}>
+              <Badge variant="success" size="sm" style={styles.upgradeBadge}>
+                💰 Save 16%
+              </Badge>
+              <H3>Upgrade to Yearly</H3>
+              <Text muted style={styles.upgradeDescription}>
                 Pay ${YEARLY_PRICE}/year instead of ${(MONTHLY_PRICE * 12).toFixed(2)}/year
               </Text>
-              <TouchableOpacity
-                style={styles.upgradeButton}
+              <Button
+                variant="success"
                 onPress={() => handleSubscribe('yearly')}
                 disabled={createCheckout.isPending}
               >
                 {createCheckout.isPending ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.upgradeButtonText}>Upgrade to Yearly Plan</Text>
+                  'Upgrade to Yearly Plan'
                 )}
-              </TouchableOpacity>
-            </View>
+              </Button>
+            </Card>
           )}
 
-          <TouchableOpacity
-            style={styles.manageButton}
+          <Button
+            variant="primary"
             onPress={handleManageSubscription}
             disabled={createPortal.isPending}
+            style={styles.manageButton}
           >
             {createPortal.isPending ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.manageButtonText}>Manage Subscription</Text>
+              'Manage Subscription'
             )}
-          </TouchableOpacity>
+          </Button>
 
-          <Text style={styles.manageHint}>
+          <Text subtle style={{ textAlign: 'center' }}>
             Update payment method, cancel subscription, or view invoices
           </Text>
         </View>
@@ -167,15 +167,15 @@ export function SubscriptionScreen() {
         <View style={styles.plansContainer}>
           {/* Active Plan Banner */}
           {currentPlan !== 'free' && (
-            <View style={styles.activePlanBanner}>
-              <Text style={styles.activePlanText}>
+            <Card variant="elevated" style={styles.activePlanBanner}>
+              <Text semibold style={{ color: colors.success.DEFAULT, textAlign: 'center' }}>
                 ✓ You're on the {currentPlan === 'pro_monthly' ? 'Monthly' : 'Yearly'} Pro plan
               </Text>
-            </View>
+            </Card>
           )}
 
-          <Text style={styles.sectionTitle}>Choose Your Plan</Text>
-          <Text style={styles.subtitle}>
+          <H2>Choose Your Plan</H2>
+          <Text muted style={styles.subtitle}>
             Unlock premium features and support GigLedger development
           </Text>
 
@@ -189,28 +189,26 @@ export function SubscriptionScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.planHeader}>
-              <Text style={styles.planOptionTitle}>Monthly</Text>
+              <H3>Monthly</H3>
               <Text style={styles.planOptionPrice}>${MONTHLY_PRICE}/mo</Text>
             </View>
-            <Text style={styles.planDescription}>Billed monthly • Cancel anytime</Text>
+            <Text muted>Billed monthly • Cancel anytime</Text>
             
             {/* CTA inside selected card */}
             {selectedPlan === 'monthly' && (
               <View style={styles.ctaContainer}>
-                <TouchableOpacity
-                  style={styles.subscribeButton}
+                <Button
+                  variant="primary"
                   onPress={() => handleSubscribe('monthly')}
                   disabled={createCheckout.isPending}
                 >
                   {createCheckout.isPending ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.subscribeButtonText}>
-                      Subscribe to Monthly – ${MONTHLY_PRICE}/mo
-                    </Text>
+                    `Subscribe to Monthly – $${MONTHLY_PRICE}/mo`
                   )}
-                </TouchableOpacity>
-                <Text style={styles.ctaDisclaimer}>
+                </Button>
+                <Text subtle style={styles.ctaDisclaimer}>
                   Secure payment powered by Stripe. Cancel anytime.
                 </Text>
               </View>
@@ -226,34 +224,32 @@ export function SubscriptionScreen() {
             onPress={() => setSelectedPlan('yearly')}
             activeOpacity={0.7}
           >
-            <View style={styles.planBadge}>
-              <Text style={styles.planBadgeText}>Save 16%</Text>
-            </View>
+            <Badge variant="success" size="sm" style={styles.planBadge}>
+              Save 16%
+            </Badge>
             <View style={styles.planHeader}>
-              <Text style={styles.planOptionTitle}>Yearly</Text>
+              <H3>Yearly</H3>
               <Text style={styles.planOptionPrice}>${YEARLY_PRICE}/yr</Text>
             </View>
-            <Text style={styles.planDescription}>
+            <Text muted>
               ${(YEARLY_PRICE / 12).toFixed(2)}/mo • Billed annually
             </Text>
             
             {/* CTA inside selected card */}
             {selectedPlan === 'yearly' && (
               <View style={styles.ctaContainer}>
-                <TouchableOpacity
-                  style={styles.subscribeButton}
+                <Button
+                  variant="primary"
                   onPress={() => handleSubscribe('yearly')}
                   disabled={createCheckout.isPending}
                 >
                   {createCheckout.isPending ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text style={styles.subscribeButtonText}>
-                      Subscribe to Yearly – ${YEARLY_PRICE}/yr
-                    </Text>
+                    `Subscribe to Yearly – $${YEARLY_PRICE}/yr`
                   )}
-                </TouchableOpacity>
-                <Text style={styles.ctaDisclaimer}>
+                </Button>
+                <Text subtle style={styles.ctaDisclaimer}>
                   Secure payment powered by Stripe. Cancel anytime.
                 </Text>
               </View>
@@ -262,7 +258,7 @@ export function SubscriptionScreen() {
 
           {/* Features List - More compact */}
           <View style={styles.featuresContainer}>
-            <Text style={styles.featuresTitle}>Premium Features</Text>
+            <Text semibold>Premium Features</Text>
             <View style={styles.featuresGrid}>
               {[
                 'Unlimited gigs and expenses',
@@ -274,7 +270,7 @@ export function SubscriptionScreen() {
               ].map((feature, index) => (
                 <View key={index} style={styles.featureRow}>
                   <Text style={styles.featureIcon}>✓</Text>
-                  <Text style={styles.featureText}>{feature}</Text>
+                  <Text subtle>{feature}</Text>
                 </View>
               ))}
             </View>
@@ -288,7 +284,7 @@ export function SubscriptionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
   },
   loadingContainer: {
     flex: 1,
@@ -299,247 +295,102 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 20,
-    paddingBottom: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  badge: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    padding: parseInt(spacing[5]),
+    paddingBottom: parseInt(spacing[3]),
   },
   currentPlanContainer: {
-    padding: 20,
+    padding: parseInt(spacing[5]),
   },
   plansContainer: {
-    padding: 20,
+    padding: parseInt(spacing[5]),
     paddingTop: 0,
   },
   activePlanBanner: {
-    backgroundColor: '#ecfdf5',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#10b981',
-  },
-  activePlanText: {
-    fontSize: 14,
-    color: '#065f46',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
+    marginBottom: parseInt(spacing[4]),
   },
   subtitle: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   planCard: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: '#3b82f6',
-    marginBottom: 16,
-  },
-  planName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    marginBottom: parseInt(spacing[4]),
+    gap: parseInt(spacing[2]),
   },
   planPrice: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#3b82f6',
-    marginBottom: 8,
-  },
-  renewalText: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontWeight: typography.fontWeight.bold,
+    color: colors.brand.DEFAULT,
   },
   upgradeContainer: {
-    backgroundColor: '#fef3c7',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#fbbf24',
+    marginTop: parseInt(spacing[4]),
+    marginBottom: parseInt(spacing[4]),
+    gap: parseInt(spacing[3]),
   },
   upgradeBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#10b981',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  upgradeBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  upgradeTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
+    marginBottom: parseInt(spacing[2]),
   },
   upgradeDescription: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 12,
-  },
-  upgradeButton: {
-    backgroundColor: '#10b981',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  upgradeButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    marginBottom: parseInt(spacing[3]),
   },
   planOption: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: colors.surface.muted,
+    borderRadius: parseInt(radius.md),
+    padding: parseInt(spacing[4]),
     borderWidth: 2,
-    borderColor: '#e5e7eb',
-    marginBottom: 8,
+    borderColor: colors.border.DEFAULT,
+    marginBottom: parseInt(spacing[2]),
     position: 'relative',
   },
   planOptionSelected: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
-    paddingBottom: 16,
+    borderColor: colors.brand.DEFAULT,
+    backgroundColor: colors.brand.muted,
+    paddingBottom: parseInt(spacing[4]),
   },
   ctaContainer: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: parseInt(spacing[3]),
+    paddingTop: parseInt(spacing[3]),
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border.DEFAULT,
+    gap: parseInt(spacing[2]),
   },
   planBadge: {
     position: 'absolute',
     top: -8,
-    right: 12,
-    backgroundColor: '#10b981',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  planBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
+    right: parseInt(spacing[3]),
   },
   planHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
-  },
-  planOptionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    marginBottom: parseInt(spacing[1]),
   },
   planOptionPrice: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#3b82f6',
-  },
-  planDescription: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontWeight: typography.fontWeight.bold,
+    color: colors.brand.DEFAULT,
   },
   featuresContainer: {
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  featuresTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
+    marginTop: parseInt(spacing[3]),
+    marginBottom: parseInt(spacing[4]),
+    gap: parseInt(spacing[2]),
   },
   featuresGrid: {
-    // Container for features list
+    gap: parseInt(spacing[1]),
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    gap: parseInt(spacing[2]),
   },
   featureIcon: {
     fontSize: 13,
-    color: '#10b981',
-    marginRight: 8,
-    fontWeight: '700',
-  },
-  featureText: {
-    fontSize: 12,
-    color: '#374151',
-    flex: 1,
-  },
-  subscribeButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 10,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  subscribeButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    color: colors.success.DEFAULT,
+    fontWeight: typography.fontWeight.bold,
   },
   ctaDisclaimer: {
-    fontSize: 10,
-    color: '#6b7280',
     textAlign: 'center',
-    marginTop: 3,
   },
   manageButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  manageButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  manageHint: {
-    fontSize: 12,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  disclaimer: {
-    fontSize: 12,
-    color: '#9ca3af',
-    textAlign: 'center',
+    marginBottom: parseInt(spacing[2]),
   },
 });
