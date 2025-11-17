@@ -4,9 +4,11 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemeColors, chartColors } from '../../lib/charts/colors';
+import { Text } from '../../ui';
+import { colors, spacing, radius, typography } from '../../styles/theme';
 
 interface QuickActionsProps {
   onAddGig: () => void;
@@ -65,7 +67,7 @@ export function QuickActions({
           <View style={[styles.iconContainer, { backgroundColor: `${action.color}15` }]}>
             <Text style={styles.icon}>{action.icon}</Text>
           </View>
-          <Text style={[styles.label, { color: colors.text }]}>{action.label}</Text>
+          <Text semibold style={{ color: colors.text }}>{action.label}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -75,7 +77,7 @@ export function QuickActions({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    gap: 12,
+    gap: parseInt(spacing[3]),
     flexWrap: 'wrap',
   },
   actionButton: {
@@ -83,9 +85,9 @@ const styles = StyleSheet.create({
     minWidth: 100,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 14,
-    borderRadius: 12,
+    gap: parseInt(spacing[2]) + 2,
+    padding: parseInt(spacing[3]) + 2,
+    borderRadius: parseInt(radius.md),
     borderWidth: 1,
     ...Platform.select({
       web: {
@@ -105,15 +107,11 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: parseInt(radius.sm),
     justifyContent: 'center',
     alignItems: 'center',
   },
   icon: {
     fontSize: 18,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
