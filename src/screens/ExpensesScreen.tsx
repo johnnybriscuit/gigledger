@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -19,6 +18,9 @@ import {
   useQuickAddExpense,
   type RecurringExpense,
 } from '../hooks/useRecurringExpenses';
+import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
+import { colors, spacing, radius, typography } from '../styles/theme';
+import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 
 export function ExpensesScreen() {
   const [activeTab, setActiveTab] = useState<'all' | 'recurring'>('all');
@@ -115,27 +117,17 @@ export function ExpensesScreen() {
   };
 
   const formatDate = (dateString: string) => {
-    // Parse date as local date to avoid timezone shifts
     const [year, month, day] = dateString.split('-').map(Number);
     const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
+    return formatDateUtil(date);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  const formatCurrency = formatCurrencyUtil;
 
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
       </View>
     );
   }
@@ -143,8 +135,8 @@ export function ExpensesScreen() {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Error loading expenses</Text>
-        <Text style={styles.errorDetail}>{(error as Error).message}</Text>
+        <H3 style={{ color: colors.danger.DEFAULT }}>Error loading expenses</H3>
+        <Text muted>{(error as Error).message}</Text>
       </View>
     );
   }
@@ -155,19 +147,18 @@ export function ExpensesScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Expenses</Text>
-          <Text style={styles.subtitle}>
+          <H1>Expenses</H1>
+          <Text muted>
             {expenses?.length || 0} expenses • {formatCurrency(totalExpenses)} total
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.addButton}
+        <Button
+          variant="primary"
+          size="sm"
           onPress={() => activeTab === 'all' ? setModalVisible(true) : setRecurringModalVisible(true)}
         >
-          <Text style={styles.addButtonText}>
-            {activeTab === 'all' ? '+ Add Expense' : '+ New Template'}
-          </Text>
-        </TouchableOpacity>
+          {activeTab === 'all' ? '+ Add Expense' : '+ New Template'}
+        </Button>
       </View>
 
       {/* Tabs */}
@@ -176,7 +167,7 @@ export function ExpensesScreen() {
           style={[styles.tab, activeTab === 'all' && styles.tabActive]}
           onPress={() => setActiveTab('all')}
         >
-          <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>
+          <Text semibold style={activeTab === 'all' ? { color: colors.brand.DEFAULT } : { color: colors.text.muted }}>
             All Expenses
           </Text>
         </TouchableOpacity>
@@ -184,7 +175,7 @@ export function ExpensesScreen() {
           style={[styles.tab, activeTab === 'recurring' && styles.tabActive]}
           onPress={() => setActiveTab('recurring')}
         >
-          <Text style={[styles.tabText, activeTab === 'recurring' && styles.tabTextActive]}>
+          <Text semibold style={activeTab === 'recurring' ? { color: colors.brand.DEFAULT } : { color: colors.text.muted }}>
             Recurring
           </Text>
         </TouchableOpacity>
@@ -193,7 +184,7 @@ export function ExpensesScreen() {
       {/* Quick-add buttons for active recurring expenses */}
       {activeTab === 'all' && activeRecurring && activeRecurring.length > 0 && (
         <View style={styles.quickAddSection}>
-          <Text style={styles.quickAddTitle}>Quick Add</Text>
+          <Text semibold muted>Quick Add</Text>
           <View style={styles.quickAddButtons}>
             {activeRecurring.map((recurring) => (
               <TouchableOpacity
@@ -201,8 +192,8 @@ export function ExpensesScreen() {
                 style={styles.quickAddButton}
                 onPress={() => handleQuickAdd(recurring.id, recurring.name)}
               >
-                <Text style={styles.quickAddButtonText}>{recurring.name}</Text>
-                <Text style={styles.quickAddButtonAmount}>{formatCurrency(recurring.amount)}</Text>
+                <Text semibold style={{ color: '#1e40af' }}>{recurring.name}</Text>
+                <Text style={{ color: colors.brand.DEFAULT, fontSize: parseInt(typography.fontSize.subtle.size) }}>{formatCurrency(recurring.amount)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -211,28 +202,30 @@ export function ExpensesScreen() {
 
       {/* All Expenses Tab */}
       {activeTab === 'all' && (expenses && expenses.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No expenses yet</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Track your business expenses for tax deductions
-          </Text>
-        </View>
+        <EmptyState
+          title="No expenses yet"
+          description="Track your business expenses for tax deductions"
+          action={{
+            label: 'Add Expense',
+            onPress: () => setModalVisible(true),
+          }}
+        />
       ) : (
         <FlatList
           data={expenses}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <Card variant="elevated" style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={styles.cardInfo}>
-                  <Text style={styles.description}>{item.description}</Text>
+                  <H3>{item.description}</H3>
                   <View style={styles.metaRow}>
-                    <Text style={styles.category}>{item.category}</Text>
-                    <Text style={styles.date}>{formatDate(item.date)}</Text>
+                    <Badge variant="neutral" size="sm">{item.category}</Badge>
+                    <Text subtle>{formatDate(item.date)}</Text>
                   </View>
                   {item.vendor && (
-                    <Text style={styles.vendor}>📍 {item.vendor}</Text>
+                    <Text muted>📍 {item.vendor}</Text>
                   )}
                 </View>
                 <View style={styles.amountContainer}>
@@ -244,7 +237,7 @@ export function ExpensesScreen() {
               </View>
 
               {item.notes && (
-                <Text style={styles.notes} numberOfLines={2}>
+                <Text muted numberOfLines={2} style={styles.notes}>
                   {item.notes}
                 </Text>
               )}
@@ -254,16 +247,16 @@ export function ExpensesScreen() {
                   onPress={() => handleEdit(item)}
                   style={styles.actionButton}
                 >
-                  <Text style={styles.editText}>Edit</Text>
+                  <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => handleDelete(item.id, item.description)}
                   style={styles.actionButton}
                 >
-                  <Text style={styles.deleteText}>Delete</Text>
+                  <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </Card>
           )}
         />
       ))}
@@ -271,43 +264,45 @@ export function ExpensesScreen() {
       {/* Recurring Expenses Tab */}
       {activeTab === 'recurring' && (recurringLoading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
         </View>
       ) : recurringExpenses && recurringExpenses.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No recurring expenses yet</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Create templates for expenses like rent, subscriptions, or storage
-          </Text>
-        </View>
+        <EmptyState
+          title="No recurring expenses yet"
+          description="Create templates for expenses like rent, subscriptions, or storage"
+          action={{
+            label: 'New Template',
+            onPress: () => setRecurringModalVisible(true),
+          }}
+        />
       ) : (
         <FlatList
           data={recurringExpenses}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <Card variant="elevated" style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={styles.cardInfo}>
                   <View style={styles.recurringHeader}>
-                    <Text style={styles.description}>{item.name}</Text>
+                    <H3>{item.name}</H3>
                     {!item.is_active && (
-                      <Text style={styles.pausedBadge}>Paused</Text>
+                      <Badge variant="warning" size="sm">Paused</Badge>
                     )}
                   </View>
                   <View style={styles.metaRow}>
-                    <Text style={styles.category}>{item.category}</Text>
-                    <Text style={styles.frequency}>
+                    <Badge variant="neutral" size="sm">{item.category}</Badge>
+                    <Text muted>
                       {item.frequency === 'weekly' ? '📅 Weekly' : 
                        item.frequency === 'monthly' ? '📅 Monthly' : 
                        '📅 Yearly'}
                     </Text>
                   </View>
                   {item.vendor && (
-                    <Text style={styles.vendor}>📍 {item.vendor}</Text>
+                    <Text muted>📍 {item.vendor}</Text>
                   )}
                   {item.next_due_date && (
-                    <Text style={styles.nextDue}>
+                    <Text semibold style={{ color: colors.brand.DEFAULT, fontSize: parseInt(typography.fontSize.caption.size), marginTop: parseInt(spacing[1]) }}>
                       Next: {formatDate(item.next_due_date)}
                     </Text>
                   )}
@@ -318,7 +313,7 @@ export function ExpensesScreen() {
               </View>
 
               {item.notes && (
-                <Text style={styles.notes} numberOfLines={2}>
+                <Text muted numberOfLines={2} style={styles.notes}>
                   {item.notes}
                 </Text>
               )}
@@ -329,7 +324,7 @@ export function ExpensesScreen() {
                   style={styles.actionButton}
                   disabled={!item.is_active}
                 >
-                  <Text style={[styles.editText, !item.is_active && styles.disabledText]}>
+                  <Text semibold style={{ color: item.is_active ? colors.brand.DEFAULT : colors.text.subtle }}>
                     Quick Add
                   </Text>
                 </TouchableOpacity>
@@ -337,16 +332,16 @@ export function ExpensesScreen() {
                   onPress={() => handleEditRecurring(item)}
                   style={styles.actionButton}
                 >
-                  <Text style={styles.editText}>Edit</Text>
+                  <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => handleDeleteRecurring(item.id, item.name)}
                   style={styles.actionButton}
                 >
-                  <Text style={styles.deleteText}>Delete</Text>
+                  <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </Card>
           )}
         />
       ))}
@@ -369,250 +364,114 @@ export function ExpensesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
+    gap: parseInt(spacing[2]),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: parseInt(spacing[5]),
+    paddingVertical: parseInt(spacing[4]),
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
-  },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    borderBottomColor: colors.border.DEFAULT,
   },
   listContent: {
-    padding: 20,
+    padding: parseInt(spacing[5]),
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: parseInt(spacing[3]),
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: parseInt(spacing[2]),
   },
   cardInfo: {
     flex: 1,
-  },
-  description: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    gap: parseInt(spacing[1]),
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 4,
-  },
-  category: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontWeight: '500',
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  date: {
-    fontSize: 13,
-    color: '#9ca3af',
-  },
-  vendor: {
-    fontSize: 13,
-    color: '#6b7280',
+    gap: parseInt(spacing[3]),
   },
   amountContainer: {
     alignItems: 'flex-end',
+    gap: parseInt(spacing[1]),
   },
   amount: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#ef4444',
-    marginBottom: 4,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.danger.DEFAULT,
   },
   receiptBadge: {
     fontSize: 16,
   },
   notes: {
-    fontSize: 14,
-    color: '#4b5563',
-    lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   cardActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 16,
-    paddingTop: 12,
+    gap: parseInt(spacing[4]),
+    paddingTop: parseInt(spacing[3]),
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: colors.border.muted,
   },
   actionButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  editText: {
-    color: '#3b82f6',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  deleteText: {
-    color: '#ef4444',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#9ca3af',
-    marginBottom: 8,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#d1d5db',
-    textAlign: 'center',
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ef4444',
-    marginBottom: 8,
-  },
-  errorDetail: {
-    fontSize: 14,
-    color: '#6b7280',
+    paddingHorizontal: parseInt(spacing[2]),
+    paddingVertical: parseInt(spacing[1]),
   },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border.DEFAULT,
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: parseInt(spacing[4]),
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: '#3b82f6',
-  },
-  tabText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  tabTextActive: {
-    color: '#3b82f6',
+    borderBottomColor: colors.brand.DEFAULT,
   },
   quickAddSection: {
-    backgroundColor: '#fff',
-    padding: 16,
+    backgroundColor: colors.surface.DEFAULT,
+    padding: parseInt(spacing[4]),
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  quickAddTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-    marginBottom: 12,
+    borderBottomColor: colors.border.DEFAULT,
+    gap: parseInt(spacing[3]),
   },
   quickAddButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: parseInt(spacing[2]),
   },
   quickAddButton: {
     backgroundColor: '#eff6ff',
     borderWidth: 1,
     borderColor: '#bfdbfe',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    borderRadius: parseInt(radius.sm),
+    paddingVertical: parseInt(spacing[2]),
+    paddingHorizontal: parseInt(spacing[3]),
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  quickAddButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e40af',
-  },
-  quickAddButtonAmount: {
-    fontSize: 13,
-    color: '#3b82f6',
+    gap: parseInt(spacing[2]),
   },
   recurringHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  pausedBadge: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#f59e0b',
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  frequency: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  nextDue: {
-    fontSize: 12,
-    color: '#3b82f6',
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  disabledText: {
-    color: '#9ca3af',
+    gap: parseInt(spacing[2]),
   },
 });
