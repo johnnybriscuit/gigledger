@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
   Alert,
@@ -15,6 +13,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaxSettingsSection } from '../components/TaxSettingsSection';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { formatRelativeTime } from '../lib/profile';
+import { H1, H2, Text, Button, Card } from '../ui';
+import { colors, spacing, radius, typography } from '../styles/theme';
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' },
@@ -184,7 +184,7 @@ export function AccountScreen() {
   if (profileLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
       </View>
     );
   }
@@ -192,7 +192,7 @@ export function AccountScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Account Settings</Text>
+        <H1>Account Settings</H1>
 
         {/* Two-column layout on desktop, stacked on mobile */}
         <View style={styles.gridContainer}>
@@ -201,18 +201,18 @@ export function AccountScreen() {
             {/* Profile Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Profile</Text>
+                <H2>Profile</H2>
               </View>
 
-          <View style={styles.card}>
+          <Card variant="flat" style={styles.card}>
             <View style={styles.fieldCompact}>
-              <Text style={styles.fieldLabel}>Email</Text>
-              <Text style={styles.fieldValue}>{user?.email}</Text>
-              <Text style={styles.fieldHintCompact}>Cannot be changed</Text>
+              <Text semibold style={styles.fieldLabel}>Email</Text>
+              <Text>{user?.email}</Text>
+              <Text subtle style={styles.fieldHintCompact}>Cannot be changed</Text>
             </View>
 
             <View style={styles.fieldCompact}>
-              <Text style={styles.fieldLabel}>Full Name</Text>
+              <Text semibold style={styles.fieldLabel}>Full Name</Text>
               {isEditingProfile ? (
                 <TextInput
                   style={styles.input}
@@ -221,12 +221,12 @@ export function AccountScreen() {
                   placeholder="Enter your name"
                 />
               ) : (
-                <Text style={styles.fieldValue}>{profile?.full_name || 'Not set'}</Text>
+                <Text>{profile?.full_name || 'Not set'}</Text>
               )}
             </View>
 
             <View style={styles.fieldCompact}>
-              <Text style={styles.fieldLabel}>Home Address</Text>
+              <Text semibold style={styles.fieldLabel}>Home Address</Text>
               {isEditingProfile ? (
                 <TextInput
                   style={styles.input}
@@ -236,15 +236,15 @@ export function AccountScreen() {
                   multiline
                 />
               ) : (
-                <Text style={styles.fieldValue}>{profile?.home_address || 'Not set'}</Text>
+                <Text>{profile?.home_address || 'Not set'}</Text>
               )}
-              <Text style={styles.fieldHintCompact}>For mileage tracking</Text>
+              <Text subtle style={styles.fieldHintCompact}>For mileage tracking</Text>
             </View>
 
             {/* Last Saved Indicator */}
             {!isEditingProfile && profile?.updated_at && (
               <View style={styles.lastSavedContainer}>
-                <Text style={styles.lastSavedText}>
+                <Text subtle style={{ fontStyle: 'italic' }}>
                   Last saved {formatRelativeTime(profile.updated_at)}
                 </Text>
               </View>
@@ -252,29 +252,31 @@ export function AccountScreen() {
 
             {isEditingProfile && (
               <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonSecondary]}
+                <Button
+                  variant="secondary"
                   onPress={() => {
                     setIsEditingProfile(false);
                     setFullName(profile?.full_name || '');
                   }}
+                  style={{ flex: 1 }}
                 >
-                  <Text style={styles.buttonSecondaryText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.buttonPrimary]}
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
                   onPress={handleSaveProfile}
                   disabled={updateProfileMutation.isPending}
+                  style={{ flex: 1 }}
                 >
                   {updateProfileMutation.isPending ? (
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
-                    <Text style={styles.buttonPrimaryText}>Save</Text>
+                    'Save'
                   )}
-                </TouchableOpacity>
+                </Button>
               </View>
             )}
-          </View>
+          </Card>
             </View>
 
             {/* Tax Settings Section */}
@@ -289,48 +291,52 @@ export function AccountScreen() {
           <View style={styles.rightColumn}>
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Account Actions</Text>
+                <H2>Account Actions</H2>
               </View>
-              <View style={styles.card}>
-                <TouchableOpacity
-                  style={styles.actionButton}
+              <Card variant="flat" style={styles.card}>
+                <Button
+                  variant="ghost"
                   onPress={() => setIsEditingProfile(true)}
-                >
-                  <Text style={styles.actionButtonText}>✏️ Edit Profile</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                   style={styles.actionButton}
+                >
+                  ✏️ Edit Profile
+                </Button>
+
+                <Button
+                  variant="ghost"
                   onPress={() => setIsEditingTaxSettings(true)}
-                >
-                  <Text style={styles.actionButtonText}>📊 Edit Tax Settings</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => setIsChangingPassword(true)}
                 >
-                  <Text style={styles.actionButtonText}>🔒 Change Password</Text>
-                </TouchableOpacity>
+                  📊 Edit Tax Settings
+                </Button>
 
-                <TouchableOpacity
-                  style={styles.actionButtonDestructive}
-                  onPress={handleSignOut}
+                <Button
+                  variant="ghost"
+                  onPress={() => setIsChangingPassword(true)}
+                  style={styles.actionButton}
                 >
-                  <Text style={styles.actionButtonDestructiveText}>🚪 Sign Out</Text>
-                </TouchableOpacity>
-              </View>
+                  🔒 Change Password
+                </Button>
+
+                <Button
+                  variant="destructive"
+                  onPress={handleSignOut}
+                  style={styles.actionButton}
+                >
+                  🚪 Sign Out
+                </Button>
+              </Card>
             </View>
 
             {/* Change Password Modal (when active) */}
             {isChangingPassword && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Change Password</Text>
+                  <H2>Change Password</H2>
                 </View>
-                <View style={styles.card}>
+                <Card variant="flat" style={styles.card}>
                   <View style={styles.fieldCompact}>
-                    <Text style={styles.fieldLabel}>New Password</Text>
+                    <Text semibold style={styles.fieldLabel}>New Password</Text>
                     <TextInput
                       style={styles.input}
                       value={newPassword}
@@ -342,7 +348,7 @@ export function AccountScreen() {
                   </View>
 
                   <View style={styles.fieldCompact}>
-                    <Text style={styles.fieldLabel}>Confirm Password</Text>
+                    <Text semibold style={styles.fieldLabel}>Confirm Password</Text>
                     <TextInput
                       style={styles.input}
                       value={confirmPassword}
@@ -354,29 +360,31 @@ export function AccountScreen() {
                   </View>
 
                   <View style={styles.buttonRow}>
-                    <TouchableOpacity
-                      style={[styles.button, styles.buttonSecondary]}
+                    <Button
+                      variant="secondary"
                       onPress={() => {
                         setIsChangingPassword(false);
                         setNewPassword('');
                         setConfirmPassword('');
                       }}
+                      style={{ flex: 1 }}
                     >
-                      <Text style={styles.buttonSecondaryText}>Cancel</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.button, styles.buttonPrimary]}
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
                       onPress={handleChangePassword}
                       disabled={changePasswordMutation.isPending}
+                      style={{ flex: 1 }}
                     >
                       {changePasswordMutation.isPending ? (
                         <ActivityIndicator color="#fff" size="small" />
                       ) : (
-                        <Text style={styles.buttonPrimaryText}>Update</Text>
+                        'Update'
                       )}
-                    </TouchableOpacity>
+                    </Button>
                   </View>
-                </View>
+                </Card>
               </View>
             )}
           </View>
@@ -389,17 +397,17 @@ export function AccountScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
   },
   content: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: parseInt(spacing[5]),
+    paddingBottom: parseInt(spacing[10]),
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
@@ -409,7 +417,7 @@ const styles = StyleSheet.create({
       web: {
         display: 'flex',
         flexDirection: 'row',
-        gap: 24,
+        gap: parseInt(spacing[6]),
         '@media (max-width: 768px)': {
           flexDirection: 'column',
         },
@@ -441,75 +449,35 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 24,
-  },
   section: {
-    marginBottom: 24,
+    marginBottom: parseInt(spacing[6]),
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  editButton: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3b82f6',
+    marginBottom: parseInt(spacing[3]),
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  field: {
-    marginBottom: 16,
+    gap: parseInt(spacing[3]),
   },
   fieldCompact: {
-    marginBottom: 12,
+    gap: parseInt(spacing[1]),
   },
   fieldHintCompact: {
-    fontSize: 11,
-    color: '#9ca3af',
-    marginTop: 2,
+    marginTop: parseInt(spacing[1]),
   },
   fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-  },
-  fieldValue: {
-    fontSize: 16,
-    color: '#111827',
-  },
-  fieldHint: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 4,
+    marginBottom: parseInt(spacing[2]),
   },
   input: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
+    borderColor: colors.border.DEFAULT,
+    borderRadius: parseInt(radius.sm),
+    padding: parseInt(spacing[3]),
+    fontSize: parseInt(typography.fontSize.body.size),
+    color: colors.text.DEFAULT,
   },
   selectButton: {
     backgroundColor: '#f9fafb',
@@ -570,65 +538,11 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  button: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonPrimary: {
-    backgroundColor: '#3b82f6',
-  },
-  buttonPrimaryText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  buttonSecondary: {
-    backgroundColor: '#f3f4f6',
-  },
-  buttonSecondaryText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  linkButton: {
-    padding: 12,
-  },
-  linkButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3b82f6',
+    gap: parseInt(spacing[3]),
+    marginTop: parseInt(spacing[2]),
   },
   actionButton: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 10,
-    alignItems: 'flex-start',
-  },
-  actionButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  actionButtonDestructive: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ef4444',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'flex-start',
-  },
-  actionButtonDestructiveText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#ef4444',
+    marginBottom: parseInt(spacing[3]),
   },
   modalOverlay: {
     position: 'absolute',
@@ -680,14 +594,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   lastSavedContainer: {
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: parseInt(spacing[2]),
+    paddingTop: parseInt(spacing[2]),
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-  },
-  lastSavedText: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontStyle: 'italic',
+    borderTopColor: colors.border.muted,
   },
 });
