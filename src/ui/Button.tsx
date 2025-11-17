@@ -18,6 +18,8 @@ export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   style?: ViewStyle;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 export function Button({
@@ -30,6 +32,8 @@ export function Button({
   leftIcon,
   rightIcon,
   style,
+  accessibilityLabel,
+  accessibilityHint,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -49,11 +53,19 @@ export function Button({
     styles[`textSize_${size}`],
   ].filter(Boolean) as TextStyle[];
 
+  // Generate default accessibility label from children if not provided
+  const defaultLabel = typeof children === 'string' ? children : undefined;
+
   return (
     <TouchableOpacity
       style={containerStyle}
       disabled={isDisabled}
       activeOpacity={0.8}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel || defaultLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: isDisabled }}
       {...props}
     >
       {loading ? (
