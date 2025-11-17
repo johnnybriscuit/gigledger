@@ -16,12 +16,12 @@
 // ============================================================================
 
 export const colors = {
-  // Brand colors - warm, approachable amber/orange
+  // Brand colors - clean, trustworthy blue
   brand: {
-    DEFAULT: '#f59e0b', // amber-500
+    DEFAULT: '#3b82f6', // blue-500
     foreground: '#ffffff',
-    hover: '#d97706', // amber-600
-    muted: '#fef3c7', // amber-100
+    hover: '#2563eb', // blue-600
+    muted: '#dbeafe', // blue-100
   },
   
   // Surface colors - clean, minimal backgrounds
