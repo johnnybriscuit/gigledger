@@ -10,6 +10,7 @@ import { Modal as RNModal, View, Text, TouchableOpacity, StyleSheet, ScrollView,
 import { colors, radius, spacing, typography, zIndex } from '../styles/theme';
 import { H2 } from './Typography';
 import { Button } from './Button';
+import { useKeyboard } from '../hooks/useKeyboard';
 
 export interface ModalProps {
   visible: boolean;
@@ -32,21 +33,41 @@ export function Modal({
   size = 'md',
   style,
 }: ModalProps) {
+  // Combine title and description for screen readers
+  const accessibilityLabel = description 
+    ? `${title}. ${description}`
+    : title;
+
+  // Handle keyboard events (Escape to close)
+  useKeyboard({
+    onEscape: onClose,
+    enabled: visible,
+  });
+
   return (
     <RNModal
       visible={visible}
       transparent
       animationType="fade"
       onRequestClose={onClose}
+      accessibilityViewIsModal={true}
     >
       <View style={styles.backdrop}>
         <TouchableOpacity
           style={styles.backdropTouchable}
           activeOpacity={1}
           onPress={onClose}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Close modal"
+          accessibilityHint="Double tap to close this dialog"
         />
         
-        <View style={[styles.container, styles[`size_${size}`], style]}>
+        <View 
+          style={[styles.container, styles[`size_${size}`], style]}
+          accessible={true}
+          accessibilityLabel={accessibilityLabel}
+        >
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <H2>{title}</H2>
@@ -59,8 +80,18 @@ export function Modal({
               onPress={onClose}
               style={styles.closeButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Close ${title} dialog`}
+              accessibilityHint="Double tap to close this dialog"
             >
-              <Text style={styles.closeIcon}>✕</Text>
+              <Text 
+                style={styles.closeIcon}
+                accessibilityElementsHidden={true}
+                importantForAccessibility="no"
+              >
+                ✕
+              </Text>
             </TouchableOpacity>
           </View>
           
