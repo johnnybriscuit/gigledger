@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -10,6 +9,9 @@ import {
 } from 'react-native';
 import { useMileage, useDeleteMileage, calculateMileageDeduction, IRS_MILEAGE_RATE } from '../hooks/useMileage';
 import { AddMileageModal } from '../components/AddMileageModal';
+import { H1, H3, Text, Button, Card, EmptyState } from '../ui';
+import { colors, spacing, radius, typography } from '../styles/theme';
+import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 
 export function MileageScreen() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -45,25 +47,15 @@ export function MileageScreen() {
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
+    return formatDateUtil(new Date(dateString));
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  const formatCurrency = formatCurrencyUtil;
 
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
       </View>
     );
   }
@@ -71,8 +63,8 @@ export function MileageScreen() {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Error loading mileage</Text>
-        <Text style={styles.errorDetail}>{(error as Error).message}</Text>
+        <H3 style={{ color: colors.danger.DEFAULT }}>Error loading mileage</H3>
+        <Text muted>{(error as Error).message}</Text>
       </View>
     );
   }
@@ -84,29 +76,32 @@ export function MileageScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Mileage</Text>
-          <Text style={styles.subtitle}>
+          <H1>Mileage</H1>
+          <Text muted>
             {mileage?.length || 0} trips • {totalMiles.toFixed(1)} miles • {formatCurrency(totalDeduction)} deduction
           </Text>
-          <Text style={styles.rateInfo}>
+          <Text subtle style={styles.rateInfo}>
             IRS Rate: ${IRS_MILEAGE_RATE}/mile (2024)
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.addButton}
+        <Button
+          variant="primary"
+          size="sm"
           onPress={() => setModalVisible(true)}
         >
-          <Text style={styles.addButtonText}>+ Add Trip</Text>
-        </TouchableOpacity>
+          + Add Trip
+        </Button>
       </View>
 
       {mileage && mileage.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No mileage tracked yet</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Track business miles for tax deductions
-          </Text>
-        </View>
+        <EmptyState
+          title="No mileage tracked yet"
+          description="Track business miles for tax deductions"
+          action={{
+            label: 'Add Trip',
+            onPress: () => setModalVisible(true),
+          }}
+        />
       ) : (
         <FlatList
           data={mileage}
@@ -115,15 +110,15 @@ export function MileageScreen() {
           renderItem={({ item }) => {
             const deduction = calculateMileageDeduction(item.miles);
             return (
-              <View style={styles.card}>
+              <Card variant="elevated" style={styles.card}>
                 <View style={styles.cardHeader}>
                   <View style={styles.cardInfo}>
-                    <Text style={styles.purpose}>{item.purpose}</Text>
-                    <Text style={styles.date}>{formatDate(item.date)}</Text>
+                    <H3>{item.purpose}</H3>
+                    <Text subtle>{formatDate(item.date)}</Text>
                     <View style={styles.locationRow}>
-                      <Text style={styles.location}>📍 {item.start_location}</Text>
-                      <Text style={styles.arrow}>→</Text>
-                      <Text style={styles.location}>{item.end_location}</Text>
+                      <Text muted>📍 {item.start_location}</Text>
+                      <Text subtle>→</Text>
+                      <Text muted>{item.end_location}</Text>
                     </View>
                   </View>
                   <View style={styles.amountContainer}>
@@ -133,7 +128,7 @@ export function MileageScreen() {
                 </View>
 
                 {item.notes && (
-                  <Text style={styles.notes} numberOfLines={2}>
+                  <Text muted numberOfLines={2} style={styles.notes}>
                     {item.notes}
                   </Text>
                 )}
@@ -143,16 +138,16 @@ export function MileageScreen() {
                     onPress={() => handleEdit(item)}
                     style={styles.actionButton}
                   >
-                    <Text style={styles.editText}>Edit</Text>
+                    <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDelete(item.id, item.purpose)}
                     style={styles.actionButton}
                   >
-                    <Text style={styles.deleteText}>Delete</Text>
+                    <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </Card>
             );
           }}
         />
@@ -170,164 +165,76 @@ export function MileageScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
+    gap: parseInt(spacing[2]),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: parseInt(spacing[5]),
+    paddingVertical: parseInt(spacing[4]),
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
+    borderBottomColor: colors.border.DEFAULT,
   },
   rateInfo: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 2,
-  },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    marginTop: parseInt(spacing[1]),
   },
   listContent: {
-    padding: 20,
+    padding: parseInt(spacing[5]),
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: parseInt(spacing[3]),
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: parseInt(spacing[2]),
   },
   cardInfo: {
     flex: 1,
-  },
-  purpose: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  date: {
-    fontSize: 13,
-    color: '#9ca3af',
-    marginBottom: 8,
+    gap: parseInt(spacing[1]),
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 8,
-  },
-  location: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  arrow: {
-    fontSize: 13,
-    color: '#9ca3af',
+    gap: parseInt(spacing[2]),
   },
   amountContainer: {
     alignItems: 'flex-end',
+    gap: parseInt(spacing[1]),
   },
   miles: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#3b82f6',
-    marginBottom: 4,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.brand.DEFAULT,
   },
   deduction: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#059669',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.success.DEFAULT,
   },
   notes: {
-    fontSize: 14,
-    color: '#4b5563',
-    lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   cardActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 16,
-    paddingTop: 12,
+    gap: parseInt(spacing[4]),
+    paddingTop: parseInt(spacing[3]),
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: colors.border.muted,
   },
   actionButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  editText: {
-    color: '#3b82f6',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  deleteText: {
-    color: '#ef4444',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#9ca3af',
-    marginBottom: 8,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#d1d5db',
-    textAlign: 'center',
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ef4444',
-    marginBottom: 8,
-  },
-  errorDetail: {
-    fontSize: 14,
-    color: '#6b7280',
+    paddingHorizontal: parseInt(spacing[2]),
+    paddingVertical: parseInt(spacing[1]),
   },
 });
