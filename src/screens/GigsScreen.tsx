@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -16,6 +15,9 @@ import { useWithholding } from '../hooks/useWithholding';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { FREE_GIG_LIMIT } from '../config/plans';
+import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
+import { colors, spacing, radius, typography } from '../styles/theme';
+import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 
 // Separate component for gig card to use hooks
 function GigCard({ 
@@ -35,14 +37,14 @@ function GigCard({
   const { breakdown } = useWithholding(item.net_amount);
   
   return (
-    <View style={styles.card}>
+    <Card variant="elevated" style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.cardInfo}>
-          <Text style={styles.gigTitle}>{item.title}</Text>
-          <Text style={styles.payerName}>
+          <H3>{item.title}</H3>
+          <Text muted>
             {item.payer?.name || 'Unknown Payer'}
           </Text>
-          <Text style={styles.date}>{formatDate(item.date)}</Text>
+          <Text subtle>{formatDate(item.date)}</Text>
         </View>
         <View style={styles.amountContainer}>
           <Text style={styles.netAmount}>
@@ -55,27 +57,29 @@ function GigCard({
             Tax to set aside: {formatCurrency(breakdown?.total || 0)}
           </Text>
           {/* Payment Status Badge */}
-          <View style={[styles.statusBadge, item.paid ? styles.statusPaid : styles.statusUnpaid]}>
-            <Text style={[styles.statusText, !item.paid && styles.statusTextUnpaid]}>
-              {item.paid ? '✓ Paid' : '⏳ Unpaid'}
-            </Text>
-          </View>
+          <Badge 
+            variant={item.paid ? 'success' : 'warning'} 
+            size="sm"
+            style={styles.statusBadge}
+          >
+            {item.paid ? '✓ Paid' : '⏳ Unpaid'}
+          </Badge>
         </View>
       </View>
 
       {item.location && (
-        <Text style={styles.location}>📍 {item.location}</Text>
+        <Text muted style={styles.location}>📍 {item.location}</Text>
       )}
 
       {(item.tips > 0 || item.fees > 0) && (
         <View style={styles.breakdown}>
           {item.tips > 0 && (
-            <Text style={styles.breakdownItem}>
+            <Text muted>
               Tips: +{formatCurrency(item.tips)}
             </Text>
           )}
           {item.fees > 0 && (
-            <Text style={styles.breakdownItem}>
+            <Text muted>
               Fees: -{formatCurrency(item.fees)}
             </Text>
           )}
@@ -87,16 +91,16 @@ function GigCard({
           style={styles.actionButton}
           onPress={onEdit}
         >
-          <Text style={styles.editText}>Edit</Text>
+          <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.actionButton}
           onPress={onDelete}
         >
-          <Text style={styles.deleteText}>Delete</Text>
+          <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -113,7 +117,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const deleteGig = useDeleteGig();
 
   // Fetch user's plan
-  const { data: profile } = useQuery({
+  const { data: profile } = useQuery<{ id: string; plan: string } | null>({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -186,24 +190,15 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     // Parse date as local date to avoid timezone shifts
     const [year, month, day] = dateString.split('-').map(Number);
     const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
+    return formatDateUtil(date);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  const formatCurrency = formatCurrencyUtil;
 
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
       </View>
     );
   }
@@ -211,8 +206,8 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <Text style={styles.errorText}>Error loading gigs</Text>
-        <Text style={styles.errorDetail}>{(error as Error).message}</Text>
+        <H3 style={{ color: colors.danger.DEFAULT }}>Error loading gigs</H3>
+        <Text muted>{(error as Error).message}</Text>
       </View>
     );
   }
@@ -224,43 +219,48 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Gigs</Text>
-          <Text style={styles.subtitle}>
+          <H1>Gigs</H1>
+          <Text muted>
             {gigs?.length || 0} gigs • {formatCurrency(totalNet)} net
           </Text>
         </View>
         <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={styles.importButton}
+          <Button
+            variant="secondary"
+            size="sm"
             onPress={() => setImportModalVisible(true)}
           >
-            <Text style={styles.importButtonText}>📥 Import</Text>
-          </TouchableOpacity>
+            📥 Import
+          </Button>
           {hasReachedFreeLimit ? (
-            <TouchableOpacity
-              style={styles.upgradeButton}
+            <Button
+              variant="success"
+              size="sm"
               onPress={handleUpgradeClick}
             >
-              <Text style={styles.upgradeButtonText}>⭐ Upgrade to add more</Text>
-            </TouchableOpacity>
+              ⭐ Upgrade to add more
+            </Button>
           ) : (
-            <TouchableOpacity
-              style={styles.addButton}
+            <Button
+              variant="primary"
+              size="sm"
               onPress={handleAddGigClick}
             >
-              <Text style={styles.addButtonText}>+ Add Gig</Text>
-            </TouchableOpacity>
+              + Add Gig
+            </Button>
           )}
         </View>
       </View>
 
       {gigs && gigs.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No gigs yet</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Start tracking your performances and income
-          </Text>
-        </View>
+        <EmptyState
+          title="No gigs yet"
+          description="Start tracking your performances and income"
+          action={{
+            label: 'Add Gig',
+            onPress: handleAddGigClick,
+          }}
+        />
       ) : (
         <FlatList
           data={gigs}
@@ -274,7 +274,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
                     You've used {gigCount} of {FREE_GIG_LIMIT} gigs on the free plan
                   </Text>
                   <TouchableOpacity onPress={handleUpgradeClick}>
-                    <Text style={styles.upgradeLink}>Upgrade</Text>
+                    <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={styles.progressBar}>
@@ -317,99 +317,50 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
+    gap: parseInt(spacing[2]),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: parseInt(spacing[5]),
+    paddingVertical: parseInt(spacing[4]),
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 2,
+    borderBottomColor: colors.border.DEFAULT,
   },
   headerButtons: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  importButton: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  importButtonText: {
-    color: '#374151',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  upgradeButton: {
-    backgroundColor: '#f59e0b',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  upgradeButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    gap: parseInt(spacing[2]),
   },
   listContent: {
-    padding: 16,
+    padding: parseInt(spacing[4]),
   },
   usageIndicator: {
-    backgroundColor: '#fffbeb',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    backgroundColor: colors.warning.muted,
+    borderRadius: parseInt(radius.sm),
+    padding: parseInt(spacing[3]),
+    marginBottom: parseInt(spacing[4]),
     borderWidth: 1,
-    borderColor: '#fbbf24',
+    borderColor: colors.warning.DEFAULT,
   },
   usageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: parseInt(spacing[2]),
   },
   usageText: {
-    fontSize: 13,
+    fontSize: parseInt(typography.fontSize.subtle.size),
     color: '#92400e',
     flex: 1,
-  },
-  upgradeLink: {
-    fontSize: 13,
-    color: '#3b82f6',
-    fontWeight: '600',
   },
   progressBar: {
     height: 4,
@@ -419,149 +370,60 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#fbbf24',
+    backgroundColor: colors.warning.DEFAULT,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginBottom: parseInt(spacing[3]),
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   cardInfo: {
     flex: 1,
-  },
-  gigTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  payerName: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  date: {
-    fontSize: 14,
-    color: '#9ca3af',
+    gap: parseInt(spacing[1]),
   },
   amountContainer: {
     alignItems: 'flex-end',
+    gap: parseInt(spacing[1]),
   },
   netAmount: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#059669',
-    marginBottom: 2,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.success.DEFAULT,
   },
   grossAmount: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: parseInt(typography.fontSize.caption.size),
+    color: colors.text.muted,
   },
   taxAmount: {
     fontSize: 11,
-    color: '#f59e0b',
-    fontWeight: '600',
-    marginTop: 2,
+    color: colors.warning.DEFAULT,
+    fontWeight: typography.fontWeight.semibold,
   },
   location: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
+    marginBottom: parseInt(spacing[2]),
   },
   breakdown: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-  },
-  breakdownItem: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
-  notes: {
-    fontSize: 14,
-    color: '#4b5563',
-    lineHeight: 20,
-    marginBottom: 12,
+    gap: parseInt(spacing[3]),
+    marginBottom: parseInt(spacing[2]),
   },
   cardActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 16,
-    paddingTop: 12,
+    gap: parseInt(spacing[4]),
+    paddingTop: parseInt(spacing[3]),
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: colors.border.muted,
   },
   actionButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  editText: {
-    color: '#3b82f6',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  deleteText: {
-    color: '#ef4444',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#9ca3af',
-    marginBottom: 8,
-  },
-  emptyStateSubtext: {
-    fontSize: 14,
-    color: '#d1d5db',
-    textAlign: 'center',
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ef4444',
-    marginBottom: 8,
-  },
-  errorDetail: {
-    fontSize: 14,
-    color: '#6b7280',
+    paddingHorizontal: parseInt(spacing[2]),
+    paddingVertical: parseInt(spacing[1]),
   },
   statusBadge: {
     alignSelf: 'flex-end',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  statusPaid: {
-    backgroundColor: '#d1fae5',
-  },
-  statusUnpaid: {
-    backgroundColor: '#fee2e2',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#065f46',
-  },
-  statusTextUnpaid: {
-    color: '#991b1b',
+    marginTop: parseInt(spacing[2]),
   },
 });
