@@ -18,6 +18,7 @@ import { PayerDrillThrough } from './PayerDrillThrough';
 import { MapCard } from './maps/MapCard';
 import { useDashboardData, type DateRange } from '../../hooks/useDashboardData';
 import { DateRangeFilter } from '../DateRangeFilter';
+import { spacing } from '../../styles/theme';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -168,26 +169,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 48,
+    padding: parseInt(spacing[4]),
+    paddingBottom: parseInt(spacing[12]),
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          padding: 24,
+          padding: parseInt(spacing[6]),
         },
       },
     }),
   },
   topRow: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 24,
+    gap: parseInt(spacing[4]),
+    marginBottom: parseInt(spacing[6]),
     flexWrap: 'wrap',
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          gap: 24,
-          marginBottom: 32,
+          gap: parseInt(spacing[6]),
+          marginBottom: parseInt(spacing[8]),
         },
       },
     }),
@@ -202,11 +203,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   chartsGrid: {
-    gap: 16,
+    gap: parseInt(spacing[4]),
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          gap: 24,
+          gap: parseInt(spacing[6]),
         },
       },
     }),
@@ -216,12 +217,12 @@ const styles = StyleSheet.create({
   },
   twoColumn: {
     flexDirection: 'row',
-    gap: 16,
+    gap: parseInt(spacing[4]),
     flexWrap: 'wrap',
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          gap: 24,
+          gap: parseInt(spacing[6]),
         },
       },
     }),
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
       web: {
         '@media (min-width: 768px)': {
           // Each column takes 6/12 of the grid (50%)
-          flexBasis: 'calc(50% - 12px)',
+          flexBasis: `calc(50% - ${parseInt(spacing[3])}px)`,
         },
       },
     }),
