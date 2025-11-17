@@ -11,6 +11,7 @@ import { useDashboardData } from '../../hooks/useDashboardData';
 import { useTaxProfile } from '../../hooks/useTaxProfile';
 import { calcYTDEffectiveRate } from '../../tax/engine';
 import { FederalTaxInfo } from '../tax/FederalTaxInfo';
+import { StateTaxInfo } from '../tax/StateTaxInfo';
 
 interface HeroNetProfitProps {
   dateRange?: 'ytd' | 'last30' | 'last90' | 'lastYear' | 'custom';
@@ -149,12 +150,25 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
 
       {/* Federal Tax Explanation (when breakdown is shown) */}
       {showTaxBreakdown && taxBreakdown && taxProfile && (
-        <FederalTaxInfo
-          netProfitYtd={currentData.totals.net}
-          estimatedSelfEmploymentTaxYtd={taxBreakdown.seTax}
-          federalTaxEstimate={taxBreakdown.federal}
-          filingStatus={taxProfile.filingStatus}
-        />
+        <>
+          <FederalTaxInfo
+            netProfitYtd={currentData.totals.net}
+            estimatedSelfEmploymentTaxYtd={taxBreakdown.seTax}
+            federalTaxEstimate={taxBreakdown.federal}
+            filingStatus={taxProfile.filingStatus}
+          />
+          
+          {/* State Tax Explanation */}
+          <StateTaxInfo
+            netProfitYtd={currentData.totals.net}
+            estimatedSelfEmploymentTaxYtd={taxBreakdown.seTax}
+            stateTaxEstimate={taxBreakdown.state}
+            localTaxEstimate={taxBreakdown.local}
+            filingStatus={taxProfile.filingStatus}
+            state={taxProfile.state}
+            county={taxProfile.county}
+          />
+        </>
       )}
     </View>
   );
