@@ -3,8 +3,8 @@
  * Includes title, subtitle, info tooltip, and download button (web only)
  */
 
-import React, { ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import React, { ReactNode, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Modal } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemeColors } from '../../lib/charts/colors';
 
@@ -27,6 +27,7 @@ export function ChartCard({
 }: ChartCardProps) {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
+  const [showInfo, setShowInfo] = useState(false);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.cardBg, minHeight }]}>
@@ -43,11 +44,7 @@ export function ChartCard({
           {info && (
             <TouchableOpacity
               style={styles.infoButton}
-              onPress={() => {
-                if (Platform.OS === 'web') {
-                  alert(info);
-                }
-              }}
+              onPress={() => setShowInfo(true)}
             >
               <Text style={styles.infoIcon}>ℹ️</Text>
             </TouchableOpacity>
@@ -63,6 +60,33 @@ export function ChartCard({
 
       {/* Chart Content */}
       <View style={styles.content}>{children}</View>
+
+      {/* Info Modal */}
+      {info && (
+        <Modal
+          visible={showInfo}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowInfo(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowInfo(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>{title}</Text>
+              <Text style={styles.modalText}>{info}</Text>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setShowInfo(false)}
+              >
+                <Text style={styles.modalButtonText}>Got it</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -129,5 +153,55 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
+    maxWidth: 400,
+    width: '100%',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 10,
+      },
+    }),
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
