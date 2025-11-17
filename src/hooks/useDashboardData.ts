@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useGigs } from './useGigs';
 import { useExpenses } from './useExpenses';
 import { useMileage, calculateMileageDeduction } from './useMileage';
-import { useWithholding } from './useWithholding';
+import { useTaxCalculation } from './useTaxCalculation';
 
 export type DateRange = 'ytd' | 'last30' | 'last90' | 'lastYear' | 'custom';
 
@@ -140,9 +140,9 @@ export function useDashboardData(
     return { netProfit, totalIncome, totalDeductions };
   }, [allGigs, allExpenses, allMileage, dateRange, customStart, customEnd]);
 
-  // Calculate taxes using withholding hook (must be called at top level)
-  const { breakdown: taxEstimate } = useWithholding(netProfit);
-  const totalTaxes = taxEstimate?.total || 0;
+  // Calculate taxes using new tax engine (must be called at top level)
+  const { taxResult } = useTaxCalculation(netProfit, totalIncome);
+  const totalTaxes = taxResult?.total || 0;
   const effectiveTaxRate = netProfit > 0 ? (totalTaxes / netProfit) * 100 : 0;
 
   const data = useMemo(() => {
