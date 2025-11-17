@@ -49,7 +49,7 @@ export function ChartCard({
                 }
               }}
             >
-              <Text style={[styles.infoIcon, { color: colors.textMuted }]}>ⓘ</Text>
+              <Text style={styles.infoIcon}>ℹ️</Text>
             </TouchableOpacity>
           )}
 
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   infoButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#e0e7ff', // Light blue-gray to match bottom cards
     minWidth: 32,
     minHeight: 32,
     justifyContent: 'center',

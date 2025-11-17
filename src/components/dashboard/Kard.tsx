@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   infoButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#e0e7ff', // Light blue-gray (indigo-100)
     minWidth: 32,
     minHeight: 32,
     justifyContent: 'center',
