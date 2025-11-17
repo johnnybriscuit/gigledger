@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { PayersScreen } from './PayersScreen';
 import { GigsScreen } from './GigsScreen';
@@ -13,7 +13,9 @@ import { AddExpenseModal } from '../components/AddExpenseModal';
 import { useQuery } from '@tanstack/react-query';
 import { useDateRange } from '../hooks/useDateRange';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
-import { Toast } from '../components/Toast'; // Import Toast component
+import { Toast } from '../components/Toast';
+import { H1, Text, Button } from '../ui';
+import { colors, spacing, typography, radius } from '../styles/theme';
 
 type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'subscription' | 'account';
 
@@ -119,26 +121,29 @@ export function DashboardScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>GigLedger</Text>
+        <H1>GigLedger</H1>
         <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={styles.addGigButton}
+          <Button 
+            variant="primary"
+            size="sm"
             onPress={() => setShowAddGigModal(true)}
           >
-            <Text style={styles.addGigButtonText}>+ Add Gig</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.accountButton}
+            + Add Gig
+          </Button>
+          <Button 
+            variant="secondary"
+            size="sm"
             onPress={() => setActiveTab('account')}
           >
-            <Text style={styles.accountButtonText}>Account</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.signOutButton}
+            Account
+          </Button>
+          <Button 
+            variant="ghost"
+            size="sm"
             onPress={handleSignOut}
           >
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
+            Sign Out
+          </Button>
         </View>
       </View>
 
@@ -152,7 +157,7 @@ export function DashboardScreen() {
           style={[styles.tab, activeTab === 'dashboard' && styles.tabActive]}
           onPress={() => setActiveTab('dashboard')}
         >
-          <Text style={[styles.tabText, activeTab === 'dashboard' && styles.tabTextActive]}>
+          <Text style={activeTab === 'dashboard' ? styles.tabTextActive : styles.tabText}>
             Dashboard
           </Text>
         </TouchableOpacity>
@@ -160,7 +165,7 @@ export function DashboardScreen() {
           style={[styles.tab, activeTab === 'payers' && styles.tabActive]}
           onPress={() => setActiveTab('payers')}
         >
-          <Text style={[styles.tabText, activeTab === 'payers' && styles.tabTextActive]}>
+          <Text style={activeTab === 'payers' ? styles.tabTextActive : styles.tabText}>
             Payers
           </Text>
         </TouchableOpacity>
@@ -168,7 +173,7 @@ export function DashboardScreen() {
           style={[styles.tab, activeTab === 'gigs' && styles.tabActive]}
           onPress={() => setActiveTab('gigs')}
         >
-          <Text style={[styles.tabText, activeTab === 'gigs' && styles.tabTextActive]}>
+          <Text style={activeTab === 'gigs' ? styles.tabTextActive : styles.tabText}>
             Gigs
           </Text>
         </TouchableOpacity>
@@ -176,7 +181,7 @@ export function DashboardScreen() {
           style={[styles.tab, activeTab === 'expenses' && styles.tabActive]}
           onPress={() => setActiveTab('expenses')}
         >
-          <Text style={[styles.tabText, activeTab === 'expenses' && styles.tabTextActive]}>
+          <Text style={activeTab === 'expenses' ? styles.tabTextActive : styles.tabText}>
             Expenses
           </Text>
         </TouchableOpacity>
@@ -184,7 +189,7 @@ export function DashboardScreen() {
           style={[styles.tab, activeTab === 'mileage' && styles.tabActive]}
           onPress={() => setActiveTab('mileage')}
         >
-          <Text style={[styles.tabText, activeTab === 'mileage' && styles.tabTextActive]}>
+          <Text style={activeTab === 'mileage' ? styles.tabTextActive : styles.tabText}>
             Mileage
           </Text>
         </TouchableOpacity>
@@ -192,7 +197,7 @@ export function DashboardScreen() {
           style={[styles.tab, activeTab === 'exports' && styles.tabActive]}
           onPress={() => setActiveTab('exports')}
         >
-          <Text style={[styles.tabText, activeTab === 'exports' && styles.tabTextActive]}>
+          <Text style={activeTab === 'exports' ? styles.tabTextActive : styles.tabText}>
             Exports
           </Text>
         </TouchableOpacity>
@@ -201,7 +206,7 @@ export function DashboardScreen() {
           style={[styles.tab, activeTab === 'subscription' && styles.tabActive]}
           onPress={() => setActiveTab('subscription')}
         >
-          <Text style={[styles.tabText, activeTab === 'subscription' && styles.tabTextActive]}>
+          <Text style={activeTab === 'subscription' ? styles.tabTextActive : styles.tabText}>
             Subscription
           </Text>
         </TouchableOpacity>
@@ -210,7 +215,7 @@ export function DashboardScreen() {
           style={[styles.tab, activeTab === 'account' && styles.tabActive]}
           onPress={() => setActiveTab('account')}
         >
-          <Text style={[styles.tabText, activeTab === 'account' && styles.tabTextActive]}>
+          <Text style={activeTab === 'account' ? styles.tabTextActive : styles.tabText}>
             Account
           </Text>
         </TouchableOpacity>
@@ -244,81 +249,52 @@ export function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 0) + 16,
-    paddingBottom: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: parseInt(spacing[5]),
+    paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 0) + parseInt(spacing[4]),
+    paddingBottom: parseInt(spacing[4]),
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
+    borderBottomColor: colors.border.DEFAULT,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  accountButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
-  },
-  accountButtonText: {
-    color: '#374151',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  signOutButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-  },
-  signOutText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
+    gap: parseInt(spacing[2]),
   },
   tabBar: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border.DEFAULT,
     flexGrow: 0,
   },
   tabBarContent: {
     flexDirection: 'row',
-    paddingHorizontal: 4,
+    paddingHorizontal: parseInt(spacing[1]),
   },
   tab: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: parseInt(spacing[3]) + 2,
+    paddingHorizontal: parseInt(spacing[4]),
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
     minWidth: 80,
   },
   tabActive: {
-    borderBottomColor: '#3b82f6',
+    borderBottomColor: colors.brand.DEFAULT,
   },
   tabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.muted,
   },
   tabTextActive: {
-    color: '#3b82f6',
+    color: colors.brand.DEFAULT,
   },
   dashboardContent: {
     flex: 1,
