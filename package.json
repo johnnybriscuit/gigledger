@@ -11,7 +11,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "supabase:types": "supabase gen types typescript --local > src/types/database.types.ts"
+    "supabase:types": "supabase gen types typescript --local > src/types/database.types.ts",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "lint:design-system": "eslint src/screens src/components --ext .ts,.tsx"
   },
   "overrides": {
     "react-simple-maps": {
@@ -64,8 +67,13 @@
     "@types/react": "~19.1.0",
     "@types/react-simple-maps": "^3.0.6",
     "@types/topojson-client": "^3.1.5",
+    "@typescript-eslint/eslint-plugin": "^8.47.0",
+    "@typescript-eslint/parser": "^8.47.0",
     "@vercel/node": "^5.5.4",
     "babel-preset-expo": "^54.0.4",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-native": "^5.0.0",
     "tailwindcss": "^3.4.1",
     "typescript": "~5.9.2"
   },
