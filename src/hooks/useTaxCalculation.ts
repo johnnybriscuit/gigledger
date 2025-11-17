@@ -103,6 +103,11 @@ export function useTaxCalculation(
 
         // Calculate taxes using the new engine
         const result = calcTotalTax(ytd, profile);
+        
+        // Debug logging
+        console.log('[useTaxCalculation] Tax Profile:', profile);
+        console.log('[useTaxCalculation] YTD Data:', ytd);
+        console.log('[useTaxCalculation] Tax Result:', result);
 
         if (isMounted) {
           setHasProfile(true);
