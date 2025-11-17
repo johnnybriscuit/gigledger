@@ -97,6 +97,7 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
         tax_year: 2025,
         filing_status: filingStatusMap[filingStatus] || 'single',
         state: stateCode,
+        county: null, // Will be set later in tax settings if needed (MD requires county)
         deduction_method: 'standard',
         se_income: true,
       };
