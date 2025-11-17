@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -9,6 +8,8 @@ import {
   Alert,
   Modal,
 } from 'react-native';
+import { H1, H2, H3, Text, Button, Card, Badge } from '../ui';
+import { colors, spacing, radius, typography } from '../styles/theme';
 import { useAllExportData, type ExportFilters } from '../hooks/useExports';
 import { downloadAllCSVs, downloadJSONBackup } from '../lib/csvExport';
 import { useQuery } from '@tanstack/react-query';
@@ -435,19 +436,19 @@ export function ExportsScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Export Center</Text>
-        <Text style={styles.subtitle}>
+        <H1>Export Center</H1>
+        <Text muted>
           Download tax-ready reports for your CPA
         </Text>
       </View>
 
       {/* Filters Section */}
       <View style={styles.filtersSection}>
-        <Text style={styles.sectionTitle}>Filters</Text>
+        <H2>Filters</H2>
 
         {/* Tax Year Selector */}
         <View style={styles.filterGroup}>
-          <Text style={styles.filterLabel}>Tax Year</Text>
+          <Text semibold>Tax Year</Text>
           <View style={styles.yearButtons}>
             {yearOptions.map((year) => (
               <TouchableOpacity
@@ -482,7 +483,7 @@ export function ExportsScreen() {
           <View style={[styles.checkbox, customDateRange && styles.checkboxActive]}>
             {customDateRange && <Text style={styles.checkmark}>✓</Text>}
           </View>
-          <Text style={styles.checkboxLabel}>Use custom date range</Text>
+          <Text>Use custom date range</Text>
         </TouchableOpacity>
 
         {/* Include Options */}
@@ -494,7 +495,7 @@ export function ExportsScreen() {
             <View style={[styles.checkbox, includeTips && styles.checkboxActive]}>
               {includeTips && <Text style={styles.checkmark}>✓</Text>}
             </View>
-            <Text style={styles.checkboxLabel}>Include Tips in Income</Text>
+            <Text>Include Tips in Income</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -504,7 +505,7 @@ export function ExportsScreen() {
             <View style={[styles.checkbox, includeFees && styles.checkboxActive]}>
               {includeFees && <Text style={styles.checkmark}>✓</Text>}
             </View>
-            <Text style={styles.checkboxLabel}>Include Fees as Deduction</Text>
+            <Text>Include Fees as Deduction</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -512,13 +513,13 @@ export function ExportsScreen() {
       {/* Data Summary */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text style={styles.loadingText}>Loading export data...</Text>
+          <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
+          <Text muted>Loading export data...</Text>
         </View>
       ) : isError ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error loading data</Text>
-          <Text style={styles.errorDetail}>
+          <H3 style={{ color: colors.danger.DEFAULT }}>Error loading data</H3>
+          <Text muted>
             {gigs.error?.message || expenses.error?.message || mileage.error?.message || 
              payers.error?.message || scheduleC.error?.message || 'Please try again later'}
           </Text>
@@ -526,37 +527,37 @@ export function ExportsScreen() {
       ) : (
         <>
           <View style={styles.summarySection}>
-            <Text style={styles.sectionTitle}>Data Summary</Text>
+            <H2>Data Summary</H2>
             <View style={styles.summaryGrid}>
-              <View style={styles.summaryCard}>
+              <Card variant="flat" style={styles.summaryCard}>
                 <Text style={styles.summaryValue}>{gigs.data?.length || 0}</Text>
-                <Text style={styles.summaryLabel}>Gigs</Text>
-              </View>
-              <View style={styles.summaryCard}>
+                <Text subtle>Gigs</Text>
+              </Card>
+              <Card variant="flat" style={styles.summaryCard}>
                 <Text style={styles.summaryValue}>{expenses.data?.length || 0}</Text>
-                <Text style={styles.summaryLabel}>Expenses</Text>
-              </View>
-              <View style={styles.summaryCard}>
+                <Text subtle>Expenses</Text>
+              </Card>
+              <Card variant="flat" style={styles.summaryCard}>
                 <Text style={styles.summaryValue}>{mileage.data?.length || 0}</Text>
-                <Text style={styles.summaryLabel}>Mileage Entries</Text>
-              </View>
-              <View style={styles.summaryCard}>
+                <Text subtle>Mileage Entries</Text>
+              </Card>
+              <Card variant="flat" style={styles.summaryCard}>
                 <Text style={styles.summaryValue}>{payers.data?.length || 0}</Text>
-                <Text style={styles.summaryLabel}>Payers</Text>
-              </View>
+                <Text subtle>Payers</Text>
+              </Card>
             </View>
             
             {/* No data warning */}
             {(gigs.data?.length === 0 && expenses.data?.length === 0 && mileage.data?.length === 0) && (
-              <View style={styles.noDataWarning}>
+              <Card variant="flat" style={styles.noDataWarning}>
                 <Text style={styles.noDataIcon}>📭</Text>
-                <Text style={styles.noDataText}>
+                <Text semibold>
                   No data found for {customDateRange ? 'selected date range' : taxYear}
                 </Text>
-                <Text style={styles.noDataHint}>
+                <Text subtle>
                   Try selecting a different year or date range above
                 </Text>
-              </View>
+              </Card>
             )}
           </View>
 
@@ -600,8 +601,8 @@ export function ExportsScreen() {
 
           {/* Export Buttons */}
           <View style={styles.exportSection}>
-            <Text style={styles.sectionTitle}>Export Options</Text>
-            <Text style={styles.sectionSubtitle}>Choose your export format below</Text>
+            <H2>Export Options</H2>
+            <Text muted style={styles.sectionSubtitle}>Choose your export format below</Text>
 
             <TouchableOpacity
               style={[
@@ -796,78 +797,56 @@ export function ExportsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
   },
   header: {
-    backgroundColor: '#fff',
-    padding: 20,
+    backgroundColor: colors.surface.DEFAULT,
+    padding: parseInt(spacing[5]),
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#6b7280',
+    borderBottomColor: colors.border.DEFAULT,
   },
   filtersSection: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginTop: 12,
-    borderRadius: 12,
-    marginHorizontal: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
+    backgroundColor: colors.surface.DEFAULT,
+    padding: parseInt(spacing[5]),
+    marginTop: parseInt(spacing[3]),
+    borderRadius: parseInt(radius.md),
+    marginHorizontal: parseInt(spacing[4]),
   },
   filterGroup: {
-    marginBottom: 20,
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
+    marginBottom: parseInt(spacing[5]),
   },
   yearButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: parseInt(spacing[2]),
   },
   yearButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
+    paddingVertical: parseInt(spacing[3]),
+    paddingHorizontal: parseInt(spacing[5]),
+    borderRadius: parseInt(radius.sm),
+    backgroundColor: colors.surface.muted,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
   },
   yearButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
   },
   yearButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.muted,
   },
   yearButtonTextActive: {
-    color: '#fff',
+    color: colors.brand.foreground,
   },
   customRangeToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: parseInt(spacing[4]),
   },
   includeOptions: {
-    gap: 12,
+    gap: parseInt(spacing[3]),
   },
   optionRow: {
     flexDirection: 'row',
@@ -876,116 +855,91 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 6,
+    borderRadius: parseInt(radius.sm),
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: colors.border.muted,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: parseInt(spacing[3]),
   },
   checkboxActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
   },
   checkmark: {
-    color: '#fff',
+    color: colors.brand.foreground,
     fontSize: 16,
-    fontWeight: '700',
-  },
-  checkboxLabel: {
-    fontSize: 14,
-    color: '#374151',
+    fontWeight: typography.fontWeight.bold,
   },
   loadingContainer: {
-    padding: 40,
+    padding: parseInt(spacing[10]),
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#6b7280',
+    gap: parseInt(spacing[3]),
   },
   errorContainer: {
-    padding: 40,
+    padding: parseInt(spacing[10]),
     alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ef4444',
-    marginBottom: 8,
-  },
-  errorDetail: {
-    fontSize: 14,
-    color: '#6b7280',
+    gap: parseInt(spacing[2]),
   },
   summarySection: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginTop: 12,
-    marginHorizontal: 16,
-    borderRadius: 12,
+    backgroundColor: colors.surface.DEFAULT,
+    padding: parseInt(spacing[5]),
+    marginTop: parseInt(spacing[3]),
+    marginHorizontal: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.md),
   },
   summaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: parseInt(spacing[3]),
   },
   summaryCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 8,
     alignItems: 'center',
+    gap: parseInt(spacing[1]),
   },
   summaryValue: {
     fontSize: 32,
-    fontWeight: '700',
-    color: '#3b82f6',
-    marginBottom: 4,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    textAlign: 'center',
+    fontWeight: typography.fontWeight.bold,
+    color: colors.brand.DEFAULT,
   },
   exportSection: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginTop: 12,
-    marginHorizontal: 16,
-    borderRadius: 12,
+    backgroundColor: colors.surface.DEFAULT,
+    padding: parseInt(spacing[5]),
+    marginTop: parseInt(spacing[3]),
+    marginHorizontal: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.md),
   },
   exportButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: colors.surface.muted,
+    padding: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.md),
+    marginBottom: parseInt(spacing[3]),
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
   },
   exportButtonDisabled: {
     opacity: 0.5,
   },
   exportButtonIcon: {
     fontSize: 32,
-    marginRight: 16,
+    marginRight: parseInt(spacing[4]),
   },
   exportButtonContent: {
     flex: 1,
   },
   exportButtonTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
+    fontSize: parseInt(typography.fontSize.body.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.DEFAULT,
+    marginBottom: parseInt(spacing[1]),
   },
   exportButtonDescription: {
-    fontSize: 13,
-    color: '#6b7280',
+    fontSize: parseInt(typography.fontSize.caption.size),
+    color: colors.text.muted,
   },
   taxHelperSection: {
     backgroundColor: '#fef3c7',
@@ -1034,166 +988,145 @@ const styles = StyleSheet.create({
   },
   // Phase E: Validation & TXF styles
   validationCard: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginTop: 12,
-    marginHorizontal: 16,
-    borderRadius: 12,
+    backgroundColor: colors.surface.DEFAULT,
+    padding: parseInt(spacing[5]),
+    marginTop: parseInt(spacing[3]),
+    marginHorizontal: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.md),
     borderWidth: 2,
-    borderColor: '#10b981',
+    borderColor: colors.success.DEFAULT,
     alignItems: 'center',
   },
   validationCardError: {
-    borderColor: '#ef4444',
+    borderColor: colors.danger.DEFAULT,
   },
   validationCardWarning: {
-    borderColor: '#f59e0b',
-    backgroundColor: '#fffbeb',
+    borderColor: colors.warning.DEFAULT,
+    backgroundColor: colors.warning.muted,
   },
   validationIcon: {
     fontSize: 48,
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   validationTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
+    fontSize: parseInt(typography.fontSize.h3.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.DEFAULT,
+    marginBottom: parseInt(spacing[2]),
   },
   validationText: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.muted,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   validationLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.brand.DEFAULT,
   },
   sectionSubtitle: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 16,
-    marginTop: -8,
+    marginBottom: parseInt(spacing[4]),
+    marginTop: parseInt(spacing[1]) * -1,
   },
   exportButtonHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: parseInt(spacing[1]),
   },
   exportButtonBadge: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#f59e0b',
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.warning.DEFAULT,
     textTransform: 'uppercase',
-    marginTop: 2,
-    marginBottom: 4,
   },
   infoIconButton: {
-    padding: 4,
-    marginLeft: 8,
+    padding: parseInt(spacing[1]),
+    marginLeft: parseInt(spacing[2]),
   },
   infoIcon: {
     fontSize: 18,
-    color: '#3b82f6',
+    color: colors.brand.DEFAULT,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: parseInt(spacing[5]),
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: colors.surface.DEFAULT,
+    borderRadius: parseInt(radius.lg),
+    padding: parseInt(spacing[6]),
     maxWidth: 500,
     width: '100%',
     maxHeight: '80%',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 16,
+    fontSize: parseInt(typography.fontSize.h2.size),
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.DEFAULT,
+    marginBottom: parseInt(spacing[4]),
   },
   modalScroll: {
     maxHeight: 400,
-    marginBottom: 20,
+    marginBottom: parseInt(spacing[5]),
   },
   modalText: {
-    fontSize: 14,
-    color: '#374151',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.muted,
     lineHeight: 20,
   },
   modalButton: {
-    backgroundColor: '#3b82f6',
-    padding: 14,
-    borderRadius: 8,
+    backgroundColor: colors.brand.DEFAULT,
+    padding: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.sm),
     alignItems: 'center',
   },
   modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: parseInt(typography.fontSize.body.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.brand.foreground,
   },
   issuesSectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginTop: 16,
-    marginBottom: 12,
+    fontSize: parseInt(typography.fontSize.body.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.DEFAULT,
+    marginTop: parseInt(spacing[4]),
+    marginBottom: parseInt(spacing[3]),
   },
   issueCard: {
-    backgroundColor: '#fef2f2',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: colors.danger.muted,
+    padding: parseInt(spacing[3]),
+    borderRadius: parseInt(radius.sm),
+    marginBottom: parseInt(spacing[2]),
     borderLeftWidth: 3,
-    borderLeftColor: '#ef4444',
+    borderLeftColor: colors.danger.DEFAULT,
   },
   issueCardWarning: {
-    backgroundColor: '#fffbeb',
-    borderLeftColor: '#f59e0b',
+    backgroundColor: colors.warning.muted,
+    borderLeftColor: colors.warning.DEFAULT,
   },
   issueCategory: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#dc2626',
+    fontSize: parseInt(typography.fontSize.caption.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.danger.DEFAULT,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: parseInt(spacing[1]),
   },
   issueMessage: {
-    fontSize: 14,
-    color: '#374151',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.muted,
     lineHeight: 20,
   },
   noDataWarning: {
-    backgroundColor: '#fef3c7',
-    padding: 20,
-    borderRadius: 12,
-    marginTop: 16,
+    marginTop: parseInt(spacing[4]),
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#fbbf24',
+    gap: parseInt(spacing[2]),
   },
   noDataIcon: {
     fontSize: 48,
-    marginBottom: 12,
-  },
-  noDataText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#92400e',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  noDataHint: {
-    fontSize: 14,
-    color: '#b45309',
-    textAlign: 'center',
   },
 });
