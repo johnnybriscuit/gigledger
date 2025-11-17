@@ -7,6 +7,7 @@
 
 export { Button, type ButtonProps } from './Button';
 export { Card, CardHeader, CardContent, CardFooter, type CardProps, type CardHeaderProps, type CardContentProps, type CardFooterProps } from './Card';
+export { Container, type ContainerProps } from './Container';
 export { Display, H1, H2, H3, Text, Caption, type TextProps } from './Typography';
 export { Badge, type BadgeProps } from './Badge';
 export { Stat, type StatProps } from './Stat';
