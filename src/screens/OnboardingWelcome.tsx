@@ -98,7 +98,10 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
         filing_status: filingStatusMap[filingStatus] || 'single',
         state: stateCode,
         county: null, // Will be set later in tax settings if needed (MD requires county)
+        nyc_resident: false, // Will be set later in tax settings if user is in NYC
+        yonkers_resident: false, // Will be set later in tax settings if user is in Yonkers
         deduction_method: 'standard',
+        itemized_amount: null, // Will be set if user switches to itemized deductions
         se_income: true,
       };
       
