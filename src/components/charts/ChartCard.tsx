@@ -106,13 +106,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   infoButton: {
-    width: 24,
-    height: 24,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    minWidth: 32,
+    minHeight: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
   infoIcon: {
     fontSize: 18,
+    opacity: 0.8,
   },
   downloadButton: {
     width: 24,
