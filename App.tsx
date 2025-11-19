@@ -5,6 +5,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { supabase } from './src/lib/supabase';
 import { AuthScreen } from './src/screens/AuthScreen';
+import { AuthCallbackScreen } from './src/screens/AuthCallbackScreen';
+import { CheckEmailScreen } from './src/screens/CheckEmailScreen';
+import { MFAOnboardingScreen } from './src/screens/MFAOnboardingScreen';
+import { MFAChallengeScreen } from './src/screens/MFAChallengeScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { TermsScreen } from './src/screens/TermsScreen';
@@ -29,8 +33,10 @@ function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [needsMFA, setNeedsMFA] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
-  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy'>('auth');
+  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email'>('auth');
 
   useEffect(() => {
     // Get initial session
@@ -132,6 +138,33 @@ function AppContent() {
     );
   }
 
+  // Check email verification screen
+  if (currentRoute === 'check-email' && session) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <CheckEmailScreen
+          email={session.user.email || ''}
+          onVerified={() => {
+            setEmailVerified(true);
+            setCurrentRoute('dashboard');
+          }}
+          onResend={async () => {
+            try {
+              await supabase.auth.resend({
+                type: 'signup',
+                email: session.user.email || '',
+              });
+              alert('Verification email sent!');
+            } catch (error: any) {
+              alert(error.message || 'Failed to resend email');
+            }
+          }}
+        />
+      </>
+    );
+  }
+
   // Show appropriate screen based on auth and onboarding status
   if (!session) {
     return (
@@ -141,6 +174,44 @@ function AppContent() {
           onNavigateToTerms={() => setCurrentRoute('terms')}
           onNavigateToPrivacy={() => setCurrentRoute('privacy')}
         />
+      </>
+    );
+  }
+
+  // Block access if email not verified
+  if (session && !session.user.email_confirmed_at) {
+    if (currentRoute !== 'check-email') {
+      setCurrentRoute('check-email');
+    }
+    return null; // Will render check-email screen above
+  }
+
+  // MFA Setup (first-time after auth)
+  if (currentRoute === 'mfa-setup') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <MFAOnboardingScreen />
+      </>
+    );
+  }
+
+  // MFA Challenge (returning users)
+  if (currentRoute === 'mfa-challenge') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <MFAChallengeScreen />
+      </>
+    );
+  }
+
+  // Auth Callback (magic link handler)
+  if (currentRoute === 'auth-callback') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <AuthCallbackScreen />
       </>
     );
   }

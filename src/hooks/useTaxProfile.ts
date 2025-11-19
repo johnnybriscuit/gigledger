@@ -46,14 +46,21 @@ export function useTaxProfile() {
         .from('user_tax_profile')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No profile found
-          return null;
-        }
-        throw error;
+      if (error) throw error;
+
+      // If no profile exists, return defaults (use 'US' as placeholder state)
+      if (!data) {
+        return {
+          filingStatus: 'single' as const,
+          state: 'US' as StateCode, // Placeholder until user sets their state
+          county: undefined,
+          nycResident: undefined,
+          yonkersResident: undefined,
+          deductionMethod: 'standard' as const,
+          seIncome: true, // Assume self-employment for GigLedger users
+        };
       }
 
       const row = data as TaxProfileRow;

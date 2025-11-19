@@ -6,7 +6,7 @@
   "devCommand": "npx expo start --web",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],

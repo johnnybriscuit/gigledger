@@ -32,10 +32,12 @@ module.exports = {
     },
     plugins: ['expo-secure-store'],
     extra: {
-      EXPO_PUBLIC_SUPABASE_URL: 'https://jvostkeswuhfwntbrfzl.supabase.co',
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2b3N0a2Vzd3VoZndudGJyZnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2Mjg4NDksImV4cCI6MjA3NjIwNDg0OX0.tzh6vU2bfxMk-rqUTtX9JaYwzp_DAaVaU_5G-VPEchg',
-      EXPO_PUBLIC_DEEP_LINK_SCHEME: 'gigledger',
-      EXPO_PUBLIC_DEFAULT_MILEAGE_RATE: '0.67',
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      siteUrl: process.env.EXPO_PUBLIC_SITE_URL || 'http://localhost:8090',
+      eas: {
+        projectId: "your-project-id"
+      }
     },
   },
 };

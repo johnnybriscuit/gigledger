@@ -54,29 +54,28 @@ export function useTaxCalculation(
           .from('user_tax_profile')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (profileError) {
-          console.warn('[useTaxCalculation] No tax profile found, using defaults:', profileError);
-          // Use defaults if no profile exists
+        if (profileError) throw profileError;
+
+        // If no profile exists, use defaults
+        if (!taxProfile) {
+          setHasProfile(false);
+          const defaultProfile: EngineTaxProfile = {
+            filingStatus: 'single',
+            state: 'US' as any, // Placeholder until user sets their state
+            deductionMethod: 'standard',
+            seIncome: true,
+          };
+
+          const ytd: YTDData = {
+            grossIncome,
+            adjustments: 0,
+            netSE: netProfit,
+          };
+
+          const result = calcTotalTax(ytd, defaultProfile);
           if (isMounted) {
-            setHasProfile(false);
-            
-            // Calculate with defaults (TN = no state tax)
-            const defaultProfile: EngineTaxProfile = {
-              filingStatus: 'single',
-              state: 'TN',
-              deductionMethod: 'standard',
-              seIncome: true,
-            };
-
-            const ytd: YTDData = {
-              grossIncome,
-              adjustments: 0,
-              netSE: netProfit,
-            };
-
-            const result = calcTotalTax(ytd, defaultProfile);
             setTaxResult(result);
             setLoading(false);
           }
@@ -84,9 +83,10 @@ export function useTaxCalculation(
         }
 
         // Map database fields to engine format
+        setHasProfile(true);
         const profile: EngineTaxProfile = {
           filingStatus: taxProfile.filing_status || 'single',
-          state: taxProfile.state || 'TN',
+          state: taxProfile.state || 'US',
           county: taxProfile.county || undefined,
           nycResident: taxProfile.nyc_resident || false,
           yonkersResident: taxProfile.yonkers_resident || false,
