@@ -35,6 +35,7 @@ module.exports = {
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       siteUrl: process.env.EXPO_PUBLIC_SITE_URL || 'http://localhost:8090',
+      googleOAuthEnabled: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true',
       eas: {
         projectId: "your-project-id"
       }

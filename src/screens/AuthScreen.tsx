@@ -44,6 +44,10 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
   const SITE_URL = Constants.expoConfig?.extra?.siteUrl || process.env.EXPO_PUBLIC_SITE_URL;
   const isSiteUrlMissing = !SITE_URL;
   
+  // Google OAuth feature flag (default false)
+  const GOOGLE_OAUTH_ENABLED = Constants.expoConfig?.extra?.googleOAuthEnabled || 
+                                process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true';
+  
   // Fetch CSRF token on mount (skip if SITE_URL is missing)
   useEffect(() => {
     if (isSiteUrlMissing) return;
@@ -329,16 +333,36 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
       if (error) {
         console.error('[Auth] Google OAuth error:', error);
-        setEmailError('Failed to connect with Google. Please try again.');
-        await logSecurityEvent('oauth_google_error', { provider: 'google', error: error.message }, false);
+        
+        // Check if provider is disabled
+        const errorMessage = error.message?.toLowerCase() || '';
+        if (errorMessage.includes('identity_provider_disabled') || 
+            errorMessage.includes('provider not enabled') ||
+            errorMessage.includes('provider is disabled')) {
+          setEmailError("Google sign-in isn't enabled right now. Please use Magic Link or Email + Password.");
+          await logSecurityEvent('oauth_google_error', { provider: 'google', reason: 'provider_disabled' }, false);
+        } else {
+          setEmailError('Failed to connect with Google. Please try again.');
+          await logSecurityEvent('oauth_google_error', { provider: 'google', error: error.message }, false);
+        }
         setLoading(false);
       }
       // If successful, browser will redirect to Google
       // Loading state will persist until redirect happens
     } catch (error: any) {
       console.error('[Auth] Google OAuth error:', error);
-      setEmailError('Failed to connect with Google. Please try again.');
-      await logSecurityEvent('oauth_google_error', { provider: 'google', error: error.message }, false);
+      
+      // Check if provider is disabled
+      const errorMessage = error.message?.toLowerCase() || '';
+      if (errorMessage.includes('identity_provider_disabled') || 
+          errorMessage.includes('provider not enabled') ||
+          errorMessage.includes('provider is disabled')) {
+        setEmailError("Google sign-in isn't enabled right now. Please use Magic Link or Email + Password.");
+        await logSecurityEvent('oauth_google_error', { provider: 'google', reason: 'provider_disabled' }, false);
+      } else {
+        setEmailError('Failed to connect with Google. Please try again.');
+        await logSecurityEvent('oauth_google_error', { provider: 'google', error: error.message }, false);
+      }
       setLoading(false);
     }
   };
@@ -460,33 +484,37 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
         {/* Auth Form */}
         <View style={styles.authForm}>
-          {/* Google SSO Button */}
-          <TouchableOpacity
-            style={[styles.googleButton, loading && styles.buttonDisabled]}
-            onPress={handleGoogleSignIn}
-            disabled={loading}
-            accessibilityLabel="Continue with Google"
-            accessibilityHint="Sign in using your Google account"
-          >
-            {loading ? (
-              <ActivityIndicator color="#1F2937" />
-            ) : (
-              <>
-                <Text style={styles.googleIcon}>G</Text>
-                <View style={styles.googleTextContainer}>
-                  <Text style={styles.googleButtonText}>Continue with Google</Text>
-                  <Text style={styles.googleSubtext}>We'll never post without your permission</Text>
-                </View>
-              </>
-            )}
-          </TouchableOpacity>
+          {/* Google SSO Button - Only show if enabled */}
+          {GOOGLE_OAUTH_ENABLED && (
+            <>
+              <TouchableOpacity
+                style={[styles.googleButton, loading && styles.buttonDisabled]}
+                onPress={handleGoogleSignIn}
+                disabled={loading}
+                accessibilityLabel="Continue with Google"
+                accessibilityHint="Sign in using your Google account"
+              >
+                {loading ? (
+                  <ActivityIndicator color="#1F2937" />
+                ) : (
+                  <>
+                    <Text style={styles.googleIcon}>G</Text>
+                    <View style={styles.googleTextContainer}>
+                      <Text style={styles.googleButtonText}>Continue with Google</Text>
+                      <Text style={styles.googleSubtext}>We'll never post without your permission</Text>
+                    </View>
+                  </>
+                )}
+              </TouchableOpacity>
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+            </>
+          )}
 
           {/* Method Selector: Magic Link | Email + Password */}
           <View style={styles.methodSelector}>

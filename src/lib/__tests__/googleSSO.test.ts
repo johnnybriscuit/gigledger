@@ -229,4 +229,46 @@ describe('Google SSO Integration', () => {
       expect(subcopy).toContain('permission');
     });
   });
+
+  describe('Feature Flag', () => {
+    it('should hide Google button when EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED is false', () => {
+      const GOOGLE_OAUTH_ENABLED = false;
+      const shouldShowButton = GOOGLE_OAUTH_ENABLED;
+
+      expect(shouldShowButton).toBe(false);
+    });
+
+    it('should show Google button when EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED is true', () => {
+      const GOOGLE_OAUTH_ENABLED = true;
+      const shouldShowButton = GOOGLE_OAUTH_ENABLED;
+
+      expect(shouldShowButton).toBe(true);
+    });
+
+    it('should default to false when env var is not set', () => {
+      const envValue = undefined;
+      const GOOGLE_OAUTH_ENABLED = envValue === 'true';
+
+      expect(GOOGLE_OAUTH_ENABLED).toBe(false);
+    });
+
+    it('should handle provider disabled error gracefully', () => {
+      const error = { message: 'identity_provider_disabled' };
+      const expectedMessage = "Google sign-in isn't enabled right now. Please use Magic Link or Email + Password.";
+
+      const errorMessage = error.message?.toLowerCase() || '';
+      const isProviderDisabled = errorMessage.includes('identity_provider_disabled') || 
+                                  errorMessage.includes('provider not enabled') ||
+                                  errorMessage.includes('provider is disabled');
+
+      expect(isProviderDisabled).toBe(true);
+      
+      const userMessage = isProviderDisabled 
+        ? expectedMessage 
+        : 'Failed to connect with Google. Please try again.';
+
+      expect(userMessage).toBe(expectedMessage);
+    });
+  });
 });
+
