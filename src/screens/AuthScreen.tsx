@@ -81,6 +81,11 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
     setEmailError('');
     setPasswordError('');
     setEmailSent(false);
+    
+    // If switching to Create account mode and password is selected, switch to magic
+    if (mode === 'signup' && method === 'password') {
+      setMethod('magic');
+    }
   }, [mode, method]);
 
   const validateEmail = () => {
@@ -522,6 +527,8 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           )}
 
           {/* Method Selector: Magic Link | Email + Password */}
+          {/* In Create account mode: only show Magic link */}
+          {/* In Sign in mode: show both Magic link and Email + Password */}
           <View style={styles.methodSelector}>
             <TouchableOpacity
               style={[styles.methodOption, method === 'magic' && styles.methodOptionActive]}
@@ -538,20 +545,23 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.methodOption, method === 'password' && styles.methodOptionActive]}
-              onPress={() => setMethod('password')}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: method === 'password' }}
-            >
-              <View style={[styles.radio, method === 'password' && styles.radioActive]}>
-                {method === 'password' && <View style={styles.radioDot} />}
-              </View>
-              <View style={styles.methodContent}>
-                <Text style={styles.methodTitle}>Email + Password</Text>
-                <Text style={styles.methodDescription}>Traditional email and password</Text>
-              </View>
-            </TouchableOpacity>
+            {/* Only show Email + Password in Sign in mode */}
+            {mode === 'signin' && (
+              <TouchableOpacity
+                style={[styles.methodOption, method === 'password' && styles.methodOptionActive]}
+                onPress={() => setMethod('password')}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: method === 'password' }}
+              >
+                <View style={[styles.radio, method === 'password' && styles.radioActive]}>
+                  {method === 'password' && <View style={styles.radioDot} />}
+                </View>
+                <View style={styles.methodContent}>
+                  <Text style={styles.methodTitle}>Email + Password</Text>
+                  <Text style={styles.methodDescription}>Traditional email and password</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Email Input */}
