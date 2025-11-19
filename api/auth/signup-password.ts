@@ -14,20 +14,21 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // CORS - same-origin only
+  // CORS - same-origin only (set headers first, before any checks)
   const origin = req.headers.origin as string | undefined;
   const siteUrl = process.env.EXPO_PUBLIC_SITE_URL || 'http://localhost:8090';
+  
+  // Always set CORS headers for same-origin requests
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-csrf-token');
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Content-Type', 'application/json');
   
   if (origin && origin === siteUrl) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'POST');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-csrf-token');
-  res.setHeader('Cache-Control', 'no-store, max-age=0');
-  res.setHeader('Vary', 'Origin');
-  res.setHeader('Content-Type', 'application/json');
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
@@ -45,7 +46,7 @@ export default async function handler(
     return res.status(415).json({ error: 'Content-Type must be application/json', code: 'INVALID_CONTENT_TYPE' });
   }
 
-  // CSRF protection
+  // CSRF protection (CORS headers already set above)
   if (!requireCsrfToken(req, res)) {
     return; // Response already sent by requireCsrfToken
   }
