@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import Constants from 'expo-constants';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { supabase } from './src/lib/supabase';
@@ -151,9 +152,18 @@ function AppContent() {
           }}
           onResend={async () => {
             try {
+              const SITE_URL = Constants.expoConfig?.extra?.siteUrl || process.env.EXPO_PUBLIC_SITE_URL;
+              if (!SITE_URL) {
+                alert('Configuration error: SITE_URL not set');
+                return;
+              }
+              
               await supabase.auth.resend({
                 type: 'signup',
                 email: session.user.email || '',
+                options: {
+                  emailRedirectTo: `${SITE_URL}/auth/callback`,
+                },
               });
               alert('Verification email sent!');
             } catch (error: any) {

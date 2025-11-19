@@ -39,10 +39,14 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
   // CSRF token
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
-  const SITE_URL = Constants.expoConfig?.extra?.siteUrl || process.env.EXPO_PUBLIC_SITE_URL || 'http://localhost:8090';
+  // Runtime assertion: SITE_URL must be configured
+  const SITE_URL = Constants.expoConfig?.extra?.siteUrl || process.env.EXPO_PUBLIC_SITE_URL;
+  const isSiteUrlMissing = !SITE_URL;
   
-  // Fetch CSRF token on mount
+  // Fetch CSRF token on mount (skip if SITE_URL is missing)
   useEffect(() => {
+    if (isSiteUrlMissing) return;
+    
     const fetchCsrfToken = async () => {
       try {
         const response = await fetch('/api/csrf-token');
@@ -54,7 +58,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
     };
 
     fetchCsrfToken();
-  }, []);
+  }, [isSiteUrlMissing]);
   
   // Cooldown timer for magic link
   useEffect(() => {
@@ -117,6 +121,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
   };
 
   const handleMagicLink = async () => {
+    if (isSiteUrlMissing) return; // Block if SITE_URL is missing
     if (!validateEmail()) return;
     if (cooldown > 0) return;
 
@@ -179,7 +184,9 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
   };
 
   const handlePassword = async () => {
-    if (!validateEmail() || !validatePasswordField()) return;
+    if (isSiteUrlMissing) return; // Block if SITE_URL is missing
+    if (!validateEmail()) return;
+    if (!validatePasswordField()) return;
 
     setLoading(true);
     setEmailError('');
@@ -332,6 +339,26 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
           </View>
         </View>
       </ScrollView>
+    );
+  }
+
+  // Show fatal error if SITE_URL is missing
+  if (isSiteUrlMissing) {
+    return (
+      <View style={styles.authPage}>
+        <View style={[styles.authCard, styles.errorCard]}>
+          <View style={styles.fatalErrorContainer}>
+            <Text style={styles.fatalErrorIcon}>⚠️</Text>
+            <Text style={styles.fatalErrorTitle}>Configuration Error</Text>
+            <Text style={styles.fatalErrorMessage}>
+              EXPO_PUBLIC_SITE_URL is not configured. Please set this environment variable and redeploy.
+            </Text>
+            <Text style={styles.fatalErrorDetails}>
+              This is required for secure authentication redirects. Contact your administrator.
+            </Text>
+          </View>
+        </View>
+      </View>
     );
   }
 
@@ -757,5 +784,38 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#6b7280',
     fontSize: 14,
+  },
+  errorCard: {
+    borderColor: '#ef4444',
+    borderWidth: 2,
+  },
+  fatalErrorContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  fatalErrorIcon: {
+    fontSize: 64,
+    marginBottom: 24,
+  },
+  fatalErrorTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#dc2626',
+    marginBottom: 16,
+  },
+  fatalErrorMessage: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 24,
+    paddingHorizontal: 16,
+  },
+  fatalErrorDetails: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 16,
   },
 });
