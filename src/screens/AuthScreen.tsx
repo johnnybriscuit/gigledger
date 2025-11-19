@@ -192,9 +192,12 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
     setEmailError('');
     setPasswordError('');
 
+    console.debug('[Auth] Starting password flow', { mode, email });
+
     try {
       if (mode === 'signup') {
         // Call our rate-limited API endpoint
+        console.debug('[Auth] Calling /api/auth/signup-password');
         const response = await fetch('/api/auth/signup-password', {
           method: 'POST',
           headers: {
@@ -209,45 +212,62 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
         });
 
         const data = await response.json();
+        console.debug('[Auth] Signup response', { status: response.status, data });
 
         if (!response.ok) {
           // Handle specific error codes
           if (data.code === 'CSRF_FAILED') {
+            console.error('[Auth] CSRF validation failed');
             // Refetch CSRF token
             const tokenResponse = await fetch('/api/csrf-token');
             const tokenData = await tokenResponse.json();
             setCsrfToken(tokenData.csrfToken);
-            setEmailError('Security check refreshed—please try again.');
+            setEmailError('Security check failed. Please try again.');
+            setTimeout(() => emailInputRef.current?.focus(), 100);
           } else if (data.code === 'RATE_LIMIT_EXCEEDED') {
+            console.error('[Auth] Rate limit exceeded');
             setEmailError('Too many attempts. Please try again in a few minutes.');
+            setTimeout(() => emailInputRef.current?.focus(), 100);
           } else if (data.code === 'ANTIBOT_FAILED') {
+            console.error('[Auth] Anti-bot check failed');
             setEmailError('Verification failed. Please refresh and try again.');
+            setTimeout(() => emailInputRef.current?.focus(), 100);
           } else if (data.code === 'WEAK_PASSWORD') {
+            console.error('[Auth] Weak password rejected');
             setPasswordError(data.error || 'Password does not meet requirements');
-            // Focus password input
-            return; // Don't throw, just return to keep form state
+            setTimeout(() => passwordInputRef.current?.focus(), 100);
+          } else if (data.code === 'USER_EXISTS') {
+            console.error('[Auth] User already exists');
+            setEmailError('Email already registered. Try Sign in or Magic link.');
+            setTimeout(() => emailInputRef.current?.focus(), 100);
+          } else if (response.status === 401) {
+            console.error('[Auth] Unauthorized', data);
+            setEmailError(data.error || 'Email not allowed');
+            setTimeout(() => emailInputRef.current?.focus(), 100);
+          } else if (response.status >= 500) {
+            console.error('[Auth] Server error', { status: response.status, data });
+            setEmailError('Server error. Please try again later.');
           } else {
-            throw new Error(data.error || 'Signup failed');
+            console.error('[Auth] Unknown error', { status: response.status, data });
+            setEmailError(data.error || 'Signup failed. Please try again.');
           }
           
           // Log failed attempt
-          await logSecurityEvent('password_signup_failed', { email }, false);
+          await logSecurityEvent('password_signup_failed', { email, code: data.code }, false);
           return;
         }
 
-        // Success
+        // Success - navigate to Check Email screen
+        console.log('[Auth] Password signup successful', { emailConfirmationRequired: data.emailConfirmationRequired });
         await logSecurityEvent('password_signup', { email });
 
-        // Check if email confirmation is required
+        // Show "Check your email" screen
         if (data.emailConfirmationRequired) {
-          Alert.alert(
-            'Check your email',
-            'We sent you a confirmation link. Please check your email to verify your account.',
-            [{ text: 'OK' }]
-          );
+          setEmailSent(true);
+          console.log('[Auth] Email verification required - showing Check Email screen');
+        } else {
+          console.log('[Auth] No email verification required - user should be logged in');
         }
-
-        console.log('[Auth] Password signup successful');
       } else {
         // Sign in with password
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -506,6 +526,13 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
             </View>
           )}
 
+          {/* Helper Text for Create Account */}
+          {mode === 'signup' && method === 'password' && (
+            <Text style={styles.helperText}>
+              You'll receive a verification email to activate your account. After verifying, you will set up two-factor authentication.
+            </Text>
+          )}
+
           {/* Submit Button */}
           <TouchableOpacity
             style={[styles.authSubmit, (loading || (method === 'magic' && cooldown > 0)) && styles.buttonDisabled]}
@@ -709,6 +736,14 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     backgroundColor: '#9ca3af',
     opacity: 0.6,
+  },
+  helperText: {
+    fontSize: 13,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+    paddingHorizontal: 8,
   },
   infoText: {
     fontSize: 13,

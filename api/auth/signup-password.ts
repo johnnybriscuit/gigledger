@@ -163,6 +163,14 @@ export default async function handler(
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Sign up via Supabase
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'signup_attempt',
+      action: 'signup',
+      emailHash: require('crypto').createHash('sha256').update(email.toLowerCase()).digest('hex').substring(0, 16),
+      ipHash: require('crypto').createHash('sha256').update(ip).digest('hex').substring(0, 16),
+    }));
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -173,8 +181,38 @@ export default async function handler(
 
     if (error) {
       console.error('[signup-password] Supabase error:', error);
+      
+      // Handle specific Supabase error codes
+      if (error.message?.includes('User already registered')) {
+        audit('signup_duplicate', createAuditMeta(email, ip, '/api/auth/signup-password', 409, 'User already exists'));
+        return res.status(409).json({ 
+          error: 'Email already registered', 
+          code: 'USER_EXISTS' 
+        });
+      }
+      
+      if (error.message?.includes('Password should be')) {
+        audit('signup_weak_password', createAuditMeta(email, ip, '/api/auth/signup-password', 400, 'Weak password'));
+        return res.status(400).json({ 
+          error: error.message, 
+          code: 'WEAK_PASSWORD' 
+        });
+      }
+      
+      if (error.message?.includes('not authorized')) {
+        audit('signup_unauthorized', createAuditMeta(email, ip, '/api/auth/signup-password', 401, 'Email not allowed'));
+        return res.status(401).json({ 
+          error: 'Email not allowed', 
+          code: 'EMAIL_NOT_ALLOWED' 
+        });
+      }
+      
+      // Generic error
       audit('signup_error', createAuditMeta(email, ip, '/api/auth/signup-password', 500, error.message));
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ 
+        error: error.message, 
+        code: 'SIGNUP_ERROR' 
+      });
     }
 
     logRateLimitEvent('allowed', 'signup', ip, email, remaining);
@@ -192,6 +230,7 @@ export default async function handler(
 
     // Return success with email confirmation status
     return res.status(200).json({
+      ok: true,
       success: true,
       user: data.user,
       session: data.session,
