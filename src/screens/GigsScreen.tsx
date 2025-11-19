@@ -116,8 +116,8 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const { data: gigs, isLoading, error } = useGigs();
   const deleteGig = useDeleteGig();
 
-  // Fetch user's plan
-  const { data: profile } = useQuery<{ id: string; plan: string } | null>({
+  // Fetch user's plan (no caching to ensure fresh subscription status)
+  const { data: profile, refetch: refetchProfile } = useQuery<{ id: string; plan: string } | null>({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -129,6 +129,8 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         .single();
       return data;
     },
+    staleTime: 0, // Always fetch fresh data to avoid caching subscription status
+    refetchOnWindowFocus: true, // Refetch when user returns to tab
   });
 
   const userPlan = profile?.plan || 'free';
@@ -137,7 +139,15 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const hasReachedFreeLimit = isFreePlan && gigCount >= FREE_GIG_LIMIT;
 
   // Debug logging
-  console.log('GigLedger plan debug:', profile?.id, profile?.plan, gigCount);
+  console.log('=== GigLedger Plan Debug ===');
+  console.log('Profile:', profile);
+  console.log('User ID:', profile?.id);
+  console.log('Plan from DB:', profile?.plan);
+  console.log('Resolved userPlan:', userPlan);
+  console.log('Is free plan?:', isFreePlan);
+  console.log('Gig count:', gigCount);
+  console.log('Has reached limit?:', hasReachedFreeLimit);
+  console.log('===========================');
 
   const handleDelete = (id: string, title: string) => {
     if (Platform.OS === 'web') {
