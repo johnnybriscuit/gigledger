@@ -44,9 +44,9 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
   const SITE_URL = Constants.expoConfig?.extra?.siteUrl || process.env.EXPO_PUBLIC_SITE_URL;
   const isSiteUrlMissing = !SITE_URL;
   
-  // Google OAuth feature flag (default false)
-  const GOOGLE_OAUTH_ENABLED = Constants.expoConfig?.extra?.googleOAuthEnabled || 
-                                process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED === 'true';
+  // Google OAuth feature flag (default true)
+  const GOOGLE_OAUTH_ENABLED = Constants.expoConfig?.extra?.googleOAuthEnabled !== false && 
+                                process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED !== 'false';
   
   // Fetch CSRF token on mount (skip if SITE_URL is missing)
   useEffect(() => {
