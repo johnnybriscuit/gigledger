@@ -288,7 +288,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
                       try {
                         const { data: { session } } = await supabase.auth.getSession();
                         if (!session) return;
-                        const response = await fetch('/api/sync-subscription', {
+                        const response = await fetch('/api/quick-fix-plan', {
                           method: 'POST',
                           headers: {
                             'Authorization': `Bearer ${session.access_token}`,
@@ -296,10 +296,12 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
                         });
                         if (response.ok) {
                           await refetchProfile();
-                          alert('Subscription synced! Refreshing...');
+                          alert('Plan updated! Refreshing...');
+                          // Force a full page reload to clear all caches
+                          window.location.reload();
                         } else {
                           const error = await response.json();
-                          alert(`Error: ${error.error || 'Failed to sync'}`);
+                          alert(`Error: ${error.error || 'Failed to update plan'}`);
                         }
                       } catch (error: any) {
                         alert(`Error: ${error.message}`);
