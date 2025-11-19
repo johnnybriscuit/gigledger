@@ -283,9 +283,34 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
                   <Text style={styles.usageText}>
                     You've used {gigCount} of {FREE_GIG_LIMIT} gigs on the free plan
                   </Text>
-                  <TouchableOpacity onPress={handleUpgradeClick}>
-                    <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <TouchableOpacity onPress={async () => {
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (!session) return;
+                        const response = await fetch('/api/sync-subscription', {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${session.access_token}`,
+                          },
+                        });
+                        if (response.ok) {
+                          await refetchProfile();
+                          alert('Subscription synced! Refreshing...');
+                        } else {
+                          const error = await response.json();
+                          alert(`Error: ${error.error || 'Failed to sync'}`);
+                        }
+                      } catch (error: any) {
+                        alert(`Error: ${error.message}`);
+                      }
+                    }}>
+                      <Text semibold style={{ color: colors.success.DEFAULT }}>🔄 Refresh</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleUpgradeClick}>
+                      <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <View style={styles.progressBar}>
                   <View 
