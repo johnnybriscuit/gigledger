@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { logSecurityEvent } from '../lib/mfa';
 
 interface AuthCallbackScreenProps {
   onNavigateToMFASetup?: () => void;
@@ -25,7 +26,20 @@ export function AuthCallbackScreen({
       // Get the current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (sessionError) throw sessionError;
+      if (sessionError) {
+        console.error('[AuthCallback] Session error:', sessionError);
+        
+        // Check if it's an OAuth error
+        if (sessionError.message?.includes('access_denied')) {
+          await logSecurityEvent('oauth_google_error', { error: 'access_denied' }, false);
+          setError('You denied access to Google. Please try again if you want to sign in with Google.');
+        } else {
+          await logSecurityEvent('oauth_callback_error', { error: sessionError.message }, false);
+          setError(sessionError.message || 'Authentication failed.');
+        }
+        setLoading(false);
+        return;
+      }
 
       if (!session) {
         setError('Your sign-in link is invalid or has expired.');
@@ -34,6 +48,18 @@ export function AuthCallbackScreen({
       }
 
       console.log('[AuthCallback] Session established for:', session.user.email);
+
+      // Check if this is an OAuth login (Google)
+      const isOAuth = session.user.app_metadata?.provider === 'google' || 
+                      session.user.identities?.some(id => id.provider === 'google');
+      
+      if (isOAuth) {
+        console.log('[AuthCallback] OAuth (Google) login detected');
+        await logSecurityEvent('oauth_google_success', { 
+          email: session.user.email,
+          provider: 'google',
+        });
+      }
 
       // Check if MFA is enrolled
       const mfaEnrolled = session.user.app_metadata?.mfa_enrolled === true;

@@ -305,6 +305,43 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    if (isSiteUrlMissing) return;
+
+    setLoading(true);
+    console.debug('[Auth] Starting Google OAuth flow');
+
+    try {
+      // Log OAuth start
+      await logSecurityEvent('oauth_google_start', { provider: 'google' });
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${SITE_URL}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        console.error('[Auth] Google OAuth error:', error);
+        setEmailError('Failed to connect with Google. Please try again.');
+        await logSecurityEvent('oauth_google_error', { provider: 'google', error: error.message }, false);
+        setLoading(false);
+      }
+      // If successful, browser will redirect to Google
+      // Loading state will persist until redirect happens
+    } catch (error: any) {
+      console.error('[Auth] Google OAuth error:', error);
+      setEmailError('Failed to connect with Google. Please try again.');
+      await logSecurityEvent('oauth_google_error', { provider: 'google', error: error.message }, false);
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = () => {
     if (method === 'magic') {
       handleMagicLink();
@@ -422,6 +459,34 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
         {/* Auth Form */}
         <View style={styles.authForm}>
+          {/* Google SSO Button */}
+          <TouchableOpacity
+            style={[styles.googleButton, loading && styles.buttonDisabled]}
+            onPress={handleGoogleSignIn}
+            disabled={loading}
+            accessibilityLabel="Continue with Google"
+            accessibilityHint="Sign in using your Google account"
+          >
+            {loading ? (
+              <ActivityIndicator color="#1F2937" />
+            ) : (
+              <>
+                <Text style={styles.googleIcon}>G</Text>
+                <View style={styles.googleTextContainer}>
+                  <Text style={styles.googleButtonText}>Continue with Google</Text>
+                  <Text style={styles.googleSubtext}>We'll never post without your permission</Text>
+                </View>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
           {/* Method Selector: Magic Link | Email + Password */}
           <View style={styles.methodSelector}>
             <TouchableOpacity
@@ -658,6 +723,54 @@ const styles = StyleSheet.create({
   },
   authForm: {
     width: '100%',
+    marginBottom: 24,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  googleIcon: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#4285F4',
+    marginRight: 12,
+  },
+  googleTextContainer: {
+    flex: 1,
+  },
+  googleButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 2,
+  },
+  googleSubtext: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e5e7eb',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 13,
+    color: '#9ca3af',
+    fontWeight: '500',
   },
   methodSelector: {
     marginBottom: 24,
