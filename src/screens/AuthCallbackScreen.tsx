@@ -29,10 +29,16 @@ export function AuthCallbackScreen({
       if (sessionError) {
         console.error('[AuthCallback] Session error:', sessionError);
         
-        // Check if it's an OAuth error
+        // Check for specific OAuth errors
         if (sessionError.message?.includes('access_denied')) {
           await logSecurityEvent('oauth_google_error', { error: 'access_denied' }, false);
           setError('You denied access to Google. Please try again if you want to sign in with Google.');
+        } else if (sessionError.message?.includes('redirect_uri_mismatch')) {
+          await logSecurityEvent('oauth_google_error', { error: 'redirect_uri_mismatch' }, false);
+          setError('OAuth configuration error. Please contact support.');
+        } else if (sessionError.message?.includes('origin_mismatch')) {
+          await logSecurityEvent('oauth_google_error', { error: 'origin_mismatch' }, false);
+          setError('OAuth origin mismatch. Please contact support.');
         } else {
           await logSecurityEvent('oauth_callback_error', { error: sessionError.message }, false);
           setError(sessionError.message || 'Authentication failed.');

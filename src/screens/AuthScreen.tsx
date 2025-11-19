@@ -319,6 +319,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         provider: 'google',
         options: {
           redirectTo: `${SITE_URL}/auth/callback`,
+          scopes: 'openid email profile',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

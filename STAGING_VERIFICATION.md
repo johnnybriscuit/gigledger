@@ -6,6 +6,112 @@
 
 ---
 
+## 0. ✅ Google SSO Verification
+
+### Manual Checklist:
+
+#### Test 1: First-Time Google Sign-In
+1. [ ] Visit https://gigledger-ten.vercel.app
+2. [ ] Click "Continue with Google" button
+3. [ ] Google consent screen appears
+4. [ ] Select Google account and approve
+5. [ ] Redirects to `/auth/callback`
+6. [ ] Shows "Signing you in..." loading state
+7. [ ] Redirects to MFA setup (QR code screen)
+8. [ ] Scan QR code with authenticator app
+9. [ ] Enter TOTP code
+10. [ ] Redirects to dashboard
+11. [ ] User data loads correctly
+
+#### Test 2: Returning Google User
+1. [ ] Sign out from dashboard
+2. [ ] Click "Continue with Google"
+3. [ ] Google account picker appears (may auto-select)
+4. [ ] Redirects to `/auth/callback`
+5. [ ] Redirects to MFA challenge (not setup)
+6. [ ] Enter TOTP code
+7. [ ] Redirects to dashboard
+8. [ ] User data persists
+
+#### Test 3: OAuth Error Handling
+1. [ ] Click "Continue with Google"
+2. [ ] On Google screen, click "Cancel" or "Deny"
+3. [ ] Returns to auth screen
+4. [ ] Error message: "You denied access to Google..."
+5. [ ] Can try again
+
+#### Test 4: Account Linking (Same Email)
+**Scenario A: Password first, then Google**:
+1. [ ] Create account with email + password
+2. [ ] Complete MFA setup
+3. [ ] Sign out
+4. [ ] Click "Continue with Google" with same email
+5. [ ] Logs in successfully (accounts linked)
+6. [ ] Dashboard loads with same data
+
+**Scenario B: Google first, then password**:
+1. [ ] Sign in with Google (new email)
+2. [ ] Complete MFA setup
+3. [ ] Sign out
+4. [ ] Try to sign in with Email + Password using same email
+5. [ ] Can set password and sign in
+6. [ ] Same user account (linked identities)
+
+#### Test 5: Audit Logs
+Check browser console for:
+- [ ] `[Auth] Starting Google OAuth flow`
+- [ ] `oauth_google_start` event logged
+- [ ] `[AuthCallback] OAuth (Google) login detected`
+- [ ] `oauth_google_success` event logged
+- [ ] `[AuthCallback] Session established for: user@example.com`
+
+#### Test 6: Configuration Errors
+If Google OAuth not configured:
+- [ ] Click "Continue with Google"
+- [ ] Error message appears
+- [ ] `oauth_google_error` logged
+- [ ] User can try other sign-in methods
+
+#### Test 7: RLS Data Isolation
+1. [ ] User A signs in with Google
+2. [ ] User A creates a gig
+3. [ ] Sign out
+4. [ ] User B signs in with Google (different account)
+5. [ ] User B sees NO gigs from User A
+6. [ ] User B creates own gig
+7. [ ] User A cannot see User B's gig
+
+### Expected OAuth Flow:
+```
+1. Click "Continue with Google"
+   ↓
+2. Browser redirects to Google OAuth consent
+   ↓
+3. User approves
+   ↓
+4. Google redirects to: https://gigledger-ten.vercel.app/auth/callback?code=...
+   ↓
+5. Supabase exchanges code for session
+   ↓
+6. AuthCallbackScreen detects OAuth provider
+   ↓
+7. Logs oauth_google_success
+   ↓
+8. Routes to MFA setup (first-time) or MFA challenge (returning)
+   ↓
+9. Dashboard
+```
+
+### OAuth Configuration Checklist:
+- [x] Google OAuth Client created in Google Cloud Console
+- [x] Redirect URI registered: `https://jvostkeswuhfwntbrfzl.supabase.co/auth/v1/callback`
+- [x] Authorized JS origins: `https://gigledger-ten.vercel.app`, `http://localhost:8090`
+- [x] Supabase → Auth → Providers → Google enabled
+- [x] Client ID & Secret saved in Supabase
+- [x] `EXPO_PUBLIC_SITE_URL` set in Vercel
+
+---
+
 ## 1. ✅ EXPO_PUBLIC_SITE_URL Configuration
 
 ### Code Verification:
