@@ -54,11 +54,14 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
     
     const fetchCsrfToken = async () => {
       try {
-        const response = await fetch('/api/csrf-token');
+        const response = await fetch('/api/csrf-token', {
+          credentials: 'include', // Ensure cookies are sent/received
+        });
         const data = await response.json();
         setCsrfToken(data.csrfToken);
+        console.debug('[Auth] CSRF token fetched:', data.csrfToken?.substring(0, 16) + '...');
       } catch (error) {
-        console.error('Failed to fetch CSRF token:', error);
+        console.error('[Auth] Failed to fetch CSRF token:', error);
       }
     };
 
@@ -141,6 +144,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken || '',
         },
+        credentials: 'include', // Ensure cookies are sent
         body: JSON.stringify({
           email,
           redirectTo: `${SITE_URL}/auth/callback`,
@@ -209,6 +213,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
             'Content-Type': 'application/json',
             'x-csrf-token': csrfToken || '',
           },
+          credentials: 'include', // Ensure cookies are sent
           body: JSON.stringify({
             email,
             password,
@@ -224,9 +229,12 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           if (data.code === 'CSRF_FAILED') {
             console.error('[Auth] CSRF validation failed');
             // Refetch CSRF token
-            const tokenResponse = await fetch('/api/csrf-token');
+            const tokenResponse = await fetch('/api/csrf-token', {
+              credentials: 'include',
+            });
             const tokenData = await tokenResponse.json();
             setCsrfToken(tokenData.csrfToken);
+            console.debug('[Auth] CSRF token refetched:', tokenData.csrfToken?.substring(0, 16) + '...');
             setEmailError('Security check failed. Please try again.');
             setTimeout(() => emailInputRef.current?.focus(), 100);
           } else if (data.code === 'RATE_LIMIT_EXCEEDED') {
