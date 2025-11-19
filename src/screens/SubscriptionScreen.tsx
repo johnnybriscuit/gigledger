@@ -19,6 +19,7 @@ import {
   useCreateCheckoutSession,
   useCreatePortalSession,
 } from '../hooks/useSubscription';
+import { useSyncSubscription } from '../hooks/useSyncSubscription';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { H1, H2, H3, Text, Button, Card, Badge } from '../ui';
@@ -35,6 +36,7 @@ export function SubscriptionScreen() {
   const { data: subscription, isLoading } = useSubscription();
   const createCheckout = useCreateCheckoutSession();
   const createPortal = useCreatePortalSession();
+  const syncSubscription = useSyncSubscription();
 
   // Fetch user's plan
   const { data: profile } = useQuery({
@@ -78,6 +80,18 @@ export function SubscriptionScreen() {
       }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to open subscription management');
+    }
+  };
+
+  const handleSyncSubscription = async () => {
+    try {
+      const result = await syncSubscription.mutateAsync();
+      Alert.alert(
+        'Success',
+        result.message || `Subscription synced! Plan: ${result.plan}`
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to sync subscription');
     }
   };
 
@@ -156,6 +170,19 @@ export function SubscriptionScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               'Manage Subscription'
+            )}
+          </Button>
+
+          <Button
+            variant="secondary"
+            onPress={handleSyncSubscription}
+            disabled={syncSubscription.isPending}
+            style={styles.syncButton}
+          >
+            {syncSubscription.isPending ? (
+              <ActivityIndicator color={colors.brand.DEFAULT} />
+            ) : (
+              '🔄 Sync Subscription Status'
             )}
           </Button>
 
@@ -391,6 +418,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   manageButton: {
+    marginBottom: parseInt(spacing[2]),
+  },
+  syncButton: {
     marginBottom: parseInt(spacing[2]),
   },
 });
