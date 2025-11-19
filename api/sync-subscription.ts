@@ -109,6 +109,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('Profile updated successfully');
 
     // Update/insert subscriptions table
+    // Cast to any to access period properties
+    const sub = subscription as any;
+    
     const subscriptionData = {
       user_id: user.id,
       stripe_customer_id: customer.id,
@@ -116,8 +119,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       stripe_price_id: priceId,
       tier,
       status: subscription.status as any,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
       cancel_at_period_end: subscription.cancel_at_period_end,
       canceled_at: subscription.canceled_at
         ? new Date(subscription.canceled_at * 1000).toISOString()
@@ -145,7 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       subscription: {
         id: subscription.id,
         status: subscription.status,
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
       },
       message: 'Subscription synced successfully!'
     });
