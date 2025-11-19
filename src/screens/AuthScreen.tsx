@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
@@ -28,14 +28,36 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   
+  // Refs for focus management
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+  
   // Magic link state
   const [emailSent, setEmailSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  
+  // CSRF token
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
   const SITE_URL = Constants.expoConfig?.extra?.siteUrl || process.env.EXPO_PUBLIC_SITE_URL || 'http://localhost:8090';
   
+  // Fetch CSRF token on mount
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await fetch('/api/csrf-token');
+        const data = await response.json();
+        setCsrfToken(data.csrfToken);
+      } catch (error) {
+        console.error('Failed to fetch CSRF token:', error);
+      }
+    };
+
+    fetchCsrfToken();
+  }, []);
+  
   // Cooldown timer for magic link
-  React.useEffect(() => {
+  useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
       return () => clearTimeout(timer);
@@ -54,12 +76,16 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
     
     if (!email) {
       setEmailError('Email is required');
+      // Focus email input on error
+      setTimeout(() => emailInputRef.current?.focus(), 100);
       return false;
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setEmailError('Please enter a valid email address');
+      // Focus email input on error
+      setTimeout(() => emailInputRef.current?.focus(), 100);
       return false;
     }
     
@@ -71,6 +97,8 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
     
     if (!password) {
       setPasswordError('Password is required');
+      // Focus password input on error
+      setTimeout(() => passwordInputRef.current?.focus(), 100);
       return false;
     }
     
@@ -78,6 +106,8 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
     if (mode === 'signup') {
       const validation = validatePassword(password);
       if (!validation.valid) {
+        // Focus password input on error
+        setTimeout(() => passwordInputRef.current?.focus(), 100);
         setPasswordError(validation.errors[0] || 'Password does not meet requirements');
         return false;
       }
@@ -97,7 +127,10 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
       // Call our rate-limited API endpoint
       const response = await fetch('/api/auth/send-magic-link', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken || '',
+        },
         body: JSON.stringify({
           email,
           redirectTo: `${SITE_URL}/auth/callback`,
@@ -108,7 +141,13 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
 
       if (!response.ok) {
         // Handle specific error codes
-        if (data.code === 'RATE_LIMIT_EXCEEDED') {
+        if (data.code === 'CSRF_FAILED') {
+          // Refetch CSRF token
+          const tokenResponse = await fetch('/api/csrf-token');
+          const tokenData = await tokenResponse.json();
+          setCsrfToken(tokenData.csrfToken);
+          setEmailError('Security check refreshed—please try again.');
+        } else if (data.code === 'RATE_LIMIT_EXCEEDED') {
           setEmailError('Too many attempts. Please try again in a few minutes.');
           setCooldown(60); // Show cooldown even on rate limit
         } else if (data.code === 'ANTIBOT_FAILED') {
@@ -151,7 +190,10 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
         // Call our rate-limited API endpoint
         const response = await fetch('/api/auth/signup-password', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken || '',
+          },
           body: JSON.stringify({
             email,
             password,
@@ -163,7 +205,13 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
 
         if (!response.ok) {
           // Handle specific error codes
-          if (data.code === 'RATE_LIMIT_EXCEEDED') {
+          if (data.code === 'CSRF_FAILED') {
+            // Refetch CSRF token
+            const tokenResponse = await fetch('/api/csrf-token');
+            const tokenData = await tokenResponse.json();
+            setCsrfToken(tokenData.csrfToken);
+            setEmailError('Security check refreshed—please try again.');
+          } else if (data.code === 'RATE_LIMIT_EXCEEDED') {
             setEmailError('Too many attempts. Please try again in a few minutes.');
           } else if (data.code === 'ANTIBOT_FAILED') {
             setEmailError('Verification failed. Please refresh and try again.');
@@ -363,6 +411,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
+              ref={emailInputRef}
               style={[styles.input, emailError && styles.inputError]}
               placeholder="your@email.com"
               value={email}
@@ -374,9 +423,18 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
               autoCapitalize="none"
               autoCorrect={false}
               editable={!loading}
+              accessibilityLabel="Email address"
+              accessibilityHint="Enter your email address"
             />
             {emailError ? (
-              <Text style={styles.errorText}>{emailError}</Text>
+              <Text 
+                style={styles.errorText}
+                role="alert"
+                aria-live="polite"
+                accessibilityLiveRegion="polite"
+              >
+                {emailError}
+              </Text>
             ) : null}
           </View>
 
@@ -385,6 +443,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Password</Text>
               <TextInput
+                ref={passwordInputRef}
                 style={[styles.input, passwordError && styles.inputError]}
                 placeholder={mode === 'signup' ? 'Min 10 characters, letter + number' : 'Enter your password'}
                 value={password}
@@ -400,10 +459,22 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
                 accessibilityHint={mode === 'signup' ? 'Must be at least 10 characters with a letter and number' : undefined}
               />
               {mode === 'signup' && password.length > 0 && (
-                <PasswordStrengthMeter password={password} showErrors={false} />
+                <View
+                  accessibilityRole="progressbar"
+                  accessibilityLabel={`Password strength: ${validatePassword(password).strength}`}
+                >
+                  <PasswordStrengthMeter password={password} showErrors={false} />
+                </View>
               )}
               {passwordError ? (
-                <Text style={styles.errorText} role="alert" aria-live="polite">{passwordError}</Text>
+                <Text 
+                  style={styles.errorText} 
+                  role="alert" 
+                  aria-live="polite"
+                  accessibilityLiveRegion="polite"
+                >
+                  {passwordError}
+                </Text>
               ) : null}
             </View>
           )}

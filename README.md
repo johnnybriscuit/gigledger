@@ -69,13 +69,64 @@ npm start
 
 ### Environment Setup
 
+#### Local Development
+
 Create a `.env.local` file with:
 
 ```env
-EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key  # Optional
+# Supabase (Required)
+EXPO_PUBLIC_SUPABASE_URL=http://localhost:54321
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
+
+# Site URL (Required)
+EXPO_PUBLIC_SITE_URL=http://localhost:8090
+
+# Optional Features
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 EXPO_PUBLIC_DEFAULT_MILEAGE_RATE=0.70
+EXPO_PUBLIC_ANTIBOT_ENABLED=false
+
+# Optional: Redis for distributed rate limiting
+# UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
+# UPSTASH_REDIS_REST_TOKEN=your-token
+
+# Optional: Cloudflare Turnstile (only if ANTIBOT_ENABLED=true)
+# TURNSTILE_SECRET_KEY=your-secret-key
+```
+
+#### Staging Environment
+
+```env
+# Supabase (Required)
+EXPO_PUBLIC_SUPABASE_URL=https://staging-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-staging-anon-key
+
+# Site URL (Required)
+EXPO_PUBLIC_SITE_URL=https://staging.gigledger.com
+
+# Optional Features
+EXPO_PUBLIC_ANTIBOT_ENABLED=false
+UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-token
+```
+
+#### Production Environment
+
+```env
+# Supabase (Required)
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
+
+# Site URL (Required)
+EXPO_PUBLIC_SITE_URL=https://gigledger.com
+
+# Optional Features
+EXPO_PUBLIC_ANTIBOT_ENABLED=false
+UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-token
+
+# Optional: Cloudflare Turnstile (only if ANTIBOT_ENABLED=true)
+# TURNSTILE_SECRET_KEY=your-secret-key
 ```
 
 ### Database Setup
@@ -86,6 +137,146 @@ EXPO_PUBLIC_DEFAULT_MILEAGE_RATE=0.70
 4. Set up Storage bucket for receipts (optional)
 
 See [SUPABASE_SETUP_CHECKLIST.md](./SUPABASE_SETUP_CHECKLIST.md) for detailed instructions.
+
+## 🚀 Deployment
+
+### Vercel Deployment
+
+1. **Connect Repository**
+   - Import your GitHub repository to Vercel
+   - Select the `main` branch for production
+
+2. **Configure Environment Variables**
+   - Add all required environment variables in Vercel dashboard
+   - Use production values for `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SITE_URL`
+
+3. **Deploy**
+   - Vercel will automatically build and deploy
+   - Note your deployment URL (e.g., `https://gigledger.vercel.app`)
+
+### Supabase Configuration
+
+1. **Update Redirect URLs**
+   - Go to Authentication → URL Configuration
+   - Add redirect URLs:
+     - `https://your-domain.com/auth/callback`
+     - `https://your-domain.com/*`
+   - For staging: `https://staging.your-domain.com/*`
+
+2. **Email Templates**
+   - Customize magic link email template
+   - Update confirmation email template
+   - Set sender name and email
+
+3. **Rate Limits**
+   - Configure Supabase rate limits if needed
+   - Our app has additional rate limiting (5 req/10min per IP+email)
+
+### Deployment Checklist
+
+- [ ] Environment variables set in Vercel
+- [ ] Supabase redirect URLs configured
+- [ ] Email templates customized
+- [ ] Test magic link flow in production
+- [ ] Test password signup flow
+- [ ] Test MFA enrollment and challenge
+- [ ] Verify rate limiting works
+- [ ] Check CSRF protection (403 without token)
+- [ ] Test tax profile banner appears for new users
+- [ ] Monitor logs for audit events
+
+## 🔒 Security Features
+
+### Authentication
+- **Hybrid Auth**: Magic link or email+password
+- **TOTP MFA**: Enforced after first login with QR code enrollment
+- **Email Verification**: Required before app access
+- **Recovery Codes**: Generated during MFA setup
+
+### Password Policy
+- **Minimum Length**: 10 characters
+- **Complexity**: At least one letter and one number
+- **Strength Meter**: Real-time visual feedback
+- **Server Validation**: Double-checked on backend
+
+### CSRF Protection
+- **Double-Submit Pattern**: HttpOnly cookie + header token
+- **SameSite=Lax**: Cookie security
+- **Token Verification**: All POST requests validated
+- **403 on Failure**: Clear error codes
+
+### Rate Limiting
+- **5 requests per 10 minutes** per IP+email combination
+- **Vercel-Aware**: Proper IP extraction from `x-forwarded-for`
+- **Private IP Filtering**: Ignores local/private IPs
+- **Redis-Backed**: Distributed rate limiting (with in-memory fallback)
+- **429 Response**: Clear retry-after headers
+
+### Audit Logging
+- **Structured Logs**: JSON format for easy parsing
+- **Privacy-Preserving**: Only hashed email/IP (no PII)
+- **Event Tracking**: All auth events logged
+  - `magic_link_start | success | rate_limited | csrf_failed | antibot_failed | error`
+  - `signup_start | success | rate_limited | csrf_failed | antibot_failed | error`
+
+### API Security
+- **POST-Only**: Auth endpoints reject other methods (405)
+- **Content-Type Validation**: Requires `application/json` (415)
+- **Same-Origin CORS**: No external origins allowed
+- **Cache-Control**: `no-store` on sensitive endpoints
+- **Vary Header**: Proper cache key variation
+
+### Optional: Anti-Bot Protection
+- **Cloudflare Turnstile**: Server-side verification only
+- **No UI Widget**: Seamless user experience
+- **Toggle**: Enable via `EXPO_PUBLIC_ANTIBOT_ENABLED=true`
+- **403 on Failure**: Clear error codes
+
+## 🧪 Testing
+
+### Run Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Test Coverage
+
+- **Password Validation**: 13 tests
+  - Minimum requirements
+  - Strength calculation
+  - Bonus points
+  - Server/client consistency
+
+- **Rate Limiting**: 18 tests
+  - IP extraction (Vercel headers)
+  - Private IP filtering
+  - x-forwarded-for parsing
+  - Fallback behavior
+
+- **CSRF Protection**: 4 tests
+  - Token generation
+  - Verification logic
+  - Missing/mismatched tokens
+  - Edge cases
+
+### Expected Output
+
+```
+Test Suites: X passed, X total
+Tests:       35+ passed, 35+ total
+Snapshots:   X total
+Time:        X.XXX s
+```
+
+All tests should pass (green).
 
 ## 📱 Platform Support
 
