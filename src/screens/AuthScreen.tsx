@@ -270,17 +270,14 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           return;
         }
 
-        // Success - navigate to Check Email screen
+        // Success - always navigate to Check Email screen for signups
         console.log('[Auth] Password signup successful', { emailConfirmationRequired: data.emailConfirmationRequired });
         await logSecurityEvent('password_signup', { email });
 
-        // Show "Check your email" screen
-        if (data.emailConfirmationRequired) {
-          setEmailSent(true);
-          console.log('[Auth] Email verification required - showing Check Email screen');
-        } else {
-          console.log('[Auth] No email verification required - user should be logged in');
-        }
+        // Always show "Check your email" screen for signups
+        // Even if emailConfirmationRequired is false, we want users to verify their email
+        setEmailSent(true);
+        console.log('[Auth] Showing Check Email screen - user must verify email before signing in');
       } else {
         // Sign in with password
         const { data, error } = await supabase.auth.signInWithPassword({
