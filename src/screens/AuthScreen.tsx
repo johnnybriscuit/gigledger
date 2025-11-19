@@ -9,12 +9,13 @@ import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
 interface AuthScreenProps {
   onNavigateToTerms?: () => void;
   onNavigateToPrivacy?: () => void;
+  onNavigateToForgotPassword?: () => void;
 }
 
 type AuthMode = 'signin' | 'signup';
 type AuthMethod = 'magic' | 'password';
 
-export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScreenProps) {
+export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateToForgotPassword }: AuthScreenProps) {
   // Mode: Sign In or Create Account
   const [mode, setMode] = useState<AuthMode>('signin');
   
@@ -523,6 +524,16 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy }: AuthScree
                   {passwordError}
                 </Text>
               ) : null}
+              {/* Forgot Password Link (Sign in mode only) */}
+              {mode === 'signin' && (
+                <TouchableOpacity
+                  style={styles.forgotPasswordButton}
+                  onPress={onNavigateToForgotPassword}
+                  disabled={loading}
+                >
+                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -736,6 +747,16 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     backgroundColor: '#9ca3af',
     opacity: 0.6,
+  },
+  forgotPasswordButton: {
+    marginTop: 8,
+    padding: 4,
+    alignSelf: 'flex-end',
+  },
+  forgotPasswordText: {
+    fontSize: 13,
+    color: '#4F46E5',
+    textDecorationLine: 'underline',
   },
   helperText: {
     fontSize: 13,

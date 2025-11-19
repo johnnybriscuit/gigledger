@@ -8,6 +8,8 @@ import { supabase } from './src/lib/supabase';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { AuthCallbackScreen } from './src/screens/AuthCallbackScreen';
 import { CheckEmailScreen } from './src/screens/CheckEmailScreen';
+import { ForgotPasswordScreen } from './src/screens/ForgotPasswordScreen';
+import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
 import { MFAOnboardingScreen } from './src/screens/MFAOnboardingScreen';
 import { MFAChallengeScreen } from './src/screens/MFAChallengeScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
@@ -37,7 +39,7 @@ function AppContent() {
   const [needsMFA, setNeedsMFA] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
-  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email'>('auth');
+  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('auth');
 
   useEffect(() => {
     // Get initial session
@@ -175,6 +177,29 @@ function AppContent() {
     );
   }
 
+  // Forgot Password (no session required)
+  if (currentRoute === 'forgot-password') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <ForgotPasswordScreen onBack={() => setCurrentRoute('auth')} />
+      </>
+    );
+  }
+
+  // Reset Password (no session required initially, but will be created by recovery link)
+  if (currentRoute === 'reset-password') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <ResetPasswordScreen 
+          onSuccess={() => setCurrentRoute('auth')}
+          onBack={() => setCurrentRoute('auth')}
+        />
+      </>
+    );
+  }
+
   // Show appropriate screen based on auth and onboarding status
   if (!session) {
     return (
@@ -183,6 +208,7 @@ function AppContent() {
         <AuthScreen 
           onNavigateToTerms={() => setCurrentRoute('terms')}
           onNavigateToPrivacy={() => setCurrentRoute('privacy')}
+          onNavigateToForgotPassword={() => setCurrentRoute('forgot-password')}
         />
       </>
     );
