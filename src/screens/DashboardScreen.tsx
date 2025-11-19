@@ -14,8 +14,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useDateRange } from '../hooks/useDateRange';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
 import { Toast } from '../components/Toast';
+import { TaxProfileBanner } from '../components/TaxProfileBanner';
 import { H1, Text, Button } from '../ui';
 import { colors, spacing, typography, radius } from '../styles/theme';
+import { useTaxProfile } from '../hooks/useTaxProfile';
 
 type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'subscription' | 'account';
 
@@ -71,6 +73,9 @@ export function DashboardScreen() {
       return data;
     },
   });
+
+  // Fetch tax profile to check if state is set
+  const { data: taxProfile } = useTaxProfile();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -221,6 +226,15 @@ export function DashboardScreen() {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* Show tax profile banner on dashboard tab if state is null */}
+      {activeTab === 'dashboard' && taxProfile && !taxProfile.state && (
+        <View style={styles.bannerContainer}>
+          <TaxProfileBanner
+            onNavigateToTaxSettings={() => setActiveTab('account')}
+          />
+        </View>
+      )}
+
       {renderContent()}
 
       <AddGigModal
@@ -276,6 +290,10 @@ const styles = StyleSheet.create({
   tabBarContent: {
     flexDirection: 'row',
     paddingHorizontal: parseInt(spacing[1]),
+  },
+  bannerContainer: {
+    paddingHorizontal: parseInt(spacing[5]),
+    paddingTop: parseInt(spacing[4]),
   },
   tab: {
     paddingVertical: parseInt(spacing[3]) + 2,

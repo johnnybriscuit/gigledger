@@ -7,6 +7,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit, logRateLimitEvent, getClientIp } from '../../src/lib/rateLimit';
 import { requireCsrfToken } from '../../src/lib/csrf';
+import { audit, createAuditMeta } from '../../src/lib/audit';
 
 export default async function handler(
   req: VercelRequest,
@@ -59,11 +60,15 @@ export default async function handler(
     // Get client IP (Vercel-aware)
     const ip = getClientIp(req);
 
+    // Audit: Request started
+    audit('magic_link_start', createAuditMeta(email, ip, '/api/auth/send-magic-link', 200));
+
     // Check rate limit: 5 requests per 10 minutes
     const { allowed, remaining } = await checkRateLimit(ip, email, 'magic-link');
 
     if (!allowed) {
       logRateLimitEvent('blocked', 'magic-link', ip, email, remaining);
+      audit('magic_link_rate_limited', createAuditMeta(email, ip, '/api/auth/send-magic-link', 429, 'Rate limit exceeded'));
       return res.status(429).json({
         error: 'Too many requests. Please try again later.',
         code: 'RATE_LIMIT_EXCEEDED',
@@ -117,8 +122,9 @@ export default async function handler(
           ipHash: require('crypto').createHash('sha256').update(ip).digest('hex').substring(0, 16),
           errorCodes: verifyData['error-codes'],
         }));
+        audit('magic_link_antibot_failed', createAuditMeta(email, ip, '/api/auth/send-magic-link', 403, 'Turnstile verification failed'));
         return res.status(403).json({
-          error: 'Verification failed',
+          error: 'Anti-bot verification failed',
           code: 'ANTIBOT_FAILED',
         });
       }
@@ -151,26 +157,17 @@ export default async function handler(
     });
 
     if (error) {
-      console.error('[Auth] Magic link error:', error);
-      return res.status(400).json({ error: error.message });
+      console.error('[send-magic-link] Supabase error:', error);
+      audit('magic_link_error', createAuditMeta(email, ip, '/api/auth/send-magic-link', 500, error.message));
+      return res.status(500).json({ error: error.message });
     }
 
-    // Log success
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: 'magic_link_sent',
-      action: 'magic-link',
-      emailHash: require('crypto').createHash('sha256').update(email.toLowerCase()).digest('hex').substring(0, 16),
-      ipHash: require('crypto').createHash('sha256').update(ip).digest('hex').substring(0, 16),
-    }));
-
-    return res.status(200).json({
-      success: true,
-      message: 'Magic link sent',
-      remaining,
-    });
+    logRateLimitEvent('allowed', 'magic-link', ip, email, remaining);
+    audit('magic_link_success', createAuditMeta(email, ip, '/api/auth/send-magic-link', 200));
+    return res.status(200).json({ message: 'Magic link sent' });
   } catch (error: any) {
-    console.error('[Auth] Unexpected error:', error);
+    console.error('[send-magic-link] Error:', error);
+    audit('magic_link_error', { route: '/api/auth/send-magic-link', status: 500, note: error.message });
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

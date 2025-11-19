@@ -58,12 +58,12 @@ export function useTaxCalculation(
 
         if (profileError) throw profileError;
 
-        // If no profile exists, use defaults
-        if (!taxProfile) {
+        // If no profile exists, use defaults with null state
+        if (!taxProfile || !taxProfile.state) {
           setHasProfile(false);
           const defaultProfile: EngineTaxProfile = {
             filingStatus: 'single',
-            state: 'US' as any, // Placeholder until user sets their state
+            state: 'US' as any, // Fallback for calculation only
             deductionMethod: 'standard',
             seIncome: true,
           };
@@ -86,7 +86,7 @@ export function useTaxCalculation(
         setHasProfile(true);
         const profile: EngineTaxProfile = {
           filingStatus: taxProfile.filing_status || 'single',
-          state: taxProfile.state || 'US',
+          state: taxProfile.state,
           county: taxProfile.county || undefined,
           nycResident: taxProfile.nyc_resident || false,
           yonkersResident: taxProfile.yonkers_resident || false,

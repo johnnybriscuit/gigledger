@@ -50,11 +50,11 @@ export function useTaxProfile() {
 
       if (error) throw error;
 
-      // If no profile exists, return defaults (use 'US' as placeholder state)
+      // If no profile exists, return defaults with null state
       if (!data) {
         return {
           filingStatus: 'single' as const,
-          state: 'US' as StateCode, // Placeholder until user sets their state
+          state: null as any, // User must set their state
           county: undefined,
           nycResident: undefined,
           yonkersResident: undefined,

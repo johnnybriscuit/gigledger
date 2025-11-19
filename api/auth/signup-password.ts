@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit, logRateLimitEvent, getClientIp } from '../../src/lib/rateLimit';
 import { validatePasswordServer } from '../../src/lib/passwordValidation';
 import { requireCsrfToken } from '../../src/lib/csrf';
+import { audit, createAuditMeta } from '../../src/lib/audit';
 
 export default async function handler(
   req: VercelRequest,
@@ -73,11 +74,15 @@ export default async function handler(
     // Get client IP (Vercel-aware)
     const ip = getClientIp(req);
 
+    // Audit: Request started
+    audit('signup_start', createAuditMeta(email, ip, '/api/auth/signup-password', 200));
+
     // Check rate limit: 5 requests per 10 minutes
     const { allowed, remaining } = await checkRateLimit(ip, email, 'signup');
 
     if (!allowed) {
       logRateLimitEvent('blocked', 'signup', ip, email, remaining);
+      audit('signup_rate_limited', createAuditMeta(email, ip, '/api/auth/signup-password', 429, 'Rate limit exceeded'));
       return res.status(429).json({
         error: 'Too many requests. Please try again later.',
         code: 'RATE_LIMIT_EXCEEDED',
@@ -131,8 +136,9 @@ export default async function handler(
           ipHash: require('crypto').createHash('sha256').update(ip).digest('hex').substring(0, 16),
           errorCodes: verifyData['error-codes'],
         }));
+        audit('signup_antibot_failed', createAuditMeta(email, ip, '/api/auth/signup-password', 403, 'Turnstile verification failed'));
         return res.status(403).json({
-          error: 'Verification failed',
+          error: 'Anti-bot verification failed',
           code: 'ANTIBOT_FAILED',
         });
       }
@@ -166,9 +172,13 @@ export default async function handler(
     });
 
     if (error) {
-      console.error('[Auth] Signup error:', error);
-      return res.status(400).json({ error: error.message });
+      console.error('[signup-password] Supabase error:', error);
+      audit('signup_error', createAuditMeta(email, ip, '/api/auth/signup-password', 500, error.message));
+      return res.status(500).json({ error: error.message });
     }
+
+    logRateLimitEvent('allowed', 'signup', ip, email, remaining);
+    audit('signup_success', createAuditMeta(email, ip, '/api/auth/signup-password', 200));
 
     // Log success
     console.log(JSON.stringify({
@@ -180,6 +190,7 @@ export default async function handler(
       emailConfirmationRequired: !data.session,
     }));
 
+    // Return success with email confirmation status
     return res.status(200).json({
       success: true,
       user: data.user,
@@ -188,7 +199,8 @@ export default async function handler(
       remaining,
     });
   } catch (error: any) {
-    console.error('[Auth] Unexpected error:', error);
+    console.error('[signup-password] Error:', error);
+    audit('signup_error', { route: '/api/auth/signup-password', status: 500, note: error.message });
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
