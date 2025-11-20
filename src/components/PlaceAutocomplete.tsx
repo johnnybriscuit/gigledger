@@ -315,23 +315,23 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: colors.surface.DEFAULT,
+    backgroundColor: '#ffffff', // Solid white background
     borderWidth: 1,
     borderColor: colors.border.DEFAULT,
     borderRadius: parseInt(radius.md),
     marginTop: parseInt(spacing[1]),
     maxHeight: 300,
-    zIndex: 1000,
+    zIndex: 9999, // Very high z-index to appear above modal content
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)', // Stronger shadow
       },
       default: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 10,
       },
     }),
   },
@@ -342,9 +342,10 @@ const styles = StyleSheet.create({
     padding: parseInt(spacing[3]),
     borderBottomWidth: 1,
     borderBottomColor: colors.border.DEFAULT,
+    backgroundColor: '#ffffff', // Solid white background
   },
   dropdownItemActive: {
-    backgroundColor: colors.brand.muted,
+    backgroundColor: colors.brand.muted, // Light blue when active
   },
   mainText: {
     fontSize: 15,
