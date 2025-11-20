@@ -489,30 +489,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               )}
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Date *</Text>
-              <TouchableOpacity
-                style={styles.pickerButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Text style={[styles.pickerButtonText, !date && styles.placeholderText]}>
-                  {date || 'Select date'}
-                </Text>
-                <Text style={styles.pickerButtonIcon}>📅</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Title *</Text>
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="e.g., Friday Night Show"
-                placeholderTextColor="#9ca3af"
-              />
-            </View>
-
+            {/* Venue and City at top so dropdowns aren't covered by fields below */}
             <View style={styles.inputGroup}>
               <PlaceAutocomplete
                 label="Venue/Location (Optional)"
@@ -596,6 +573,30 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   }
                 }}
                 error={cityError}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Date *</Text>
+              <TouchableOpacity
+                style={styles.pickerButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={[styles.pickerButtonText, !date && styles.placeholderText]}>
+                  {date || 'Select date'}
+                </Text>
+                <Text style={styles.pickerButtonIcon}>📅</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Title *</Text>
+              <TextInput
+                style={styles.input}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="e.g., Friday Night Show"
+                placeholderTextColor="#9ca3af"
               />
             </View>
 
