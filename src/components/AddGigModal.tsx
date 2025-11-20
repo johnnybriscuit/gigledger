@@ -576,7 +576,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               />
             </View>
 
-            <View style={styles.inputGroup}>
+            <View style={[styles.inputGroup, { zIndex: 0 }]}>
               <Text style={styles.label}>Date *</Text>
               <TouchableOpacity
                 style={styles.pickerButton}
@@ -589,7 +589,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               </TouchableOpacity>
             </View>
 
-            <View style={styles.inputGroup}>
+            <View style={[styles.inputGroup, { zIndex: 0 }]}>
               <Text style={styles.label}>Title *</Text>
               <TextInput
                 style={styles.input}
@@ -600,7 +600,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               />
             </View>
 
-            <View style={styles.row}>
+            <View style={[styles.row, { zIndex: 0 }]}>
               <View style={[styles.inputGroup, styles.flex1]}>
                 <Text style={styles.label}>State</Text>
                 <TouchableOpacity
@@ -628,7 +628,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               </View>
             </View>
 
-            <View style={styles.row}>
+            <View style={[styles.row, { zIndex: 0 }]}>
               <View style={[styles.inputGroup, styles.flex1]}>
                 <Text style={styles.label}>Gross Amount *</Text>
                 <TextInput
