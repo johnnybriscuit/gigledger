@@ -8,7 +8,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, TextInput, TouchableOpacity, FlatList, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { Text } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
-import { createPortal } from 'react-dom';
 
 interface PlacePrediction {
   description: string;
@@ -52,10 +51,8 @@ export function PlaceAutocomplete({
   const [showError, setShowError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionToken] = useState(() => generateSessionToken());
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
   const inputRef = useRef<TextInput>(null);
-  const containerRef = useRef<View>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const listId = useRef(`place-list-${Math.random().toString(36).substr(2, 9)}`).current;
 
@@ -122,35 +119,6 @@ export function PlaceAutocomplete({
     }, 250);
   }, [onChange, fetchPredictions]);
 
-  // Update dropdown position when opening (web only)
-  const updateDropdownPosition = useCallback(() => {
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && containerRef.current) {
-      // @ts-ignore - web-only method
-      const rect = containerRef.current.getBoundingClientRect?.();
-      if (rect) {
-        setDropdownPosition({
-          top: rect.bottom + 4,
-          left: rect.left,
-          width: rect.width,
-        });
-      }
-    }
-  }, []);
-
-  // Update position when dropdown opens
-  useEffect(() => {
-    if (isOpen && Platform.OS === 'web' && typeof window !== 'undefined') {
-      updateDropdownPosition();
-      // Update on scroll/resize
-      window.addEventListener('scroll', updateDropdownPosition, true);
-      window.addEventListener('resize', updateDropdownPosition);
-      return () => {
-        window.removeEventListener('scroll', updateDropdownPosition, true);
-        window.removeEventListener('resize', updateDropdownPosition);
-      };
-    }
-  }, [isOpen, updateDropdownPosition]);
-
   // Handle selection
   const handleSelect = useCallback((prediction: PlacePrediction) => {
     onChange(prediction.description);
@@ -213,17 +181,9 @@ export function PlaceAutocomplete({
   const renderDropdown = () => {
     if (!isOpen) return null;
 
-    const dropdownContent = (
+    return (
       <View 
-        style={[
-          styles.dropdown,
-          Platform.OS === 'web' && {
-            position: 'fixed',
-            top: dropdownPosition.top,
-            left: dropdownPosition.left,
-            width: dropdownPosition.width,
-          },
-        ]}
+        style={styles.dropdown}
         // @ts-ignore - web-only props
         id={Platform.OS === 'web' ? listId : undefined}
         role={Platform.OS === 'web' ? 'listbox' : undefined}
@@ -277,20 +237,13 @@ export function PlaceAutocomplete({
         )}
       </View>
     );
-
-    // On web, render in portal to escape modal overlay
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      return createPortal(dropdownContent, document.body);
-    }
-
-    return dropdownContent;
   };
 
   return (
     <View style={[styles.container, isOpen && styles.containerActive]}>
       <Text style={styles.label}>{label}</Text>
       
-      <View ref={containerRef} style={styles.inputContainer}>
+      <View style={styles.inputContainer}>
         <TextInput
           ref={inputRef}
           style={[
@@ -410,7 +363,7 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         // @ts-ignore - web-only styles
-        zIndex: 2000, // Higher than modal (modal is typically 1000-1500)
+        zIndex: 99999, // VERY high to appear above everything
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
         overflowY: 'auto',
         // Ensure no transparency
