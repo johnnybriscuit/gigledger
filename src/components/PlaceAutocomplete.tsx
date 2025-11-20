@@ -177,7 +177,7 @@ export function PlaceAutocomplete({
   const displayError = error || (showError ? 'Please choose a suggestion' : '');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isOpen && styles.containerActive]}>
       <Text style={styles.label}>{label}</Text>
       
       <View style={styles.inputContainer}>
@@ -271,6 +271,10 @@ export function PlaceAutocomplete({
 const styles = StyleSheet.create({
   container: {
     marginBottom: parseInt(spacing[4]),
+    zIndex: 1,
+  },
+  containerActive: {
+    zIndex: 1000, // Higher z-index when dropdown is open
   },
   label: {
     fontSize: 14,
@@ -280,6 +284,13 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     position: 'relative',
+    zIndex: 1,
+    ...Platform.select({
+      web: {
+        // @ts-ignore - web-only
+        overflow: 'visible',
+      },
+    }),
   },
   input: {
     borderWidth: 1,
@@ -311,38 +322,27 @@ const styles = StyleSheet.create({
     marginTop: parseInt(spacing[1]),
   },
   dropdown: {
-    ...Platform.select({
-      web: {
-        // @ts-ignore - web-only
-        position: 'fixed', // Fixed on web to escape scroll container
-      },
-      default: {
-        position: 'absolute',
-      },
-    }),
+    position: 'absolute',
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: '#ffffff', // Solid white background
-    borderWidth: 2, // Thicker border for better visibility
-    borderColor: '#3b82f6', // Blue border to stand out
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
     borderRadius: parseInt(radius.md),
     marginTop: parseInt(spacing[1]),
     maxHeight: 300,
-    zIndex: 9999, // Very high z-index to appear above modal content
-    opacity: 1, // Explicit opacity to prevent inheritance
+    zIndex: 10000,
     ...Platform.select({
       web: {
-        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)', // Even stronger shadow
-        // @ts-ignore - web-only
-        backdropFilter: 'none', // Prevent any backdrop effects
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
       },
       default: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 15,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 8,
       },
     }),
   },
