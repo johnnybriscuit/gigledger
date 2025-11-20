@@ -311,27 +311,38 @@ const styles = StyleSheet.create({
     marginTop: parseInt(spacing[1]),
   },
   dropdown: {
-    position: 'absolute',
+    ...Platform.select({
+      web: {
+        // @ts-ignore - web-only
+        position: 'fixed', // Fixed on web to escape scroll container
+      },
+      default: {
+        position: 'absolute',
+      },
+    }),
     top: '100%',
     left: 0,
     right: 0,
     backgroundColor: '#ffffff', // Solid white background
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
+    borderWidth: 2, // Thicker border for better visibility
+    borderColor: '#3b82f6', // Blue border to stand out
     borderRadius: parseInt(radius.md),
     marginTop: parseInt(spacing[1]),
     maxHeight: 300,
     zIndex: 9999, // Very high z-index to appear above modal content
+    opacity: 1, // Explicit opacity to prevent inheritance
     ...Platform.select({
       web: {
-        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)', // Stronger shadow
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)', // Even stronger shadow
+        // @ts-ignore - web-only
+        backdropFilter: 'none', // Prevent any backdrop effects
       },
       default: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 10,
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 15,
       },
     }),
   },
