@@ -53,8 +53,10 @@ export function PlaceAutocomplete({
   const [sessionToken] = useState(() => generateSessionToken());
 
   const inputRef = useRef<TextInput>(null);
+  const containerRef = useRef<View>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const listId = useRef(`place-list-${Math.random().toString(36).substr(2, 9)}`).current;
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Generate a session token for billing optimization
   function generateSessionToken(): string {
@@ -166,6 +168,22 @@ export function PlaceAutocomplete({
     }
   }, [isOpen, predictions, activeIndex, handleSelect]);
 
+  // Calculate dropdown position for fixed positioning on web
+  useEffect(() => {
+    if (Platform.OS === 'web' && isOpen && containerRef.current) {
+      const container = containerRef.current as any;
+      if (container.measure) {
+        container.measure((_x: number, _y: number, width: number, height: number, pageX: number, pageY: number) => {
+          setDropdownPosition({
+            top: pageY + height + 4,
+            left: pageX,
+            width: width,
+          });
+        });
+      }
+    }
+  }, [isOpen]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -181,9 +199,21 @@ export function PlaceAutocomplete({
   const renderDropdown = () => {
     if (!isOpen) return null;
 
+    const dropdownStyle = Platform.OS === 'web' && dropdownPosition
+      ? [
+          styles.dropdown,
+          {
+            position: 'fixed' as any,
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+          },
+        ]
+      : styles.dropdown;
+
     return (
       <View 
-        style={styles.dropdown}
+        style={dropdownStyle}
         // @ts-ignore - web-only props
         id={Platform.OS === 'web' ? listId : undefined}
         role={Platform.OS === 'web' ? 'listbox' : undefined}
@@ -243,7 +273,7 @@ export function PlaceAutocomplete({
     <View style={[styles.container, isOpen && styles.containerActive]}>
       <Text style={styles.label}>{label}</Text>
       
-      <View style={styles.inputContainer}>
+      <View ref={containerRef} style={styles.inputContainer}>
         <TextInput
           ref={inputRef}
           style={[
