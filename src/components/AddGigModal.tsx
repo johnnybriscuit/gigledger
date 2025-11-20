@@ -20,6 +20,7 @@ import { hasCompletedTaxProfile } from '../services/taxService';
 import { InlineExpensesList, type InlineExpense } from './gigs/InlineExpensesList';
 import { InlineMileageRow, type InlineMileage } from './gigs/InlineMileageRow';
 import { NetBar } from './gigs/NetBar';
+import { PlaceAutocomplete } from './PlaceAutocomplete';
 import { useTaxEstimate, calculateMileageDeduction } from '../hooks/useTaxEstimate';
 import { createGigWithLines } from '../services/gigService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -92,6 +93,10 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [country, setCountry] = useState('US');
+  const [venueDetails, setVenueDetails] = useState<any>(null);
+  const [cityDetails, setCityDetails] = useState<any>(null);
+  const [venueError, setVenueError] = useState('');
+  const [cityError, setCityError] = useState('');
   const [grossAmount, setGrossAmount] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStatePicker, setShowStatePicker] = useState(false);
@@ -509,24 +514,88 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Venue/Location (Optional)</Text>
-              <TextInput
-                style={styles.input}
+              <PlaceAutocomplete
+                label="Venue/Location (Optional)"
+                placeholder="Search for a venue..."
+                types="establishment"
                 value={location}
-                onChangeText={setLocation}
-                placeholder="e.g., Blue Note Jazz Club"
-                placeholderTextColor="#9ca3af"
+                onChange={(text) => {
+                  setLocation(text);
+                  setVenueDetails(null);
+                  setVenueError('');
+                }}
+                onSelect={async (item) => {
+                  setLocation(item.description);
+                  setVenueError('');
+                  
+                  // Fetch place details
+                  try {
+                    const response = await fetch(`/api/places/details?place_id=${item.place_id}`, {
+                      credentials: 'include',
+                    });
+                    
+                    if (response.ok) {
+                      const details = await response.json();
+                      setVenueDetails(details);
+                      
+                      // Auto-fill city, state, country if not already set
+                      if (!city && details.parts.city) {
+                        setCity(details.parts.city);
+                      }
+                      if (!state && details.parts.state) {
+                        setState(details.parts.state);
+                      }
+                      if (details.parts.country) {
+                        setCountry(details.parts.country);
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Error fetching venue details:', error);
+                  }
+                }}
+                error={venueError}
+                locationBias={cityDetails?.location}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>City</Text>
-              <TextInput
-                style={styles.input}
+              <PlaceAutocomplete
+                label="City"
+                placeholder="Search for a city..."
+                types="(cities)"
                 value={city}
-                onChangeText={setCity}
-                placeholder="e.g., Cincinnati"
-                placeholderTextColor="#9ca3af"
+                onChange={(text) => {
+                  setCity(text);
+                  setCityDetails(null);
+                  setCityError('');
+                }}
+                onSelect={async (item) => {
+                  setCity(item.description);
+                  setCityError('');
+                  
+                  // Fetch place details
+                  try {
+                    const response = await fetch(`/api/places/details?place_id=${item.place_id}`, {
+                      credentials: 'include',
+                    });
+                    
+                    if (response.ok) {
+                      const details = await response.json();
+                      setCityDetails(details);
+                      
+                      // Auto-fill state and country
+                      if (details.parts.state) {
+                        setState(details.parts.state);
+                      }
+                      if (details.parts.country) {
+                        setCountry(details.parts.country);
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Error fetching city details:', error);
+                  }
+                }}
+                error={cityError}
               />
             </View>
 
