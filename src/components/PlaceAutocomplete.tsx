@@ -364,11 +364,17 @@ const styles = StyleSheet.create({
       web: {
         // @ts-ignore - web-only styles
         zIndex: 99999, // VERY high to appear above everything
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)', // Stronger shadow
         overflowY: 'auto',
-        // Ensure no transparency
+        // Force full opacity - override any parent opacity
         opacity: 1,
         backdropFilter: 'none',
+        // Additional web-only styles for visibility
+        backgroundColor: 'rgb(255, 255, 255)', // RGB format for clarity
+        isolation: 'isolate', // Create new stacking context
+        // Force solid rendering
+        willChange: 'opacity',
+        transform: 'translateZ(0)', // Force GPU acceleration
       },
       default: {
         zIndex: 10000,
@@ -388,8 +394,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9', // slate-100
-    backgroundColor: '#ffffff',
-    cursor: 'pointer',
+    backgroundColor: 'rgb(255, 255, 255)', // Fully opaque white
+    ...Platform.select({
+      web: {
+        // @ts-ignore
+        cursor: 'pointer',
+        opacity: 1,
+      },
+    }),
   },
   dropdownItemHovered: {
     backgroundColor: '#f1f5f9', // slate-100
