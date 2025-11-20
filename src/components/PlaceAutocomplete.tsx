@@ -300,9 +300,21 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: parseInt(spacing[4]),
     zIndex: 1,
+    ...Platform.select({
+      web: {
+        // @ts-ignore
+        position: 'relative',
+      },
+    }),
   },
   containerActive: {
-    zIndex: 1000, // Higher z-index when dropdown is open
+    zIndex: 100000, // VERY high z-index when dropdown is open to overlap everything
+    ...Platform.select({
+      web: {
+        // @ts-ignore
+        position: 'relative',
+      },
+    }),
   },
   label: {
     fontSize: 14,
@@ -312,7 +324,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     position: 'relative',
-    zIndex: 1,
+    zIndex: 2,
     ...Platform.select({
       web: {
         // @ts-ignore - web-only
