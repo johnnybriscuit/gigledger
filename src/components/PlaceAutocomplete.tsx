@@ -355,8 +355,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#ffffff', // Fully opaque white
-    borderWidth: 1,
-    borderColor: '#e2e8f0', // slate-200
+    borderWidth: 2, // Thicker border for better visibility
+    borderColor: '#3b82f6', // Blue border to stand out
     borderRadius: 12,
     marginTop: 4,
     maxHeight: 288, // max-h-72
@@ -364,17 +364,15 @@ const styles = StyleSheet.create({
       web: {
         // @ts-ignore - web-only styles
         zIndex: 99999, // VERY high to appear above everything
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)', // Stronger shadow
+        boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.1), 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3)', // Blue glow + strong shadow
         overflowY: 'auto',
-        // Force full opacity - override any parent opacity
-        opacity: 1,
-        backdropFilter: 'none',
-        // Additional web-only styles for visibility
-        backgroundColor: 'rgb(255, 255, 255)', // RGB format for clarity
-        isolation: 'isolate', // Create new stacking context
+        // Multiple layers of white background for maximum opacity
+        backgroundColor: '#ffffff',
+        backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.95), rgba(255,255,255,0.95))',
         // Force solid rendering
-        willChange: 'opacity',
-        transform: 'translateZ(0)', // Force GPU acceleration
+        opacity: 1,
+        backdropFilter: 'blur(10px)', // Blur what's behind
+        WebkitBackdropFilter: 'blur(10px)',
       },
       default: {
         zIndex: 10000,
@@ -413,14 +411,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   mainText: {
-    fontSize: 14,
-    color: '#0f172a', // slate-900
-    fontWeight: '500',
+    fontSize: 15,
+    color: '#000000', // Pure black for maximum contrast
+    fontWeight: '600', // Semi-bold
     marginBottom: 2,
   },
   secondaryText: {
-    fontSize: 12,
-    color: '#64748b', // slate-500
+    fontSize: 13,
+    color: '#1e293b', // slate-800 (darker)
+    fontWeight: '500',
   },
   loadingItem: {
     paddingVertical: 12,
