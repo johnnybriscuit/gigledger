@@ -57,6 +57,13 @@ export const colors = {
     muted: '#fee2e2', // red-100
   },
   
+  // Error colors (alias for danger)
+  error: {
+    DEFAULT: '#ef4444', // red-500
+    foreground: '#ffffff',
+    muted: '#fee2e2', // red-100
+  },
+  
   // Border colors - subtle, minimal
   border: {
     DEFAULT: '#e5e7eb', // gray-200
