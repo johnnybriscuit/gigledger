@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, TextInput, TouchableOpacity, FlatList, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { Text } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
+import { createPortal } from 'react-dom';
 
 interface PlacePrediction {
   description: string;
@@ -51,8 +52,10 @@ export function PlaceAutocomplete({
   const [showError, setShowError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionToken] = useState(() => generateSessionToken());
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
   const inputRef = useRef<TextInput>(null);
+  const containerRef = useRef<View>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const listId = useRef(`place-list-${Math.random().toString(36).substr(2, 9)}`).current;
 
@@ -119,6 +122,35 @@ export function PlaceAutocomplete({
     }, 250);
   }, [onChange, fetchPredictions]);
 
+  // Update dropdown position when opening (web only)
+  const updateDropdownPosition = useCallback(() => {
+    if (Platform.OS === 'web' && containerRef.current) {
+      // @ts-ignore - web-only method
+      const rect = containerRef.current.getBoundingClientRect?.();
+      if (rect) {
+        setDropdownPosition({
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
+        });
+      }
+    }
+  }, []);
+
+  // Update position when dropdown opens
+  useEffect(() => {
+    if (isOpen && Platform.OS === 'web') {
+      updateDropdownPosition();
+      // Update on scroll/resize
+      window.addEventListener('scroll', updateDropdownPosition, true);
+      window.addEventListener('resize', updateDropdownPosition);
+      return () => {
+        window.removeEventListener('scroll', updateDropdownPosition, true);
+        window.removeEventListener('resize', updateDropdownPosition);
+      };
+    }
+  }, [isOpen, updateDropdownPosition]);
+
   // Handle selection
   const handleSelect = useCallback((prediction: PlacePrediction) => {
     onChange(prediction.description);
@@ -177,11 +209,88 @@ export function PlaceAutocomplete({
 
   const displayError = error || (showError ? 'Please choose a suggestion' : '');
 
+  // Render dropdown content
+  const renderDropdown = () => {
+    if (!isOpen) return null;
+
+    const dropdownContent = (
+      <View 
+        style={[
+          styles.dropdown,
+          Platform.OS === 'web' && {
+            position: 'fixed',
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+          },
+        ]}
+        // @ts-ignore - web-only props
+        id={Platform.OS === 'web' ? listId : undefined}
+        role={Platform.OS === 'web' ? 'listbox' : undefined}
+      >
+        {isLoading && predictions.length === 0 ? (
+          <View style={styles.loadingItem}>
+            <ActivityIndicator size="small" color={colors.brand.DEFAULT} />
+            <Text style={styles.secondaryText}>Searching...</Text>
+          </View>
+        ) : predictions.length === 0 ? (
+          <View style={styles.emptyItem}>
+            <Text style={styles.secondaryText}>No matches found</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={predictions}
+            keyExtractor={(item) => item.place_id}
+            renderItem={({ item, index }) => (
+              <View
+                // @ts-ignore - web-only props
+                onMouseEnter={() => Platform.OS === 'web' && setHoveredIndex(index)}
+                onMouseLeave={() => Platform.OS === 'web' && setHoveredIndex(-1)}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.dropdownItem,
+                    index === activeIndex && styles.dropdownItemActive,
+                    index === hoveredIndex && styles.dropdownItemHovered,
+                    index === predictions.length - 1 && styles.dropdownItemLast,
+                  ]}
+                  onPress={() => handleSelect(item)}
+                  // @ts-ignore - web-only props
+                  id={Platform.OS === 'web' ? `${listId}-item-${index}` : undefined}
+                  role={Platform.OS === 'web' ? 'option' : undefined}
+                  aria-selected={Platform.OS === 'web' ? index === activeIndex : undefined}
+                >
+                  {item.structured_formatting ? (
+                    <View>
+                      <Text style={styles.mainText}>{item.structured_formatting.main_text}</Text>
+                      <Text style={styles.secondaryText}>{item.structured_formatting.secondary_text}</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.mainText}>{item.description}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+            style={styles.dropdownList}
+            keyboardShouldPersistTaps="handled"
+          />
+        )}
+      </View>
+    );
+
+    // On web, render in portal to escape modal overlay
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      return createPortal(dropdownContent, document.body);
+    }
+
+    return dropdownContent;
+  };
+
   return (
     <View style={[styles.container, isOpen && styles.containerActive]}>
       <Text style={styles.label}>{label}</Text>
       
-      <View style={styles.inputContainer}>
+      <View ref={containerRef} style={styles.inputContainer}>
         <TextInput
           ref={inputRef}
           style={[
@@ -228,62 +337,8 @@ export function PlaceAutocomplete({
         </Text>
       )}
 
-      {isOpen && (
-        <View 
-          style={styles.dropdown}
-          // @ts-ignore - web-only props
-          id={Platform.OS === 'web' ? listId : undefined}
-          role={Platform.OS === 'web' ? 'listbox' : undefined}
-        >
-          {isLoading && predictions.length === 0 ? (
-            <View style={styles.loadingItem}>
-              <ActivityIndicator size="small" color={colors.brand.DEFAULT} />
-              <Text style={styles.secondaryText}>Searching...</Text>
-            </View>
-          ) : predictions.length === 0 ? (
-            <View style={styles.emptyItem}>
-              <Text style={styles.secondaryText}>No matches found</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={predictions}
-              keyExtractor={(item) => item.place_id}
-              renderItem={({ item, index }) => (
-                <View
-                  // @ts-ignore - web-only props
-                  onMouseEnter={() => Platform.OS === 'web' && setHoveredIndex(index)}
-                  onMouseLeave={() => Platform.OS === 'web' && setHoveredIndex(-1)}
-                >
-                  <TouchableOpacity
-                    style={[
-                      styles.dropdownItem,
-                      index === activeIndex && styles.dropdownItemActive,
-                      index === hoveredIndex && styles.dropdownItemHovered,
-                      index === predictions.length - 1 && styles.dropdownItemLast,
-                    ]}
-                    onPress={() => handleSelect(item)}
-                    // @ts-ignore - web-only props
-                    id={Platform.OS === 'web' ? `${listId}-item-${index}` : undefined}
-                    role={Platform.OS === 'web' ? 'option' : undefined}
-                    aria-selected={Platform.OS === 'web' ? index === activeIndex : undefined}
-                  >
-                    {item.structured_formatting ? (
-                      <View>
-                        <Text style={styles.mainText}>{item.structured_formatting.main_text}</Text>
-                        <Text style={styles.secondaryText}>{item.structured_formatting.secondary_text}</Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.mainText}>{item.description}</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
-              style={styles.dropdownList}
-              keyboardShouldPersistTaps="handled"
-            />
-          )}
-        </View>
-      )}
+      {/* Render dropdown via portal on web, inline on native */}
+      {renderDropdown()}
     </View>
   );
 }
@@ -346,20 +401,24 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#ffffff', // Fully opaque white
     borderWidth: 1,
     borderColor: '#e2e8f0', // slate-200
     borderRadius: 12,
     marginTop: 4,
     maxHeight: 288, // max-h-72
-    zIndex: 10000,
     ...Platform.select({
       web: {
+        // @ts-ignore - web-only styles
+        zIndex: 2000, // Higher than modal (modal is typically 1000-1500)
         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-        // @ts-ignore
         overflowY: 'auto',
+        // Ensure no transparency
+        opacity: 1,
+        backdropFilter: 'none',
       },
       default: {
+        zIndex: 10000,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
