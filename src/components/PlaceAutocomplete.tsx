@@ -124,7 +124,7 @@ export function PlaceAutocomplete({
 
   // Update dropdown position when opening (web only)
   const updateDropdownPosition = useCallback(() => {
-    if (Platform.OS === 'web' && containerRef.current) {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && containerRef.current) {
       // @ts-ignore - web-only method
       const rect = containerRef.current.getBoundingClientRect?.();
       if (rect) {
@@ -139,7 +139,7 @@ export function PlaceAutocomplete({
 
   // Update position when dropdown opens
   useEffect(() => {
-    if (isOpen && Platform.OS === 'web') {
+    if (isOpen && Platform.OS === 'web' && typeof window !== 'undefined') {
       updateDropdownPosition();
       // Update on scroll/resize
       window.addEventListener('scroll', updateDropdownPosition, true);
