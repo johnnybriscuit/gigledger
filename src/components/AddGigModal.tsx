@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useCreateGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs';
 import { usePayers, type Payer } from '../hooks/usePayers';
+import { useProfile } from '../hooks/useProfile';
 import { gigSchema, type GigFormData } from '../lib/validations';
 import { PayerFormModal } from './PayerFormModal';
 import { useWithholding } from '../hooks/useWithholding';
@@ -125,22 +126,17 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   const updateGig = useUpdateGig();
   const queryClient = useQueryClient();
   
-  // Fetch user profile for home address
-  const { data: profile } = useQuery<{ home_address: string | null }>({
-    queryKey: ['profile'],
+  // Fetch user for profile
+  const { data: user } = useQuery({
+    queryKey: ['user'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      
-      const { data } = await supabase
-        .from('profiles')
-        .select('home_address')
-        .eq('id', user.id)
-        .single();
-      
-      return data as any;
+      return user;
     },
   });
+  
+  // Fetch user profile with home address
+  const { data: profile } = useProfile(user?.id);
   
   // Calculate totals for inline items
   const totalExpenses = inlineExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
@@ -828,8 +824,12 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             <InlineMileageRow
               mileage={inlineMileage}
               onChange={setInlineMileage}
-              homeAddress={profile?.home_address}
-              venueAddress={venueAddress || undefined}
+              homeAddress={profile ? {
+                full: profile.home_address_full,
+                lat: profile.home_address_lat,
+                lng: profile.home_address_lng,
+              } : null}
+              venueLocation={venueDetails?.location || cityDetails?.location || null}
             />
 
             <View style={{ height: 100 }} />

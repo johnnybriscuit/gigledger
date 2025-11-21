@@ -7,7 +7,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { IRS_MILEAGE_RATE, calculateMileageDeduction } from '../../hooks/useTaxEstimate';
-import { calculateDrivingDistance } from '../../services/mileageService';
+import { drivingMiles, formatProvider, type LatLng } from '../../lib/geo';
 
 export interface InlineMileage {
   miles: string;
@@ -19,11 +19,15 @@ export interface InlineMileage {
 interface InlineMileageRowProps {
   mileage: InlineMileage | null;
   onChange: (mileage: InlineMileage | null) => void;
-  homeAddress?: string | null;
-  venueAddress?: string; // From gig location/city/state
+  homeAddress?: {
+    full: string | null;
+    lat: number | null;
+    lng: number | null;
+  } | null;
+  venueLocation?: LatLng | null; // Venue lat/lng from autocomplete
 }
 
-export function InlineMileageRow({ mileage, onChange, homeAddress, venueAddress }: InlineMileageRowProps) {
+export function InlineMileageRow({ mileage, onChange, homeAddress, venueLocation }: InlineMileageRowProps) {
   const [calculating, setCalculating] = useState(false);
   const [useAutoCalculate, setUseAutoCalculate] = useState(false);
   
@@ -31,41 +35,31 @@ export function InlineMileageRow({ mileage, onChange, homeAddress, venueAddress 
   const deduction = calculateMileageDeduction(miles);
   const roundTrip = mileage?.roundTrip ?? true;
 
-  const canAutoCalculate = homeAddress && venueAddress;
+  const canAutoCalculate = homeAddress?.lat && homeAddress?.lng && venueLocation?.lat && venueLocation?.lng;
 
   const handleAutoCalculate = async () => {
-    if (!homeAddress || !venueAddress) return;
+    if (!homeAddress?.lat || !homeAddress?.lng || !venueLocation?.lat || !venueLocation?.lng) return;
     
     setCalculating(true);
     try {
-      const result = await calculateDrivingDistance(homeAddress, venueAddress, roundTrip);
-      if (result) {
-        onChange({
-          miles: result.miles.toString(),
-          note: `Auto: ${result.distance} (${result.duration})${roundTrip ? ' round trip' : ''}`,
-          venueAddress,
-          roundTrip,
-        });
+      const result = await drivingMiles(
+        { lat: homeAddress.lat, lng: homeAddress.lng },
+        { lat: venueLocation.lat, lng: venueLocation.lng }
+      );
+      
+      let calculatedMiles = result.miles;
+      if (roundTrip) {
+        calculatedMiles *= 2;
       }
+      
+      onChange({
+        miles: calculatedMiles.toFixed(1),
+        note: `Calculated via ${formatProvider(result.provider)}${roundTrip ? ' (round trip)' : ''}`,
+        roundTrip,
+      });
     } catch (error: any) {
       console.error('Error calculating mileage:', error);
-      
-      // Provide specific error messages based on error type
-      let errorMessage = 'Failed to calculate mileage. Please enter manually.';
-      
-      if (error.message === 'API_KEY_MISSING') {
-        errorMessage = 'Google Maps API not configured. Please enter miles manually or add API key in settings.';
-      } else if (error.message === 'API_KEY_INVALID') {
-        errorMessage = 'Google Maps API key is invalid or restricted. Please check your API key configuration.';
-      } else if (error.message === 'NO_ROUTE') {
-        errorMessage = 'No route found between addresses. Please check the addresses and try again.';
-      } else if (error.message === 'NETWORK_ERROR') {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error.message === 'API_ERROR') {
-        errorMessage = 'Google Maps API error. Please try again or enter miles manually.';
-      }
-      
-      alert(errorMessage);
+      alert('Failed to calculate mileage. Please enter manually.');
     } finally {
       setCalculating(false);
     }
@@ -143,12 +137,16 @@ export function InlineMileageRow({ mileage, onChange, homeAddress, venueAddress 
         </View>
       )}
 
-      {!canAutoCalculate && homeAddress && (
+      {!canAutoCalculate && homeAddress?.full && !venueLocation && (
         <Text style={styles.hint}>Add venue location to auto-calculate mileage</Text>
       )}
 
-      {!homeAddress && (
+      {!homeAddress?.full && (
         <Text style={styles.hint}>Add home address in Account settings to enable auto-calculate</Text>
+      )}
+      
+      {homeAddress?.full && !homeAddress?.lat && (
+        <Text style={styles.hint}>Home address missing coordinates. Please re-select in Account settings.</Text>
       )}
 
       <View style={styles.inputRow}>
