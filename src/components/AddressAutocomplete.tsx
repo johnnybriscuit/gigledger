@@ -151,10 +151,14 @@ export function AddressAutocomplete({
     inputRef.current?.focus();
   }, [onChange, onSelect]);
 
-  // Handle focus - DON'T auto-reopen, let typing control it
+  // Pointer-down pattern: prevents blur-closing during click
+  const selectingRef = useRef(false);
+
+  // Handle focus - only open if results already exist
   const handleFocus = () => {
-    // Do nothing - dropdown opens when user types and results arrive
-    // This prevents flicker on focus
+    if (predictions.length > 0) {
+      setIsOpen(true);
+    }
   };
 
   // Keyboard navigation using shared utilities
@@ -231,22 +235,15 @@ export function AddressAutocomplete({
           value={value}
           onChangeText={handleInputChange}
           onFocus={handleFocus}
-          onBlur={(e: any) => {
-            if (ignoreBlurRef.current) {
-              ignoreBlurRef.current = false;
+          onBlur={() => {
+            // Pointer-down pattern: if selecting, keep open
+            if (selectingRef.current) {
+              selectingRef.current = false;
               return;
             }
-            
-            // Check if focus is moving into the dropdown menu (web only)
-            if (Platform.OS === 'web' && e.relatedTarget) {
-              const next = e.relatedTarget as HTMLElement;
-              if (menuRef.current && menuRef.current.contains(next)) {
-                return; // Focus moved into dropdown — keep it open
-              }
-            }
-            
-            // NO TIMEOUT - immediate close to prevent flicker
+            // Close immediately - no setTimeout
             setIsOpen(false);
+            setHighlightedIndex(-1);
           }}
           placeholder={placeholder}
           placeholderTextColor={colors.text.muted}
@@ -296,11 +293,11 @@ export function AddressAutocomplete({
                 ]}
                 onPress={() => handleSelect(item)}
                 // @ts-ignore - web-only props
-                onMouseDown={(e: any) => {
-                  // CRITICAL: Prevent input blur when clicking dropdown items
-                  e.preventDefault();
-                  ignoreBlurRef.current = true;
+                onPointerDown={() => {
+                  // Pointer-down pattern: mark that we're selecting
+                  selectingRef.current = true;
                 }}
+                onMouseEnter={() => setHighlightedIndex(index)}
                 accessibilityRole={Platform.OS === 'web' ? 'option' : undefined}
               >
                 {item.structured_formatting ? (

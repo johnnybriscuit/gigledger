@@ -169,31 +169,26 @@ export function PlaceAutocomplete({
     onSelect(prediction);
   }, [onChange, onSelect]);
 
-  // Handle blur - stable pattern to prevent flicker
-  const handleBlur = (e: any) => {
-    // If we're clicking inside the dropdown, don't close
-    if (ignoreBlurRef.current) {
-      ignoreBlurRef.current = false;
+  // Pointer-down pattern: prevents blur-closing during click
+  const selectingRef = useRef(false);
+
+  const handleBlur = () => {
+    // If blur was caused by selecting an option, keep open;
+    // selection will close it in onClick
+    if (selectingRef.current) {
+      selectingRef.current = false;
       return;
     }
-    
-    // Check if focus is moving into the dropdown menu (web only)
-    if (Platform.OS === 'web' && e.relatedTarget) {
-      const next = e.relatedTarget as HTMLElement;
-      if (menuRef.current && menuRef.current.contains(next)) {
-        return; // Focus moved into dropdown — keep it open
-      }
-    }
-    
-    // Close dropdown on real blur (clicking outside, tab away)
-    // NO TIMEOUT - immediate close to prevent flicker
+    // Close immediately - no setTimeout
     setIsOpen(false);
+    setActiveIndex(-1);
   };
 
-  // Handle focus - DON'T auto-reopen, let typing control it
+  // Handle focus - only open if results already exist
   const handleFocus = () => {
-    // Do nothing - dropdown opens when user types and results arrive
-    // This prevents flicker on focus
+    if (predictions.length > 0) {
+      setIsOpen(true);
+    }
   };
 
   // Keyboard navigation using shared utilities
@@ -315,11 +310,11 @@ export function PlaceAutocomplete({
                 ]}
                 onPress={() => handleSelect(item)}
                 // @ts-ignore - web-only props
-                onMouseDown={(e: any) => {
-                  // CRITICAL: Prevent input blur when clicking dropdown items
-                  e.preventDefault();
-                  ignoreBlurRef.current = true;
+                onPointerDown={() => {
+                  // Pointer-down pattern: mark that we're selecting
+                  selectingRef.current = true;
                 }}
+                onMouseEnter={() => setActiveIndex(index)}
                 accessibilityRole={Platform.OS === 'web' ? 'menuitem' : undefined}
               >
                 {item.structured_formatting ? (
