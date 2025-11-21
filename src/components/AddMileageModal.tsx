@@ -13,6 +13,7 @@ import { useCreateMileage, useUpdateMileage, calculateMileageDeduction, IRS_MILE
 import { mileageSchema, type MileageFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
+import { PlaceAutocomplete } from './PlaceAutocomplete';
 
 interface AddMileageModalProps {
   visible: boolean;
@@ -147,27 +148,23 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Start Location *</Text>
-              <TextInput
-                style={styles.input}
-                value={startLocation}
-                onChangeText={setStartLocation}
-                placeholder="e.g., Cincinnati, OH"
-                placeholderTextColor="#9ca3af"
-              />
-            </View>
+            <PlaceAutocomplete
+              label="Start Location *"
+              placeholder="e.g., Cincinnati, OH"
+              types="address"
+              value={startLocation}
+              onChange={setStartLocation}
+              onSelect={(item) => setStartLocation(item.description)}
+            />
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>End Location *</Text>
-              <TextInput
-                style={styles.input}
-                value={endLocation}
-                onChangeText={setEndLocation}
-                placeholder="e.g., Columbus, OH"
-                placeholderTextColor="#9ca3af"
-              />
-            </View>
+            <PlaceAutocomplete
+              label="End Location *"
+              placeholder="e.g., Columbus, OH"
+              types="address"
+              value={endLocation}
+              onChange={setEndLocation}
+              onSelect={(item) => setEndLocation(item.description)}
+            />
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Miles *</Text>

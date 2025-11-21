@@ -4,8 +4,6 @@
 
 ### 1. Vercel Environment Variables (5 min)
 
-Go to: **Vercel Dashboard → gigledger-ten → Settings → Environment Variables**
-
 Add these if not already set:
 
 ```bash
