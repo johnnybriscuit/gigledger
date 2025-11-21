@@ -1,7 +1,7 @@
 /**
  * AddressAutocomplete Component
- * Google Places Autocomplete for addresses - allows free-form input
- * Unlike PlaceAutocomplete, this doesn't require confirmed selection
+ * Free-solo address input with optional autocomplete suggestions
+ * Allows typing freely - no forced selection
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -39,7 +39,7 @@ export function AddressAutocomplete({
 }: AddressAutocompleteProps) {
   const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [sessionToken] = useState(() => generateSessionToken());
@@ -99,6 +99,7 @@ export function AddressAutocomplete({
       if (data.predictions && data.predictions.length > 0) {
         measure();
         setIsOpen(true);
+        setHighlightedIndex(-1); // Reset highlight
       } else {
         setIsOpen(false);
       }
@@ -114,7 +115,7 @@ export function AddressAutocomplete({
     }
   }, [sessionToken, measure]);
 
-  // Handle input change - allows free-form typing
+  // Handle input change - FREE TYPING, no interception
   const handleInputChange = (text: string) => {
     onChange(text);
 
@@ -132,10 +133,12 @@ export function AddressAutocomplete({
     onChange(prediction.description);
     setIsOpen(false);
     setPredictions([]);
-    setActiveIndex(-1);
+    setHighlightedIndex(-1);
+    // Keep focus on input
+    inputRef.current?.focus();
   }, [onChange]);
 
-  // Handle focus
+  // Handle focus - reopen if has predictions
   const handleFocus = () => {
     if (value && predictions.length > 0) {
       measure();
@@ -143,31 +146,46 @@ export function AddressAutocomplete({
     }
   };
 
-  // Keyboard navigation
+  // Keyboard navigation - ONLY handle arrow keys, Enter, Escape
   const handleKeyDown = useCallback((e: any) => {
     if (!isOpen) return;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setActiveIndex(prev => (prev < predictions.length - 1 ? prev + 1 : prev));
+        setHighlightedIndex(prev => 
+          prev < predictions.length - 1 ? prev + 1 : prev
+        );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setActiveIndex(prev => (prev > 0 ? prev - 1 : -1));
+        setHighlightedIndex(prev => (prev > 0 ? prev - 1 : -1));
         break;
       case 'Enter':
-        e.preventDefault();
-        if (activeIndex >= 0 && activeIndex < predictions.length) {
-          handleSelect(predictions[activeIndex]);
+        if (highlightedIndex >= 0 && highlightedIndex < predictions.length) {
+          e.preventDefault();
+          handleSelect(predictions[highlightedIndex]);
         }
+        // If no highlight, let Enter pass through (form submission)
         break;
       case 'Escape':
         e.preventDefault();
         setIsOpen(false);
+        setHighlightedIndex(-1);
+        break;
+      // DO NOT intercept: Space, Tab, letters, numbers, punctuation
+      default:
+        // Let all other keys pass through for free typing
         break;
     }
-  }, [isOpen, predictions, activeIndex, handleSelect]);
+  }, [isOpen, predictions, highlightedIndex, handleSelect]);
+
+  // Close dropdown on overlay click
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+    // Keep typed value - no auto-select
+  }, []);
 
   // Cleanup
   useEffect(() => {
@@ -219,14 +237,14 @@ export function AddressAutocomplete({
       <DropdownOverlay
         visible={isOpen}
         anchor={anchor}
-        onClose={() => setIsOpen(false)}
+        onClose={handleClose}
       >
         {fetchError ? (
-          <View style={styles.errorContainer}>
+          <View style={styles.messageContainer}>
             <Text style={styles.errorMessage}>{fetchError}</Text>
           </View>
         ) : predictions.length === 0 ? (
-          <View style={styles.emptyContainer}>
+          <View style={styles.messageContainer}>
             <Text style={styles.emptyText}>No matches found</Text>
           </View>
         ) : (
@@ -238,18 +256,22 @@ export function AddressAutocomplete({
               <Pressable
                 style={({ pressed }) => [
                   styles.item,
-                  index === activeIndex && styles.itemActive,
+                  index === highlightedIndex && styles.itemHighlighted,
                   pressed && styles.itemPressed,
                 ]}
                 onPress={() => handleSelect(item)}
                 // @ts-ignore - web-only
-                accessibilityRole={Platform.OS === 'web' ? 'menuitem' : undefined}
+                accessibilityRole={Platform.OS === 'web' ? 'option' : undefined}
               >
                 {item.structured_formatting ? (
-                  <View>
-                    <Text style={styles.mainText}>{item.structured_formatting.main_text}</Text>
-                    <Text style={styles.secondaryText}>{item.structured_formatting.secondary_text}</Text>
-                  </View>
+                  <>
+                    <Text style={styles.mainText}>
+                      {item.structured_formatting.main_text}
+                    </Text>
+                    <Text style={styles.secondaryText}>
+                      {item.structured_formatting.secondary_text}
+                    </Text>
+                  </>
                 ) : (
                   <Text style={styles.mainText}>{item.description}</Text>
                 )}
@@ -305,7 +327,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  itemActive: {
+  itemHighlighted: {
     backgroundColor: '#EEF2FF',
   },
   itemPressed: {
@@ -321,17 +343,13 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
   },
-  emptyContainer: {
+  messageContainer: {
     padding: 20,
     alignItems: 'center',
   },
   emptyText: {
     fontSize: 14,
     color: '#6B7280',
-  },
-  errorContainer: {
-    padding: 20,
-    alignItems: 'center',
   },
   errorMessage: {
     fontSize: 14,
