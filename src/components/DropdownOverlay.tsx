@@ -12,6 +12,7 @@ type DropdownOverlayProps = {
   visible: boolean;
   anchor: AnchorLayout;
   onClose: () => void;
+  onMouseDown?: () => void; // Called when clicking inside dropdown (prevents blur)
   children: ReactNode;
   maxHeight?: number;
 };
@@ -20,6 +21,7 @@ export default function DropdownOverlay({
   visible,
   anchor,
   onClose,
+  onMouseDown,
   children,
   maxHeight = 320,
 }: DropdownOverlayProps) {

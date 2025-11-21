@@ -51,6 +51,7 @@ export function AddressAutocomplete({
   const inputRef = useRef<TextInput>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
+  const ignoreBlurRef = useRef(false); // Prevent blur when clicking inside dropdown
 
   const { anchor, measure } = useAnchorLayout(anchorRef);
 
@@ -230,6 +231,13 @@ export function AddressAutocomplete({
           value={value}
           onChangeText={handleInputChange}
           onFocus={handleFocus}
+          onBlur={() => {
+            if (ignoreBlurRef.current) {
+              ignoreBlurRef.current = false;
+              return;
+            }
+            setTimeout(() => setIsOpen(false), 150);
+          }}
           placeholder={placeholder}
           placeholderTextColor={colors.text.muted}
           editable={!disabled}
@@ -276,7 +284,8 @@ export function AddressAutocomplete({
                   pressed && styles.itemPressed,
                 ]}
                 onPress={() => handleSelect(item)}
-                // @ts-ignore - web-only
+                // @ts-ignore - web-only props
+                onMouseDown={() => { ignoreBlurRef.current = true; }}
                 accessibilityRole={Platform.OS === 'web' ? 'option' : undefined}
               >
                 {item.structured_formatting ? (

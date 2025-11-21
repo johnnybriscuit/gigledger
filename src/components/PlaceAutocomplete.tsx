@@ -66,6 +66,7 @@ export function PlaceAutocomplete({
   const inputRef = useRef<TextInput>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
+  const ignoreBlurRef = useRef(false); // Prevent blur when clicking inside dropdown
 
   const { anchor, measure } = useAnchorLayout(anchorRef);
 
@@ -166,10 +167,14 @@ export function PlaceAutocomplete({
     onSelect(prediction);
   }, [onChange, onSelect]);
 
-  // Handle blur - no forced selection
+  // Handle blur - stable pattern to prevent flicker
   const handleBlur = () => {
-    // Allow free-form input without requiring selection
-    // Just close the dropdown if it's open
+    // If we're clicking inside the dropdown, don't close
+    if (ignoreBlurRef.current) {
+      ignoreBlurRef.current = false;
+      return;
+    }
+    // Close dropdown on real blur (clicking outside, tab away)
     setTimeout(() => {
       setIsOpen(false);
     }, 150);
@@ -300,7 +305,8 @@ export function PlaceAutocomplete({
                   pressed && styles.itemPressed,
                 ]}
                 onPress={() => handleSelect(item)}
-                // @ts-ignore - web-only
+                // @ts-ignore - web-only props
+                onMouseDown={() => { ignoreBlurRef.current = true; }}
                 accessibilityRole={Platform.OS === 'web' ? 'menuitem' : undefined}
               >
                 {item.structured_formatting ? (
