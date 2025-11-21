@@ -296,7 +296,11 @@ export function AddressAutocomplete({
                 ]}
                 onPress={() => handleSelect(item)}
                 // @ts-ignore - web-only props
-                onMouseDown={() => { ignoreBlurRef.current = true; }}
+                onMouseDown={(e: any) => {
+                  // CRITICAL: Prevent input blur when clicking dropdown items
+                  e.preventDefault();
+                  ignoreBlurRef.current = true;
+                }}
                 accessibilityRole={Platform.OS === 'web' ? 'option' : undefined}
               >
                 {item.structured_formatting ? (

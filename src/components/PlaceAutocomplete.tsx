@@ -317,7 +317,11 @@ export function PlaceAutocomplete({
                 ]}
                 onPress={() => handleSelect(item)}
                 // @ts-ignore - web-only props
-                onMouseDown={() => { ignoreBlurRef.current = true; }}
+                onMouseDown={(e: any) => {
+                  // CRITICAL: Prevent input blur when clicking dropdown items
+                  e.preventDefault();
+                  ignoreBlurRef.current = true;
+                }}
                 accessibilityRole={Platform.OS === 'web' ? 'menuitem' : undefined}
               >
                 {item.structured_formatting ? (
