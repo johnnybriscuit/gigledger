@@ -49,6 +49,7 @@ export function AddressAutocomplete({
 
   const anchorRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null); // Track dropdown for relatedTarget check
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
   const ignoreBlurRef = useRef(false); // Prevent blur when clicking inside dropdown
@@ -231,11 +232,20 @@ export function AddressAutocomplete({
           value={value}
           onChangeText={handleInputChange}
           onFocus={handleFocus}
-          onBlur={() => {
+          onBlur={(e: any) => {
             if (ignoreBlurRef.current) {
               ignoreBlurRef.current = false;
               return;
             }
+            
+            // Check if focus is moving into the dropdown menu (web only)
+            if (Platform.OS === 'web' && e.relatedTarget) {
+              const next = e.relatedTarget as HTMLElement;
+              if (menuRef.current && menuRef.current.contains(next)) {
+                return; // Focus moved into dropdown — keep it open
+              }
+            }
+            
             setTimeout(() => setIsOpen(false), 150);
           }}
           placeholder={placeholder}
@@ -262,6 +272,7 @@ export function AddressAutocomplete({
         visible={isOpen}
         anchor={anchor}
         onClose={handleClose}
+        menuRef={menuRef}
       >
         {fetchError ? (
           <View style={styles.messageContainer}>

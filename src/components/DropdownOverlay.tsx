@@ -13,6 +13,7 @@ type DropdownOverlayProps = {
   anchor: AnchorLayout;
   onClose: () => void;
   onMouseDown?: () => void; // Called when clicking inside dropdown (prevents blur)
+  menuRef?: React.RefObject<any>; // Ref to attach to dropdown for relatedTarget checks
   children: ReactNode;
   maxHeight?: number;
 };
@@ -22,6 +23,7 @@ export default function DropdownOverlay({
   anchor,
   onClose,
   onMouseDown,
+  menuRef,
   children,
   maxHeight = 320,
 }: DropdownOverlayProps) {
@@ -57,9 +59,11 @@ export default function DropdownOverlay({
 
       {/* Dropdown menu anchored to input */}
       <View
+        ref={menuRef as any}
         style={[styles.menu, menuStyle]}
         // @ts-ignore - web-only props
         accessibilityRole={Platform.OS === 'web' ? 'menu' : undefined}
+        tabIndex={-1}
       >
         {children}
       </View>

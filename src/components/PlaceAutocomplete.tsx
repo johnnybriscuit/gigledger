@@ -64,6 +64,7 @@ export function PlaceAutocomplete({
 
   const anchorRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null); // Track dropdown for relatedTarget check
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
   const ignoreBlurRef = useRef(false); // Prevent blur when clicking inside dropdown
@@ -168,12 +169,21 @@ export function PlaceAutocomplete({
   }, [onChange, onSelect]);
 
   // Handle blur - stable pattern to prevent flicker
-  const handleBlur = () => {
+  const handleBlur = (e: any) => {
     // If we're clicking inside the dropdown, don't close
     if (ignoreBlurRef.current) {
       ignoreBlurRef.current = false;
       return;
     }
+    
+    // Check if focus is moving into the dropdown menu (web only)
+    if (Platform.OS === 'web' && e.relatedTarget) {
+      const next = e.relatedTarget as HTMLElement;
+      if (menuRef.current && menuRef.current.contains(next)) {
+        return; // Focus moved into dropdown — keep it open
+      }
+    }
+    
     // Close dropdown on real blur (clicking outside, tab away)
     setTimeout(() => {
       setIsOpen(false);
@@ -283,6 +293,7 @@ export function PlaceAutocomplete({
         visible={isOpen}
         anchor={anchor}
         onClose={() => setIsOpen(false)}
+        menuRef={menuRef}
       >
         {fetchError ? (
           <View style={styles.errorContainer}>
