@@ -152,9 +152,10 @@ export function PlaceAutocomplete({
       clearTimeout(debounceTimer.current);
     }
 
+    // Debounce 300ms - feels more stable, like Google autocomplete
     debounceTimer.current = setTimeout(() => {
       fetchPredictions(text);
-    }, 250);
+    }, 300);
   };
 
   // Handle selection
@@ -185,17 +186,14 @@ export function PlaceAutocomplete({
     }
     
     // Close dropdown on real blur (clicking outside, tab away)
-    setTimeout(() => {
-      setIsOpen(false);
-    }, 150);
+    // NO TIMEOUT - immediate close to prevent flicker
+    setIsOpen(false);
   };
 
-  // Handle focus
+  // Handle focus - DON'T auto-reopen, let typing control it
   const handleFocus = () => {
-    if (value && predictions.length > 0) {
-      measure();
-      setIsOpen(true);
-    }
+    // Do nothing - dropdown opens when user types and results arrive
+    // This prevents flicker on focus
   };
 
   // Keyboard navigation using shared utilities

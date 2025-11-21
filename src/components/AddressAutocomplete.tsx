@@ -128,9 +128,10 @@ export function AddressAutocomplete({
       clearTimeout(debounceTimer.current);
     }
 
+    // Debounce 300ms - feels more stable, like Google autocomplete
     debounceTimer.current = setTimeout(() => {
       fetchPredictions(text);
-    }, 250);
+    }, 300);
   };
 
   // Handle selection from dropdown
@@ -150,12 +151,10 @@ export function AddressAutocomplete({
     inputRef.current?.focus();
   }, [onChange, onSelect]);
 
-  // Handle focus - reopen if has predictions
+  // Handle focus - DON'T auto-reopen, let typing control it
   const handleFocus = () => {
-    if (value && predictions.length > 0) {
-      measure();
-      setIsOpen(true);
-    }
+    // Do nothing - dropdown opens when user types and results arrive
+    // This prevents flicker on focus
   };
 
   // Keyboard navigation using shared utilities
@@ -246,7 +245,8 @@ export function AddressAutocomplete({
               }
             }
             
-            setTimeout(() => setIsOpen(false), 150);
+            // NO TIMEOUT - immediate close to prevent flicker
+            setIsOpen(false);
           }}
           placeholder={placeholder}
           placeholderTextColor={colors.text.muted}
