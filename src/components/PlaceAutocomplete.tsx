@@ -174,13 +174,14 @@ export function PlaceAutocomplete({
     }
   };
 
-  // Keyboard navigation
+  // Keyboard navigation - ONLY handle arrow keys, Enter, Escape, Tab
   const handleKeyDown = useCallback((e: any) => {
-    if (!isOpen) return;
-
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
+        if (!isOpen && predictions.length > 0) {
+          setIsOpen(true);
+        }
         setActiveIndex(prev => (prev < predictions.length - 1 ? prev + 1 : prev));
         break;
       case 'ArrowUp':
@@ -188,14 +189,25 @@ export function PlaceAutocomplete({
         setActiveIndex(prev => (prev > 0 ? prev - 1 : -1));
         break;
       case 'Enter':
-        e.preventDefault();
-        if (activeIndex >= 0 && activeIndex < predictions.length) {
+        if (isOpen && activeIndex >= 0 && activeIndex < predictions.length) {
+          e.preventDefault();
           handleSelect(predictions[activeIndex]);
         }
+        // If no item highlighted, let Enter pass through (form submission)
         break;
       case 'Escape':
-        e.preventDefault();
+        // Close dropdown but don't preventDefault (allows input to blur)
         setIsOpen(false);
+        setActiveIndex(-1);
+        break;
+      case 'Tab':
+        // Close dropdown and allow default Tab behavior
+        setIsOpen(false);
+        setActiveIndex(-1);
+        break;
+      // IMPORTANT: Do NOT handle Space or any other keys
+      // This allows free typing of multi-word addresses
+      default:
         break;
     }
   }, [isOpen, predictions, activeIndex, handleSelect]);
