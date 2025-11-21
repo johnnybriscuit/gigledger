@@ -13,6 +13,10 @@ export interface Profile {
   email: string | null;
   full_name: string | null;
   home_address: string | null;
+  home_address_full: string | null;
+  home_address_place_id: string | null;
+  home_address_lat: number | null;
+  home_address_lng: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -20,6 +24,10 @@ export interface Profile {
 export interface ProfileUpdateData {
   full_name?: string;
   home_address?: string;
+  home_address_full?: string;
+  home_address_place_id?: string;
+  home_address_lat?: number;
+  home_address_lng?: number;
   email?: string;
 }
 
