@@ -25,6 +25,7 @@ interface AddressAutocompleteProps {
   placeholder?: string;
   value: string;
   onChange: (text: string) => void;
+  onSelect?: (item: { description: string; place_id: string }) => void;
   disabled?: boolean;
   error?: string;
 }
@@ -34,6 +35,7 @@ export function AddressAutocomplete({
   placeholder,
   value,
   onChange,
+  onSelect,
   disabled = false,
   error,
 }: AddressAutocompleteProps) {
@@ -134,9 +136,16 @@ export function AddressAutocomplete({
     setIsOpen(false);
     setPredictions([]);
     setHighlightedIndex(-1);
+    // Call onSelect callback if provided
+    if (onSelect) {
+      onSelect({
+        description: prediction.description,
+        place_id: prediction.place_id,
+      });
+    }
     // Keep focus on input
     inputRef.current?.focus();
-  }, [onChange]);
+  }, [onChange, onSelect]);
 
   // Handle focus - reopen if has predictions
   const handleFocus = () => {

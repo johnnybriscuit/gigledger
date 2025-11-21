@@ -11,6 +11,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaxSettingsSection } from '../components/TaxSettingsSection';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { formatRelativeTime } from '../lib/profile';
 import { H1, H2, Text, Button, Card } from '../ui';
@@ -80,6 +81,10 @@ export function AccountScreen() {
   // Form states
   const [fullName, setFullName] = useState('');
   const [homeAddress, setHomeAddress] = useState('');
+  const [homeAddressFull, setHomeAddressFull] = useState('');
+  const [homeAddressPlaceId, setHomeAddressPlaceId] = useState('');
+  const [homeAddressLat, setHomeAddressLat] = useState<number | null>(null);
+  const [homeAddressLng, setHomeAddressLng] = useState<number | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -104,6 +109,10 @@ export function AccountScreen() {
     if (profile) {
       setFullName(profile.full_name || '');
       setHomeAddress(profile.home_address || '');
+      setHomeAddressFull(profile.home_address_full || '');
+      setHomeAddressPlaceId(profile.home_address_place_id || '');
+      setHomeAddressLat(profile.home_address_lat);
+      setHomeAddressLng(profile.home_address_lng);
     }
   }, [profile]);
 
@@ -169,6 +178,10 @@ export function AccountScreen() {
       await updateProfileMutation.mutateAsync({ 
         full_name: fullName,
         home_address: homeAddress || undefined,
+        home_address_full: homeAddressFull || undefined,
+        home_address_place_id: homeAddressPlaceId || undefined,
+        home_address_lat: homeAddressLat ?? undefined,
+        home_address_lng: homeAddressLng ?? undefined,
       });
       setIsEditingProfile(false);
       Alert.alert('Success', 'Profile updated successfully');
@@ -225,21 +238,41 @@ export function AccountScreen() {
               )}
             </View>
 
-            <View style={styles.fieldCompact}>
-              <Text semibold style={styles.fieldLabel}>Home Address</Text>
-              {isEditingProfile ? (
-                <TextInput
-                  style={styles.input}
-                  value={homeAddress}
-                  onChangeText={setHomeAddress}
-                  placeholder="123 Main St, City, State ZIP"
-                  multiline
-                />
-              ) : (
-                <Text>{profile?.home_address || 'Not set'}</Text>
-              )}
-              <Text subtle style={styles.fieldHintCompact}>For mileage tracking</Text>
-            </View>
+            {isEditingProfile ? (
+              <AddressAutocomplete
+                label="Home Address"
+                placeholder="123 Main St, City, State ZIP"
+                value={homeAddressFull}
+                onChange={setHomeAddressFull}
+                onSelect={async (item) => {
+                  setHomeAddressFull(item.description);
+                  setHomeAddressPlaceId(item.place_id);
+                  
+                  // Fetch place details to get lat/lng
+                  try {
+                    const response = await fetch(`/api/places/details?place_id=${item.place_id}`, {
+                      credentials: 'include',
+                    });
+                    
+                    if (response.ok) {
+                      const details = await response.json();
+                      if (details.location) {
+                        setHomeAddressLat(details.location.lat);
+                        setHomeAddressLng(details.location.lng);
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Error fetching place details:', error);
+                  }
+                }}
+              />
+            ) : (
+              <View style={styles.fieldCompact}>
+                <Text semibold style={styles.fieldLabel}>Home Address</Text>
+                <Text>{profile?.home_address_full || 'Not set'}</Text>
+                <Text subtle style={styles.fieldHintCompact}>For mileage auto-calculation</Text>
+              </View>
+            )}
 
             {/* Last Saved Indicator */}
             {!isEditingProfile && profile?.updated_at && (
