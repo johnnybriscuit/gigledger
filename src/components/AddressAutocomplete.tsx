@@ -155,45 +155,70 @@ export function AddressAutocomplete({
     }
   };
 
-  // Keyboard navigation - ONLY handle arrow keys, Enter, Escape
+  // Keyboard navigation - ONLY handle arrow keys, Enter, Escape, Tab
+  // NEVER preventDefault on Space or other printable characters
   const handleKeyDown = useCallback((e: any) => {
-    if (!isOpen) return;
+    const printable = e.key.length === 1; // Space, letters, digits, punctuation
+    const isNav = ['ArrowDown', 'ArrowUp'].includes(e.key);
+    const hasHighlight = highlightedIndex >= 0 && highlightedIndex < predictions.length;
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev < predictions.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setHighlightedIndex(prev => (prev > 0 ? prev - 1 : -1));
-        break;
-      case 'Enter':
-        if (highlightedIndex >= 0 && highlightedIndex < predictions.length) {
-          e.preventDefault();
-          handleSelect(predictions[highlightedIndex]);
-        }
-        // If no highlight, let Enter pass through (form submission)
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setIsOpen(false);
-        setHighlightedIndex(-1);
-        break;
-      // DO NOT intercept: Space, Tab, letters, numbers, punctuation
-      default:
-        // Let all other keys pass through for free typing
-        break;
+    // Navigation keys - only when menu is open
+    if (isNav && isOpen) {
+      e.preventDefault();
+      if (e.key === 'ArrowDown') {
+        setHighlightedIndex(prev => Math.min(prev + 1, predictions.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        setHighlightedIndex(prev => Math.max(prev - 1, -1));
+      }
+      return;
     }
-  }, [isOpen, predictions, highlightedIndex, handleSelect]);
+
+    // ArrowDown when closed - open menu if we have predictions
+    if (e.key === 'ArrowDown' && !isOpen && predictions.length > 0) {
+      e.preventDefault();
+      setIsOpen(true);
+      measure();
+      setHighlightedIndex(0);
+      return;
+    }
+
+    // Enter - only select if something is highlighted
+    if (e.key === 'Enter' && isOpen) {
+      if (hasHighlight) {
+        e.preventDefault();
+        handleSelect(predictions[highlightedIndex]);
+      }
+      // No highlight: let Enter pass through (form submission, etc.)
+      return;
+    }
+
+    // Escape - close menu
+    if (e.key === 'Escape' && isOpen) {
+      e.preventDefault();
+      setIsOpen(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    // Tab - close menu and allow natural tab behavior
+    if (e.key === 'Tab' && isOpen) {
+      setIsOpen(false);
+      setHighlightedIndex(-1);
+      // Don't preventDefault - allow Tab to move focus
+      return;
+    }
+
+    // CRITICAL: Do NOT preventDefault for printable keys (including Space!)
+    // This allows free typing of multi-word addresses like "1100 South Hayes"
+    if (printable) {
+      return;
+    }
+  }, [isOpen, predictions, highlightedIndex, handleSelect, measure]);
 
   // Close dropdown on overlay click
   const handleClose = useCallback(() => {
     setIsOpen(false);
     setHighlightedIndex(-1);
-    // Keep typed value - no auto-select
   }, []);
 
   // Cleanup

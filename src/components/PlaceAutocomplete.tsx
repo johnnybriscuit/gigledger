@@ -157,13 +157,13 @@ export function PlaceAutocomplete({
     onSelect(prediction);
   }, [onChange, onSelect]);
 
-  // Handle blur
+  // Handle blur - no forced selection
   const handleBlur = () => {
+    // Allow free-form input without requiring selection
+    // Just close the dropdown if it's open
     setTimeout(() => {
-      if (value && !hasConfirmedSelection) {
-        setShowError(true);
-      }
-    }, 200);
+      setIsOpen(false);
+    }, 150);
   };
 
   // Handle focus
@@ -175,40 +175,61 @@ export function PlaceAutocomplete({
   };
 
   // Keyboard navigation - ONLY handle arrow keys, Enter, Escape, Tab
+  // NEVER preventDefault on Space or other printable characters
   const handleKeyDown = useCallback((e: any) => {
-    switch (e.key) {
-      case 'ArrowDown':
+    const printable = e.key.length === 1; // Space, letters, digits, punctuation
+    const isNav = ['ArrowDown', 'ArrowUp'].includes(e.key);
+    const hasHighlight = activeIndex >= 0 && activeIndex < predictions.length;
+
+    // Navigation keys - only when menu is open
+    if (isNav && isOpen) {
+      e.preventDefault();
+      if (e.key === 'ArrowDown') {
+        setActiveIndex(prev => Math.min(prev + 1, predictions.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        setActiveIndex(prev => Math.max(prev - 1, -1));
+      }
+      return;
+    }
+
+    // ArrowDown when closed - open menu if we have predictions
+    if (e.key === 'ArrowDown' && !isOpen && predictions.length > 0) {
+      e.preventDefault();
+      setIsOpen(true);
+      setActiveIndex(0);
+      return;
+    }
+
+    // Enter - only select if something is highlighted
+    if (e.key === 'Enter' && isOpen) {
+      if (hasHighlight) {
         e.preventDefault();
-        if (!isOpen && predictions.length > 0) {
-          setIsOpen(true);
-        }
-        setActiveIndex(prev => (prev < predictions.length - 1 ? prev + 1 : prev));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setActiveIndex(prev => (prev > 0 ? prev - 1 : -1));
-        break;
-      case 'Enter':
-        if (isOpen && activeIndex >= 0 && activeIndex < predictions.length) {
-          e.preventDefault();
-          handleSelect(predictions[activeIndex]);
-        }
-        // If no item highlighted, let Enter pass through (form submission)
-        break;
-      case 'Escape':
-        // Close dropdown but don't preventDefault (allows input to blur)
-        setIsOpen(false);
-        setActiveIndex(-1);
-        break;
-      case 'Tab':
-        // Close dropdown and allow default Tab behavior
-        setIsOpen(false);
-        setActiveIndex(-1);
-        break;
-      // IMPORTANT: Do NOT handle Space or any other keys
-      // This allows free typing of multi-word addresses
-      default:
-        break;
+        handleSelect(predictions[activeIndex]);
+      }
+      // No highlight: let Enter pass through (form submission, etc.)
+      return;
+    }
+
+    // Escape - close menu
+    if (e.key === 'Escape' && isOpen) {
+      e.preventDefault();
+      setIsOpen(false);
+      setActiveIndex(-1);
+      return;
+    }
+
+    // Tab - close menu and allow natural tab behavior
+    if (e.key === 'Tab' && isOpen) {
+      setIsOpen(false);
+      setActiveIndex(-1);
+      // Don't preventDefault - allow Tab to move focus
+      return;
+    }
+
+    // CRITICAL: Do NOT preventDefault for printable keys (including Space!)
+    // This allows free typing of multi-word addresses like "1100 South Hayes"
+    if (printable) {
+      return;
     }
   }, [isOpen, predictions, activeIndex, handleSelect]);
 
@@ -224,7 +245,7 @@ export function PlaceAutocomplete({
     };
   }, []);
 
-  const displayError = error || (showError ? 'Please choose a suggestion' : '');
+  const displayError = error || ''; // No forced selection error
 
   return (
     <View style={styles.container}>
