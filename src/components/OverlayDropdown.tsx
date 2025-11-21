@@ -41,18 +41,18 @@ export default function OverlayDropdown({
 }: OverlayDropdownProps) {
   // Lock scroll on web when visible
   useEffect(() => {
-    if (Platform.OS === 'web' && visible) {
-      const prevOverflow = (document.body.style as any).overflow;
-      (document.body.style as any).overflow = 'hidden';
+    if (Platform.OS === 'web' && visible && typeof document !== 'undefined') {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       return () => {
-        (document.body.style as any).overflow = prevOverflow;
+        document.body.style.overflow = prevOverflow;
       };
     }
   }, [visible]);
 
   // Handle ESC key on web
   useEffect(() => {
-    if (Platform.OS === 'web' && visible) {
+    if (Platform.OS === 'web' && visible && typeof window !== 'undefined') {
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
           onClose();
