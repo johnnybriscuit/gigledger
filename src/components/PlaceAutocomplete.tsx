@@ -61,12 +61,14 @@ export function PlaceAutocomplete({
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [sessionToken] = useState(() => generateSessionToken());
+  const [isFocused, setIsFocused] = useState(false);
 
   const anchorRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Delayed blur to prevent race with click
+  const isFocusedRef = useRef(false); // ref for async checks
 
   const { anchor, measure } = useAnchorLayout(anchorRef);
 
@@ -76,82 +78,97 @@ export function PlaceAutocomplete({
   }
 
   // Fetch predictions with proper error handling
-  const fetchPredictions = useCallback(async (query: string) => {
-    // FLICKER FIX: Don't close dropdown here - let it stay open while typing
-    // Only clear predictions if query is too short
-    if (query.length < 2) {
-      console.log('[PlaceAutocomplete] Query too short, clearing predictions');
-      setPredictions([]);
-      // Don't call setIsOpen(false) here - causes flicker while typing
-      return;
-    }
+  const fetchPredictions = useCallback(
+    async (query: string) => {
+      const trimmed = query.trim();
 
-    // Cancel previous request
-    if (abortController.current) {
-      abortController.current.abort();
-    }
-    abortController.current = new AbortController();
-
-    setIsLoading(true);
-    setFetchError(null);
-    console.log('[PlaceAutocomplete] Fetching predictions for:', query);
-
-    try {
-      const params = new URLSearchParams({
-        q: query,
-        types,
-        sessiontoken: sessionToken,
-      });
-
-      if (locationBias) {
-        params.append('location', `${locationBias.lat},${locationBias.lng}`);
-        params.append('radius', '50000');
-      }
-
-      const response = await fetch(`/api/places/autocomplete?${params}`, {
-        credentials: 'include',
-        signal: abortController.current.signal,
-      });
-
-      // Check content-type before parsing
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        throw new Error(`Expected JSON, got: ${text.substring(0, 100)}`);
-      }
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const newPredictions = data.predictions || [];
-      setPredictions(newPredictions);
-      
-      console.log('[PlaceAutocomplete] Received', newPredictions.length, 'predictions');
-      
-      // FLICKER FIX: Only open dropdown if we have results
-      // Don't check focus here - causes issues. Let focus/blur handlers control visibility.
-      if (newPredictions.length > 0) {
-        measure();
-        setIsOpen(true);
-        console.log('[PlaceAutocomplete] Opening dropdown with results');
-      }
-      // Don't close here if no results - causes flicker while typing
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('[PlaceAutocomplete] Request aborted');
+      // Don't fire requests for very short queries
+      if (trimmed.length < 2) {
+        console.log('[PlaceAutocomplete] Query too short, clearing predictions');
+        setPredictions([]);
+        setActiveIndex(-1);
+        // If we're not focused anymore, make sure dropdown stays closed
+        if (!isFocusedRef.current) {
+          setIsOpen(false);
+        }
         return;
       }
-      
-      console.error('[PlaceAutocomplete] Error fetching predictions:', err);
-      setFetchError('Couldn\'t load suggestions');
-      setPredictions([]);
-      // Don't close dropdown on error - let user keep typing
-    } finally {
-      setIsLoading(false);
-    }
-  }, [types, sessionToken, locationBias, measure]);
+
+      // Cancel previous request
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+      abortController.current = new AbortController();
+
+      setIsLoading(true);
+      setFetchError(null);
+      console.log('[PlaceAutocomplete] Fetching predictions for:', trimmed);
+
+      try {
+        const params = new URLSearchParams({
+          q: trimmed,
+          types,
+          sessiontoken: sessionToken,
+        });
+
+        if (locationBias) {
+          params.append('location', `${locationBias.lat},${locationBias.lng}`);
+          params.append('radius', '50000');
+        }
+
+        const response = await fetch(`/api/places/autocomplete?${params}`, {
+          credentials: 'include',
+          signal: abortController.current.signal,
+        });
+
+        // Check content-type before parsing
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          throw new Error(`Expected JSON, got: ${text.substring(0, 100)}`);
+        }
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const newPredictions: PlacePrediction[] = data.predictions || [];
+        setPredictions(newPredictions);
+        setActiveIndex(newPredictions.length > 0 ? 0 : -1);
+
+        console.log('[PlaceAutocomplete] Received', newPredictions.length, 'predictions');
+
+        // Only open dropdown if input is STILL focused when the async call resolves
+        if (isFocusedRef.current && newPredictions.length > 0) {
+          measure();
+          setIsOpen(true);
+          console.log('[PlaceAutocomplete] Opening dropdown with results');
+        } else if (!newPredictions.length) {
+          // No predictions: keep dropdown closed unless it was already open
+          setIsOpen(false);
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          console.log('[PlaceAutocomplete] Request aborted');
+          return;
+        }
+
+        console.error('[PlaceAutocomplete] Error fetching predictions:', err);
+        setFetchError("Couldn't load suggestions");
+        setPredictions([]);
+        setActiveIndex(-1);
+
+        // If we've already blurred, don't pop the dropdown back open
+        if (!isFocusedRef.current) {
+          setIsOpen(false);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [types, sessionToken, locationBias, measure]
+  );
 
   // Debounced input change handler
   const handleInputChange = (text: string) => {
@@ -188,82 +205,89 @@ export function PlaceAutocomplete({
     onSelect(prediction);
   }, [onChange, onSelect]);
 
-  // FLICKER FIX: Delayed blur handler
-  // Use timeout to allow option click to fire before closing
+  // Delayed blur handler
   const handleBlur = () => {
     console.log('[PlaceAutocomplete] Input blur - scheduling close in 150ms');
-    
-    // Clear any existing blur timeout
+
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
     }
-    
-    // Delay closing to allow click events to fire first
+
     blurTimeoutRef.current = setTimeout(() => {
       console.log('[PlaceAutocomplete] Blur timeout fired - closing dropdown');
+      setIsFocused(false);
+      isFocusedRef.current = false;
       setIsOpen(false);
       setActiveIndex(-1);
     }, 150);
   };
 
-  // FLICKER FIX: Focus handler - only open if we have predictions
+  // Focus handler - only open if we have predictions
   const handleFocus = () => {
     console.log('[PlaceAutocomplete] Input focus, predictions:', predictions.length);
-    
-    // Clear any pending blur timeout
+
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
       console.log('[PlaceAutocomplete] Cleared blur timeout on focus');
     }
-    
-    // Only open if we already have predictions
+
+    setIsFocused(true);
+    isFocusedRef.current = true;
+
     if (predictions.length > 0) {
       console.log('[PlaceAutocomplete] Opening dropdown on focus');
+      measure();
       setIsOpen(true);
     }
   };
 
   // Keyboard navigation using shared utilities
-  // NEVER preventDefault on Space or other printable characters
-  const handleKeyDown = useCallback((e: any) => {
-    // Printable keys (including Space) should always type into the input
-    if (isPrintableKey(e)) return;
+  const handleKeyDown = useCallback(
+    (e: any) => {
+      // Printable keys (including Space) should always type into the input
+      if (isPrintableKey(e)) return;
 
-    // Navigation keys - only when menu is open
-    if (isOpen && isNavKey(e.key)) {
-      e.preventDefault();
-      setActiveIndex((prev) => {
-        if (!predictions?.length) return -1;
-        const max = predictions.length - 1;
-        const next =
-          e.key === 'ArrowDown'
-            ? (prev ?? -1) + 1
-            : (prev ?? predictions.length) - 1;
-        return Math.max(0, Math.min(max, next));
-      });
-      return;
-    }
-
-    // Enter - only select if something is highlighted
-    if (isOpen && e.key === 'Enter') {
-      const hasHighlight = activeIndex != null && activeIndex >= 0 && predictions?.[activeIndex];
-      if (hasHighlight) {
+      // Navigation keys - only when menu is open
+      if (isOpen && isNavKey(e.key)) {
         e.preventDefault();
-        handleSelect(predictions[activeIndex]);
+        setActiveIndex((prev) => {
+          if (!predictions?.length) return -1;
+          const max = predictions.length - 1;
+          const base = prev == null ? -1 : prev;
+          const next =
+            e.key === 'ArrowDown'
+              ? base + 1
+              : base - 1;
+          return Math.max(0, Math.min(max, next));
+        });
+        return;
       }
-      // If no highlight, let the form do its normal thing (no preventDefault)
-      return;
-    }
 
-    // Esc/Tab: close the menu; let Tab move focus naturally
-    if (isOpen && isCloseKey(e.key)) {
-      if (e.key === 'Escape') e.preventDefault();
-      setIsOpen(false);
-      setActiveIndex(-1);
-      return;
-    }
-  }, [isOpen, predictions, activeIndex, handleSelect]);
+      // Enter - only select if something is highlighted
+      if (isOpen && e.key === 'Enter') {
+        const hasHighlight =
+          activeIndex != null &&
+          activeIndex >= 0 &&
+          predictions?.[activeIndex];
+
+        if (hasHighlight) {
+          e.preventDefault();
+          handleSelect(predictions[activeIndex]);
+        }
+        return;
+      }
+
+      // Esc/Tab: close the menu; let Tab move focus naturally
+      if (isOpen && isCloseKey(e.key)) {
+        if (e.key === 'Escape') e.preventDefault();
+        setIsOpen(false);
+        setActiveIndex(-1);
+        return;
+      }
+    },
+    [isOpen, predictions, activeIndex, handleSelect]
+  );
 
   // Cleanup
   useEffect(() => {
@@ -277,6 +301,7 @@ export function PlaceAutocomplete({
       if (abortController.current) {
         abortController.current.abort();
       }
+      isFocusedRef.current = false;
     };
   }, []);
 
@@ -321,7 +346,10 @@ export function PlaceAutocomplete({
       <DropdownOverlay
         visible={isOpen}
         anchor={anchor}
-        onClose={() => setIsOpen(false)}
+        onClose={() => {
+          setIsOpen(false);
+          setActiveIndex(-1);
+        }}
       >
         {fetchError ? (
           <View style={styles.errorContainer}>
@@ -346,7 +374,7 @@ export function PlaceAutocomplete({
                 onPress={() => handleSelect(item)}
                 // @ts-ignore - web-only props
                 onMouseDown={(e: any) => {
-                  // FLICKER FIX: Prevent input blur when clicking option
+                  // Prevent input blur when clicking option
                   e.preventDefault();
                   console.log('[PlaceAutocomplete] Option mousedown - preventing blur');
                 }}

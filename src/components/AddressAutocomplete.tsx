@@ -46,12 +46,14 @@ export function AddressAutocomplete({
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [sessionToken] = useState(() => generateSessionToken());
+  const [isFocused, setIsFocused] = useState(false);
 
   const anchorRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Delayed blur to prevent race with click
+  const isFocusedRef = useRef(false); // for async checks
 
   const { anchor, measure } = useAnchorLayout(anchorRef);
 
@@ -60,74 +62,86 @@ export function AddressAutocomplete({
   }
 
   // Fetch predictions
-  const fetchPredictions = useCallback(async (query: string) => {
-    // FLICKER FIX: Don't close dropdown here - let it stay open while typing
-    if (query.length < 3) {
-      console.log('[AddressAutocomplete] Query too short, clearing predictions');
-      setPredictions([]);
-      // Don't call setIsOpen(false) here - causes flicker while typing
-      return;
-    }
+  const fetchPredictions = useCallback(
+    async (query: string) => {
+      const trimmed = query.trim();
 
-    if (abortController.current) {
-      abortController.current.abort();
-    }
-    abortController.current = new AbortController();
-
-    setIsLoading(true);
-    setFetchError(null);
-    console.log('[AddressAutocomplete] Fetching predictions for:', query);
-
-    try {
-      const params = new URLSearchParams({
-        q: query,
-        types: 'address',
-        sessiontoken: sessionToken,
-      });
-
-      const response = await fetch(`/api/places/autocomplete?${params}`, {
-        credentials: 'include',
-        signal: abortController.current.signal,
-      });
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        throw new Error(`Expected JSON, got: ${text.substring(0, 100)}`);
-      }
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const newPredictions = data.predictions || [];
-      setPredictions(newPredictions);
-      
-      console.log('[AddressAutocomplete] Received', newPredictions.length, 'predictions');
-      
-      // FLICKER FIX: Only open dropdown if we have results
-      if (newPredictions.length > 0) {
-        measure();
-        setIsOpen(true);
+      if (trimmed.length < 3) {
+        console.log('[AddressAutocomplete] Query too short, clearing predictions');
+        setPredictions([]);
         setHighlightedIndex(-1);
-        console.log('[AddressAutocomplete] Opening dropdown with results');
-      }
-      // Don't close here if no results - causes flicker while typing
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('[AddressAutocomplete] Request aborted');
+        if (!isFocusedRef.current) {
+          setIsOpen(false);
+        }
         return;
       }
-      
-      console.error('[AddressAutocomplete] Error fetching predictions:', err);
-      setFetchError('Couldn\'t load suggestions');
-      setPredictions([]);
-      // Don't close dropdown on error - let user keep typing
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sessionToken, measure]);
+
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+      abortController.current = new AbortController();
+
+      setIsLoading(true);
+      setFetchError(null);
+      console.log('[AddressAutocomplete] Fetching predictions for:', trimmed);
+
+      try {
+        const params = new URLSearchParams({
+          q: trimmed,
+          types: 'address',
+          sessiontoken: sessionToken,
+        });
+
+        const response = await fetch(`/api/places/autocomplete?${params}`, {
+          credentials: 'include',
+          signal: abortController.current.signal,
+        });
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text();
+          throw new Error(`Expected JSON, got: ${text.substring(0, 100)}`);
+        }
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const newPredictions: PlacePrediction[] = data.predictions || [];
+        setPredictions(newPredictions);
+        setHighlightedIndex(newPredictions.length > 0 ? 0 : -1);
+
+        console.log('[AddressAutocomplete] Received', newPredictions.length, 'predictions');
+
+        // Only open dropdown if we are still focused when async finishes
+        if (isFocusedRef.current && newPredictions.length > 0) {
+          measure();
+          setIsOpen(true);
+          console.log('[AddressAutocomplete] Opening dropdown with results');
+        } else if (!newPredictions.length) {
+          setIsOpen(false);
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          console.log('[AddressAutocomplete] Request aborted');
+          return;
+        }
+
+        console.error('[AddressAutocomplete] Error fetching predictions:', err);
+        setFetchError("Couldn't load suggestions");
+        setPredictions([]);
+        setHighlightedIndex(-1);
+
+        if (!isFocusedRef.current) {
+          setIsOpen(false);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [sessionToken, measure]
+  );
 
   // Handle input change - FREE TYPING, no interception
   const handleInputChange = (text: string) => {
@@ -137,100 +151,125 @@ export function AddressAutocomplete({
       clearTimeout(debounceTimer.current);
     }
 
-    // Debounce 300ms - feels more stable, like Google autocomplete
     debounceTimer.current = setTimeout(() => {
       fetchPredictions(text);
     }, 300);
   };
 
   // Handle selection from dropdown
-  const handleSelect = useCallback((prediction: PlacePrediction) => {
-    console.log('[AddressAutocomplete] Option selected:', prediction.description);
-    
-    // Clear blur timeout to prevent it from interfering
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current);
-      blurTimeoutRef.current = null;
-    }
-    
-    onChange(prediction.description);
-    setIsOpen(false);
-    setPredictions([]);
-    setHighlightedIndex(-1);
-    // Call onSelect callback if provided
-    if (onSelect) {
-      onSelect({
-        description: prediction.description,
-        place_id: prediction.place_id,
-      });
-    }
-    // Keep focus on input
-    inputRef.current?.focus();
-  }, [onChange, onSelect]);
+  const handleSelect = useCallback(
+    (prediction: PlacePrediction) => {
+      console.log('[AddressAutocomplete] Option selected:', prediction.description);
 
-  // FLICKER FIX: Focus handler - only open if we have predictions
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+        blurTimeoutRef.current = null;
+      }
+
+      onChange(prediction.description);
+      setIsOpen(false);
+      setPredictions([]);
+      setHighlightedIndex(-1);
+
+      if (onSelect) {
+        onSelect({
+          description: prediction.description,
+          place_id: prediction.place_id,
+        });
+      }
+
+      // Keep focus on input
+      inputRef.current?.focus();
+    },
+    [onChange, onSelect]
+  );
+
+  // Focus handler - only open if we have predictions
   const handleFocus = () => {
     console.log('[AddressAutocomplete] Input focus, predictions:', predictions.length);
-    
-    // Clear any pending blur timeout
+
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
       console.log('[AddressAutocomplete] Cleared blur timeout on focus');
     }
-    
-    // Only open if we already have predictions
+
+    setIsFocused(true);
+    isFocusedRef.current = true;
+
     if (predictions.length > 0) {
       console.log('[AddressAutocomplete] Opening dropdown on focus');
+      measure();
       setIsOpen(true);
     }
   };
 
-  // Keyboard navigation using shared utilities
-  // NEVER preventDefault on Space or other printable characters
-  const handleKeyDown = useCallback((e: any) => {
-    // Printable keys (including Space) should always type into the input
-    if (isPrintableKey(e)) return;
+  // Delayed blur
+  const handleBlur = () => {
+    console.log('[AddressAutocomplete] Input blur - scheduling close in 150ms');
 
-    // Navigation keys - only when menu is open
-    if (isOpen && isNavKey(e.key)) {
-      e.preventDefault();
-      setHighlightedIndex((prev) => {
-        if (!predictions?.length) return -1;
-        const max = predictions.length - 1;
-        const next =
-          e.key === 'ArrowDown'
-            ? (prev ?? -1) + 1
-            : (prev ?? predictions.length) - 1;
-        return Math.max(0, Math.min(max, next));
-      });
-      return;
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
     }
 
-    // Enter - only select if something is highlighted
-    if (isOpen && e.key === 'Enter') {
-      const hasHighlight = highlightedIndex != null && highlightedIndex >= 0 && predictions?.[highlightedIndex];
-      if (hasHighlight) {
-        e.preventDefault();
-        handleSelect(predictions[highlightedIndex]);
-      }
-      // If no highlight, let the form do its normal thing (no preventDefault)
-      return;
-    }
-
-    // Esc/Tab: close the menu; let Tab move focus naturally
-    if (isOpen && isCloseKey(e.key)) {
-      if (e.key === 'Escape') e.preventDefault();
+    blurTimeoutRef.current = setTimeout(() => {
+      console.log('[AddressAutocomplete] Blur timeout fired - closing dropdown');
+      setIsFocused(false);
+      isFocusedRef.current = false;
       setIsOpen(false);
       setHighlightedIndex(-1);
-      return;
-    }
-  }, [isOpen, predictions, highlightedIndex, handleSelect]);
+    }, 150);
+  };
+
+  // Keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: any) => {
+      if (isPrintableKey(e)) return;
+
+      if (isOpen && isNavKey(e.key)) {
+        e.preventDefault();
+        setHighlightedIndex((prev) => {
+          if (!predictions?.length) return -1;
+          const max = predictions.length - 1;
+          const base = prev == null ? -1 : prev;
+          const next =
+            e.key === 'ArrowDown'
+              ? base + 1
+              : base - 1;
+          return Math.max(0, Math.min(max, next));
+        });
+        return;
+      }
+
+      if (isOpen && e.key === 'Enter') {
+        const hasHighlight =
+          highlightedIndex != null &&
+          highlightedIndex >= 0 &&
+          predictions?.[highlightedIndex];
+
+        if (hasHighlight) {
+          e.preventDefault();
+          handleSelect(predictions[highlightedIndex]);
+        }
+        return;
+      }
+
+      if (isOpen && isCloseKey(e.key)) {
+        if (e.key === 'Escape') e.preventDefault();
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+        return;
+      }
+    },
+    [isOpen, predictions, highlightedIndex, handleSelect]
+  );
 
   // Close dropdown on overlay click
   const handleClose = useCallback(() => {
     setIsOpen(false);
     setHighlightedIndex(-1);
+    setIsFocused(false);
+    isFocusedRef.current = false;
   }, []);
 
   // Cleanup
@@ -245,6 +284,7 @@ export function AddressAutocomplete({
       if (abortController.current) {
         abortController.current.abort();
       }
+      isFocusedRef.current = false;
     };
   }, []);
 
@@ -263,21 +303,7 @@ export function AddressAutocomplete({
           value={value}
           onChangeText={handleInputChange}
           onFocus={handleFocus}
-          onBlur={() => {
-            console.log('[AddressAutocomplete] Input blur - scheduling close in 150ms');
-            
-            // Clear any existing blur timeout
-            if (blurTimeoutRef.current) {
-              clearTimeout(blurTimeoutRef.current);
-            }
-            
-            // FLICKER FIX: Delay closing to allow click events to fire first
-            blurTimeoutRef.current = setTimeout(() => {
-              console.log('[AddressAutocomplete] Blur timeout fired - closing dropdown');
-              setIsOpen(false);
-              setHighlightedIndex(-1);
-            }, 150);
-          }}
+          onBlur={handleBlur}
           placeholder={placeholder}
           placeholderTextColor={colors.text.muted}
           editable={!disabled}
@@ -294,9 +320,7 @@ export function AddressAutocomplete({
         )}
       </View>
 
-      {error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : null}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <DropdownOverlay
         visible={isOpen}
