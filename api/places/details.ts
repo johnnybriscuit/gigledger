@@ -39,6 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers.origin;
   const allowedOrigins = [
     'http://localhost:8090',
+    'http://localhost:8081',  // Expo dev server
     'https://gigledger-ten.vercel.app'
   ];
   
