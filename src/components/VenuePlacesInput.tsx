@@ -114,27 +114,9 @@ export function VenuePlacesInput({
             error && styles.inputError,
             disabled && styles.inputDisabled,
           ],
-          suggestionsContainer: [
-            styles.suggestionsContainer,
-            {
-              // Force solid background with !important equivalent
-              backgroundColor: '#ffffff',
-              // @ts-ignore
-              backdropFilter: 'none',
-            },
-          ],
-          suggestionsList: [
-            styles.suggestionsList,
-            {
-              backgroundColor: '#ffffff',
-            },
-          ],
-          suggestionItem: [
-            styles.suggestionItem,
-            {
-              backgroundColor: '#ffffff',
-            },
-          ],
+          suggestionsContainer: styles.suggestionsContainer,
+          suggestionsList: styles.suggestionsList,
+          suggestionItem: styles.suggestionItem,
           suggestionText: {
             main: styles.suggestionMainText,
             secondary: styles.suggestionSecondaryText,
@@ -155,6 +137,7 @@ export function VenuePlacesInput({
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
+    width: '100%',
   },
   label: {
     fontSize: 14,
@@ -165,16 +148,17 @@ const styles = StyleSheet.create({
   autocompleteContainer: {
     flex: 0,
     zIndex: 1,
+    width: '100%',
   },
   input: {
-    height: 48,
+    height: 44,
     borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
     fontSize: 16,
     color: colors.text.DEFAULT,
-    backgroundColor: colors.surface.DEFAULT,
+    backgroundColor: '#FFFFFF', // Fully opaque white
     ...Platform.select({
       web: {
         // @ts-ignore - web-only property
@@ -195,45 +179,41 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   suggestionsContainer: {
-    position: 'absolute',
-    top: 54,
-    left: 0,
-    right: 0,
-    backgroundColor: '#ffffff', // FULLY OPAQUE WHITE
+    backgroundColor: '#FFFFFF', // FULLY OPAQUE WHITE - no alpha channel
     borderRadius: 12,
+    marginTop: 4,
     borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
+    borderColor: '#E5E7EB',
     maxHeight: 320,
-    zIndex: 1000,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
       },
       android: {
-        elevation: 12,
+        elevation: 4,
       },
       web: {
-        // @ts-ignore - web-only properties
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        opacity: 1,
+        // @ts-ignore - web-only properties for solid opaque dropdown
+        boxShadow: '0 10px 25px rgba(15, 23, 42, 0.12)',
         backdropFilter: 'none',
         WebkitBackdropFilter: 'none',
+        opacity: 1,
       },
     }),
   },
   suggestionsList: {
-    backgroundColor: '#ffffff', // FULLY OPAQUE
+    backgroundColor: '#FFFFFF', // FULLY OPAQUE
     overflow: 'hidden',
   },
   suggestionItem: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.muted,
-    backgroundColor: '#ffffff', // FULLY OPAQUE
+    borderBottomColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF', // FULLY OPAQUE - each row solid white
   },
   suggestionMainText: {
     fontSize: 16,
