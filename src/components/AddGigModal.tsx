@@ -21,7 +21,7 @@ import { hasCompletedTaxProfile } from '../services/taxService';
 import { InlineExpensesList, type InlineExpense } from './gigs/InlineExpensesList';
 import { InlineMileageRow, type InlineMileage } from './gigs/InlineMileageRow';
 import { NetBar } from './gigs/NetBar';
-import { PlaceAutocomplete } from './PlaceAutocomplete';
+import { VenuePlacesInput } from './VenuePlacesInput';
 import { useTaxEstimate, calculateMileageDeduction } from '../hooks/useTaxEstimate';
 import { createGigWithLines } from '../services/gigService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -487,17 +487,17 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
 
             {/* Venue and City at top so dropdowns aren't covered by fields below */}
             <View style={styles.inputGroup}>
-              <PlaceAutocomplete
+              <VenuePlacesInput
                 label="Venue/Location (Optional)"
                 placeholder="Search for a venue..."
                 types="establishment"
                 value={location}
-                onChange={(text) => {
+                onChange={(text: string) => {
                   setLocation(text);
                   setVenueDetails(null);
                   setVenueError('');
                 }}
-                onSelect={async (item) => {
+                onSelect={async (item: { description: string; place_id: string }) => {
                   setLocation(item.description);
                   setVenueError('');
                   
@@ -532,17 +532,17 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             </View>
 
             <View style={styles.inputGroup}>
-              <PlaceAutocomplete
+              <VenuePlacesInput
                 label="City"
                 placeholder="Search for a city..."
                 types="(cities)"
                 value={city}
-                onChange={(text) => {
+                onChange={(text: string) => {
                   setCity(text);
                   setCityDetails(null);
                   setCityError('');
                 }}
-                onSelect={async (item) => {
+                onSelect={async (item: { description: string; place_id: string }) => {
                   setCity(item.description);
                   setCityError('');
                   
