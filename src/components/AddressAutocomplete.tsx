@@ -186,7 +186,7 @@ export function AddressAutocomplete({
 
   // Focus handler - only open if we have predictions
   const handleFocus = () => {
-    console.log('[AddressAutocomplete] Input focus, predictions:', predictions.length);
+    console.log('[AddressAutocomplete] Input focus, predictions:', predictions.length, 'isOpen:', isOpen);
 
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
@@ -197,7 +197,9 @@ export function AddressAutocomplete({
     setIsFocused(true);
     isFocusedRef.current = true;
 
-    if (predictions.length > 0) {
+    // Only reopen if dropdown is currently closed AND we have predictions
+    // This prevents focus/blur loops when Modal opens
+    if (predictions.length > 0 && !isOpen) {
       console.log('[AddressAutocomplete] Opening dropdown on focus');
       measure();
       setIsOpen(true);
