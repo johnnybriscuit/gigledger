@@ -45,15 +45,24 @@ export function VenuePlacesInput({
   const handlePlaceSelect = (place: any) => {
     console.log('[VenuePlacesInput] Place selected:', place);
     
+    // Extract description from the place object
+    // The library returns place.text.text or place.structuredFormat.mainText.text
+    const description = place.text?.text || 
+                       place.structuredFormat?.mainText?.text || 
+                       place.description || 
+                       '';
+    
+    console.log('[VenuePlacesInput] Extracted description:', description);
+    
     // Update internal value
-    setInternalValue(place.description);
+    setInternalValue(description);
     
     // Call parent onChange
-    onChange(place.description);
+    onChange(description);
     
     // Call parent onSelect
     onSelect({
-      description: place.description,
+      description: description,
       place_id: place.placeId,
     });
   };
