@@ -11,7 +11,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaxSettingsSection } from '../components/TaxSettingsSection';
-import { AddressAutocomplete } from '../components/AddressAutocomplete';
+import { AddressPlacesInput } from '../components/AddressPlacesInput';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { formatRelativeTime } from '../lib/profile';
 import { H1, H2, Text, Button, Card } from '../ui';
@@ -239,12 +239,12 @@ export function AccountScreen() {
             </View>
 
             {isEditingProfile ? (
-              <AddressAutocomplete
+              <AddressPlacesInput
                 label="Home Address"
                 placeholder="123 Main St, City, State ZIP"
                 value={homeAddressFull}
                 onChange={setHomeAddressFull}
-                onSelect={async (item) => {
+                onSelect={async (item: { description: string; place_id: string }) => {
                   setHomeAddressFull(item.description);
                   setHomeAddressPlaceId(item.place_id);
                   
