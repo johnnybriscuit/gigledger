@@ -43,33 +43,19 @@ export function VenuePlacesInput({
                  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const handlePlaceSelect = (place: any) => {
-    console.log('[VenuePlacesInput] Place selected - FULL OBJECT:', JSON.stringify(place, null, 2));
-    console.log('[VenuePlacesInput] place.text:', place.text);
-    console.log('[VenuePlacesInput] place.structuredFormat:', place.structuredFormat);
-    console.log('[VenuePlacesInput] place.description:', place.description);
+    console.log('[VenuePlacesInput] Place selected:', place.structuredFormat?.mainText?.text);
     
     // Extract description from the place object
-    // Try multiple possible locations for the text
-    let description = '';
+    // The library returns place.text.text (full address) or place.structuredFormat.mainText.text (venue name only)
+    const description = place.text?.text || 
+                       place.structuredFormat?.mainText?.text || 
+                       place.description || 
+                       '';
     
-    if (place.text?.text) {
-      description = place.text.text;
-      console.log('[VenuePlacesInput] Using place.text.text:', description);
-    } else if (place.text) {
-      description = place.text;
-      console.log('[VenuePlacesInput] Using place.text:', description);
-    } else if (place.structuredFormat?.mainText?.text) {
-      description = place.structuredFormat.mainText.text;
-      console.log('[VenuePlacesInput] Using place.structuredFormat.mainText.text:', description);
-    } else if (place.description) {
-      description = place.description;
-      console.log('[VenuePlacesInput] Using place.description:', description);
-    } else {
-      console.error('[VenuePlacesInput] Could not extract description from place object!');
+    if (!description) {
+      console.error('[VenuePlacesInput] Could not extract description from place object:', place);
+      return;
     }
-    
-    console.log('[VenuePlacesInput] Final description:', description);
-    console.log('[VenuePlacesInput] Setting internalValue to:', description);
     
     // Update internal value
     setInternalValue(description);
@@ -82,12 +68,9 @@ export function VenuePlacesInput({
       description: description,
       place_id: place.placeId,
     });
-    
-    console.log('[VenuePlacesInput] After setState - internalValue should be:', description);
   };
 
   const handleTextChange = (text: string) => {
-    console.log('[VenuePlacesInput] Text changed:', text);
     setInternalValue(text);
     onChange(text);
   };
