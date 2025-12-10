@@ -181,12 +181,14 @@ const styles = StyleSheet.create({
     top: 54,
     left: 0,
     right: 0,
-    backgroundColor: colors.surface.DEFAULT,
+    backgroundColor: '#ffffff', // FULLY OPAQUE WHITE
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border.DEFAULT,
     maxHeight: 320,
     zIndex: 1000,
+    // @ts-ignore - web-only property
+    opacity: 1,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -210,6 +212,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.muted,
+    backgroundColor: '#ffffff', // FULLY OPAQUE
   },
   suggestionMainText: {
     fontSize: 16,
