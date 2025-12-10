@@ -114,9 +114,27 @@ export function VenuePlacesInput({
             error && styles.inputError,
             disabled && styles.inputDisabled,
           ],
-          suggestionsContainer: styles.suggestionsContainer,
-          suggestionsList: styles.suggestionsList,
-          suggestionItem: styles.suggestionItem,
+          suggestionsContainer: [
+            styles.suggestionsContainer,
+            {
+              // Force solid background with !important equivalent
+              backgroundColor: '#ffffff',
+              // @ts-ignore
+              backdropFilter: 'none',
+            },
+          ],
+          suggestionsList: [
+            styles.suggestionsList,
+            {
+              backgroundColor: '#ffffff',
+            },
+          ],
+          suggestionItem: [
+            styles.suggestionItem,
+            {
+              backgroundColor: '#ffffff',
+            },
+          ],
           suggestionText: {
             main: styles.suggestionMainText,
             secondary: styles.suggestionSecondaryText,
@@ -187,8 +205,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border.DEFAULT,
     maxHeight: 320,
     zIndex: 1000,
-    // @ts-ignore - web-only property
-    opacity: 1,
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -200,13 +217,17 @@ const styles = StyleSheet.create({
         elevation: 12,
       },
       web: {
-        // @ts-ignore
+        // @ts-ignore - web-only properties
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        opacity: 1,
+        backdropFilter: 'none',
+        WebkitBackdropFilter: 'none',
       },
     }),
   },
   suggestionsList: {
-    // Styles for the FlatList container
+    backgroundColor: '#ffffff', // FULLY OPAQUE
+    overflow: 'hidden',
   },
   suggestionItem: {
     padding: 16,
