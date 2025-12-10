@@ -49,10 +49,9 @@ export function AddressAutocomplete({
 
   const anchorRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null); // Track dropdown for relatedTarget check
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
-  const ignoreBlurRef = useRef(false); // Prevent blur when clicking inside dropdown
+  const selectingRef = useRef(false); // Pointerdown guard: prevents blur-close during selection
 
   const { anchor, measure } = useAnchorLayout(anchorRef);
 
@@ -150,9 +149,6 @@ export function AddressAutocomplete({
     // Keep focus on input
     inputRef.current?.focus();
   }, [onChange, onSelect]);
-
-  // Pointer-down pattern: prevents blur-closing during click
-  const selectingRef = useRef(false);
 
   // Handle focus - only open if results already exist
   const handleFocus = () => {
@@ -269,7 +265,6 @@ export function AddressAutocomplete({
         visible={isOpen}
         anchor={anchor}
         onClose={handleClose}
-        menuRef={menuRef}
       >
         {fetchError ? (
           <View style={styles.messageContainer}>

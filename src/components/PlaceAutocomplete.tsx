@@ -64,10 +64,9 @@ export function PlaceAutocomplete({
 
   const anchorRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null); // Track dropdown for relatedTarget check
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
-  const ignoreBlurRef = useRef(false); // Prevent blur when clicking inside dropdown
+  const selectingRef = useRef(false); // Pointerdown guard: prevents blur-close during selection
 
   const { anchor, measure } = useAnchorLayout(anchorRef);
 
@@ -124,7 +123,12 @@ export function PlaceAutocomplete({
       const data = await response.json();
       setPredictions(data.predictions || []);
       
-      if (data.predictions && data.predictions.length > 0) {
+      // Only open if input is focused AND we have results
+      const isFocused = Platform.OS === 'web' 
+        ? document.activeElement === (inputRef.current as any)?._nativeTag || document.activeElement === inputRef.current
+        : true; // On native, assume focused if typing
+      
+      if (data.predictions && data.predictions.length > 0 && isFocused) {
         measure();
         setIsOpen(true);
       } else {
@@ -169,9 +173,7 @@ export function PlaceAutocomplete({
     onSelect(prediction);
   }, [onChange, onSelect]);
 
-  // Pointer-down pattern: prevents blur-closing during click
-  const selectingRef = useRef(false);
-
+  // Blur handler with pointerdown guard
   const handleBlur = () => {
     // If blur was caused by selecting an option, keep open;
     // selection will close it in onClick
@@ -286,7 +288,6 @@ export function PlaceAutocomplete({
         visible={isOpen}
         anchor={anchor}
         onClose={() => setIsOpen(false)}
-        menuRef={menuRef}
       >
         {fetchError ? (
           <View style={styles.errorContainer}>
