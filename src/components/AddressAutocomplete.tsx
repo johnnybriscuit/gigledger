@@ -51,7 +51,7 @@ export function AddressAutocomplete({
   const inputRef = useRef<TextInput>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
-  const selectingRef = useRef(false); // Pointerdown guard: prevents blur-close during selection
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Delayed blur to prevent race with click
 
   const { anchor, measure } = useAnchorLayout(anchorRef);
 
@@ -61,9 +61,11 @@ export function AddressAutocomplete({
 
   // Fetch predictions
   const fetchPredictions = useCallback(async (query: string) => {
+    // FLICKER FIX: Don't close dropdown here - let it stay open while typing
     if (query.length < 3) {
+      console.log('[AddressAutocomplete] Query too short, clearing predictions');
       setPredictions([]);
-      setIsOpen(false);
+      // Don't call setIsOpen(false) here - causes flicker while typing
       return;
     }
 
@@ -74,6 +76,7 @@ export function AddressAutocomplete({
 
     setIsLoading(true);
     setFetchError(null);
+    console.log('[AddressAutocomplete] Fetching predictions for:', query);
 
     try {
       const params = new URLSearchParams({
@@ -98,22 +101,29 @@ export function AddressAutocomplete({
       }
 
       const data = await response.json();
-      setPredictions(data.predictions || []);
+      const newPredictions = data.predictions || [];
+      setPredictions(newPredictions);
       
-      if (data.predictions && data.predictions.length > 0) {
+      console.log('[AddressAutocomplete] Received', newPredictions.length, 'predictions');
+      
+      // FLICKER FIX: Only open dropdown if we have results
+      if (newPredictions.length > 0) {
         measure();
         setIsOpen(true);
-        setHighlightedIndex(-1); // Reset highlight
-      } else {
-        setIsOpen(false);
+        setHighlightedIndex(-1);
+        console.log('[AddressAutocomplete] Opening dropdown with results');
       }
+      // Don't close here if no results - causes flicker while typing
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError') {
+        console.log('[AddressAutocomplete] Request aborted');
+        return;
+      }
       
-      console.error('Error fetching predictions:', err);
+      console.error('[AddressAutocomplete] Error fetching predictions:', err);
       setFetchError('Couldn\'t load suggestions');
       setPredictions([]);
-      setIsOpen(false);
+      // Don't close dropdown on error - let user keep typing
     } finally {
       setIsLoading(false);
     }
@@ -135,6 +145,14 @@ export function AddressAutocomplete({
 
   // Handle selection from dropdown
   const handleSelect = useCallback((prediction: PlacePrediction) => {
+    console.log('[AddressAutocomplete] Option selected:', prediction.description);
+    
+    // Clear blur timeout to prevent it from interfering
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+    
     onChange(prediction.description);
     setIsOpen(false);
     setPredictions([]);
@@ -150,9 +168,20 @@ export function AddressAutocomplete({
     inputRef.current?.focus();
   }, [onChange, onSelect]);
 
-  // Handle focus - only open if results already exist
+  // FLICKER FIX: Focus handler - only open if we have predictions
   const handleFocus = () => {
+    console.log('[AddressAutocomplete] Input focus, predictions:', predictions.length);
+    
+    // Clear any pending blur timeout
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+      console.log('[AddressAutocomplete] Cleared blur timeout on focus');
+    }
+    
+    // Only open if we already have predictions
     if (predictions.length > 0) {
+      console.log('[AddressAutocomplete] Opening dropdown on focus');
       setIsOpen(true);
     }
   };
@@ -210,6 +239,9 @@ export function AddressAutocomplete({
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
       if (abortController.current) {
         abortController.current.abort();
       }
@@ -232,14 +264,19 @@ export function AddressAutocomplete({
           onChangeText={handleInputChange}
           onFocus={handleFocus}
           onBlur={() => {
-            // Pointer-down pattern: if selecting, keep open
-            if (selectingRef.current) {
-              selectingRef.current = false;
-              return;
+            console.log('[AddressAutocomplete] Input blur - scheduling close in 150ms');
+            
+            // Clear any existing blur timeout
+            if (blurTimeoutRef.current) {
+              clearTimeout(blurTimeoutRef.current);
             }
-            // Close immediately - no setTimeout
-            setIsOpen(false);
-            setHighlightedIndex(-1);
+            
+            // FLICKER FIX: Delay closing to allow click events to fire first
+            blurTimeoutRef.current = setTimeout(() => {
+              console.log('[AddressAutocomplete] Blur timeout fired - closing dropdown');
+              setIsOpen(false);
+              setHighlightedIndex(-1);
+            }, 150);
           }}
           placeholder={placeholder}
           placeholderTextColor={colors.text.muted}
@@ -288,9 +325,10 @@ export function AddressAutocomplete({
                 ]}
                 onPress={() => handleSelect(item)}
                 // @ts-ignore - web-only props
-                onPointerDown={() => {
-                  // Pointer-down pattern: mark that we're selecting
-                  selectingRef.current = true;
+                onMouseDown={(e: any) => {
+                  // FLICKER FIX: Prevent input blur when clicking option
+                  e.preventDefault();
+                  console.log('[AddressAutocomplete] Option mousedown - preventing blur');
                 }}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 accessibilityRole={Platform.OS === 'web' ? 'option' : undefined}

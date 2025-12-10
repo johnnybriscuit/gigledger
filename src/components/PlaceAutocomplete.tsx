@@ -66,7 +66,7 @@ export function PlaceAutocomplete({
   const inputRef = useRef<TextInput>(null);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
   const abortController = useRef<AbortController | null>(null);
-  const selectingRef = useRef(false); // Pointerdown guard: prevents blur-close during selection
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Delayed blur to prevent race with click
 
   const { anchor, measure } = useAnchorLayout(anchorRef);
 
@@ -77,9 +77,12 @@ export function PlaceAutocomplete({
 
   // Fetch predictions with proper error handling
   const fetchPredictions = useCallback(async (query: string) => {
+    // FLICKER FIX: Don't close dropdown here - let it stay open while typing
+    // Only clear predictions if query is too short
     if (query.length < 2) {
+      console.log('[PlaceAutocomplete] Query too short, clearing predictions');
       setPredictions([]);
-      setIsOpen(false);
+      // Don't call setIsOpen(false) here - causes flicker while typing
       return;
     }
 
@@ -91,6 +94,7 @@ export function PlaceAutocomplete({
 
     setIsLoading(true);
     setFetchError(null);
+    console.log('[PlaceAutocomplete] Fetching predictions for:', query);
 
     try {
       const params = new URLSearchParams({
@@ -121,26 +125,29 @@ export function PlaceAutocomplete({
       }
 
       const data = await response.json();
-      setPredictions(data.predictions || []);
+      const newPredictions = data.predictions || [];
+      setPredictions(newPredictions);
       
-      // Only open if input is focused AND we have results
-      const isFocused = Platform.OS === 'web' 
-        ? document.activeElement === (inputRef.current as any)?._nativeTag || document.activeElement === inputRef.current
-        : true; // On native, assume focused if typing
+      console.log('[PlaceAutocomplete] Received', newPredictions.length, 'predictions');
       
-      if (data.predictions && data.predictions.length > 0 && isFocused) {
+      // FLICKER FIX: Only open dropdown if we have results
+      // Don't check focus here - causes issues. Let focus/blur handlers control visibility.
+      if (newPredictions.length > 0) {
         measure();
         setIsOpen(true);
-      } else {
-        setIsOpen(false);
+        console.log('[PlaceAutocomplete] Opening dropdown with results');
       }
+      // Don't close here if no results - causes flicker while typing
     } catch (err: any) {
-      if (err.name === 'AbortError') return; // Ignore aborted requests
+      if (err.name === 'AbortError') {
+        console.log('[PlaceAutocomplete] Request aborted');
+        return;
+      }
       
-      console.error('Error fetching predictions:', err);
+      console.error('[PlaceAutocomplete] Error fetching predictions:', err);
       setFetchError('Couldn\'t load suggestions');
       setPredictions([]);
-      setIsOpen(false);
+      // Don't close dropdown on error - let user keep typing
     } finally {
       setIsLoading(false);
     }
@@ -164,6 +171,14 @@ export function PlaceAutocomplete({
 
   // Handle selection
   const handleSelect = useCallback((prediction: PlacePrediction) => {
+    console.log('[PlaceAutocomplete] Option selected:', prediction.description);
+    
+    // Clear blur timeout to prevent it from interfering
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+    
     onChange(prediction.description);
     setHasConfirmedSelection(true);
     setShowError(false);
@@ -173,22 +188,38 @@ export function PlaceAutocomplete({
     onSelect(prediction);
   }, [onChange, onSelect]);
 
-  // Blur handler with pointerdown guard
+  // FLICKER FIX: Delayed blur handler
+  // Use timeout to allow option click to fire before closing
   const handleBlur = () => {
-    // If blur was caused by selecting an option, keep open;
-    // selection will close it in onClick
-    if (selectingRef.current) {
-      selectingRef.current = false;
-      return;
+    console.log('[PlaceAutocomplete] Input blur - scheduling close in 150ms');
+    
+    // Clear any existing blur timeout
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
     }
-    // Close immediately - no setTimeout
-    setIsOpen(false);
-    setActiveIndex(-1);
+    
+    // Delay closing to allow click events to fire first
+    blurTimeoutRef.current = setTimeout(() => {
+      console.log('[PlaceAutocomplete] Blur timeout fired - closing dropdown');
+      setIsOpen(false);
+      setActiveIndex(-1);
+    }, 150);
   };
 
-  // Handle focus - only open if results already exist
+  // FLICKER FIX: Focus handler - only open if we have predictions
   const handleFocus = () => {
+    console.log('[PlaceAutocomplete] Input focus, predictions:', predictions.length);
+    
+    // Clear any pending blur timeout
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+      console.log('[PlaceAutocomplete] Cleared blur timeout on focus');
+    }
+    
+    // Only open if we already have predictions
     if (predictions.length > 0) {
+      console.log('[PlaceAutocomplete] Opening dropdown on focus');
       setIsOpen(true);
     }
   };
@@ -239,6 +270,9 @@ export function PlaceAutocomplete({
     return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
+      }
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
       }
       if (abortController.current) {
         abortController.current.abort();
@@ -311,9 +345,10 @@ export function PlaceAutocomplete({
                 ]}
                 onPress={() => handleSelect(item)}
                 // @ts-ignore - web-only props
-                onPointerDown={() => {
-                  // Pointer-down pattern: mark that we're selecting
-                  selectingRef.current = true;
+                onMouseDown={(e: any) => {
+                  // FLICKER FIX: Prevent input blur when clicking option
+                  e.preventDefault();
+                  console.log('[PlaceAutocomplete] Option mousedown - preventing blur');
                 }}
                 onMouseEnter={() => setActiveIndex(index)}
                 accessibilityRole={Platform.OS === 'web' ? 'menuitem' : undefined}
