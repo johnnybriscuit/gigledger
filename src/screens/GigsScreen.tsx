@@ -12,9 +12,7 @@ import { useGigs, useDeleteGig, type GigWithPayer } from '../hooks/useGigs';
 import { AddGigModal } from '../components/AddGigModal';
 import { ImportGigsModal } from '../components/ImportGigsModal';
 import { useWithholding } from '../hooks/useWithholding';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import { FREE_GIG_LIMIT } from '../config/plans';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
@@ -116,38 +114,11 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const { data: gigs, isLoading, error } = useGigs();
   const deleteGig = useDeleteGig();
 
-  // Fetch user's plan (no caching to ensure fresh subscription status)
-  const { data: profile, refetch: refetchProfile } = useQuery<{ id: string; plan: string } | null>({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, plan')
-        .eq('id', user.id)
-        .single();
-      return data;
-    },
-    staleTime: 0, // Always fetch fresh data to avoid caching subscription status
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
-  });
-
-  const userPlan = profile?.plan || 'free';
+  // Use unified plan limits hook (reads from subscriptions table, same as SubscriptionScreen)
   const gigCount = gigs?.length || 0;
-  const isFreePlan = userPlan === 'free';
-  const hasReachedFreeLimit = isFreePlan && gigCount >= FREE_GIG_LIMIT;
-
-  // Debug logging
-  console.log('=== GigLedger Plan Debug ===');
-  console.log('Profile:', profile);
-  console.log('User ID:', profile?.id);
-  console.log('Plan from DB:', profile?.plan);
-  console.log('Resolved userPlan:', userPlan);
-  console.log('Is free plan?:', isFreePlan);
-  console.log('Gig count:', gigCount);
-  console.log('Has reached limit?:', hasReachedFreeLimit);
-  console.log('===========================');
+  const planLimits = usePlanLimits(gigCount, 0);
+  
+  const { isFreePlan, hasReachedGigLimit, maxGigs, gigsRemaining } = planLimits;
 
   const handleDelete = (id: string, title: string) => {
     if (Platform.OS === 'web') {
@@ -183,8 +154,8 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   };
 
   const handleAddGigClick = () => {
-    if (hasReachedFreeLimit) {
-      // Don't open modal if at limit
+    if (hasReachedGigLimit) {
+      // Don't open modal if at free plan limit
       return;
     }
     setModalVisible(true);
@@ -242,7 +213,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           >
             📥 Import
           </Button>
-          {hasReachedFreeLimit ? (
+          {hasReachedGigLimit ? (
             <Button
               variant="success"
               size="sm"
@@ -281,44 +252,17 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
               <View style={styles.usageIndicator}>
                 <View style={styles.usageHeader}>
                   <Text style={styles.usageText}>
-                    You've used {gigCount} of {FREE_GIG_LIMIT} gigs on the free plan
+                    You've used {gigCount} of {maxGigs} gigs on the free plan
                   </Text>
-                  <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <TouchableOpacity onPress={async () => {
-                      try {
-                        const { data: { session } } = await supabase.auth.getSession();
-                        if (!session) return;
-                        const response = await fetch('/api/quick-fix-plan', {
-                          method: 'POST',
-                          headers: {
-                            'Authorization': `Bearer ${session.access_token}`,
-                          },
-                        });
-                        if (response.ok) {
-                          await refetchProfile();
-                          alert('Plan updated! Refreshing...');
-                          // Force a full page reload to clear all caches
-                          window.location.reload();
-                        } else {
-                          const error = await response.json();
-                          alert(`Error: ${error.error || 'Failed to update plan'}`);
-                        }
-                      } catch (error: any) {
-                        alert(`Error: ${error.message}`);
-                      }
-                    }}>
-                      <Text semibold style={{ color: colors.success.DEFAULT }}>🔄 Refresh</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleUpgradeClick}>
-                      <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity onPress={handleUpgradeClick}>
+                    <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
+                  </TouchableOpacity>
                 </View>
                 <View style={styles.progressBar}>
                   <View 
                     style={[
                       styles.progressFill, 
-                      { width: `${Math.min((gigCount / FREE_GIG_LIMIT) * 100, 100)}%` }
+                      { width: `${Math.min((gigCount / maxGigs) * 100, 100)}%` }
                     ]} 
                   />
                 </View>

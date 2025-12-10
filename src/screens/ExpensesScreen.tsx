@@ -18,11 +18,16 @@ import {
   useQuickAddExpense,
   type RecurringExpense,
 } from '../hooks/useRecurringExpenses';
+import { usePlanLimits } from '../hooks/usePlanLimits';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 
-export function ExpensesScreen() {
+interface ExpensesScreenProps {
+  onNavigateToSubscription?: () => void;
+}
+
+export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps = {}) {
   const [activeTab, setActiveTab] = useState<'all' | 'recurring'>('all');
   const [modalVisible, setModalVisible] = useState(false);
   const [recurringModalVisible, setRecurringModalVisible] = useState(false);
@@ -35,6 +40,11 @@ export function ExpensesScreen() {
   const deleteExpense = useDeleteExpense();
   const deleteRecurring = useDeleteRecurringExpense();
   const quickAdd = useQuickAddExpense();
+
+  // Use unified plan limits hook
+  const expenseCount = expenses?.length || 0;
+  const planLimits = usePlanLimits(0, expenseCount);
+  const { isFreePlan, hasReachedExpenseLimit, maxExpenses, expensesRemaining } = planLimits;
 
   const handleDelete = async (id: string, description: string) => {
     const confirmed = Platform.OS === 'web'
@@ -152,13 +162,33 @@ export function ExpensesScreen() {
             {expenses?.length || 0} expenses • {formatCurrency(totalExpenses)} total
           </Text>
         </View>
-        <Button
-          variant="primary"
-          size="sm"
-          onPress={() => activeTab === 'all' ? setModalVisible(true) : setRecurringModalVisible(true)}
-        >
-          {activeTab === 'all' ? '+ Add Expense' : '+ New Template'}
-        </Button>
+        {hasReachedExpenseLimit && activeTab === 'all' ? (
+          <Button
+            variant="success"
+            size="sm"
+            onPress={() => onNavigateToSubscription?.()}
+          >
+            ⭐ Upgrade to add more
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            size="sm"
+            onPress={() => {
+              if (activeTab === 'all') {
+                if (hasReachedExpenseLimit) {
+                  // Don't open modal if at limit
+                  return;
+                }
+                setModalVisible(true);
+              } else {
+                setRecurringModalVisible(true);
+              }
+            }}
+          >
+            {activeTab === 'all' ? '+ Add Expense' : '+ New Template'}
+          </Button>
+        )}
       </View>
 
       {/* Tabs */}
@@ -215,6 +245,28 @@ export function ExpensesScreen() {
           data={expenses}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            isFreePlan ? (
+              <View style={styles.usageIndicator}>
+                <View style={styles.usageHeader}>
+                  <Text style={styles.usageText}>
+                    You've used {expenseCount} of {maxExpenses} expenses on the free plan
+                  </Text>
+                  <TouchableOpacity onPress={() => onNavigateToSubscription?.()}>
+                    <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { width: `${Math.min((expenseCount / maxExpenses) * 100, 100)}%` }
+                    ]} 
+                  />
+                </View>
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
             <Card variant="elevated" style={styles.card}>
               <View style={styles.cardHeader}>
@@ -473,5 +525,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: parseInt(spacing[2]),
+  },
+  usageIndicator: {
+    backgroundColor: '#fef3c7',
+    padding: parseInt(spacing[4]),
+    marginBottom: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.md),
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  usageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: parseInt(spacing[2]),
+  },
+  usageText: {
+    fontSize: parseInt(typography.fontSize.body.size),
+    color: '#78350f',
+    fontWeight: typography.fontWeight.medium,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#fde68a',
+    borderRadius: parseInt(radius.full),
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#f59e0b',
+    borderRadius: parseInt(radius.full),
   },
 });
