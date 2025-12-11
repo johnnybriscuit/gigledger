@@ -76,16 +76,62 @@ export function NetBar({
 
           {/* Calculation Breakdown */}
           <View style={styles.breakdown}>
+        {/* Income Section */}
         <View style={styles.row}>
           <Text style={styles.label}>Income</Text>
           <Text style={styles.value}>+${totalIncome.toFixed(2)}</Text>
         </View>
-
-        {totalDeductions > 0 && (
-          <View style={styles.row}>
-            <Text style={styles.label}>Deductions</Text>
-            <Text style={[styles.value, styles.negative]}>-${totalDeductions.toFixed(2)}</Text>
+        {grossAmount > 0 && (
+          <View style={styles.indentedRow}>
+            <Text style={styles.labelSmall}>Gross</Text>
+            <Text style={styles.valueSmall}>+${grossAmount.toFixed(2)}</Text>
           </View>
+        )}
+        {tips > 0 && (
+          <View style={styles.indentedRow}>
+            <Text style={styles.labelSmall}>Tips</Text>
+            <Text style={styles.valueSmall}>+${tips.toFixed(2)}</Text>
+          </View>
+        )}
+        {perDiem > 0 && (
+          <View style={styles.indentedRow}>
+            <Text style={styles.labelSmall}>Per Diem</Text>
+            <Text style={styles.valueSmall}>+${perDiem.toFixed(2)}</Text>
+          </View>
+        )}
+        {otherIncome > 0 && (
+          <View style={styles.indentedRow}>
+            <Text style={styles.labelSmall}>Other Income</Text>
+            <Text style={styles.valueSmall}>+${otherIncome.toFixed(2)}</Text>
+          </View>
+        )}
+
+        {/* Deductions Section */}
+        {totalDeductions > 0 && (
+          <>
+            <View style={styles.row}>
+              <Text style={styles.label}>Deductions</Text>
+              <Text style={[styles.value, styles.negative]}>-${totalDeductions.toFixed(2)}</Text>
+            </View>
+            {fees > 0 && (
+              <View style={styles.indentedRow}>
+                <Text style={styles.labelSmall}>Fees</Text>
+                <Text style={[styles.valueSmall, styles.negative]}>-${fees.toFixed(2)}</Text>
+              </View>
+            )}
+            {expenses > 0 && (
+              <View style={styles.indentedRow}>
+                <Text style={styles.labelSmall}>Gig Expenses</Text>
+                <Text style={[styles.valueSmall, styles.negative]}>-${expenses.toFixed(2)}</Text>
+              </View>
+            )}
+            {mileageDeduction > 0 && (
+              <View style={styles.indentedRow}>
+                <Text style={styles.labelSmall}>Mileage</Text>
+                <Text style={[styles.valueSmall, styles.negative]}>-${mileageDeduction.toFixed(2)}</Text>
+              </View>
+            )}
+          </>
         )}
 
         {taxEstimate.total > 0 && !hideOldTaxEstimate && (
@@ -181,6 +227,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  indentedRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingLeft: 16,
   },
   label: {
     fontSize: 14,
