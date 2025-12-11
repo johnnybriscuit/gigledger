@@ -209,9 +209,20 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       netSE: ytdData.ytdGross - ytdData.ytdExpenses,
     };
     
+    // Calculate total gross income for this gig (all income sources)
+    const gigGrossIncome = (parseFloat(grossAmount) || 0)
+      + (parseFloat(tips) || 0)
+      + (parseFloat(perDiem) || 0)
+      + (parseFloat(otherIncome) || 0);
+    
+    // Calculate total expenses for this gig (fees + inline expenses + mileage)
+    const gigTotalExpenses = (parseFloat(fees) || 0)
+      + totalExpenses
+      + mileageDeduction;
+    
     const gigData = {
-      gross: parseFloat(grossAmount) || 0,
-      expenses: totalExpenses,
+      gross: gigGrossIncome,
+      expenses: gigTotalExpenses,
     };
     
     // Debug logging
@@ -221,6 +232,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       ytdNetSE: ytdInput.netSE,
       gigGross: gigData.gross,
       gigExpenses: gigData.expenses,
+      gigNet: gigData.gross - gigData.expenses,
       taxProfile: {
         state: taxProfile.state,
         filingStatus: taxProfile.filingStatus,
@@ -235,7 +247,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       console.error('Error calculating tax set-aside:', error);
       return null;
     }
-  }, [taxProfile, ytdData, grossAmount, totalExpenses]);
+  }, [taxProfile, ytdData, grossAmount, tips, perDiem, otherIncome, fees, totalExpenses, mileageDeduction]);
 
   useEffect(() => {
     if (editingGig) {

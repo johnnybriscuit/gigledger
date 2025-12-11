@@ -11,7 +11,7 @@ import {
 import { useGigs, useDeleteGig, type GigWithPayer } from '../hooks/useGigs';
 import { AddGigModal } from '../components/AddGigModal';
 import { ImportGigsModal } from '../components/ImportGigsModal';
-import { useWithholding } from '../hooks/useWithholding';
+import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
@@ -39,13 +39,14 @@ function GigCard({
     + (item.other_income || 0);
   
   const expensesTotal = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0) 
-    + (item.fees || 0);
+    + (item.fees || 0)
+    + ((item.mileage || []).reduce((sum, m) => sum + (m.miles * 0.67), 0)); // Standard mileage rate
   
   const netBeforeTax = gross - expensesTotal;
   
-  // Use withholding hook for this specific gig (based on net before tax)
-  const { breakdown } = useWithholding(netBeforeTax);
-  const taxToSetAside = breakdown?.total || 0;
+  // Use new 2025 tax engine for accurate tax calculation (same as Edit Gig form)
+  const { taxResult } = useGigTaxCalculation(gross, expensesTotal);
+  const taxToSetAside = taxResult?.setAside || 0;
   
   const takeHome = netBeforeTax - taxToSetAside;
   
