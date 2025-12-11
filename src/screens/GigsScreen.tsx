@@ -17,7 +17,8 @@ import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 
-// Separate component for gig card to use hooks
+// Gig card: shows a single gig in the Gigs list
+// Emphasizes take-home pay and tax set-aside
 function GigCard({ 
   item, 
   onEdit, 
@@ -31,47 +32,34 @@ function GigCard({
   formatDate: (date: string) => string;
   formatCurrency: (amount: number) => string;
 }) {
-  // Calculate gig expenses total (expenses with gig_id matching this gig)
-  const gigExpensesTotal = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0);
-  
-  // Calculate actual net including gig expenses
-  // Net = gross + tips + per_diem + other_income - fees - gig_expenses
-  const actualNet = item.gross_amount 
+  // Derived money fields
+  const gross = item.gross_amount 
     + (item.tips || 0) 
     + (item.per_diem || 0) 
-    + (item.other_income || 0) 
-    - (item.fees || 0)
-    - gigExpensesTotal;
+    + (item.other_income || 0);
   
-  // Use withholding hook for this specific gig (based on actual net)
-  const { breakdown } = useWithholding(actualNet);
+  const expensesTotal = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0) 
+    + (item.fees || 0);
+  
+  const netBeforeTax = gross - expensesTotal;
+  
+  // Use withholding hook for this specific gig (based on net before tax)
+  const { breakdown } = useWithholding(netBeforeTax);
+  const taxToSetAside = breakdown?.total || 0;
+  
+  const takeHome = netBeforeTax - taxToSetAside;
   
   return (
     <Card variant="elevated" style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.cardInfo}>
+      <View style={styles.cardContent}>
+        {/* LEFT: Gig identity */}
+        <View style={styles.gigInfo}>
           <H3>{item.title}</H3>
-          <Text muted>
-            {item.payer?.name || 'Unknown Payer'}
-          </Text>
+          <Text muted>{item.payer?.name || 'Unknown Payer'}</Text>
           <Text subtle>{formatDate(item.date)}</Text>
-        </View>
-        <View style={styles.amountContainer}>
-          <Text style={styles.netAmount}>
-            {formatCurrency(actualNet)}
-          </Text>
-          <Text style={styles.grossAmount}>
-            Gross: {formatCurrency(item.gross_amount)}
-          </Text>
-          {gigExpensesTotal > 0 && (
-            <Text style={styles.expensesAmount}>
-              Expenses: -{formatCurrency(gigExpensesTotal)}
-            </Text>
+          {item.location && (
+            <Text muted style={styles.location}>📍 {item.location}</Text>
           )}
-          <Text style={styles.taxAmount}>
-            Tax to set aside: {formatCurrency(breakdown?.total || 0)}
-          </Text>
-          {/* Payment Status Badge */}
           <Badge 
             variant={item.paid ? 'success' : 'warning'} 
             size="sm"
@@ -80,27 +68,42 @@ function GigCard({
             {item.paid ? '✓ Paid' : '⏳ Unpaid'}
           </Badge>
         </View>
+
+        {/* RIGHT: Money summary */}
+        <View style={styles.moneySummary}>
+          <View style={styles.moneyRow}>
+            <View style={styles.moneyBlock}>
+              <Text style={styles.moneyLabel}>Estimated take-home</Text>
+              <Text style={styles.moneyValueGreen}>
+                {formatCurrency(takeHome)}
+              </Text>
+              <Text style={styles.moneyHint}>after expenses & taxes</Text>
+            </View>
+
+            <View style={styles.moneyBlock}>
+              <Text style={styles.moneyLabel}>Set aside for taxes</Text>
+              <Text style={styles.moneyValueAmber}>
+                {formatCurrency(taxToSetAside)}
+              </Text>
+              <Text style={styles.moneyHint}>
+                {netBeforeTax > 0 
+                  ? `~${Math.round((taxToSetAside / netBeforeTax) * 100)}% rate`
+                  : 'estimated'}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.breakdownText}>
+            {formatCurrency(gross)} gross
+            {expensesTotal > 0 && <> − {formatCurrency(expensesTotal)} expenses</>}
+            {taxToSetAside > 0 && <> − {formatCurrency(taxToSetAside)} taxes</>}
+            {' = '}
+            {formatCurrency(takeHome)}
+          </Text>
+        </View>
       </View>
 
-      {item.location && (
-        <Text muted style={styles.location}>📍 {item.location}</Text>
-      )}
-
-      {(item.tips > 0 || item.fees > 0) && (
-        <View style={styles.breakdown}>
-          {item.tips > 0 && (
-            <Text muted>
-              Tips: +{formatCurrency(item.tips)}
-            </Text>
-          )}
-          {item.fees > 0 && (
-            <Text muted>
-              Fees: -{formatCurrency(item.fees)}
-            </Text>
-          )}
-        </View>
-      )}
-
+      {/* Edit/Delete actions */}
       <View style={styles.cardActions}>
         <TouchableOpacity 
           style={styles.actionButton}
@@ -383,44 +386,57 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: parseInt(spacing[3]),
   },
-  cardHeader: {
+  cardContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: parseInt(spacing[4]),
     marginBottom: parseInt(spacing[3]),
   },
-  cardInfo: {
+  gigInfo: {
     flex: 1,
     gap: parseInt(spacing[1]),
   },
-  amountContainer: {
-    alignItems: 'flex-end',
-    gap: parseInt(spacing[1]),
+  moneySummary: {
+    flex: 1.2,
+    gap: parseInt(spacing[2]),
   },
-  netAmount: {
-    fontSize: 22,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.success.DEFAULT,
-  },
-  grossAmount: {
-    fontSize: parseInt(typography.fontSize.caption.size),
-    color: colors.text.muted,
-  },
-  expensesAmount: {
-    fontSize: parseInt(typography.fontSize.caption.size),
-    color: colors.danger.DEFAULT,
-  },
-  taxAmount: {
-    fontSize: 11,
-    color: colors.warning.DEFAULT,
-    fontWeight: typography.fontWeight.semibold,
-  },
-  location: {
-    marginBottom: parseInt(spacing[2]),
-  },
-  breakdown: {
+  moneyRow: {
     flexDirection: 'row',
     gap: parseInt(spacing[3]),
-    marginBottom: parseInt(spacing[2]),
+  },
+  moneyBlock: {
+    flex: 1,
+    gap: parseInt(spacing[1]),
+  },
+  moneyLabel: {
+    fontSize: 11,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  moneyValueGreen: {
+    fontSize: 28,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.success.DEFAULT,
+    lineHeight: 32,
+  },
+  moneyValueAmber: {
+    fontSize: 28,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.warning.DEFAULT,
+    lineHeight: 32,
+  },
+  moneyHint: {
+    fontSize: 10,
+    color: colors.text.subtle,
+  },
+  breakdownText: {
+    fontSize: 12,
+    color: colors.text.muted,
+    lineHeight: 18,
+  },
+  location: {
+    marginTop: parseInt(spacing[1]),
   },
   cardActions: {
     flexDirection: 'row',
@@ -435,7 +451,7 @@ const styles = StyleSheet.create({
     paddingVertical: parseInt(spacing[1]),
   },
   statusBadge: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
     marginTop: parseInt(spacing[2]),
   },
 });
