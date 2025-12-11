@@ -31,8 +31,20 @@ function GigCard({
   formatDate: (date: string) => string;
   formatCurrency: (amount: number) => string;
 }) {
-  // Use withholding hook for this specific gig
-  const { breakdown } = useWithholding(item.net_amount);
+  // Calculate gig expenses total (expenses with gig_id matching this gig)
+  const gigExpensesTotal = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0);
+  
+  // Calculate actual net including gig expenses
+  // Net = gross + tips + per_diem + other_income - fees - gig_expenses
+  const actualNet = item.gross_amount 
+    + (item.tips || 0) 
+    + (item.per_diem || 0) 
+    + (item.other_income || 0) 
+    - (item.fees || 0)
+    - gigExpensesTotal;
+  
+  // Use withholding hook for this specific gig (based on actual net)
+  const { breakdown } = useWithholding(actualNet);
   
   return (
     <Card variant="elevated" style={styles.card}>
@@ -46,11 +58,16 @@ function GigCard({
         </View>
         <View style={styles.amountContainer}>
           <Text style={styles.netAmount}>
-            {formatCurrency(item.net_amount)}
+            {formatCurrency(actualNet)}
           </Text>
           <Text style={styles.grossAmount}>
             Gross: {formatCurrency(item.gross_amount)}
           </Text>
+          {gigExpensesTotal > 0 && (
+            <Text style={styles.expensesAmount}>
+              Expenses: -{formatCurrency(gigExpensesTotal)}
+            </Text>
+          )}
           <Text style={styles.taxAmount}>
             Tax to set aside: {formatCurrency(breakdown?.total || 0)}
           </Text>
@@ -194,7 +211,17 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   }
 
   const totalGross = gigs?.reduce((sum, gig) => sum + (gig.gross_amount || 0), 0) || 0;
-  const totalNet = gigs?.reduce((sum, gig) => sum + (gig.net_amount || 0), 0) || 0;
+  // Calculate total net including gig expenses
+  const totalNet = gigs?.reduce((sum, gig) => {
+    const gigExpensesTotal = (gig.expenses || []).reduce((expSum, exp) => expSum + exp.amount, 0);
+    const actualNet = gig.gross_amount 
+      + (gig.tips || 0) 
+      + (gig.per_diem || 0) 
+      + (gig.other_income || 0) 
+      - (gig.fees || 0)
+      - gigExpensesTotal;
+    return sum + actualNet;
+  }, 0) || 0;
 
   return (
     <View style={styles.container}>
@@ -377,6 +404,10 @@ const styles = StyleSheet.create({
   grossAmount: {
     fontSize: parseInt(typography.fontSize.caption.size),
     color: colors.text.muted,
+  },
+  expensesAmount: {
+    fontSize: parseInt(typography.fontSize.caption.size),
+    color: colors.danger.DEFAULT,
   },
   taxAmount: {
     fontSize: 11,

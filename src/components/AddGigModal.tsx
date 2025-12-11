@@ -23,7 +23,7 @@ import { InlineMileageRow, type InlineMileage } from './gigs/InlineMileageRow';
 import { NetBar } from './gigs/NetBar';
 import { VenuePlacesInput } from './VenuePlacesInput';
 import { useTaxEstimate, calculateMileageDeduction } from '../hooks/useTaxEstimate';
-import { createGigWithLines } from '../services/gigService';
+import { createGigWithLines, updateGigWithLines } from '../services/gigService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useTaxProfile } from '../hooks/useTaxProfile';
@@ -260,6 +260,46 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       setPaid(editingGig.paid || false);
       setTaxesWithheld(editingGig.taxes_withheld || false);
       setNotes(editingGig.notes || '');
+      
+      // Load gig-related expenses
+      const loadGigExpenses = async () => {
+        const { data: expenses, error } = await supabase
+          .from('expenses')
+          .select('*')
+          .eq('gig_id', editingGig.id)
+          .order('created_at', { ascending: true });
+        
+        if (!error && expenses) {
+          // Convert expenses to InlineExpense format
+          const inlineExpensesData: InlineExpense[] = expenses.map((exp: any) => ({
+            id: exp.id, // Use actual expense ID
+            category: exp.category,
+            description: exp.description,
+            amount: exp.amount.toString(),
+            note: exp.notes || '',
+          }));
+          setInlineExpenses(inlineExpensesData);
+        }
+      };
+      
+      // Load gig-related mileage
+      const loadGigMileage = async () => {
+        const { data: mileage, error } = await supabase
+          .from('mileage')
+          .select('*')
+          .eq('gig_id', editingGig.id)
+          .single();
+        
+        if (!error && mileage) {
+          setInlineMileage({
+            miles: mileage.miles.toString(),
+            note: mileage.notes || '',
+          });
+        }
+      };
+      
+      loadGigExpenses();
+      loadGigMileage();
     } else {
       resetForm();
     }
@@ -350,26 +390,35 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       const validated = gigSchema.parse(formData);
       console.log('Validated data:', validated);
 
+      // Prepare inline expenses data (used for both create and edit)
+      const expensesData = inlineExpenses.map(exp => ({
+        category: exp.category,
+        description: exp.description,
+        amount: parseFloat(exp.amount) || 0,
+        note: exp.note,
+      }));
+
+      // Prepare inline mileage data (used for both create and edit)
+      const mileageData = inlineMileage ? {
+        miles: parseFloat(inlineMileage.miles) || 0,
+        note: inlineMileage.note,
+      } : undefined;
+
       if (editingGig) {
-        await updateGig.mutateAsync({
-          id: editingGig.id,
-          ...validated,
+        // Update gig with inline items
+        await updateGigWithLines({
+          gigId: editingGig.id,
+          gig: validated,
+          expenses: expensesData,
+          mileage: mileageData,
         });
+        
+        // Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['gigs'] });
+        queryClient.invalidateQueries({ queryKey: ['expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['mileage'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       } else {
-        // Prepare inline expenses data
-        const expensesData = inlineExpenses.map(exp => ({
-          category: exp.category,
-          description: exp.description,
-          amount: parseFloat(exp.amount) || 0,
-          note: exp.note,
-        }));
-
-        // Prepare inline mileage data
-        const mileageData = inlineMileage ? {
-          miles: parseFloat(inlineMileage.miles) || 0,
-          note: inlineMileage.note,
-        } : undefined;
-
         // Create gig with inline items
         await createGigWithLines({
           gig: validated,
