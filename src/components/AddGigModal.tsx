@@ -341,13 +341,37 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     c.code.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
-  const calculateNet = () => {
+  // Calculate total gig pay (gross income before expenses & taxes)
+  const calculateTotalGigPay = () => {
     const gross = parseFloat(grossAmount) || 0;
     const tipAmount = parseFloat(tips) || 0;
     const feeAmount = parseFloat(fees) || 0;
     const perDiemAmount = parseFloat(perDiem) || 0;
     const otherIncomeAmount = parseFloat(otherIncome) || 0;
     return gross + tipAmount + perDiemAmount + otherIncomeAmount - feeAmount;
+  };
+
+  // Generate human-readable breakdown (omit zero values)
+  const generatePayBreakdown = () => {
+    const gross = parseFloat(grossAmount) || 0;
+    const tipAmount = parseFloat(tips) || 0;
+    const feeAmount = parseFloat(fees) || 0;
+    const perDiemAmount = parseFloat(perDiem) || 0;
+    const otherIncomeAmount = parseFloat(otherIncome) || 0;
+
+    const parts: string[] = [];
+    
+    if (gross > 0) parts.push(`Base $${gross.toFixed(2)}`);
+    if (tipAmount > 0) parts.push(`Tips $${tipAmount.toFixed(2)}`);
+    if (perDiemAmount > 0) parts.push(`Per Diem $${perDiemAmount.toFixed(2)}`);
+    if (otherIncomeAmount > 0) parts.push(`Other $${otherIncomeAmount.toFixed(2)}`);
+    if (feeAmount > 0) parts.push(`Fees −$${feeAmount.toFixed(2)}`);
+
+    if (parts.length === 0) return '$0.00';
+    if (parts.length === 1 && feeAmount === 0) return parts[0];
+    
+    const total = calculateTotalGigPay();
+    return `${parts.join(' + ').replace(' + Fees', ' − Fees')} = $${total.toFixed(2)}`;
   };
 
   const handleSubmit = async () => {
@@ -448,7 +472,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     }
   };
 
-  const netAmount = calculateNet();
+  const totalGigPay = calculateTotalGigPay();
 
   return (
     <Modal
@@ -737,12 +761,15 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             </View>
 
             <View style={styles.netAmountCard}>
-              <Text style={styles.netAmountLabel}>Net Amount</Text>
+              <View style={styles.netAmountHeader}>
+                <Text style={styles.netAmountLabel}>Total gig pay</Text>
+                <Text style={styles.netAmountSubtitle}>(before expenses & taxes)</Text>
+              </View>
               <Text style={styles.netAmountValue}>
-                ${netAmount.toFixed(2)}
+                ${totalGigPay.toFixed(2)}
               </Text>
               <Text style={styles.netAmountFormula}>
-                ${grossAmount || '0'} + ${tips || '0'} + ${perDiem || '0'} + ${otherIncome || '0'} - ${fees || '0'}
+                {generatePayBreakdown()}
               </Text>
             </View>
 
@@ -1268,11 +1295,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: 'center',
   },
+  netAmountHeader: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   netAmountLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#059669',
-    marginBottom: 4,
+    marginBottom: 2,
+  },
+  netAmountSubtitle: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontStyle: 'italic',
   },
   netAmountValue: {
     fontSize: 32,
