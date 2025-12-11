@@ -20,7 +20,6 @@ import { formatWithholdingBreakdown } from '../lib/tax/withholding';
 import { hasCompletedTaxProfile } from '../services/taxService';
 import { InlineExpensesList, type InlineExpense } from './gigs/InlineExpensesList';
 import { InlineMileageRow, type InlineMileage } from './gigs/InlineMileageRow';
-import { NetBar } from './gigs/NetBar';
 import { VenuePlacesInput } from './VenuePlacesInput';
 import { useTaxEstimate, calculateMileageDeduction } from '../hooks/useTaxEstimate';
 import { createGigWithLines, updateGigWithLines } from '../services/gigService';
@@ -884,43 +883,35 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             <View style={{ height: 100 }} />
           </ScrollView>
 
-          {/* Sticky Net Bar */}
-          <NetBar
-            grossAmount={parseFloat(grossAmount) || 0}
-            tips={parseFloat(tips) || 0}
-            perDiem={parseFloat(perDiem) || 0}
-            otherIncome={parseFloat(otherIncome) || 0}
-            fees={parseFloat(fees) || 0}
-            expenses={totalExpenses}
-            mileageDeduction={mileageDeduction}
-            taxEstimate={taxEstimate}
-            hideOldTaxEstimate={!!gigSetAside}
-          />
-
-          {/* Tax Summary - Inline Collapsible */}
+          {/* Net After Tax Section */}
           {gigSetAside && taxProfile && (
-            <TaxSummary
-              gross={parseFloat(grossAmount) || 0}
-              tips={parseFloat(tips) || 0}
-              perDiem={parseFloat(perDiem) || 0}
-              fees={parseFloat(fees) || 0}
-              otherIncome={parseFloat(otherIncome) || 0}
-              gigExpenses={totalExpenses}
-              mileageDeduction={mileageDeduction}
-              filingStatus={taxProfile.filingStatus}
-              state={taxProfile.state}
-              taxYear={2025}
-              estimate={{
-                federal: gigSetAside.breakdown.federal,
-                state: gigSetAside.breakdown.state + gigSetAside.breakdown.local,
-                se: gigSetAside.breakdown.seTax,
-                setAside: gigSetAside.amount,
-                setAsidePct: gigSetAside.rate,
-                thresholdNote: gigSetAside.breakdown.federal === 0 ? 'below $30k threshold' : undefined,
-              }}
-              isExpanded={showTaxBreakdown}
-              onToggle={setShowTaxBreakdown}
-            />
+            <View style={styles.netAfterTaxSection}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Net After Tax</Text>
+              </View>
+              <TaxSummary
+                gross={parseFloat(grossAmount) || 0}
+                tips={parseFloat(tips) || 0}
+                perDiem={parseFloat(perDiem) || 0}
+                fees={parseFloat(fees) || 0}
+                otherIncome={parseFloat(otherIncome) || 0}
+                gigExpenses={totalExpenses}
+                mileageDeduction={mileageDeduction}
+                filingStatus={taxProfile.filingStatus}
+                state={taxProfile.state}
+                taxYear={2025}
+                estimate={{
+                  federal: gigSetAside.breakdown.federal,
+                  state: gigSetAside.breakdown.state + gigSetAside.breakdown.local,
+                  se: gigSetAside.breakdown.seTax,
+                  setAside: gigSetAside.amount,
+                  setAsidePct: gigSetAside.rate,
+                  thresholdNote: gigSetAside.breakdown.federal === 0 ? 'below $30k threshold' : undefined,
+                }}
+                isExpanded={showTaxBreakdown}
+                onToggle={setShowTaxBreakdown}
+              />
+            </View>
           )}
 
           {/* Submit Button */}
@@ -1851,5 +1842,21 @@ const styles = StyleSheet.create({
   pickerModalItemTextActive: {
     color: '#3b82f6',
     fontWeight: '600',
+  },
+  // Net After Tax section styles
+  netAfterTaxSection: {
+    marginTop: 0,
+  },
+  sectionHeaderRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f9fafb',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
   },
 });
