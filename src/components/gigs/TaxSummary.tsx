@@ -1,10 +1,11 @@
 /**
- * TaxSummary - Inline collapsible tax breakdown for gig forms
- * Replaces the full-screen modal with a compact, accessible component
+ * Tax and net summary section at the bottom of the Edit Gig form
+ * Uses centralized tax calculation logic to match gig card displays
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { calculateGigTaxSummary, type GigTaxInput } from '../../utils/gigTaxCalculations';
 
 export interface TaxEstimate {
   federal: number;
@@ -22,6 +23,8 @@ export interface TaxSummaryProps {
   perDiem?: number;
   fees?: number;
   otherIncome?: number;
+  gigExpenses?: number;
+  mileageDeduction?: number;
   filingStatus: 'single' | 'married_joint' | 'married_separate' | 'head';
   state: string;
   taxYear?: number;
@@ -37,6 +40,8 @@ export function TaxSummary({
   perDiem = 0,
   fees = 0,
   otherIncome = 0,
+  gigExpenses = 0,
+  mileageDeduction = 0,
   estimate,
   isExpanded: controlledExpanded,
   onToggle,
@@ -45,10 +50,24 @@ export function TaxSummary({
   const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
   const heightAnim = useRef(new Animated.Value(0)).current;
 
-  // Calculate totals
-  const totalIncome = gross + tips + perDiem + otherIncome;
-  const netBeforeTax = totalIncome - fees;
-  const netAfterTax = netBeforeTax - estimate.setAside;
+  // Use centralized calculation (same as gig cards)
+  const taxInput: GigTaxInput = {
+    grossAmount: gross,
+    tips,
+    perDiem,
+    otherIncome,
+    fees,
+    gigExpenses,
+    mileageDeduction,
+    taxBreakdown: {
+      federal: estimate.federal,
+      state: estimate.state,
+      seTax: estimate.se,
+      total: estimate.setAside,
+    },
+  };
+
+  const summary = calculateGigTaxSummary(taxInput);
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -86,22 +105,22 @@ export function TaxSummary({
 
   return (
     <View style={styles.container}>
-      {/* Collapsed Summary Row */}
+      {/* Summary Row - Shows take-home and tax set-aside */}
       <TouchableOpacity
         style={styles.summaryRow}
         onPress={handleToggle}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel={`Tax summary. Net after tax: ${formatCurrency(netAfterTax)}. Set aside: ${formatCurrency(estimate.setAside)}. ${isExpanded ? 'Collapse' : 'Expand'} for breakdown`}
+        accessibilityLabel={`Tax summary. Net after tax: ${formatCurrency(summary.takeHome)}. Set aside: ${formatCurrency(summary.taxToSetAside)}. ${isExpanded ? 'Collapse' : 'Expand'} for breakdown`}
         accessibilityState={{ expanded: isExpanded }}
       >
         <View style={styles.summaryLeft}>
-          <Text style={styles.summaryLabel}>💰 Net after tax:</Text>
-          <Text style={styles.summaryAmount}>{formatCurrency(netAfterTax)}</Text>
+          <Text style={styles.summaryLabel}>💰 Net after tax (take-home):</Text>
+          <Text style={styles.summaryAmount}>{formatCurrency(summary.takeHome)}</Text>
         </View>
         <View style={styles.summaryRight}>
           <Text style={styles.summarySetAside}>
-            Set aside: {formatCurrency(estimate.setAside)} ({formatPercent(estimate.setAsidePct)})
+            Set aside: {formatCurrency(summary.taxToSetAside)} ({formatPercent(summary.effectiveRate)})
           </Text>
           <Text style={styles.expandIcon}>{isExpanded ? '▴' : '▾'}</Text>
         </View>
@@ -115,44 +134,21 @@ export function TaxSummary({
             <View style={styles.breakdownColumn}>
               <Text style={styles.columnTitle}>Income</Text>
               
-              {gross > 0 && (
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Gross</Text>
-                  <Text style={styles.breakdownValue}>{formatCurrency(gross)}</Text>
-                </View>
-              )}
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Gross</Text>
+                <Text style={styles.breakdownValue}>{formatCurrency(summary.gross)}</Text>
+              </View>
               
-              {tips > 0 && (
+              {summary.expensesTotal > 0 && (
                 <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Tips</Text>
-                  <Text style={styles.breakdownValue}>{formatCurrency(tips)}</Text>
-                </View>
-              )}
-              
-              {perDiem > 0 && (
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Per Diem</Text>
-                  <Text style={styles.breakdownValue}>{formatCurrency(perDiem)}</Text>
-                </View>
-              )}
-              
-              {otherIncome > 0 && (
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Other Income</Text>
-                  <Text style={styles.breakdownValue}>{formatCurrency(otherIncome)}</Text>
-                </View>
-              )}
-              
-              {fees > 0 && (
-                <View style={styles.breakdownRow}>
-                  <Text style={styles.breakdownLabel}>Fees</Text>
-                  <Text style={[styles.breakdownValue, styles.negative]}>-{formatCurrency(fees)}</Text>
+                  <Text style={styles.breakdownLabel}>Expenses</Text>
+                  <Text style={[styles.breakdownValue, styles.negative]}>-{formatCurrency(summary.expensesTotal)}</Text>
                 </View>
               )}
               
               <View style={[styles.breakdownRow, styles.subtotalRow]}>
-                <Text style={styles.subtotalLabel}>Subtotal</Text>
-                <Text style={styles.subtotalValue}>{formatCurrency(netBeforeTax)}</Text>
+                <Text style={styles.subtotalLabel}>Net before tax</Text>
+                <Text style={styles.subtotalValue}>{formatCurrency(summary.netBeforeTax)}</Text>
               </View>
             </View>
 
@@ -165,33 +161,33 @@ export function TaxSummary({
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>Federal</Text>
                   </View>
-                  {estimate.federal === 0 && estimate.thresholdNote && (
+                  {summary.federal === 0 && estimate.thresholdNote && (
                     <Text style={styles.thresholdNote}>(below threshold)</Text>
                   )}
                 </View>
-                <Text style={styles.breakdownValue}>{formatCurrency(estimate.federal)}</Text>
+                <Text style={styles.breakdownValue}>{formatCurrency(summary.federal)}</Text>
               </View>
               
               <View style={styles.breakdownRow}>
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>State</Text>
                 </View>
-                <Text style={styles.breakdownValue}>{formatCurrency(estimate.state)}</Text>
+                <Text style={styles.breakdownValue}>{formatCurrency(summary.state)}</Text>
               </View>
               
               <View style={styles.breakdownRow}>
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>SE Tax</Text>
                 </View>
-                <Text style={styles.breakdownValue}>{formatCurrency(estimate.se)}</Text>
+                <Text style={styles.breakdownValue}>{formatCurrency(summary.seTax)}</Text>
               </View>
               
               <View style={[styles.breakdownRow, styles.subtotalRow]}>
                 <Text style={styles.subtotalLabel}>Total set aside</Text>
                 <View style={styles.totalContainer}>
-                  <Text style={styles.subtotalValue}>{formatCurrency(estimate.setAside)}</Text>
+                  <Text style={styles.subtotalValue}>{formatCurrency(summary.taxToSetAside)}</Text>
                   <View style={styles.percentChip}>
-                    <Text style={styles.percentChipText}>{formatPercent(estimate.setAsidePct)}</Text>
+                    <Text style={styles.percentChipText}>{formatPercent(summary.effectiveRate)}</Text>
                   </View>
                 </View>
               </View>
@@ -200,10 +196,6 @@ export function TaxSummary({
 
           {/* Footer Note */}
           <View style={styles.footer}>
-            <Text style={styles.footerNote}>
-              This is the marginal tax rate for this gig based on your projected annual income.
-              Your overall effective tax rate may be lower.
-            </Text>
             <Text style={styles.disclaimer}>Estimates only. Not tax advice.</Text>
           </View>
         </View>

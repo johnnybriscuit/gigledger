@@ -905,6 +905,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               perDiem={parseFloat(perDiem) || 0}
               fees={parseFloat(fees) || 0}
               otherIncome={parseFloat(otherIncome) || 0}
+              gigExpenses={totalExpenses}
+              mileageDeduction={mileageDeduction}
               filingStatus={taxProfile.filingStatus}
               state={taxProfile.state}
               taxYear={2025}
