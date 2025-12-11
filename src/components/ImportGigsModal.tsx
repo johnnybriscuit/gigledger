@@ -12,13 +12,16 @@ import {
 import { usePayers } from '../hooks/usePayers';
 import { useCreateGig } from '../hooks/useGigs';
 import { parseGigsCSV, generateGigsTemplate } from '../utils/csvImport';
+import { supabase } from '../lib/supabase';
+import { getPlanAndUsage, canCreateGigBatch } from '../lib/planLimits';
 
 interface ImportGigsModalProps {
   visible: boolean;
   onClose: () => void;
+  onUpgradeNeeded?: () => void;
 }
 
-export function ImportGigsModal({ visible, onClose }: ImportGigsModalProps) {
+export function ImportGigsModal({ visible, onClose, onUpgradeNeeded }: ImportGigsModalProps) {
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState<{ success: number; errors: string[] } | null>(null);
   
@@ -46,6 +49,12 @@ export function ImportGigsModal({ visible, onClose }: ImportGigsModalProps) {
     setResults(null);
 
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
       // Create payer map
       const payerMap = new Map<string, string>();
       payers?.forEach(payer => {
@@ -56,6 +65,23 @@ export function ImportGigsModal({ visible, onClose }: ImportGigsModalProps) {
       // Parse CSV
       const { data, errors } = parseGigsCSV(csvText, payerMap);
 
+      // Check plan limits BEFORE importing
+      const planCheck = await getPlanAndUsage(supabase, user.id);
+      const batchCheck = canCreateGigBatch(planCheck, data.length);
+
+      if (!batchCheck.allowed && batchCheck.error) {
+        // Hit plan limit - show upgrade prompt
+        if (onUpgradeNeeded) {
+          onUpgradeNeeded();
+        }
+        setResults({
+          success: 0,
+          errors: [batchCheck.error.message],
+        });
+        setImporting(false);
+        return;
+      }
+
       // Import gigs
       let successCount = 0;
       const importErrors: string[] = [...errors];
@@ -65,6 +91,14 @@ export function ImportGigsModal({ visible, onClose }: ImportGigsModalProps) {
           await createGig.mutateAsync(gig);
           successCount++;
         } catch (error: any) {
+          // Check if it's a plan limit error
+          if (error.code === 'GIG_LIMIT_REACHED') {
+            importErrors.push(`Plan limit reached. Imported ${successCount} of ${data.length} gigs.`);
+            if (onUpgradeNeeded) {
+              onUpgradeNeeded();
+            }
+            break; // Stop importing
+          }
           importErrors.push(`Failed to import "${gig.title}": ${error.message}`);
         }
       }

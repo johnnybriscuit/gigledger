@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
+import { getPlanAndUsage, createExpenseLimitError } from '../lib/planLimits';
 
 type Expense = Database['public']['Tables']['expenses']['Row'];
 type ExpenseInsert = Database['public']['Tables']['expenses']['Insert'];
@@ -43,6 +44,13 @@ export function useCreateExpense() {
     mutationFn: async (expense: Omit<ExpenseInsert, 'user_id'>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // Check plan limits before creating expense
+      const planCheck = await getPlanAndUsage(supabase, user.id);
+      
+      if (!planCheck.canCreateExpenses) {
+        throw createExpenseLimitError(planCheck);
+      }
 
       const { data, error } = await supabase
         .from('expenses')
