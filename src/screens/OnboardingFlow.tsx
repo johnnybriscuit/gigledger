@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Platform } from 'react-native';
 import { OnboardingWelcome } from './OnboardingWelcome';
+import { OnboardingBusinessStructure } from './OnboardingBusinessStructure';
 import { OnboardingAddPayer } from './OnboardingAddPayer';
 import { OnboardingAddGig } from './OnboardingAddGig';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,9 +19,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     setStep(2);
   };
 
+  const handleBusinessStructureNext = () => {
+    setStep(3);
+  };
+
   const handlePayerNext = (newPayerId: string) => {
     setPayerId(newPayerId);
-    setStep(3);
+    setStep(4);
   };
 
   const handleComplete = () => {
@@ -50,10 +55,20 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   if (step === 2) {
     return (
+      <OnboardingBusinessStructure
+        onNext={handleBusinessStructureNext}
+        onSkip={handleBusinessStructureNext}
+        onBack={() => setStep(1)}
+      />
+    );
+  }
+
+  if (step === 3) {
+    return (
       <OnboardingAddPayer
         onNext={handlePayerNext}
         onSkip={handleSkipToEnd}
-        onBack={() => setStep(1)}
+        onBack={() => setStep(2)}
       />
     );
   }
@@ -63,7 +78,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       payerId={payerId}
       onComplete={handleComplete}
       onSkip={handleSkipToEnd}
-      onBack={() => setStep(2)}
+      onBack={() => setStep(3)}
     />
   );
 }

@@ -56,7 +56,7 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
     <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.step}>Step 2 of 3</Text>
+          <Text style={styles.step}>Step 3 of 4</Text>
           <Text style={styles.title}>Who pays you for gigs?</Text>
           <Text style={styles.subtitle}>
             Add a band, artist, venue, church, or client so we can attach gigs to the right payers.

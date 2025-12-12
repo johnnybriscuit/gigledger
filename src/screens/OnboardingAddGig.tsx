@@ -174,7 +174,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
     <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.step}>Step 3 of 3</Text>
+          <Text style={styles.step}>Step 4 of 4</Text>
           <Text style={styles.title}>Log your first gig 💰</Text>
           <Text style={styles.subtitle}>
             Use a real or sample gig so you can see your true net after expenses & taxes.

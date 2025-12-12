@@ -133,7 +133,7 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
     <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.step}>Step 1 of 3</Text>
+          <Text style={styles.step}>Step 1 of 4</Text>
           <Text style={styles.title}>Welcome to GigLedger 🎵</Text>
           <Text style={styles.subtitle}>
             Let's set up a few basics so we can estimate your take-home pay correctly. This takes under a minute.
