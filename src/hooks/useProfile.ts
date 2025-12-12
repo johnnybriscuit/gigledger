@@ -8,6 +8,12 @@ import { supabase } from '../lib/supabase';
 import { ensureProfile, getProfile, updateProfile } from '../lib/profile';
 import { queryKeys } from '../lib/queryKeys';
 
+export type BusinessStructure =
+  | 'individual'
+  | 'llc_single_member'
+  | 'llc_scorp'
+  | 'llc_multi_member';
+
 export interface Profile {
   id: string;
   email: string | null;
@@ -17,6 +23,7 @@ export interface Profile {
   home_address_place_id: string | null;
   home_address_lat: number | null;
   home_address_lng: number | null;
+  business_structure: BusinessStructure;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +36,7 @@ export interface ProfileUpdateData {
   home_address_lat?: number;
   home_address_lng?: number;
   email?: string;
+  business_structure?: BusinessStructure;
 }
 
 /**
@@ -45,8 +53,19 @@ export function useProfile(userId?: string) {
       
       if (error) throw error;
       if (!data) throw new Error('Profile not found');
-      
-      return data as Profile;
+
+      const businessStructure =
+        (data as any).business_structure === 'individual' ||
+        (data as any).business_structure === 'llc_single_member' ||
+        (data as any).business_structure === 'llc_scorp' ||
+        (data as any).business_structure === 'llc_multi_member'
+          ? ((data as any).business_structure as BusinessStructure)
+          : 'individual';
+
+      return {
+        ...(data as any),
+        business_structure: businessStructure,
+      } as Profile;
     },
     enabled: !!userId,
     staleTime: 30000, // Consider data fresh for 30 seconds

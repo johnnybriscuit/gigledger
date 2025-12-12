@@ -18,6 +18,11 @@ import { useTaxProfile, useUpsertTaxProfile } from '../hooks/useTaxProfile';
 import { getMDCounties, getStateName } from '../tax/engine';
 import type { TaxProfile } from '../tax/engine';
 import type { StateCode, FilingStatus } from '../tax/config/2025';
+import { useProfile, type BusinessStructure } from '../hooks/useProfile';
+import { useSubscription } from '../hooks/useSubscription';
+import { getResolvedPlan } from '../lib/businessStructure';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
 
 const TAX_STATES: { code: StateCode; name: string }[] = [
   { code: 'AL', name: 'Alabama' },
@@ -94,6 +99,24 @@ export function TaxSettingsSection({
   const { data: currentProfile, isLoading } = useTaxProfile();
   const upsertProfile = useUpsertTaxProfile();
   
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+  
+  const { data: profile } = useProfile(user?.id);
+  const { data: subscription } = useSubscription();
+  
+  const plan = getResolvedPlan({
+    subscriptionTier: subscription?.tier,
+    subscriptionStatus: subscription?.status,
+  });
+  
+  const isProPlan = plan === 'pro';
+  
   const [internalIsEditing, setInternalIsEditing] = useState(false);
   const isEditing = externalIsEditing !== undefined ? externalIsEditing : internalIsEditing;
   
@@ -104,40 +127,66 @@ export function TaxSettingsSection({
       setInternalIsEditing(editing);
     }
   };
-  const [profile, setProfile] = useState<Partial<TaxProfile>>({
+  const [taxProfileForm, setTaxProfileForm] = useState<Partial<TaxProfile>>({
     filingStatus: 'single',
     state: 'TN',
     deductionMethod: 'standard',
     seIncome: true,
   });
+  
+  const [businessStructure, setBusinessStructure] = useState<BusinessStructure>('individual');
 
   // Initialize form when profile loads
   useEffect(() => {
     if (currentProfile) {
-      setProfile(currentProfile);
+      setTaxProfileForm(currentProfile);
     }
-  }, [currentProfile]);
+    if (profile) {
+      setBusinessStructure(profile.business_structure || 'individual');
+    }
+  }, [currentProfile, profile]);
 
   const handleSave = async () => {
-    if (!profile.filingStatus || !profile.state || !profile.deductionMethod) {
+    if (!taxProfileForm.filingStatus || !taxProfileForm.state || !taxProfileForm.deductionMethod) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
     // Validate MD requires county
-    if (profile.state === 'MD' && !profile.county) {
+    if (taxProfileForm.state === 'MD' && !taxProfileForm.county) {
       Alert.alert('Error', 'Please select a county for Maryland');
       return;
     }
 
     // Validate itemized requires amount
-    if (profile.deductionMethod === 'itemized' && !profile.itemizedAmount) {
+    if (taxProfileForm.deductionMethod === 'itemized' && !taxProfileForm.itemizedAmount) {
       Alert.alert('Error', 'Please enter itemized deduction amount');
+      return;
+    }
+    
+    if (businessStructure === 'llc_scorp' && !isProPlan) {
+      Alert.alert('Upgrade Required', 'S-Corp mode is only available on GigLedger Pro. Please upgrade your plan to use this business structure.');
       return;
     }
 
     try {
-      await upsertProfile.mutateAsync(profile as TaxProfile);
+      await upsertProfile.mutateAsync(taxProfileForm as TaxProfile);
+      
+      if (user?.id && businessStructure !== profile?.business_structure) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ business_structure: businessStructure })
+          .eq('id', user.id);
+        
+        if (error) {
+          if (error.message?.includes('SCORP_REQUIRES_PRO')) {
+            Alert.alert('Upgrade Required', 'S-Corp mode requires GigLedger Pro.');
+            return;
+          }
+          throw error;
+        }
+      }
+      
       setIsEditing(false);
       Alert.alert('Success', 'Tax settings updated successfully');
     } catch (error) {
@@ -149,7 +198,10 @@ export function TaxSettingsSection({
   const handleCancel = () => {
     setIsEditing(false);
     if (currentProfile) {
-      setProfile(currentProfile);
+      setTaxProfileForm(currentProfile);
+    }
+    if (profile) {
+      setBusinessStructure(profile.business_structure || 'individual');
     }
   };
 
@@ -164,8 +216,15 @@ export function TaxSettingsSection({
     );
   }
 
-  const filingStatusLabel = FILING_STATUSES.find(s => s.value === profile.filingStatus)?.label;
-  const stateName = profile.state ? getStateName(profile.state) : 'Not set';
+  const filingStatusLabel = FILING_STATUSES.find(s => s.value === taxProfileForm.filingStatus)?.label;
+  const stateName = taxProfileForm.state ? getStateName(taxProfileForm.state) : 'Not set';
+  
+  const businessStructureLabel = {
+    individual: 'Individual / Sole Proprietor',
+    llc_single_member: 'Single-Member LLC',
+    llc_scorp: 'LLC taxed as S-Corp',
+    llc_multi_member: 'Multi-Member LLC / Partnership',
+  }[businessStructure];
 
   return (
     <View style={styles.section}>
@@ -179,14 +238,51 @@ export function TaxSettingsSection({
       </View>
 
       <View style={styles.card}>
+        {/* Business Structure */}
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>Business Structure</Text>
+          {isEditing ? (
+            <>
+              <select
+                style={styles.select}
+                value={businessStructure}
+                onChange={(e: any) => {
+                  const value = e.target.value as BusinessStructure;
+                  if (value === 'llc_scorp' && !isProPlan) {
+                    return;
+                  }
+                  setBusinessStructure(value);
+                }}
+              >
+                <option value="individual">Individual / Sole Proprietor</option>
+                <option value="llc_single_member">Single-Member LLC</option>
+                <option value="llc_scorp" disabled={!isProPlan}>LLC taxed as S-Corp{!isProPlan ? ' (Pro only)' : ''}</option>
+                <option value="llc_multi_member">Multi-Member LLC / Partnership</option>
+              </select>
+              {!isProPlan && (
+                <Text style={styles.upgradeNote}>
+                  💡 S-Corp mode is available on GigLedger Pro. S-Corp mode removes self-employment tax estimates and is designed for users running payroll through an S-Corp.
+                </Text>
+              )}
+              {isProPlan && businessStructure === 'llc_scorp' && (
+                <Text style={styles.infoNote}>
+                  ℹ️ In S-Corp mode, GigLedger tracks your gig income and expenses but does not calculate payroll or distribution taxes. Self-employment tax estimates will be turned off.
+                </Text>
+              )}
+            </>
+          ) : (
+            <Text style={styles.fieldValue}>{businessStructureLabel}</Text>
+          )}
+        </View>
+
         {/* Filing Status */}
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Filing Status</Text>
           {isEditing ? (
             <select
               style={styles.select}
-              value={profile.filingStatus}
-              onChange={(e: any) => setProfile({ ...profile, filingStatus: e.target.value as FilingStatus })}
+              value={taxProfileForm.filingStatus}
+              onChange={(e: any) => setTaxProfileForm({ ...taxProfileForm, filingStatus: e.target.value as FilingStatus })}
             >
               {FILING_STATUSES.map((status) => (
                 <option key={status.value} value={status.value}>
@@ -205,8 +301,8 @@ export function TaxSettingsSection({
           {isEditing ? (
             <select
               style={styles.select}
-              value={profile.state}
-              onChange={(e: any) => setProfile({ ...profile, state: e.target.value as StateCode, county: undefined })}
+              value={taxProfileForm.state}
+              onChange={(e: any) => setTaxProfileForm({ ...taxProfileForm, state: e.target.value as StateCode, county: undefined })}
             >
               {TAX_STATES.map((state) => (
                 <option key={state.code} value={state.code}>
@@ -220,14 +316,14 @@ export function TaxSettingsSection({
         </View>
 
         {/* County (MD only) */}
-        {profile.state === 'MD' && (
+        {taxProfileForm.state === 'MD' && (
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>County</Text>
             {isEditing ? (
               <select
                 style={styles.select}
-                value={profile.county || ''}
-                onChange={(e: any) => setProfile({ ...profile, county: e.target.value })}
+                value={taxProfileForm.county || ''}
+                onChange={(e: any) => setTaxProfileForm({ ...taxProfileForm, county: e.target.value })}
               >
                 <option value="">Select a county...</option>
                 {getMDCounties().map((county) => (
@@ -237,45 +333,45 @@ export function TaxSettingsSection({
                 ))}
               </select>
             ) : (
-              <Text style={styles.fieldValue}>{profile.county || 'Not set'}</Text>
+              <Text style={styles.fieldValue}>{taxProfileForm.county || 'Not set'}</Text>
             )}
           </View>
         )}
 
         {/* NYC/Yonkers (NY only) */}
-        {profile.state === 'NY' && isEditing && (
+        {taxProfileForm.state === 'NY' && isEditing && (
           <View style={styles.field}>
             <TouchableOpacity
               style={styles.checkbox}
-              onPress={() => setProfile({ ...profile, nycResident: !profile.nycResident })}
+              onPress={() => setTaxProfileForm({ ...taxProfileForm, nycResident: !taxProfileForm.nycResident })}
             >
-              <View style={[styles.checkboxBox, profile.nycResident && styles.checkboxBoxChecked]}>
-                {profile.nycResident && <Text style={styles.checkboxCheck}>✓</Text>}
+              <View style={[styles.checkboxBox, taxProfileForm.nycResident && styles.checkboxBoxChecked]}>
+                {taxProfileForm.nycResident && <Text style={styles.checkboxCheck}>✓</Text>}
               </View>
               <Text style={styles.checkboxLabel}>NYC Resident</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.checkbox}
-              onPress={() => setProfile({ ...profile, yonkersResident: !profile.yonkersResident })}
+              onPress={() => setTaxProfileForm({ ...taxProfileForm, yonkersResident: !taxProfileForm.yonkersResident })}
             >
-              <View style={[styles.checkboxBox, profile.yonkersResident && styles.checkboxBoxChecked]}>
-                {profile.yonkersResident && <Text style={styles.checkboxCheck}>✓</Text>}
+              <View style={[styles.checkboxBox, taxProfileForm.yonkersResident && styles.checkboxBoxChecked]}>
+                {taxProfileForm.yonkersResident && <Text style={styles.checkboxCheck}>✓</Text>}
               </View>
               <Text style={styles.checkboxLabel}>Yonkers Resident</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {profile.state === 'NY' && !isEditing && (
+        {taxProfileForm.state === 'NY' && !isEditing && (
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Local Tax</Text>
             <Text style={styles.fieldValue}>
-              {profile.nycResident && profile.yonkersResident
+              {taxProfileForm.nycResident && taxProfileForm.yonkersResident
                 ? 'NYC + Yonkers'
-                : profile.nycResident
+                : taxProfileForm.nycResident
                 ? 'NYC'
-                : profile.yonkersResident
+                : taxProfileForm.yonkersResident
                 ? 'Yonkers'
                 : 'None'}
             </Text>
@@ -289,13 +385,13 @@ export function TaxSettingsSection({
             <>
               <select
                 style={styles.select}
-                value={profile.deductionMethod}
+                value={taxProfileForm.deductionMethod}
                 onChange={(e: any) => {
                   const method = e.target.value;
-                  setProfile({ 
-                    ...profile, 
+                  setTaxProfileForm({ 
+                    ...taxProfileForm, 
                     deductionMethod: method,
-                    itemizedAmount: method === 'standard' ? undefined : profile.itemizedAmount
+                    itemizedAmount: method === 'standard' ? undefined : taxProfileForm.itemizedAmount
                   });
                 }}
               >
@@ -303,23 +399,23 @@ export function TaxSettingsSection({
                 <option value="itemized">Itemized Deduction</option>
               </select>
 
-              {profile.deductionMethod === 'itemized' && (
+              {taxProfileForm.deductionMethod === 'itemized' && (
                 <TextInput
                   style={styles.input}
                   placeholder="Itemized amount ($)"
                   keyboardType="numeric"
-                  value={profile.itemizedAmount?.toString() || ''}
+                  value={taxProfileForm.itemizedAmount?.toString() || ''}
                   onChangeText={(text) => {
                     const amount = parseFloat(text.replace(/[^0-9.]/g, ''));
-                    setProfile({ ...profile, itemizedAmount: isNaN(amount) ? undefined : amount });
+                    setTaxProfileForm({ ...taxProfileForm, itemizedAmount: isNaN(amount) ? undefined : amount });
                   }}
                 />
               )}
             </>
           ) : (
             <Text style={styles.fieldValue}>
-              {profile.deductionMethod === 'itemized'
-                ? `Itemized ($${profile.itemizedAmount?.toLocaleString() || '0'})`
+              {taxProfileForm.deductionMethod === 'itemized'
+                ? `Itemized ($${taxProfileForm.itemizedAmount?.toLocaleString() || '0'})`
                 : 'Standard'}
             </Text>
           )}
@@ -497,4 +593,22 @@ const styles = StyleSheet.create({
     color: '#111827',
     width: '100%',
   } as any,
+  upgradeNote: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  infoNote: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    fontSize: 13,
+    color: '#0c4a6e',
+  },
 });

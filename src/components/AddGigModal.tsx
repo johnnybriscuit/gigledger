@@ -13,6 +13,8 @@ import {
 import { useCreateGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs';
 import { usePayers, type Payer } from '../hooks/usePayers';
 import { useProfile } from '../hooks/useProfile';
+import { useSubscription } from '../hooks/useSubscription';
+import { getResolvedPlan } from '../lib/businessStructure';
 import { gigSchema, type GigFormData } from '../lib/validations';
 import { PayerFormModal } from './PayerFormModal';
 import { useWithholding } from '../hooks/useWithholding';
@@ -160,8 +162,15 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   const withholdingAmount = netBeforeTax;
   const { breakdown: withholdingBreakdown, loading: withholdingLoading, hasProfile } = useWithholding(withholdingAmount);
 
-  // New 2025 tax engine calculation
   const { data: taxProfile } = useTaxProfile();
+  const { data: subscription } = useSubscription();
+  
+  const plan = getResolvedPlan({
+    subscriptionTier: subscription?.tier,
+    subscriptionStatus: subscription?.status,
+  });
+  
+  const businessStructure = profile?.business_structure || 'individual';
   
   // Get YTD data for tax calculation
   const { data: ytdData } = useQuery<{
@@ -949,6 +958,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 }}
                 isExpanded={showTaxBreakdown}
                 onToggle={setShowTaxBreakdown}
+                business_structure={businessStructure}
+                plan={plan}
               />
             </View>
           )}

@@ -6,7 +6,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useTaxProfile } from './useTaxProfile';
+import { useProfile, type BusinessStructure } from './useProfile';
+import { useSubscription } from './useSubscription';
 import { taxDeltaForGig, type YTDData, type GigData } from '../tax/engine';
+import { getResolvedPlan, isSCalcEligibleForBusinessStructure, type PlanId } from '../lib/businessStructure';
 
 export interface GigTaxResult {
   setAside: number;
@@ -17,6 +20,8 @@ export interface GigTaxResult {
     local: number;
     seTax: number;
   };
+  mode: 'self_employment' | 'no_se_tax';
+  business_structure: BusinessStructure;
 }
 
 /**
@@ -31,6 +36,24 @@ export function useGigTaxCalculation(
   loading: boolean;
 } {
   const { data: taxProfile, isLoading: profileLoading } = useTaxProfile();
+  
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+  
+  const { data: profile, isLoading: profileDataLoading } = useProfile(user?.id);
+  const { data: subscription, isLoading: subscriptionLoading } = useSubscription();
+  
+  const plan = getResolvedPlan({
+    subscriptionTier: subscription?.tier,
+    subscriptionStatus: subscription?.status,
+  });
+  
+  const businessStructure = profile?.business_structure || 'individual';
 
   // Get YTD data for tax calculation
   const { data: ytdData, isLoading: ytdLoading } = useQuery<{
@@ -69,8 +92,28 @@ export function useGigTaxCalculation(
   });
 
   // Calculate tax result
-  if (!taxProfile || !ytdData || profileLoading || ytdLoading) {
+  if (!taxProfile || !ytdData || profileLoading || ytdLoading || profileDataLoading || subscriptionLoading) {
     return { taxResult: null, loading: true };
+  }
+  
+  const eligibility = isSCalcEligibleForBusinessStructure(businessStructure, plan);
+  
+  if (!eligibility.usesSelfEmploymentTax) {
+    return {
+      taxResult: {
+        setAside: 0,
+        rate: 0,
+        breakdown: {
+          federal: 0,
+          state: 0,
+          local: 0,
+          seTax: 0,
+        },
+        mode: 'no_se_tax',
+        business_structure: businessStructure,
+      },
+      loading: false,
+    };
   }
 
   try {
@@ -92,6 +135,8 @@ export function useGigTaxCalculation(
         setAside: result.amount,
         rate: result.rate,
         breakdown: result.breakdown,
+        mode: 'self_employment',
+        business_structure: businessStructure,
       },
       loading: false,
     };

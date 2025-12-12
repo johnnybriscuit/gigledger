@@ -5,7 +5,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { calculateGigTaxSummary, type GigTaxInput } from '../../utils/gigTaxCalculations';
+import { calculateGigTaxSummary, type GigTaxInput, type BusinessStructureGigTaxInput } from '../../utils/gigTaxCalculations';
+import type { BusinessStructure } from '../../hooks/useProfile';
+import type { PlanId } from '../../lib/businessStructure';
 
 export interface TaxEstimate {
   federal: number;
@@ -32,6 +34,8 @@ export interface TaxSummaryProps {
   onRecalc?: () => void;
   isExpanded?: boolean;
   onToggle?: (expanded: boolean) => void;
+  business_structure?: BusinessStructure;
+  plan?: PlanId;
 }
 
 export function TaxSummary({
@@ -45,29 +49,31 @@ export function TaxSummary({
   estimate,
   isExpanded: controlledExpanded,
   onToggle,
+  business_structure = 'individual',
+  plan = 'free',
 }: TaxSummaryProps) {
   const [internalExpanded, setInternalExpanded] = useState(false);
   const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
   const heightAnim = useRef(new Animated.Value(0)).current;
 
-  // Use centralized calculation (same as gig cards)
-  const taxInput: GigTaxInput = {
-    grossAmount: gross,
-    tips,
-    perDiem,
-    otherIncome,
-    fees,
-    gigExpenses,
-    mileageDeduction,
+  const totalGross = gross + tips + perDiem + otherIncome;
+  const totalExpenses = fees + gigExpenses + mileageDeduction;
+
+  const taxInput: BusinessStructureGigTaxInput = {
+    gross: totalGross,
+    expensesTotal: totalExpenses,
     taxBreakdown: {
       federal: estimate.federal,
       state: estimate.state,
       seTax: estimate.se,
       total: estimate.setAside,
     },
+    business_structure,
+    plan,
   };
 
   const summary = calculateGigTaxSummary(taxInput);
+  const isNoSeTaxMode = summary.mode === 'no_se_tax';
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -120,7 +126,7 @@ export function TaxSummary({
         </View>
         <View style={styles.summaryRight}>
           <Text style={styles.summarySetAside}>
-            Set aside: {formatCurrency(summary.taxToSetAside)} ({formatPercent(summary.effectiveRate)})
+            {isNoSeTaxMode ? 'Tax tracking (SE tax not calculated)' : `Set aside: ${formatCurrency(summary.taxToSetAside)} (${formatPercent(summary.effectiveRate)})`}
           </Text>
           <Text style={styles.expandIcon}>{isExpanded ? '▴' : '▾'}</Text>
         </View>
@@ -179,8 +185,18 @@ export function TaxSummary({
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>SE Tax</Text>
                 </View>
-                <Text style={styles.breakdownValue}>{formatCurrency(summary.seTax)}</Text>
+                <Text style={styles.breakdownValue}>
+                  {isNoSeTaxMode ? 'N/A' : formatCurrency(summary.seTax)}
+                </Text>
               </View>
+              
+              {isNoSeTaxMode && (
+                <View style={styles.noSeTaxNote}>
+                  <Text style={styles.noSeTaxText}>
+                    ℹ️ Self-employment tax not calculated for {business_structure === 'llc_scorp' ? 'S-Corp' : 'multi-member LLC'}
+                  </Text>
+                </View>
+              )}
               
               <View style={[styles.breakdownRow, styles.subtotalRow]}>
                 <Text style={styles.subtotalLabel}>Total set aside</Text>
@@ -196,7 +212,11 @@ export function TaxSummary({
 
           {/* Footer Note */}
           <View style={styles.footer}>
-            <Text style={styles.disclaimer}>Estimates only. Not tax advice.</Text>
+            <Text style={styles.disclaimer}>
+              {isNoSeTaxMode 
+                ? 'Income tracking only. Consult your tax professional for S-Corp/partnership tax obligations.'
+                : 'Estimates only. Not tax advice.'}
+            </Text>
           </View>
         </View>
       )}
@@ -361,5 +381,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#9ca3af',
     fontStyle: 'italic',
+  },
+  noSeTaxNote: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  noSeTaxText: {
+    fontSize: 11,
+    color: '#0c4a6e',
+    textAlign: 'center',
   },
 });

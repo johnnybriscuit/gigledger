@@ -44,9 +44,9 @@ function GigCard({
   
   const netBeforeTax = gross - expensesTotal;
   
-  // Use new 2025 tax engine for accurate tax calculation (same as Edit Gig form)
   const { taxResult } = useGigTaxCalculation(gross, expensesTotal);
   const taxToSetAside = taxResult?.setAside || 0;
+  const isNoSeTaxMode = taxResult?.mode === 'no_se_tax';
   
   const takeHome = netBeforeTax - taxToSetAside;
   
@@ -82,12 +82,16 @@ function GigCard({
             </View>
 
             <View style={styles.moneyBlock}>
-              <Text style={styles.moneyLabel}>Set aside for taxes</Text>
+              <Text style={styles.moneyLabel}>
+                {isNoSeTaxMode ? 'Tax tracking' : 'Set aside for taxes'}
+              </Text>
               <Text style={styles.moneyValueAmber}>
                 {formatCurrency(taxToSetAside)}
               </Text>
               <Text style={styles.moneyHint}>
-                {netBeforeTax > 0 
+                {isNoSeTaxMode
+                  ? 'SE tax not calculated'
+                  : netBeforeTax > 0 
                   ? `~${Math.round((taxToSetAside / netBeforeTax) * 100)}% rate`
                   : 'estimated'}
               </Text>

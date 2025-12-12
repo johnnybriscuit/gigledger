@@ -11,6 +11,10 @@ import {
   type YTDData,
   type TaxResult 
 } from '../tax/engine';
+import { useProfile } from './useProfile';
+import { useSubscription } from './useSubscription';
+import { getResolvedPlan, isSCalcEligibleForBusinessStructure } from '../lib/businessStructure';
+import { useQuery } from '@tanstack/react-query';
 
 interface UseTaxCalculationResult {
   taxResult: TaxResult | null;
@@ -34,6 +38,25 @@ export function useTaxCalculation(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [hasProfile, setHasProfile] = useState(false);
+  
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+  
+  const { data: profile } = useProfile(user?.id);
+  const { data: subscription } = useSubscription();
+  
+  const plan = getResolvedPlan({
+    subscriptionTier: subscription?.tier,
+    subscriptionStatus: subscription?.status,
+  });
+  
+  const businessStructure = profile?.business_structure || 'individual';
+  const eligibility = isSCalcEligibleForBusinessStructure(businessStructure, plan);
 
   useEffect(() => {
     let isMounted = true;
@@ -85,12 +108,12 @@ export function useTaxCalculation(
         // Map database fields to engine format
         setHasProfile(true);
         const profile: EngineTaxProfile = {
-          filingStatus: taxProfile.filing_status || 'single',
-          state: taxProfile.state,
+          filingStatus: (taxProfile.filing_status || 'single') as any,
+          state: taxProfile.state as any,
           county: taxProfile.county || undefined,
           nycResident: taxProfile.nyc_resident || false,
           yonkersResident: taxProfile.yonkers_resident || false,
-          deductionMethod: taxProfile.deduction_method || 'standard',
+          deductionMethod: (taxProfile.deduction_method || 'standard') as any,
           itemizedAmount: taxProfile.itemized_amount || undefined,
           seIncome: taxProfile.se_income !== false, // Default to true
         };
@@ -101,13 +124,24 @@ export function useTaxCalculation(
           netSE: netProfit,
         };
 
-        // Calculate taxes using the new engine
-        const result = calcTotalTax(ytd, profile);
-        
-        // Debug logging
-        console.log('[useTaxCalculation] Tax Profile:', profile);
-        console.log('[useTaxCalculation] YTD Data:', ytd);
-        console.log('[useTaxCalculation] Tax Result:', result);
+        // Check if SE tax should be calculated based on business structure
+        let result: TaxResult;
+        if (!eligibility.usesSelfEmploymentTax) {
+          result = {
+            federal: 0,
+            state: 0,
+            local: 0,
+            seTax: 0,
+            total: 0,
+            effectiveRate: 0,
+          };
+          console.log('[useTaxCalculation] SE tax disabled for business structure:', businessStructure);
+        } else {
+          result = calcTotalTax(ytd, profile);
+          console.log('[useTaxCalculation] Tax Profile:', profile);
+          console.log('[useTaxCalculation] YTD Data:', ytd);
+          console.log('[useTaxCalculation] Tax Result:', result);
+        }
 
         if (isMounted) {
           setHasProfile(true);
