@@ -1,11 +1,22 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { BusinessStructureWizard } from '../components/BusinessStructureWizard';
+import { useSubscription } from '../hooks/useSubscription';
+import { getResolvedPlan } from '../lib/businessStructure';
 
 interface BusinessStructuresScreenProps {
   onNavigateBack?: () => void;
+  onNavigateToSubscription?: () => void;
 }
 
-export function BusinessStructuresScreen({ onNavigateBack }: BusinessStructuresScreenProps) {
+export function BusinessStructuresScreen({ onNavigateBack, onNavigateToSubscription }: BusinessStructuresScreenProps) {
+  const { data: subscription } = useSubscription();
+  const plan = getResolvedPlan({
+    subscriptionTier: subscription?.tier,
+    subscriptionStatus: subscription?.status,
+  });
+  const isProPlan = plan === 'pro';
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.content}>
@@ -18,169 +29,122 @@ export function BusinessStructuresScreen({ onNavigateBack }: BusinessStructuresS
 
         {/* Header */}
         <Text style={styles.mainTitle}>Understanding Business Structures</Text>
-        <Text style={styles.subtitle}>A guide for musicians and gig workers</Text>
-
-        {/* Introduction */}
-        <Text style={styles.paragraph}>
-          Your business structure affects how you're taxed and what paperwork you need to file. Here's what each option means for musicians and gig workers:
-        </Text>
 
         {/* Individual / Sole Proprietor */}
         <View style={styles.section}>
-          <Text style={styles.sectionIcon}>🎸</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionIcon}>🎸</Text>
+            <View style={styles.recommendedBadge}>
+              <Text style={styles.badgeText}>Recommended for most musicians</Text>
+            </View>
+          </View>
           <Text style={styles.sectionTitle}>Individual / Sole Proprietor</Text>
           
-          <Text style={styles.sectionSubtitle}>What it is:</Text>
           <Text style={styles.paragraph}>
-            You're operating as yourself—no separate legal entity. This is the default for most freelance musicians.
+            Most freelance musicians start here. You get paid personally under your own name, and report everything on Schedule C as a sole proprietor. There's no formal company or LLC required to use this option.
           </Text>
 
-          <Text style={styles.sectionSubtitle}>Tax treatment:</Text>
-          <Text style={styles.paragraph}>
-            • Report income on Schedule C (Form 1040){'\n'}
-            • Pay self-employment tax (Social Security + Medicare) on net profit{'\n'}
-            • Quarterly estimated tax payments typically required{'\n'}
-            • Can deduct business expenses (gear, travel, home studio, etc.)
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>Best for:</Text>
-          <Text style={styles.paragraph}>
-            Most gigging musicians, session players, and solo performers. Simple to set up, no extra paperwork beyond your personal tax return.
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>GigLedger calculates:</Text>
-          <Text style={styles.paragraph}>
-            Federal income tax, state tax, and self-employment tax on your gig income.
+          <Text style={styles.bulletList}>
+            • Simplest setup—no LLC or separate business required{'\n'}
+            • Self-employment tax applies to your net profit{'\n'}
+            • Great for early-career or part-time musicians{'\n'}
+            • In GigLedger, we calculate both income tax and self-employment tax estimates for this mode
           </Text>
         </View>
 
         {/* Single-Member LLC */}
         <View style={styles.section}>
-          <Text style={styles.sectionIcon}>📝</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionIcon}>📝</Text>
+            <View style={styles.infoBadge}>
+              <Text style={styles.badgeText}>Liability protection, same taxes</Text>
+            </View>
+          </View>
           <Text style={styles.sectionTitle}>Single-Member LLC</Text>
           
-          <Text style={styles.sectionSubtitle}>What it is:</Text>
           <Text style={styles.paragraph}>
-            A Limited Liability Company with one owner. Provides legal separation between you and your business, but for tax purposes, the IRS treats it the same as a sole proprietorship (a "disregarded entity").
+            A single-member LLC is a legal shell around your music work. For most people, it does not change your federal taxes by itself—it just adds liability protection and a more formal business structure.
           </Text>
 
-          <Text style={styles.sectionSubtitle}>Tax treatment:</Text>
-          <Text style={styles.paragraph}>
-            • Same as Individual/Sole Proprietor by default{'\n'}
-            • Report income on Schedule C{'\n'}
-            • Pay self-employment tax on net profit{'\n'}
-            • Can elect S-Corp taxation (see below)
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>Best for:</Text>
-          <Text style={styles.paragraph}>
-            Musicians who want liability protection (e.g., you teach lessons, run a studio, or have employees) but don't need S-Corp tax treatment yet.
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>GigLedger calculates:</Text>
-          <Text style={styles.paragraph}>
-            Federal income tax, state tax, and self-employment tax—same as Individual.
+          <Text style={styles.bulletList}>
+            • Still taxed the same as an Individual / Sole Proprietor{'\n'}
+            • Self-employment tax still applies to net profit{'\n'}
+            • Helpful if you want legal separation or sign contracts as a business{'\n'}
+            • In GigLedger, we treat this the same as Individual for tax estimates
           </Text>
         </View>
 
         {/* LLC taxed as S-Corp */}
         <View style={styles.section}>
-          <View style={styles.proHeader}>
+          <View style={styles.sectionHeader}>
             <Text style={styles.sectionIcon}>🏦</Text>
             <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>Pro Only</Text>
+              <Text style={styles.proBadgeText}>Advanced tax strategy</Text>
+            </View>
+            <View style={[styles.proBadge, { marginLeft: 8 }]}>
+              <Text style={styles.proBadgeText}>Pro feature</Text>
             </View>
           </View>
           <Text style={styles.sectionTitle}>LLC taxed as S-Corp</Text>
           
-          <Text style={styles.sectionSubtitle}>What it is:</Text>
           <Text style={styles.paragraph}>
-            An LLC that has elected to be taxed as an S-Corporation. You become an employee of your own company and pay yourself a "reasonable salary" via payroll. Any remaining profit can be taken as distributions, which aren't subject to self-employment tax.
+            This is not a different type of LLC—it's a special tax election with the IRS. With the right setup, S-Corp taxation can reduce self-employment taxes, but it also requires payroll, reasonable salary decisions, and professional help.
           </Text>
 
-          <Text style={styles.sectionSubtitle}>Tax treatment:</Text>
-          <Text style={styles.paragraph}>
-            • You must run payroll and pay yourself W-2 wages{'\n'}
-            • Salary is subject to payroll taxes (Social Security + Medicare){'\n'}
-            • Distributions beyond salary avoid self-employment tax{'\n'}
-            • File Form 1120-S (S-Corp tax return) annually{'\n'}
-            • More complex bookkeeping and compliance requirements
+          <Text style={styles.bulletList}>
+            • Self-employment tax does not apply the same way to S-Corp profits{'\n'}
+            • Usually only worth it once your music profit is high enough (often around ~$60k+/year, depending on your situation){'\n'}
+            • Requires running payroll and doing more advanced bookkeeping outside of GigLedger{'\n'}
+            • In GigLedger, S-Corp mode switches to "tax tracking only": we track income and expenses, but do not calculate self-employment tax estimates for you
           </Text>
 
-          <Text style={styles.sectionSubtitle}>Best for:</Text>
-          <Text style={styles.paragraph}>
-            Established musicians with consistent income (typically $60k+ net profit) who can benefit from the self-employment tax savings. Requires working with a CPA or payroll service.
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>GigLedger tracks:</Text>
-          <Text style={styles.paragraph}>
-            Your gig income and expenses for record-keeping, but does NOT calculate self-employment tax or payroll taxes. You'll handle payroll separately with your accountant or payroll provider.
-          </Text>
-
-          <Text style={styles.importantNote}>
-            ℹ️ S-Corp mode requires GigLedger Pro. In this mode, GigLedger tracks your income and expenses but does not calculate payroll or distribution taxes. Consult your tax professional for S-Corp compliance.
-          </Text>
+          {!isProPlan && (
+            <View style={styles.upgradeBox}>
+              <Text style={styles.upgradeText}>
+                🔓 LLC taxed as S-Corp is a GigLedger Pro feature. Upgrade to Pro to turn off self-employment tax estimates and track your S-Corp income more cleanly.
+              </Text>
+              {onNavigateToSubscription && (
+                <TouchableOpacity style={styles.upgradeButton} onPress={onNavigateToSubscription}>
+                  <Text style={styles.upgradeButtonText}>View Pro Plans</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Multi-Member LLC / Partnership */}
         <View style={styles.section}>
-          <Text style={styles.sectionIcon}>👥</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionIcon}>👥</Text>
+            <View style={styles.infoBadge}>
+              <Text style={styles.badgeText}>Best for band LLCs</Text>
+            </View>
+          </View>
           <Text style={styles.sectionTitle}>Multi-Member LLC / Partnership</Text>
           
-          <Text style={styles.sectionSubtitle}>What it is:</Text>
           <Text style={styles.paragraph}>
-            An LLC with two or more owners, or a formal partnership. The IRS treats this as a partnership for tax purposes.
+            This is typically used when a band or group has a formal LLC or partnership with more than one owner. The entity files its own return and splits income between partners.
           </Text>
 
-          <Text style={styles.sectionSubtitle}>Tax treatment:</Text>
-          <Text style={styles.paragraph}>
-            • File Form 1065 (Partnership Return) annually{'\n'}
-            • Each partner receives a K-1 showing their share of income/loss{'\n'}
-            • Partners report their K-1 income on their personal returns{'\n'}
-            • Each partner pays self-employment tax on their share{'\n'}
-            • Partnership doesn't pay tax itself (pass-through entity)
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>Best for:</Text>
-          <Text style={styles.paragraph}>
-            Bands, co-owned studios, or music businesses with multiple owners who share profits and decision-making.
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>GigLedger tracks:</Text>
-          <Text style={styles.paragraph}>
-            The partnership's income and expenses for record-keeping. Self-employment tax is NOT calculated because each partner's tax situation depends on their K-1 allocation and other income sources.
-          </Text>
-
-          <Text style={styles.importantNote}>
-            ℹ️ For partnerships, GigLedger tracks income and expenses only. You'll need to work with your CPA to prepare Form 1065 and allocate income among partners.
+          <Text style={styles.bulletList}>
+            • Taxes are handled at the partnership / entity level{'\n'}
+            • Individual partners receive K-1s based on their share of the band{'\n'}
+            • Self-employment tax rules can be more nuanced and entity-specific{'\n'}
+            • In GigLedger, we focus on tracking total income and expenses—you and your accountant handle partner allocations
           </Text>
         </View>
 
-        {/* Choosing the Right Structure */}
+        {/* Interactive Wizard */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Which Structure Should You Choose?</Text>
-          
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Start simple:</Text> Most musicians should begin as Individual/Sole Proprietor. It's the easiest to manage and requires no extra legal setup.
-          </Text>
-
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Consider an LLC when:</Text> You want liability protection (teaching students, running a studio, hiring contractors) or plan to grow your music business.
-          </Text>
-
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Explore S-Corp when:</Text> Your net profit consistently exceeds $60k–$80k annually and you're ready for more complex bookkeeping and payroll. The self-employment tax savings can be significant, but so are the compliance costs.
-          </Text>
-
-          <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Use Partnership/Multi-Member LLC when:</Text> You're co-owning a business with bandmates or partners and need to formally split income and expenses.
-          </Text>
+          <Text style={styles.sectionTitle}>Not sure which structure fits you?</Text>
+          <Text style={styles.wizardSubtitle}>Take this short 4-question checkup.</Text>
+          <BusinessStructureWizard />
         </View>
 
         {/* Disclaimer */}
         <View style={styles.disclaimer}>
           <Text style={styles.disclaimerText}>
-            <Text style={styles.bold}>Important:</Text> GigLedger provides estimates only and does not offer tax or legal advice. Business structure decisions have significant legal and tax implications. Always consult with a qualified CPA, tax advisor, or attorney before making changes to your business structure.
+            <Text style={styles.bold}>Heads up:</Text> GigLedger provides tax estimates only, not tax or legal advice. Business structure decisions are personal and should be made with a qualified CPA or attorney.
           </Text>
         </View>
 
@@ -315,5 +279,66 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     fontWeight: '600',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    flexWrap: 'wrap',
+  },
+  recommendedBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 12,
+  },
+  infoBadge: {
+    backgroundColor: '#6B7280',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 12,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  bulletList: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#333',
+    marginBottom: 16,
+  },
+  upgradeBox: {
+    backgroundColor: '#EFF6FF',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  upgradeText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#1E40AF',
+    marginBottom: 12,
+  },
+  upgradeButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  wizardSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
   },
 });

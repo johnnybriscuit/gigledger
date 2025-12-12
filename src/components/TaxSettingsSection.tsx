@@ -268,14 +268,32 @@ export function TaxSettingsSection({
                 <option value="llc_scorp" disabled={!isProPlan}>LLC taxed as S-Corp{!isProPlan ? ' (Pro only)' : ''}</option>
                 <option value="llc_multi_member">Multi-Member LLC / Partnership</option>
               </select>
+              
+              {/* Contextual help text based on selected structure */}
+              {businessStructure === 'individual' && (
+                <Text style={styles.helpText}>
+                  ℹ️ The default for most freelance musicians. Simple to manage. Self-employment tax applies and GigLedger estimates both income and SE tax.
+                </Text>
+              )}
+              {businessStructure === 'llc_single_member' && (
+                <Text style={styles.helpText}>
+                  ℹ️ A legal LLC with one owner. Adds liability protection, but taxes usually work the same as an Individual. SE tax still applies; GigLedger treats this like Individual for estimates.
+                </Text>
+              )}
+              {businessStructure === 'llc_scorp' && (
+                <Text style={styles.infoNote}>
+                  ℹ️ Advanced tax strategy. Often used when profit is high and you run payroll. In GigLedger Pro, we track income/expenses but do not estimate self-employment tax.
+                </Text>
+              )}
+              {businessStructure === 'llc_multi_member' && (
+                <Text style={styles.helpText}>
+                  ℹ️ Typically used for band LLCs or shared businesses. Taxes are handled at the entity level; GigLedger focuses on tracking total income and expenses.
+                </Text>
+              )}
+              
               {!isProPlan && (
                 <Text style={styles.upgradeNote}>
                   💡 S-Corp mode is available on GigLedger Pro. S-Corp mode removes self-employment tax estimates and is designed for users running payroll through an S-Corp.
-                </Text>
-              )}
-              {isProPlan && businessStructure === 'llc_scorp' && (
-                <Text style={styles.infoNote}>
-                  ℹ️ In S-Corp mode, GigLedger tracks your gig income and expenses but does not calculate payroll or distribution taxes. Self-employment tax estimates will be turned off.
                 </Text>
               )}
             </>
@@ -618,6 +636,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: '#1565C0',
+  },
+  helpText: {
+    backgroundColor: '#F9FAFB',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#4B5563',
   },
   fieldLabelRow: {
     flexDirection: 'row',
