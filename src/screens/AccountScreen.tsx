@@ -72,7 +72,11 @@ const US_STATES = [
 ];
 
 
-export function AccountScreen() {
+interface AccountScreenProps {
+  onNavigateToBusinessStructures?: () => void;
+}
+
+export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenProps = {}) {
   const queryClient = useQueryClient();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingTaxSettings, setIsEditingTaxSettings] = useState(false);
@@ -317,6 +321,7 @@ export function AccountScreen() {
               isEditing={isEditingTaxSettings}
               onEditChange={setIsEditingTaxSettings}
               hideEditButton={true}
+              onNavigateToBusinessStructures={onNavigateToBusinessStructures}
             />
           </View>
 

@@ -89,12 +89,14 @@ interface TaxSettingsSectionProps {
   isEditing?: boolean;
   onEditChange?: (editing: boolean) => void;
   hideEditButton?: boolean;
+  onNavigateToBusinessStructures?: () => void;
 }
 
 export function TaxSettingsSection({ 
   isEditing: externalIsEditing, 
   onEditChange,
-  hideEditButton = false 
+  hideEditButton = false,
+  onNavigateToBusinessStructures
 }: TaxSettingsSectionProps = {}) {
   const { data: currentProfile, isLoading } = useTaxProfile();
   const upsertProfile = useUpsertTaxProfile();
@@ -240,7 +242,14 @@ export function TaxSettingsSection({
       <View style={styles.card}>
         {/* Business Structure */}
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>Business Structure</Text>
+          <View style={styles.fieldLabelRow}>
+            <Text style={styles.fieldLabel}>Business Structure</Text>
+            {onNavigateToBusinessStructures && (
+              <TouchableOpacity onPress={onNavigateToBusinessStructures}>
+                <Text style={styles.learnMoreLink}>Learn more</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           {isEditing ? (
             <>
               <select
@@ -602,13 +611,23 @@ const styles = StyleSheet.create({
     borderColor: '#bfdbfe',
   },
   infoNote: {
-    marginTop: 8,
+    backgroundColor: '#E3F2FD',
     padding: 12,
-    backgroundColor: '#f0f9ff',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#bae6fd',
-    fontSize: 13,
-    color: '#0c4a6e',
+    borderRadius: 8,
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#1565C0',
+  },
+  fieldLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  learnMoreLink: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
   },
 });

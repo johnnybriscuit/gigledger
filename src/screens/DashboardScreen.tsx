@@ -21,7 +21,11 @@ import { useTaxProfile } from '../hooks/useTaxProfile';
 
 type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'subscription' | 'account';
 
-export function DashboardScreen() {
+interface DashboardScreenProps {
+  onNavigateToBusinessStructures?: () => void;
+}
+
+export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScreenProps = {}) {
   // Load active tab from localStorage on mount
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     if (Platform.OS === 'web') {
@@ -92,7 +96,7 @@ export function DashboardScreen() {
       case 'subscription':
         return <SubscriptionScreen />;
       case 'account':
-        return <AccountScreen />;
+        return <AccountScreen onNavigateToBusinessStructures={onNavigateToBusinessStructures} />;
       default:
         return (
           <EnhancedDashboard

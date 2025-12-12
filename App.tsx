@@ -16,6 +16,7 @@ import { DashboardScreen } from './src/screens/DashboardScreen';
 import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { TermsScreen } from './src/screens/TermsScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
+import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen';
 import { initializeUserData } from './src/services/profileService';
 import type { Session } from '@supabase/supabase-js';
 
@@ -39,7 +40,7 @@ function AppContent() {
   const [needsMFA, setNeedsMFA] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
-  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('auth');
+  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('auth');
 
   useEffect(() => {
     // Get initial session
@@ -137,6 +138,16 @@ function AppContent() {
       <>
         <StatusBar style="dark" />
         <PrivacyScreen onNavigateBack={() => setCurrentRoute('auth')} />
+      </>
+    );
+  }
+
+  // Allow Business Structures page (requires authentication)
+  if (currentRoute === 'business-structures' && session) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <BusinessStructuresScreen onNavigateBack={() => setCurrentRoute('dashboard')} />
       </>
     );
   }
@@ -270,7 +281,7 @@ function AppContent() {
   return (
     <>
       <StatusBar style="dark" />
-      <DashboardScreen />
+      <DashboardScreen onNavigateToBusinessStructures={() => setCurrentRoute('business-structures')} />
     </>
   );
 }
