@@ -21,6 +21,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryKeys';
 import { initializeUserData } from '../services/profileService';
 import type { Session } from '@supabase/supabase-js';
+import type { TaxProfile } from '../tax/engine';
+import type { StateCode } from '../tax/config/2025';
 
 export interface BootstrapStatus {
   status: 'loading' | 'ready' | 'error' | 'unauthenticated';
@@ -155,7 +157,19 @@ export function useAppBootstrap() {
 
         // Check tax profile result (non-critical, just cache if available)
         if (taxProfileResult.status === 'fulfilled' && taxProfileResult.value.data) {
-          queryClient.setQueryData(queryKeys.taxProfile(session.user.id), taxProfileResult.value.data);
+          // Transform raw database row to TaxProfile format (same as useTaxProfile hook)
+          const row = taxProfileResult.value.data;
+          const transformedProfile: TaxProfile = {
+            filingStatus: row.filing_status as TaxProfile['filingStatus'],
+            state: row.state as StateCode,
+            county: row.county || undefined,
+            nycResident: row.nyc_resident || undefined,
+            yonkersResident: row.yonkers_resident || undefined,
+            deductionMethod: row.deduction_method as 'standard' | 'itemized',
+            itemizedAmount: row.itemized_amount || undefined,
+            seIncome: row.se_income,
+          };
+          queryClient.setQueryData(queryKeys.taxProfile(session.user.id), transformedProfile);
         }
 
         if (cancelled) return;
