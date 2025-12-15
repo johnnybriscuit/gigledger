@@ -1,8 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useGigs } from './useGigs';
 import { useExpenses } from './useExpenses';
 import { useMileage, calculateMileageDeduction } from './useMileage';
 import { useTaxCalculation } from './useTaxCalculation';
+import { useTaxProfile } from './useTaxProfile';
+import { useProfile } from './useProfile';
+import { supabase } from '../lib/supabase';
+import { debugTotals } from '../lib/debugTotals';
 
 export type DateRange = 'ytd' | 'last30' | 'last90' | 'lastYear' | 'custom';
 
@@ -118,9 +122,11 @@ export function useDashboardData(
   customStart?: Date,
   customEnd?: Date
 ): DashboardData {
-  const { data: allGigs } = useGigs();
-  const { data: allExpenses } = useExpenses();
+  const { data: allGigs, isLoading: gigsLoading, isSuccess: gigsSuccess } = useGigs();
+  const { data: allExpenses, isLoading: expensesLoading, isSuccess: expensesSuccess } = useExpenses();
   const { data: allMileage } = useMileage();
+  const { data: taxProfile, isLoading: taxProfileLoading, isSuccess: taxProfileSuccess } = useTaxProfile();
+  const { data: profile } = useProfile();
 
   // Calculate net profit first to get tax estimate
   const { netProfit, totalIncome, totalDeductions } = useMemo(() => {
@@ -321,6 +327,48 @@ export function useDashboardData(
       },
     };
   }, [allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, netProfit, totalTaxes, effectiveTaxRate, taxResult]);
+
+  // Debug logging
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.id || null;
+    };
+
+    getUserId().then(userId => {
+      const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
+      const gigs = filterByDateRange(allGigs, startDate, endDate);
+      const expenses = filterByDateRange(allExpenses, startDate, endDate);
+
+      debugTotals.log('useDashboardData', {
+        userId,
+        range: dateRange,
+        gigsStatus: gigsLoading ? 'loading' : gigsSuccess ? 'success' : 'error',
+        gigsCount: gigs.length,
+        gigsDateRange: gigs.length > 0 ? {
+          min: gigs[0]?.date || '',
+          max: gigs[gigs.length - 1]?.date || '',
+        } : undefined,
+        expensesStatus: expensesLoading ? 'loading' : expensesSuccess ? 'success' : 'error',
+        expensesCount: expenses.length,
+        taxProfileStatus: taxProfileLoading ? 'loading' : taxProfileSuccess ? 'success' : !taxProfile ? 'missing' : 'error',
+        taxProfileFields: taxProfile ? {
+          filingStatus: taxProfile.filingStatus,
+          state: taxProfile.state || undefined,
+          businessStructure: profile?.business_structure,
+          seIncome: taxProfile.seIncome,
+        } : undefined,
+        computed: {
+          grossIncome: totalIncome,
+          expenses: totalDeductions,
+          netProfit: data.totals.net,
+          setAside: data.totals.taxes,
+          setAsideRate: data.totals.effectiveTaxRate / 100,
+        },
+        notes: (!gigsSuccess || !taxProfileSuccess) ? 'CALCULATED WITH INCOMPLETE DATA' : undefined,
+      });
+    });
+  }, [data, dateRange, customStart, customEnd, allGigs, allExpenses, gigsLoading, gigsSuccess, expensesLoading, expensesSuccess, taxProfileLoading, taxProfileSuccess, taxProfile, profile, totalIncome, totalDeductions]);
 
   return data;
 }
