@@ -294,7 +294,11 @@ function AppContent() {
     return (
       <>
         <StatusBar style="dark" />
-        <AuthCallbackScreen />
+        <AuthCallbackScreen 
+          onNavigateToMFASetup={() => setCurrentRoute('mfa-setup')}
+          onNavigateToDashboard={() => setCurrentRoute('dashboard')}
+          onNavigateToAuth={() => setCurrentRoute('auth')}
+        />
       </>
     );
   }
