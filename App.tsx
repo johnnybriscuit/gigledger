@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -114,6 +114,12 @@ function AppContent() {
 
   // Handle deep links for OAuth callback on native
   useEffect(() => {
+    // Skip deep link handling on web - it causes redirect loops
+    if (Platform.OS === 'web') {
+      console.log('[DeepLink] Skipping deep link handler on web platform');
+      return;
+    }
+
     const handleDeepLink = async (url: string) => {
       console.log('[DeepLink] Received URL:', url);
       
@@ -123,8 +129,7 @@ function AppContent() {
       console.log('[DeepLink] Parsed - hostname:', hostname, 'path:', path);
       
       // Handle auth callback from OAuth (Google)
-      // Only navigate to callback screen if we're not already there
-      if ((path === 'auth/callback' || path === '/auth/callback') && currentRoute !== 'auth-callback') {
+      if (path === 'auth/callback' || path === '/auth/callback') {
         console.log('[DeepLink] Auth callback detected, navigating to auth-callback screen');
         setCurrentRoute('auth-callback');
       }
@@ -145,7 +150,7 @@ function AppContent() {
     });
 
     return () => subscription.remove();
-  }, [currentRoute]);
+  }, []);
 
   // Don't show loading after initial load to prevent unmounting
   if (loading) {

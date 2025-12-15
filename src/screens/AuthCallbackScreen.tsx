@@ -67,10 +67,13 @@ export function AuthCallbackScreen({
         });
       }
 
-      // Check if MFA is enrolled
-      const mfaEnrolled = session.user.app_metadata?.mfa_enrolled === true;
+      // Check if MFA is enrolled by checking actual factors
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const hasVerifiedFactor = factors?.totp?.some(f => f.status === 'verified') || false;
 
-      if (!mfaEnrolled) {
+      console.log('[AuthCallback] MFA check - has verified factor:', hasVerifiedFactor);
+
+      if (!hasVerifiedFactor) {
         // First time login - redirect to MFA setup
         console.log('[AuthCallback] Redirecting to MFA setup');
         setLoading(false);
