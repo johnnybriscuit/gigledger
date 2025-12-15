@@ -18,7 +18,10 @@ import { PayerDrillThrough } from './PayerDrillThrough';
 import { MapCard } from './maps/MapCard';
 import { useDashboardData, type DateRange } from '../../hooks/useDashboardData';
 import { DateRangeFilter } from '../DateRangeFilter';
+import { SkeletonDashboardCard } from '../SkeletonCard';
+import { perf } from '../../lib/performance';
 import { spacing } from '../../styles/theme';
+import { useEffect } from 'react';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -49,6 +52,19 @@ export function EnhancedDashboard({
 
   // Fetch dashboard data
   const data = useDashboardData(dateRange, customStart, customEnd);
+
+  // Mark when dashboard is interactive (data loaded)
+  useEffect(() => {
+    if (data && data.monthly.length > 0) {
+      perf.mark('dashboard-interactive');
+      // Log full performance report
+      if (typeof window !== 'undefined' && __DEV__) {
+        console.log('\n📊 Performance Report:');
+        console.log('To view detailed timings, run: perf.getReport()');
+        perf.getReport();
+      }
+    }
+  }, [data]);
 
   const handleMonthClick = (month: string) => {
     setDrillThroughMonth(month);

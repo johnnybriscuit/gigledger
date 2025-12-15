@@ -13,6 +13,7 @@ import { AddGigModal } from '../components/AddGigModal';
 import { ImportGigsModal } from '../components/ImportGigsModal';
 import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
 import { usePlanLimits } from '../hooks/usePlanLimits';
+import { SkeletonGigCard } from '../components/SkeletonCard';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
@@ -203,8 +204,18 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
 
   if (isLoading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <H1>Gigs</H1>
+          <Text muted>Loading...</Text>
+        </View>
+        <View style={styles.listContent}>
+          <SkeletonGigCard />
+          <SkeletonGigCard />
+          <SkeletonGigCard />
+          <SkeletonGigCard />
+          <SkeletonGigCard />
+        </View>
       </View>
     );
   }

@@ -15,6 +15,7 @@ import { useDateRange } from '../hooks/useDateRange';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
 import { Toast } from '../components/Toast';
 import { TaxProfileBanner } from '../components/TaxProfileBanner';
+import { perf } from '../lib/performance';
 import { H1, Text, Button } from '../ui';
 import { colors, spacing, typography, radius } from '../styles/theme';
 import { useTaxProfile } from '../hooks/useTaxProfile';
@@ -26,6 +27,11 @@ interface DashboardScreenProps {
 }
 
 export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScreenProps = {}) {
+  // Mark dashboard mount
+  useEffect(() => {
+    perf.mark('dashboard-mounted');
+  }, []);
+
   // Load active tab from localStorage on mount
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     if (Platform.OS === 'web') {
@@ -61,7 +67,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   }, [activeTab]);
 
   // Fetch user profile
-  const { data: profile } = useQuery<{ full_name: string } | null>({
+  const { data: profile } = useQuery<{ full_name: string | null } | null>({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();

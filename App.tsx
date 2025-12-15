@@ -19,6 +19,11 @@ import { TermsScreen } from './src/screens/TermsScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen';
 import { initializeUserData } from './src/services/profileService';
+import { invalidateUserQueries } from './src/lib/queryKeys';
+import { useAppBootstrap } from './src/hooks/useAppBootstrap';
+import { LoadingScreen } from './src/components/LoadingScreen';
+import { ErrorScreen } from './src/components/ErrorScreen';
+import { perf } from './src/lib/performance';
 import type { Session } from '@supabase/supabase-js';
 
 const queryClient = new QueryClient({
@@ -27,90 +32,41 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false, // Don't refetch when tab regains focus
       refetchOnMount: false, // Don't refetch on component mount if data exists
       refetchOnReconnect: false, // Don't refetch on network reconnect
-      staleTime: Infinity, // Data never goes stale unless manually invalidated
-      gcTime: Infinity, // Keep data in cache indefinitely (formerly cacheTime)
+      staleTime: 60000, // 1 minute - balance freshness with performance
+      gcTime: 300000, // 5 minutes - keep data in cache for reasonable time
       retry: 1, // Only retry failed requests once
     },
   },
 });
 
 function AppContent() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [needsMFA, setNeedsMFA] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(false);
-  const [checkingProfile, setCheckingProfile] = useState(false);
+  const bootstrap = useAppBootstrap();
   const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('auth');
 
+  // Mark when bootstrap completes
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    if (bootstrap.status === 'ready') {
+      perf.mark('bootstrap-ready');
+      console.log('[Perf] Bootstrap ready. View full report with: perf.getReport()');
+    }
+  }, [bootstrap.status]);
 
-    // Listen for auth changes
+  // Listen for auth changes (sign out)
+  useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      // Only update session on actual auth events, not on token refresh
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
-        setSession(session);
-        
-        // Clear all cached data on sign out to prevent data leakage
-        if (event === 'SIGNED_OUT') {
-          queryClient.clear();
-        }
-        
-        // Refetch all data on sign in to get the new user's data
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Ensure user profile and settings exist (idempotent)
-          initializeUserData(session.user.id, session.user.email || '').catch(err => {
-            console.error('[App] Error initializing user data:', err);
-          });
-          queryClient.invalidateQueries();
-        }
+      // Clear all cached data on sign out to prevent data leakage
+      if (event === 'SIGNED_OUT') {
+        queryClient.clear();
+        // Force re-render by resetting route
+        setCurrentRoute('auth');
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Check if user needs onboarding when session changes
-  useEffect(() => {
-    async function checkOnboarding() {
-      if (session) {
-        setCheckingProfile(true);
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) {
-            console.error('[App] No user found in session');
-            setCheckingProfile(false);
-            return;
-          }
-
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('onboarding_complete')
-            .eq('id', user.id)
-            .single();
-
-          if (error) {
-            console.error('[App] Error checking onboarding status:', error);
-          } else {
-            setNeedsOnboarding(!(profile as any)?.onboarding_complete);
-          }
-        } catch (error) {
-          console.error('[App] Error in checkOnboarding:', error);
-        }
-        setCheckingProfile(false);
-      } else {
-        setNeedsOnboarding(false);
-      }
-    }
-    checkOnboarding();
-  }, [session]);
 
   // Handle deep links for OAuth callback on native
   useEffect(() => {
@@ -152,13 +108,14 @@ function AppContent() {
     return () => subscription.remove();
   }, []);
 
-  // Don't show loading after initial load to prevent unmounting
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
-    );
+  // Bootstrap loading state
+  if (bootstrap.status === 'loading') {
+    return <LoadingScreen />;
+  }
+
+  // Bootstrap error state
+  if (bootstrap.status === 'error') {
+    return <ErrorScreen error={bootstrap.error} onRetry={bootstrap.retry} />;
   }
 
   // Allow Terms page to be accessed without authentication
@@ -182,7 +139,7 @@ function AppContent() {
   }
 
   // Allow Business Structures page (requires authentication)
-  if (currentRoute === 'business-structures' && session) {
+  if (currentRoute === 'business-structures' && bootstrap.session) {
     return (
       <>
         <StatusBar style="dark" />
@@ -195,14 +152,13 @@ function AppContent() {
   }
 
   // Check email verification screen
-  if (currentRoute === 'check-email' && session) {
+  if (currentRoute === 'check-email' && bootstrap.session) {
     return (
       <>
         <StatusBar style="dark" />
         <CheckEmailScreen
-          email={session.user.email || ''}
+          email={bootstrap.session.user.email || ''}
           onVerified={() => {
-            setEmailVerified(true);
             setCurrentRoute('dashboard');
           }}
           onResend={async () => {
@@ -213,13 +169,15 @@ function AppContent() {
                 return;
               }
               
-              await supabase.auth.resend({
-                type: 'signup',
-                email: session.user.email || '',
-                options: {
-                  emailRedirectTo: `${SITE_URL}/auth/callback`,
-                },
-              });
+              if (bootstrap.session) {
+                await supabase.auth.resend({
+                  type: 'signup',
+                  email: bootstrap.session.user.email || '',
+                  options: {
+                    emailRedirectTo: `${SITE_URL}/auth/callback`,
+                  },
+                });
+              }
               alert('Verification email sent!');
             } catch (error: any) {
               alert(error.message || 'Failed to resend email');
@@ -253,8 +211,8 @@ function AppContent() {
     );
   }
 
-  // Show appropriate screen based on auth and onboarding status
-  if (!session) {
+  // Unauthenticated - show auth screen
+  if (bootstrap.status === 'unauthenticated') {
     return (
       <>
         <StatusBar style="dark" />
@@ -268,7 +226,7 @@ function AppContent() {
   }
 
   // Block access if email not verified
-  if (session && !session.user.email_confirmed_at) {
+  if (bootstrap.session && !bootstrap.session.user.email_confirmed_at) {
     if (currentRoute !== 'check-email') {
       setCurrentRoute('check-email');
     }
@@ -314,15 +272,19 @@ function AppContent() {
     );
   }
 
-  if (needsOnboarding) {
+  // Bootstrap ready - check if needs onboarding
+  if (bootstrap.needsOnboarding) {
     return (
       <>
         <StatusBar style="dark" />
         <OnboardingFlow
           onComplete={() => {
-            // Invalidate all queries before transitioning to dashboard
-            queryClient.invalidateQueries();
-            setNeedsOnboarding(false);
+            // Invalidate user queries after onboarding
+            if (bootstrap.session?.user) {
+              invalidateUserQueries(queryClient, bootstrap.session.user.id);
+            }
+            // Trigger re-bootstrap to update needsOnboarding status
+            bootstrap.retry();
           }}
         />
       </>

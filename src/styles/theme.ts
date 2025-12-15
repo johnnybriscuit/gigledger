@@ -85,6 +85,7 @@ export const colors = {
 // SPACING
 // ============================================================================
 
+// String values for web/CSS (Tailwind compatibility)
 export const spacing = {
   1: '4px',
   2: '8px',
@@ -102,16 +103,44 @@ export const spacing = {
   24: '96px',
 } as const;
 
+// Numeric values for React Native
+export const spacingNum = {
+  1: 4,
+  2: 8,
+  3: 12,
+  4: 16,
+  5: 20,
+  6: 24,
+  7: 28,
+  8: 32,
+  9: 36,
+  10: 40,
+  12: 48,
+  16: 64,
+  20: 80,
+  24: 96,
+} as const;
+
 // ============================================================================
 // BORDER RADIUS
 // ============================================================================
 
+// String values for web/CSS
 export const radius = {
   sm: '8px',
   md: '12px',
   lg: '16px',
   xl: '24px',
   full: '9999px',
+} as const;
+
+// Numeric values for React Native
+export const radiusNum = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  full: 9999,
 } as const;
 
 // ============================================================================
