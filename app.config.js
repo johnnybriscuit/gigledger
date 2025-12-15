@@ -17,6 +17,9 @@ module.exports = {
       supportsTablet: true,
       bundleIdentifier: 'com.gigledger.app',
       buildNumber: '1',
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       adaptiveIcon: {
