@@ -42,6 +42,11 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
     );
   }
 
+  // Return null if data not ready - parent will show skeleton
+  if (!dashboardData.isReady || !dashboardData.taxBreakdown || !dashboardData.totals) {
+    return null;
+  }
+
   // Use tax breakdown from dashboard data (already calculated with new engine)
   const taxBreakdown = dashboardData.taxBreakdown;
   const hasIncome = dashboardData.totals.net > 0;

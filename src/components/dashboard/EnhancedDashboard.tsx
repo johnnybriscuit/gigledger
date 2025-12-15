@@ -55,7 +55,7 @@ export function EnhancedDashboard({
 
   // Mark when dashboard is interactive (data loaded)
   useEffect(() => {
-    if (data && data.monthly.length > 0) {
+    if (data && data.isReady && data.totals) {
       perf.mark('dashboard-interactive');
       // Log full performance report
       if (typeof window !== 'undefined' && __DEV__) {
@@ -97,11 +97,15 @@ export function EnhancedDashboard({
         {/* Top Row: Hero + Quick Actions */}
         <View style={styles.topRow}>
           <View style={styles.heroContainer}>
-            <HeroNetProfit
-              dateRange={dateRange}
-              customStart={customStart}
-              customEnd={customEnd}
-            />
+            {!data.isReady || !data.totals ? (
+              <SkeletonDashboardCard />
+            ) : (
+              <HeroNetProfit
+                dateRange={dateRange}
+                customStart={customStart}
+                customEnd={customEnd}
+              />
+            )}
           </View>
           <View style={styles.actionsContainer}>
             <QuickActions
@@ -126,7 +130,11 @@ export function EnhancedDashboard({
 
           {/* Tax Summary - Full Width */}
           <View style={styles.fullWidth}>
-            <TaxSummaryCard dateRange={dateRange} />
+            {!data.isReady || !data.taxBreakdown ? (
+              <SkeletonDashboardCard />
+            ) : (
+              <TaxSummaryCard dateRange={dateRange} />
+            )}
           </View>
 
           {/* Two Column Layout: Expense Breakdown + Top Payers */}

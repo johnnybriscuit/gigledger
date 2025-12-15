@@ -36,6 +36,7 @@ export interface PayerBreakdown {
 }
 
 export interface DashboardData {
+  isReady: boolean; // NEW: Indicates all data is loaded and totals are accurate
   monthly: MonthlyPoint[];
   cumulativeNet: { month: string; value: number }[];
   expenseBreakdown: ExpenseCategoryPoint[];
@@ -45,13 +46,13 @@ export interface DashboardData {
     net: number;
     taxes: number;
     effectiveTaxRate: number;
-  };
+  } | null; // NULL when not ready
   taxBreakdown: {
     federal: number;
     state: number;
     local: number;
     seTax: number;
-  };
+  } | null; // NULL when not ready
 }
 
 interface DateRangeConfig {
@@ -126,10 +127,24 @@ export function useDashboardData(
   const { data: allExpenses, isLoading: expensesLoading, isSuccess: expensesSuccess } = useExpenses();
   const { data: allMileage } = useMileage();
   const { data: taxProfile, isLoading: taxProfileLoading, isSuccess: taxProfileSuccess } = useTaxProfile();
-  const { data: profile } = useProfile();
+  const { data: profile, isSuccess: profileSuccess } = useProfile();
+
+  // CRITICAL: Readiness gate - ALL data must be loaded before calculating totals
+  // This prevents "income-only" flash when expenses load late
+  const isReadyForTotals = 
+    gigsSuccess && 
+    expensesSuccess && 
+    taxProfileSuccess && 
+    profileSuccess &&
+    !!allGigs &&
+    !!allExpenses; // Ensure arrays exist, not just success status
 
   // Calculate net profit first to get tax estimate
+  // ONLY calculate if ready - prevents income-only flash
   const { netProfit, totalIncome, totalDeductions } = useMemo(() => {
+    if (!isReadyForTotals) {
+      return { netProfit: 0, totalIncome: 0, totalDeductions: 0 };
+    }
     const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
     const gigs = filterByDateRange(allGigs, startDate, endDate);
     const expenses = filterByDateRange(allExpenses, startDate, endDate);
@@ -150,12 +165,16 @@ export function useDashboardData(
     const netProfit = totalIncome - totalDeductions;
 
     return { netProfit, totalIncome, totalDeductions };
-  }, [allGigs, allExpenses, allMileage, dateRange, customStart, customEnd]);
+  }, [isReadyForTotals, allGigs, allExpenses, allMileage, dateRange, customStart, customEnd]);
 
   // Calculate taxes using new tax engine (must be called at top level)
-  const { taxResult } = useTaxCalculation(netProfit, totalIncome);
-  const totalTaxes = taxResult?.total || 0;
-  const effectiveTaxRate = netProfit > 0 ? (totalTaxes / netProfit) * 100 : 0;
+  // Pass 0 if not ready to avoid calculations with incomplete data
+  const { taxResult } = useTaxCalculation(
+    isReadyForTotals ? netProfit : 0, 
+    isReadyForTotals ? totalIncome : 0
+  );
+  const totalTaxes = isReadyForTotals ? (taxResult?.total || 0) : 0;
+  const effectiveTaxRate = isReadyForTotals && netProfit > 0 ? (totalTaxes / netProfit) * 100 : 0;
 
   const data = useMemo(() => {
     const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
@@ -314,19 +333,20 @@ export function useDashboardData(
       expenseBreakdown,
       incomeBreakdown,
       payerBreakdown,
-      totals: {
+      isReady: isReadyForTotals,
+      totals: isReadyForTotals ? {
         net: netProfit,
         taxes: totalTaxes,
         effectiveTaxRate,
-      },
-      taxBreakdown: {
+      } : null, // NULL when not ready - forces skeleton rendering
+      taxBreakdown: isReadyForTotals ? {
         federal: taxResult?.federal || 0,
         state: taxResult?.state || 0,
         local: taxResult?.local || 0,
         seTax: taxResult?.seTax || 0,
-      },
+      } : null, // NULL when not ready
     };
-  }, [allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, netProfit, totalTaxes, effectiveTaxRate, taxResult]);
+  }, [isReadyForTotals, allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, netProfit, totalTaxes, effectiveTaxRate, taxResult]);
 
   // Debug logging
   useEffect(() => {
@@ -361,11 +381,13 @@ export function useDashboardData(
         computed: {
           grossIncome: totalIncome,
           expenses: totalDeductions,
-          netProfit: data.totals.net,
-          setAside: data.totals.taxes,
-          setAsideRate: data.totals.effectiveTaxRate / 100,
+          netProfit: data.totals?.net || 0,
+          setAside: data.totals?.taxes || 0,
+          setAsideRate: data.totals ? data.totals.effectiveTaxRate / 100 : 0,
         },
-        notes: (!gigsSuccess || !taxProfileSuccess) ? 'CALCULATED WITH INCOMPLETE DATA' : undefined,
+        notes: !isReadyForTotals ? '⚠️ NOT READY - SHOWING NULL/SKELETON' : 
+               (!gigsSuccess || !expensesSuccess || !taxProfileSuccess) ? 'CALCULATED WITH INCOMPLETE DATA' : 
+               'READY - All data loaded',
       });
     });
   }, [data, dateRange, customStart, customEnd, allGigs, allExpenses, gigsLoading, gigsSuccess, expensesLoading, expensesSuccess, taxProfileLoading, taxProfileSuccess, taxProfile, profile, totalIncome, totalDeductions]);

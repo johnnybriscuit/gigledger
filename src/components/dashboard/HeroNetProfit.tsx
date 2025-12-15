@@ -30,6 +30,11 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
   // Get last 30 days for comparison
   const last30Data = useDashboardData('last30');
 
+  // Return null if data not ready - parent will show skeleton
+  if (!currentData.isReady || !currentData.totals || !last30Data.totals) {
+    return null;
+  }
+
   const netProfit = currentData.totals.net;
   const last30Net = last30Data.totals.net;
   const delta = netProfit - last30Net;
