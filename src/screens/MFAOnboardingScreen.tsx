@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { useNavigation } from '@react-navigation/native';
 import * as Clipboard from 'expo-clipboard';
 
-export function MFAOnboardingScreen() {
+interface MFAOnboardingScreenProps {
+  onNavigateToDashboard?: () => void;
+}
+
+export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScreenProps = {}) {
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<'qr' | 'verify' | 'recovery'>('qr');
   const [factorId, setFactorId] = useState<string>('');
@@ -14,7 +17,6 @@ export function MFAOnboardingScreen() {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
-  const navigation = useNavigation();
 
   useEffect(() => {
     enrollMFA();
@@ -42,8 +44,7 @@ export function MFAOnboardingScreen() {
     } catch (err: any) {
       console.error('[MFA] Enrollment error:', err);
       Alert.alert('Error', err.message || 'Failed to set up 2FA');
-      // @ts-ignore
-      navigation.navigate('Dashboard');
+      onNavigateToDashboard?.();
     }
   };
 
@@ -119,8 +120,7 @@ export function MFAOnboardingScreen() {
   };
 
   const finishSetup = () => {
-    // @ts-ignore
-    navigation.navigate('Dashboard');
+    onNavigateToDashboard?.();
   };
 
   if (loading) {

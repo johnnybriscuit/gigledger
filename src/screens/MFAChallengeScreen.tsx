@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { useNavigation } from '@react-navigation/native';
 
-export function MFAChallengeScreen() {
+interface MFAChallengeScreenProps {
+  onNavigateToDashboard?: () => void;
+  onNavigateToAuth?: () => void;
+}
+
+export function MFAChallengeScreen({ onNavigateToDashboard, onNavigateToAuth }: MFAChallengeScreenProps = {}) {
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
   const [challengeId, setChallengeId] = useState<string>('');
   const [factorId, setFactorId] = useState<string>('');
   const [attempts, setAttempts] = useState(0);
-  const navigation = useNavigation();
 
   useEffect(() => {
     initChallenge();
@@ -54,8 +57,7 @@ export function MFAChallengeScreen() {
     } catch (err: any) {
       console.error('[MFA Challenge] Init error:', err);
       Alert.alert('Error', err.message || 'Failed to initialize 2FA challenge');
-      // @ts-ignore
-      navigation.navigate('Auth');
+      onNavigateToAuth?.();
     }
   };
 
@@ -88,8 +90,7 @@ export function MFAChallengeScreen() {
       console.log('[MFA Challenge] Verification successful');
 
       // Redirect to dashboard
-      // @ts-ignore
-      navigation.navigate('Dashboard');
+      onNavigateToDashboard?.();
     } catch (err: any) {
       console.error('[MFA Challenge] Verification error:', err);
       const newAttempts = attempts + 1;
@@ -111,8 +112,7 @@ export function MFAChallengeScreen() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    // @ts-ignore
-    navigation.navigate('Auth');
+    onNavigateToAuth?.();
   };
 
   const handleUseRecoveryCode = () => {

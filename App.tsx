@@ -274,7 +274,9 @@ function AppContent() {
     return (
       <>
         <StatusBar style="dark" />
-        <MFAOnboardingScreen />
+        <MFAOnboardingScreen 
+          onNavigateToDashboard={() => setCurrentRoute('dashboard')}
+        />
       </>
     );
   }
@@ -284,7 +286,10 @@ function AppContent() {
     return (
       <>
         <StatusBar style="dark" />
-        <MFAChallengeScreen />
+        <MFAChallengeScreen 
+          onNavigateToDashboard={() => setCurrentRoute('dashboard')}
+          onNavigateToAuth={() => setCurrentRoute('auth')}
+        />
       </>
     );
   }
