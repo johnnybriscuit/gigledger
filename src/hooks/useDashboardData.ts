@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useGigs } from './useGigs';
 import { useExpenses } from './useExpenses';
 import { useMileage, calculateMileageDeduction } from './useMileage';
@@ -123,11 +123,20 @@ export function useDashboardData(
   customStart?: Date,
   customEnd?: Date
 ): DashboardData {
+  // Get userId for profile query
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserId(user?.id || null);
+    });
+  }, []);
+
   const { data: allGigs, isLoading: gigsLoading, isSuccess: gigsSuccess } = useGigs();
   const { data: allExpenses, isLoading: expensesLoading, isSuccess: expensesSuccess } = useExpenses();
   const { data: allMileage } = useMileage();
   const { data: taxProfile, isLoading: taxProfileLoading, isSuccess: taxProfileSuccess } = useTaxProfile();
-  const { data: profile, isSuccess: profileSuccess } = useProfile();
+  const { data: profile, isSuccess: profileSuccess } = useProfile(userId || undefined);
 
   // CRITICAL: Readiness gate - ALL data must be loaded before calculating totals
   // This prevents "income-only" flash when expenses load late
