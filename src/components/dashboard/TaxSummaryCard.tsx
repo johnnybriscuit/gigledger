@@ -15,10 +15,12 @@ interface TaxSummaryCardProps {
 }
 
 export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummaryCardProps) {
+  // ALL HOOKS MUST BE CALLED FIRST - before any conditional returns
   const { data: taxProfile, isLoading } = useTaxProfile();
   const dashboardData = useDashboardData(dateRange);
   const [showExplanation, setShowExplanation] = useState(false);
 
+  // Now safe to do conditional rendering
   if (isLoading) {
     return (
       <View style={styles.card}>

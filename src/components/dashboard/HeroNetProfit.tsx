@@ -30,7 +30,11 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
   // Get last 30 days for comparison
   const last30Data = useDashboardData('last30');
 
+  // Get tax profile and calculate accurate breakdown
+  const { data: taxProfile } = useTaxProfile();
+
   // Return null if data not ready - parent will show skeleton
+  // IMPORTANT: Must be AFTER all hooks to avoid React hooks violation
   if (!currentData.isReady || !currentData.totals || !last30Data.totals) {
     return null;
   }
@@ -39,9 +43,6 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
   const last30Net = last30Data.totals.net;
   const delta = netProfit - last30Net;
   const deltaPercent = last30Net !== 0 ? (delta / Math.abs(last30Net)) * 100 : 0;
-
-  // Get tax profile and calculate accurate breakdown
-  const { data: taxProfile } = useTaxProfile();
   
   let taxBreakdown = null;
   let totalTaxes = currentData.totals.taxes;
