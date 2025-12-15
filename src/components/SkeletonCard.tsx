@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, Platform } from 'react-native';
 import { colors, spacingNum, radiusNum } from '../styles/theme';
 
 interface SkeletonCardProps {
@@ -24,12 +24,12 @@ export function SkeletonCard({ height = 100, width = '100%', style }: SkeletonCa
         Animated.timing(opacity, {
           toValue: 0.7,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web', // Native driver not supported for opacity on web
         }),
         Animated.timing(opacity, {
           toValue: 0.3,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }),
       ])
     );

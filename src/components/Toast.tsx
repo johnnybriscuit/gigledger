@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
 
 interface ToastProps {
   message: string;
@@ -17,7 +17,7 @@ export function Toast({ message, visible, onHide, duration = 4000 }: ToastProps)
       Animated.timing(opacity, {
         toValue: 1,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }).start();
 
       // Auto hide after duration
@@ -25,7 +25,7 @@ export function Toast({ message, visible, onHide, duration = 4000 }: ToastProps)
         Animated.timing(opacity, {
           toValue: 0,
           duration: 300,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== 'web',
         }).start(() => {
           onHide();
         });
