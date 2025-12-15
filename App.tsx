@@ -123,7 +123,8 @@ function AppContent() {
       console.log('[DeepLink] Parsed - hostname:', hostname, 'path:', path);
       
       // Handle auth callback from OAuth (Google)
-      if (path === 'auth/callback' || path === '/auth/callback') {
+      // Only navigate to callback screen if we're not already there
+      if ((path === 'auth/callback' || path === '/auth/callback') && currentRoute !== 'auth-callback') {
         console.log('[DeepLink] Auth callback detected, navigating to auth-callback screen');
         setCurrentRoute('auth-callback');
       }
@@ -144,7 +145,7 @@ function AppContent() {
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [currentRoute]);
 
   // Don't show loading after initial load to prevent unmounting
   if (loading) {

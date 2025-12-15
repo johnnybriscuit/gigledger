@@ -73,10 +73,12 @@ export function AuthCallbackScreen({
       if (!mfaEnrolled) {
         // First time login - redirect to MFA setup
         console.log('[AuthCallback] Redirecting to MFA setup');
+        setLoading(false);
         onNavigateToMFASetup?.();
       } else {
         // MFA already enrolled - redirect to dashboard
         console.log('[AuthCallback] Redirecting to dashboard');
+        setLoading(false);
         onNavigateToDashboard?.();
       }
     } catch (err: any) {
