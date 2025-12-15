@@ -39,7 +39,7 @@ module.exports = {
       siteUrl: process.env.EXPO_PUBLIC_SITE_URL || 'http://localhost:8090',
       googleOAuthEnabled: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED !== 'false',
       eas: {
-        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID
+        projectId: 'f58c6a8c-e8e1-4034-9093-697148d6f016'
       }
     },
   },
