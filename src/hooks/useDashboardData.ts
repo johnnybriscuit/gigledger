@@ -144,7 +144,7 @@ export function useDashboardData(
     gigsSuccess && 
     expensesSuccess && 
     taxProfileSuccess && 
-    profileSuccess &&
+    (profileSuccess || !userId) && // Profile not required if userId not yet loaded
     !!allGigs &&
     !!allExpenses; // Ensure arrays exist, not just success status
 

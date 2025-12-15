@@ -58,10 +58,7 @@ export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion }: US
             const stateName = geo.properties.name || geo.properties.NAME;
             const stateCode = stateName ? getStateCodeFromName(stateName) : null;
             
-            // Debug: log if we can't find a state code
-            if (!stateCode && stateName) {
-              console.warn('Could not map state name to code:', stateName, geo.properties);
-            }
+            // Skip if we can't find a state code (territories, etc.)
             if (!stateCode) return null;
 
             const regionStats = stats[stateCode];
