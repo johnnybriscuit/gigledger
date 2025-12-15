@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import Constants from 'expo-constants';
+import * as Linking from 'expo-linking';
 import { supabase } from '../lib/supabase';
 import { logSecurityEvent } from '../lib/mfa';
 import { validatePassword } from '../lib/passwordValidation';
@@ -329,10 +330,18 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
       // Log OAuth start
       await logSecurityEvent('oauth_google_start', { provider: 'google' });
 
+      // Platform-aware redirect URL
+      const redirectUrl = Platform.OS === 'web' 
+        ? `${SITE_URL}/auth/callback`
+        : Linking.createURL('auth/callback');
+
+      console.debug('[Auth] Platform:', Platform.OS);
+      console.debug('[Auth] Redirect URL:', redirectUrl);
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${SITE_URL}/auth/callback`,
+          redirectTo: redirectUrl,
           scopes: 'openid email profile',
           queryParams: {
             access_type: 'offline',

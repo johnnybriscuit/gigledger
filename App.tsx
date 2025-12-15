@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import Constants from 'expo-constants';
+import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { supabase } from './src/lib/supabase';
@@ -84,7 +85,7 @@ function AppContent() {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) {
-            setNeedsOnboarding(false);
+            console.error('[App] No user found in session');
             setCheckingProfile(false);
             return;
           }
@@ -97,13 +98,11 @@ function AppContent() {
 
           if (error) {
             console.error('[App] Error checking onboarding status:', error);
-            setNeedsOnboarding(false);
           } else {
             setNeedsOnboarding(!(profile as any)?.onboarding_complete);
           }
         } catch (error) {
           console.error('[App] Error in checkOnboarding:', error);
-          setNeedsOnboarding(false);
         }
         setCheckingProfile(false);
       } else {
@@ -112,6 +111,40 @@ function AppContent() {
     }
     checkOnboarding();
   }, [session]);
+
+  // Handle deep links for OAuth callback on native
+  useEffect(() => {
+    const handleDeepLink = async (url: string) => {
+      console.log('[DeepLink] Received URL:', url);
+      
+      // Parse the URL
+      const { hostname, path, queryParams } = Linking.parse(url);
+      
+      console.log('[DeepLink] Parsed - hostname:', hostname, 'path:', path);
+      
+      // Handle auth callback from OAuth (Google)
+      if (path === 'auth/callback' || path === '/auth/callback') {
+        console.log('[DeepLink] Auth callback detected, navigating to auth-callback screen');
+        setCurrentRoute('auth-callback');
+      }
+    };
+
+    // Get initial URL (if app was opened via deep link)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        console.log('[DeepLink] Initial URL:', url);
+        handleDeepLink(url);
+      }
+    });
+
+    // Listen for deep link events while app is running
+    const subscription = Linking.addEventListener('url', (event) => {
+      console.log('[DeepLink] Event URL:', event.url);
+      handleDeepLink(event.url);
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   // Don't show loading after initial load to prevent unmounting
   if (loading) {

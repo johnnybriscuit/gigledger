@@ -15,14 +15,16 @@ module.exports = {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.anonymous.gigledger',
+      bundleIdentifier: 'com.gigledger.app',
+      buildNumber: '1',
     },
     android: {
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
-      package: 'com.anonymous.gigledger',
+      package: 'com.gigledger.app',
+      versionCode: 1,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
     },
@@ -37,7 +39,7 @@ module.exports = {
       siteUrl: process.env.EXPO_PUBLIC_SITE_URL || 'http://localhost:8090',
       googleOAuthEnabled: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED !== 'false',
       eas: {
-        projectId: "your-project-id"
+        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID
       }
     },
   },
