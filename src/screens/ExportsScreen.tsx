@@ -43,6 +43,8 @@ export function ExportsScreen() {
   const [showValidationDetails, setShowValidationDetails] = useState(false);
   const [showTXFInfo, setShowTXFInfo] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [showTaxPrepChecklist, setShowTaxPrepChecklist] = useState(true);
+  const [expandedGuidance, setExpandedGuidance] = useState<string | null>(null);
 
   // Fetch user's plan
   const { data: profile } = useQuery({
@@ -190,18 +192,93 @@ export function ExportsScreen() {
       return;
     }
 
-    if (!gigs.data || !expenses.data || !mileage.data || !payers.data || !scheduleC.data) {
+    if (!gigs.data || !expenses.data || !mileage.data || !payers.data) {
       Alert.alert('Error', 'Data not loaded yet. Please wait.');
       return;
     }
 
     try {
+      // Calculate Schedule C summary from raw data
+      const grossReceipts = gigs.data.reduce((sum, g) => sum + (g.gross_amount || 0) + (g.tips || 0) + (g.per_diem || 0) + (g.other_income || 0), 0);
+      const fees = gigs.data.reduce((sum, g) => sum + (g.fees || 0), 0);
+      const totalIncome = grossReceipts - fees;
+      
+      // Expenses by category
+      const expensesByCategory: Record<string, number> = {};
+      expenses.data.forEach(e => {
+        const cat = e.category || 'Other';
+        expensesByCategory[cat] = (expensesByCategory[cat] || 0) + e.amount;
+      });
+      
+      // Mileage deduction
+      const mileageDeduction = mileage.data.reduce((sum, m) => sum + (m.deduction_amount || m.miles * 0.67), 0);
+      
+      // Map to Schedule C lines
+      const advertising = expensesByCategory['Marketing'] || 0;
+      const carTruck = mileageDeduction;
+      const supplies = expensesByCategory['Supplies'] || 0;
+      const travel = (expensesByCategory['Travel'] || 0) + (expensesByCategory['Lodging'] || 0);
+      const meals = (expensesByCategory['Meals'] || 0) * 0.5;
+      const officeExpense = expensesByCategory['Software'] || 0;
+      const legalProfessional = expensesByCategory['Fees'] || 0;
+      const otherExpenses = Object.entries(expensesByCategory)
+        .filter(([cat]) => !['Marketing', 'Supplies', 'Travel', 'Lodging', 'Meals', 'Software', 'Fees'].includes(cat))
+        .reduce((sum, [, amount]) => sum + amount, 0);
+      
+      const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
+      const netProfit = totalIncome - totalExpenses;
+      
+      const seTax = taxBreakdown?.selfEmployment || 0;
+      const estimatedIncomeTax = taxBreakdown?.federalIncome || 0;
+      const estimatedStateTax = taxBreakdown?.stateIncome || 0;
+      const totalTax = taxBreakdown?.total || 0;
+      
+      const calculatedScheduleC = {
+        tax_year: taxYear,
+        filing_status: 'single' as const,
+        state_of_residence: 'XX',
+        standard_or_itemized: 'itemized' as const,
+        gross_receipts: grossReceipts - fees,
+        returns_and_allowances: 0,
+        other_income: 0,
+        total_income: totalIncome,
+        advertising,
+        car_truck: carTruck,
+        commissions: 0,
+        contract_labor: 0,
+        depreciation: 0,
+        employee_benefit: 0,
+        insurance_other: 0,
+        interest_mortgage: 0,
+        interest_other: 0,
+        legal_professional: legalProfessional,
+        office_expense: officeExpense,
+        rent_vehicles: 0,
+        rent_other: 0,
+        repairs_maintenance: 0,
+        supplies,
+        taxes_licenses: 0,
+        travel,
+        meals_allowed: meals,
+        utilities: 0,
+        wages: 0,
+        other_expenses_total: otherExpenses,
+        total_expenses: totalExpenses,
+        net_profit: netProfit,
+        se_tax_basis: netProfit * 0.9235,
+        est_se_tax: seTax,
+        est_federal_income_tax: estimatedIncomeTax,
+        est_state_income_tax: estimatedStateTax,
+        est_total_tax: totalTax,
+        set_aside_suggested: totalTax,
+      };
+
       await downloadExcel({
         gigs: gigs.data,
         expenses: expenses.data,
         mileage: mileage.data,
         payers: payers.data,
-        scheduleC: scheduleC.data[0],
+        scheduleC: calculatedScheduleC,
         taxYear,
         taxBreakdown,
       });
@@ -296,7 +373,7 @@ export function ExportsScreen() {
         se_tax_basis: netProfit * 0.9235,
         est_se_tax: seTax,
         est_federal_income_tax: estimatedIncomeTax,
-        est_state_income_tax: estimatedStateTax + estimatedLocalTax,
+        est_state_income_tax: estimatedStateTax,
         est_total_tax: totalTax,
         set_aside_suggested: totalTax,
       };
@@ -366,7 +443,7 @@ export function ExportsScreen() {
       const taxpayerName = profileData?.full_name || 'Taxpayer';
       
       // Check if data is loaded
-      if (!gigs.data || !expenses.data || !scheduleC.data) {
+      if (!gigs.data || !expenses.data || !mileage.data) {
         throw new Error('Export data not loaded yet. Please wait.');
       }
       
@@ -397,7 +474,77 @@ export function ExportsScreen() {
         linked_gig_id: null,
       })) as ExpenseExportRow[];
       
-      const scheduleCSummaryData = scheduleC.data[0];
+      // Calculate Schedule C summary from raw data
+      const grossReceipts = gigs.data.reduce((sum, g) => sum + (g.gross_amount || 0) + (g.tips || 0) + (g.per_diem || 0) + (g.other_income || 0), 0);
+      const fees = gigs.data.reduce((sum, g) => sum + (g.fees || 0), 0);
+      const totalIncome = grossReceipts - fees;
+      
+      const expensesByCategory: Record<string, number> = {};
+      expenses.data.forEach(e => {
+        const cat = e.category || 'Other';
+        expensesByCategory[cat] = (expensesByCategory[cat] || 0) + e.amount;
+      });
+      
+      const mileageDeduction = mileage.data.reduce((sum, m) => sum + (m.deduction_amount || m.miles * 0.67), 0);
+      
+      const advertising = expensesByCategory['Marketing'] || 0;
+      const carTruck = mileageDeduction;
+      const supplies = expensesByCategory['Supplies'] || 0;
+      const travel = (expensesByCategory['Travel'] || 0) + (expensesByCategory['Lodging'] || 0);
+      const meals = (expensesByCategory['Meals'] || 0) * 0.5;
+      const officeExpense = expensesByCategory['Software'] || 0;
+      const legalProfessional = expensesByCategory['Fees'] || 0;
+      const otherExpenses = Object.entries(expensesByCategory)
+        .filter(([cat]) => !['Marketing', 'Supplies', 'Travel', 'Lodging', 'Meals', 'Software', 'Fees'].includes(cat))
+        .reduce((sum, [, amount]) => sum + amount, 0);
+      
+      const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
+      const netProfit = totalIncome - totalExpenses;
+      
+      const seTax = taxBreakdown?.selfEmployment || 0;
+      const estimatedIncomeTax = taxBreakdown?.federalIncome || 0;
+      const estimatedStateTax = taxBreakdown?.stateIncome || 0;
+      const totalTax = taxBreakdown?.total || 0;
+      
+      const scheduleCSummaryData = {
+        tax_year: taxYear,
+        filing_status: 'single' as const,
+        state_of_residence: 'XX',
+        standard_or_itemized: 'itemized' as const,
+        gross_receipts: grossReceipts - fees,
+        returns_and_allowances: 0,
+        other_income: 0,
+        total_income: totalIncome,
+        advertising,
+        car_truck: carTruck,
+        commissions: 0,
+        contract_labor: 0,
+        depreciation: 0,
+        employee_benefit: 0,
+        insurance_other: 0,
+        interest_mortgage: 0,
+        interest_other: 0,
+        legal_professional: legalProfessional,
+        office_expense: officeExpense,
+        rent_vehicles: 0,
+        rent_other: 0,
+        repairs_maintenance: 0,
+        supplies,
+        taxes_licenses: 0,
+        travel,
+        meals_allowed: meals,
+        utilities: 0,
+        wages: 0,
+        other_expenses_total: otherExpenses,
+        total_expenses: totalExpenses,
+        net_profit: netProfit,
+        se_tax_basis: netProfit * 0.9235,
+        est_se_tax: seTax,
+        est_federal_income_tax: estimatedIncomeTax,
+        est_state_income_tax: estimatedStateTax,
+        est_total_tax: totalTax,
+        set_aside_suggested: totalTax,
+      };
       
       // Generate TXF content
       const txfContent = generateTXF({
@@ -440,6 +587,50 @@ export function ExportsScreen() {
         <Text muted>
           Download tax-ready reports for your CPA
         </Text>
+      </View>
+
+      {/* Tax Season Prep Checklist */}
+      <View style={styles.taxPrepSection}>
+        <TouchableOpacity 
+          style={styles.taxPrepHeader}
+          onPress={() => setShowTaxPrepChecklist(!showTaxPrepChecklist)}
+        >
+          <Text style={styles.taxPrepTitle}>🧾 Tax Season Prep Checklist</Text>
+          <Text style={styles.taxPrepToggle}>{showTaxPrepChecklist ? '▼' : '▶'}</Text>
+        </TouchableOpacity>
+        
+        {showTaxPrepChecklist && (
+          <View style={styles.taxPrepContent}>
+            <Text style={styles.taxPrepIntro}>
+              Before exporting, take a couple minutes to make sure your data is ready. This helps avoid back-and-forth later with your CPA or tax software.
+            </Text>
+            
+            <View style={styles.checklistItems}>
+              <View style={styles.checklistItem}>
+                <Text style={styles.checklistIcon}>✓</Text>
+                <Text style={styles.checklistText}>All gigs for the year are entered</Text>
+              </View>
+              <View style={styles.checklistItem}>
+                <Text style={styles.checklistIcon}>✓</Text>
+                <Text style={styles.checklistText}>Expenses are added (estimates are OK)</Text>
+              </View>
+              <View style={styles.checklistItem}>
+                <Text style={styles.checklistIcon}>✓</Text>
+                <Text style={styles.checklistText}>Mileage is logged if applicable</Text>
+              </View>
+              <View style={styles.checklistItem}>
+                <Text style={styles.checklistIcon}>✓</Text>
+                <Text style={styles.checklistText}>Business structure is set correctly (Account → Tax Profile)</Text>
+              </View>
+            </View>
+            
+            <View style={styles.taxPrepReassurance}>
+              <Text style={styles.taxPrepReassuranceText}>
+                Don't worry — perfection isn't required. Clean, honest data beats perfect data entered late.
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Filters Section */}
@@ -604,111 +795,270 @@ export function ExportsScreen() {
             <H2>Export Options</H2>
             <Text muted style={styles.sectionSubtitle}>Choose your export format below</Text>
 
-            <TouchableOpacity
-              style={[
-                styles.exportButton,
-                !validationResult?.isValid && styles.exportButtonDisabled
-              ]}
-              onPress={handleDownloadCSVs}
-              disabled={!validationResult?.isValid}
-            >
-              <Text style={styles.exportButtonIcon}>📊</Text>
-              <View style={styles.exportButtonContent}>
-                <Text style={styles.exportButtonTitle}>Download CSVs</Text>
-                <Text style={styles.exportButtonDescription}>
-                  5 IRS-compliant CSV files - Recommended for CPAs
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.exportButton,
-                !validationResult?.isValid && styles.exportButtonDisabled
-              ]}
-              onPress={handleDownloadTXF}
-              disabled={!validationResult?.isValid}
-            >
-              <Text style={styles.exportButtonIcon}>💼</Text>
-              <View style={styles.exportButtonContent}>
-                <View style={styles.exportButtonHeader}>
-                  <Text style={styles.exportButtonTitle}>Download TXF</Text>
-                  <TouchableOpacity 
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      setShowTXFInfo(true);
-                    }}
-                    style={styles.infoIconButton}
-                  >
-                    <Text style={styles.infoIcon}>ℹ️</Text>
-                  </TouchableOpacity>
+            {/* CSV Export */}
+            <View style={styles.exportCard}>
+              <TouchableOpacity
+                style={[
+                  styles.exportButton,
+                  !validationResult?.isValid && styles.exportButtonDisabled
+                ]}
+                onPress={handleDownloadCSVs}
+                disabled={!validationResult?.isValid}
+              >
+                <Text style={styles.exportButtonIcon}>📊</Text>
+                <View style={styles.exportButtonContent}>
+                  <View style={styles.exportButtonHeader}>
+                    <Text style={styles.exportButtonTitle}>Download CSVs</Text>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setExpandedGuidance(expandedGuidance === 'csv' ? null : 'csv');
+                      }}
+                      style={styles.infoIconButton}
+                    >
+                      <Text style={styles.infoIcon}>ℹ️</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.exportButtonDescription}>
+                    IRS-compliant CSV files — Recommended for CPAs
+                  </Text>
                 </View>
-                <Text style={styles.exportButtonBadge}>TURBOTAX DESKTOP ONLY</Text>
-                <Text style={styles.exportButtonDescription}>
-                  Import into TurboTax Desktop (NOT Online)
-                </Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+              
+              {expandedGuidance === 'csv' && (
+                <View style={styles.guidanceDrawer}>
+                  <Text style={styles.guidanceTitle}>Who this is for:</Text>
+                  <Text style={styles.guidanceText}>
+                    Best if you work with a CPA, accountant, or tax preparer.
+                  </Text>
+                  
+                  <Text style={styles.guidanceTitle}>What to do next:</Text>
+                  <Text style={styles.guidanceText}>
+                    • Download the CSV files{'\n'}
+                    • Email or share them with your CPA{'\n'}
+                    • Your CPA will import or reference these files for Schedule C or business returns
+                  </Text>
+                  
+                  <Text style={styles.guidanceTitle}>What's included:</Text>
+                  <Text style={styles.guidanceText}>
+                    • Income by gig{'\n'}
+                    • Categorized expenses{'\n'}
+                    • Mileage totals{'\n'}
+                    • Net profit summaries
+                  </Text>
+                  
+                  <View style={styles.guidanceReassurance}>
+                    <Text style={styles.guidanceReassuranceText}>
+                      These files are designed to be readable by humans and tax software. Most CPAs prefer this format.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
 
-            <TouchableOpacity
-              style={styles.exportButton}
-              onPress={handleDownloadExcel}
-            >
-              <Text style={styles.exportButtonIcon}>📗</Text>
-              <View style={styles.exportButtonContent}>
-                <Text style={styles.exportButtonTitle}>Download Excel</Text>
-                <Text style={styles.exportButtonDescription}>
-                  One .xlsx file with separate sheets
-                </Text>
-              </View>
-            </TouchableOpacity>
+            {/* TXF Export */}
+            <View style={styles.exportCard}>
+              <TouchableOpacity
+                style={[
+                  styles.exportButton,
+                  !validationResult?.isValid && styles.exportButtonDisabled
+                ]}
+                onPress={handleDownloadTXF}
+                disabled={!validationResult?.isValid}
+              >
+                <Text style={styles.exportButtonIcon}>💼</Text>
+                <View style={styles.exportButtonContent}>
+                  <View style={styles.exportButtonHeader}>
+                    <Text style={styles.exportButtonTitle}>Download TXF (TurboTax Desktop ONLY)</Text>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setShowTXFInfo(true);
+                      }}
+                      style={styles.infoIconButton}
+                    >
+                      <Text style={styles.infoIcon}>ℹ️</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.exportButtonDescription}>
+                    This option lets you import your GigLedger data directly into TurboTax Desktop and skip manual entry.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity
-              style={styles.exportButton}
-              onPress={handleDownloadPDF}
-            >
-              <Text style={styles.exportButtonIcon}>📄</Text>
-              <View style={styles.exportButtonContent}>
-                <Text style={styles.exportButtonTitle}>Download PDF Summary</Text>
-                <Text style={styles.exportButtonDescription}>
-                  Tax-ready summary for your CPA
-                </Text>
-              </View>
-            </TouchableOpacity>
+            {/* Excel Export */}
+            <View style={styles.exportCard}>
+              <TouchableOpacity
+                style={styles.exportButton}
+                onPress={handleDownloadExcel}
+              >
+                <Text style={styles.exportButtonIcon}>📘</Text>
+                <View style={styles.exportButtonContent}>
+                  <View style={styles.exportButtonHeader}>
+                    <Text style={styles.exportButtonTitle}>Download Excel (.xlsx)</Text>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setExpandedGuidance(expandedGuidance === 'excel' ? null : 'excel');
+                      }}
+                      style={styles.infoIconButton}
+                    >
+                      <Text style={styles.infoIcon}>ℹ️</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.exportButtonDescription}>
+                    One .xlsx file with separate sheets
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              
+              {expandedGuidance === 'excel' && (
+                <View style={styles.guidanceDrawer}>
+                  <Text style={styles.guidanceTitle}>Who this is for:</Text>
+                  <Text style={styles.guidanceText}>
+                    Best if you want to review, edit, or share everything in one file.
+                  </Text>
+                  
+                  <Text style={styles.guidanceTitle}>Common use cases:</Text>
+                  <Text style={styles.guidanceText}>
+                    • Reviewing your numbers before filing{'\n'}
+                    • Sharing with a CPA who prefers Excel{'\n'}
+                    • Making notes or adjustments
+                  </Text>
+                  
+                  <Text style={styles.guidanceTitle}>What to do next:</Text>
+                  <Text style={styles.guidanceText}>
+                    • Download the Excel file{'\n'}
+                    • Review each sheet (Income, Expenses, Mileage){'\n'}
+                    • Upload it to tax software or send it to your CPA
+                  </Text>
+                  
+                  <View style={styles.guidanceReassurance}>
+                    <Text style={styles.guidanceReassuranceText}>
+                      This file mirrors the CSV exports, just combined into one workbook.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
 
-            <TouchableOpacity
-              style={styles.exportButton}
-              onPress={handleDownloadJSON}
-            >
-              <Text style={styles.exportButtonIcon}>💾</Text>
-              <View style={styles.exportButtonContent}>
-                <Text style={styles.exportButtonTitle}>Download JSON Backup</Text>
-                <Text style={styles.exportButtonDescription}>
-                  Complete data backup in JSON format
-                </Text>
-              </View>
-            </TouchableOpacity>
+            {/* PDF Export */}
+            <View style={styles.exportCard}>
+              <TouchableOpacity
+                style={styles.exportButton}
+                onPress={handleDownloadPDF}
+              >
+                <Text style={styles.exportButtonIcon}>🧾</Text>
+                <View style={styles.exportButtonContent}>
+                  <View style={styles.exportButtonHeader}>
+                    <Text style={styles.exportButtonTitle}>Download PDF Summary</Text>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setExpandedGuidance(expandedGuidance === 'pdf' ? null : 'pdf');
+                      }}
+                      style={styles.infoIconButton}
+                    >
+                      <Text style={styles.infoIcon}>ℹ️</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.exportButtonDescription}>
+                    Tax-ready summary for your CPA
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              
+              {expandedGuidance === 'pdf' && (
+                <View style={styles.guidanceDrawer}>
+                  <Text style={styles.guidanceTitle}>Who this is for:</Text>
+                  <Text style={styles.guidanceText}>
+                    Best for quick overviews or sharing a clean summary with your CPA.
+                  </Text>
+                  
+                  <Text style={styles.guidanceTitle}>Important clarification:</Text>
+                  <Text style={styles.guidanceText}>
+                    This is a summary, not raw data.
+                  </Text>
+                  
+                  <Text style={styles.guidanceTitle}>What to do next:</Text>
+                  <Text style={styles.guidanceText}>
+                    • Attach this PDF when emailing your CPA{'\n'}
+                    • Use it as a reference while filing online
+                  </Text>
+                  
+                  <View style={styles.guidanceReassurance}>
+                    <Text style={styles.guidanceReassuranceText}>
+                      We recommend pairing this with CSV or Excel exports for full detail.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* JSON Export */}
+            <View style={styles.exportCard}>
+              <TouchableOpacity
+                style={styles.exportButton}
+                onPress={handleDownloadJSON}
+              >
+                <Text style={styles.exportButtonIcon}>💾</Text>
+                <View style={styles.exportButtonContent}>
+                  <View style={styles.exportButtonHeader}>
+                    <Text style={styles.exportButtonTitle}>Download JSON Backup</Text>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setExpandedGuidance(expandedGuidance === 'json' ? null : 'json');
+                      }}
+                      style={styles.infoIconButton}
+                    >
+                      <Text style={styles.infoIcon}>ℹ️</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.exportButtonDescription}>
+                    Complete data backup in JSON format
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              
+              {expandedGuidance === 'json' && (
+                <View style={styles.guidanceDrawer}>
+                  <Text style={styles.guidanceTitle}>Who this is for:</Text>
+                  <Text style={styles.guidanceText}>
+                    Advanced users or long-term backups.
+                  </Text>
+                  
+                  <Text style={styles.guidanceTitle}>Purpose:</Text>
+                  <Text style={styles.guidanceText}>
+                    • Full data backup{'\n'}
+                    • Migration or archival
+                  </Text>
+                  
+                  <View style={styles.guidanceReassurance}>
+                    <Text style={styles.guidanceReassuranceText}>
+                      This file is not intended for tax filing or CPA use.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
           </View>
 
-          {/* Tax Prep Helper Text */}
-          <View style={styles.taxHelperSection}>
-            <Text style={styles.taxHelperText}>
-              These exports are formatted so you or your CPA can easily use them in tools like TurboTax. Always review for accuracy.
+          {/* Finish Line Section */}
+          <View style={styles.finishLineSection}>
+            <Text style={styles.finishLineIcon}>✅</Text>
+            <Text style={styles.finishLineTitle}>
+              Once you've downloaded your exports, you're ready for tax filing.
             </Text>
-          </View>
-
-          {/* Help Text */}
-          <View style={styles.helpSection}>
-            <Text style={styles.helpTitle}>📋 What gets exported?</Text>
-            <Text style={styles.helpText}>
-              • <Text style={styles.helpBold}>Gigs CSV:</Text> All your gig income with payer details{'\n'}
-              • <Text style={styles.helpBold}>Expenses CSV:</Text> Categorized business expenses{'\n'}
-              • <Text style={styles.helpBold}>Mileage CSV:</Text> Business mileage with IRS deduction{'\n'}
-              • <Text style={styles.helpBold}>Payers CSV:</Text> Contact info for 1099 tracking{'\n'}
-              • <Text style={styles.helpBold}>Schedule C CSV:</Text> Tax-ready expense categories
+            <Text style={styles.finishLineText}>
+              If you're working with a CPA, sending them the CSVs or Excel file is usually all they need.
             </Text>
-            <Text style={styles.helpNote}>
-              💡 Tip: Send the CSV files to your CPA along with the PDF summary for easy tax preparation.
+            <Text style={styles.finishLineText}>
+              If you're filing yourself, follow your tax software's import steps and review carefully before submitting.
+            </Text>
+            <Text style={styles.finishLineNote}>
+              When in doubt, a tax professional can help answer questions specific to your situation.
             </Text>
           </View>
         </>
@@ -1128,5 +1478,142 @@ const styles = StyleSheet.create({
   },
   noDataIcon: {
     fontSize: 48,
+  },
+  taxPrepSection: {
+    backgroundColor: colors.surface.DEFAULT,
+    marginTop: parseInt(spacing[3]),
+    marginHorizontal: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.md),
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    overflow: 'hidden',
+  },
+  taxPrepHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: parseInt(spacing[4]),
+    backgroundColor: '#eff6ff',
+  },
+  taxPrepTitle: {
+    fontSize: parseInt(typography.fontSize.body.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.DEFAULT,
+  },
+  taxPrepToggle: {
+    fontSize: 14,
+    color: colors.text.muted,
+  },
+  taxPrepContent: {
+    padding: parseInt(spacing[4]),
+  },
+  taxPrepIntro: {
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.muted,
+    lineHeight: 20,
+    marginBottom: parseInt(spacing[4]),
+  },
+  checklistItems: {
+    gap: parseInt(spacing[3]),
+    marginBottom: parseInt(spacing[4]),
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: parseInt(spacing[2]),
+  },
+  checklistIcon: {
+    fontSize: 16,
+    color: colors.success.DEFAULT,
+    fontWeight: typography.fontWeight.bold,
+  },
+  checklistText: {
+    flex: 1,
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.DEFAULT,
+    lineHeight: 20,
+  },
+  taxPrepReassurance: {
+    backgroundColor: '#fef3c7',
+    padding: parseInt(spacing[3]),
+    borderRadius: parseInt(radius.sm),
+    borderLeftWidth: 3,
+    borderLeftColor: '#fbbf24',
+  },
+  taxPrepReassuranceText: {
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: '#92400e',
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  exportCard: {
+    marginBottom: parseInt(spacing[3]),
+  },
+  guidanceDrawer: {
+    backgroundColor: '#f8f9fa',
+    padding: parseInt(spacing[4]),
+    borderTopWidth: 1,
+    borderTopColor: colors.border.DEFAULT,
+    gap: parseInt(spacing[3]),
+  },
+  guidanceTitle: {
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.DEFAULT,
+    marginTop: parseInt(spacing[2]),
+  },
+  guidanceText: {
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.muted,
+    lineHeight: 20,
+  },
+  guidanceReassurance: {
+    backgroundColor: '#e0f2fe',
+    padding: parseInt(spacing[3]),
+    borderRadius: parseInt(radius.sm),
+    borderLeftWidth: 3,
+    borderLeftColor: colors.brand.DEFAULT,
+    marginTop: parseInt(spacing[2]),
+  },
+  guidanceReassuranceText: {
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: '#0369a1',
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  finishLineSection: {
+    backgroundColor: '#f0fdf4',
+    padding: parseInt(spacing[5]),
+    marginTop: parseInt(spacing[4]),
+    marginHorizontal: parseInt(spacing[4]),
+    marginBottom: parseInt(spacing[6]),
+    borderRadius: parseInt(radius.md),
+    borderWidth: 1,
+    borderColor: '#86efac',
+  },
+  finishLineIcon: {
+    fontSize: 32,
+    textAlign: 'center',
+    marginBottom: parseInt(spacing[3]),
+  },
+  finishLineTitle: {
+    fontSize: parseInt(typography.fontSize.h3.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: '#166534',
+    textAlign: 'center',
+    marginBottom: parseInt(spacing[3]),
+  },
+  finishLineText: {
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: '#166534',
+    lineHeight: 22,
+    marginBottom: parseInt(spacing[3]),
+  },
+  finishLineNote: {
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: '#15803d',
+    lineHeight: 20,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
 });
