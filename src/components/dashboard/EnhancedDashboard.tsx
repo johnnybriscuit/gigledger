@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { HeroNetProfit } from './HeroNetProfit';
+import { QuickStats } from './QuickStats';
 import { MonthlyOverview } from './MonthlyOverview';
 import { CumulativeNet } from './CumulativeNet';
 import { ExpenseBreakdown } from './ExpenseBreakdown';
@@ -87,17 +88,33 @@ export function EnhancedDashboard({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Hero Card */}
-        <View style={styles.heroContainer}>
-          {!data.isReady || !data.totals ? (
-            <SkeletonDashboardCard />
-          ) : (
-            <HeroNetProfit
-              dateRange={dateRange}
-              customStart={customStart}
-              customEnd={customEnd}
-            />
-          )}
+        {/* Hero Row: Net Profit + Quick Stats */}
+        <View style={styles.heroRow}>
+          <View style={styles.heroCard}>
+            {!data.isReady || !data.totals ? (
+              <SkeletonDashboardCard />
+            ) : (
+              <HeroNetProfit
+                dateRange={dateRange}
+                customStart={customStart}
+                customEnd={customEnd}
+              />
+            )}
+          </View>
+          
+          <View style={styles.quickStatsCard}>
+            {!data.isReady || !data.totals ? (
+              <SkeletonDashboardCard />
+            ) : (
+              <QuickStats
+                gigsCount={data.gigsCount}
+                totalGrossIncome={data.totalGrossIncome}
+                totalExpenses={data.expenseBreakdown.reduce((sum, e) => sum + e.amount, 0)}
+                netProfit={data.totals.net}
+                totalTaxes={data.totals.taxes}
+              />
+            )}
+          </View>
         </View>
 
         {/* Charts Grid */}
@@ -194,6 +211,43 @@ const styles = StyleSheet.create({
       web: {
         '@media (min-width: 768px)': {
           marginBottom: parseInt(spacing[12]),
+        },
+      },
+    }),
+  },
+  heroRow: {
+    flexDirection: 'row',
+    gap: parseInt(spacing[5]),
+    marginBottom: parseInt(spacing[8]),
+    flexWrap: 'wrap',
+    ...Platform.select({
+      web: {
+        '@media (min-width: 768px)': {
+          gap: parseInt(spacing[8]),
+          marginBottom: parseInt(spacing[12]),
+          flexWrap: 'nowrap',
+        },
+      },
+    }),
+  },
+  heroCard: {
+    flex: 2,
+    minWidth: 320,
+    ...Platform.select({
+      web: {
+        '@media (min-width: 768px)': {
+          flexBasis: '60%',
+        },
+      },
+    }),
+  },
+  quickStatsCard: {
+    flex: 1,
+    minWidth: 280,
+    ...Platform.select({
+      web: {
+        '@media (min-width: 768px)': {
+          flexBasis: '40%',
         },
       },
     }),

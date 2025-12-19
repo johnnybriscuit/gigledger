@@ -42,6 +42,8 @@ export interface DashboardData {
   expenseBreakdown: ExpenseCategoryPoint[];
   incomeBreakdown: IncomeBreakdown;
   payerBreakdown: PayerBreakdown[];
+  gigsCount: number; // NEW: Count of gigs in date range
+  totalGrossIncome: number; // NEW: Total gross income (for avg per gig calculation)
   totals: {
     net: number;
     taxes: number;
@@ -342,6 +344,8 @@ export function useDashboardData(
       expenseBreakdown,
       incomeBreakdown,
       payerBreakdown,
+      gigsCount: gigs.length,
+      totalGrossIncome: totalGross + totalTips + totalPerDiem,
       isReady: isReadyForTotals,
       totals: isReadyForTotals ? {
         net: netProfit,
