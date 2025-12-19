@@ -145,11 +145,14 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   };
 
   const handleSignOut = async () => {
+    console.log('🔴 Sign Out button clicked');
     try {
+      console.log('🔴 Calling supabase.auth.signOut()');
       await supabase.auth.signOut();
+      console.log('🔴 Sign out successful');
       // Auth state change will be handled by App.tsx
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('🔴 Error signing out:', error);
     }
   };
 

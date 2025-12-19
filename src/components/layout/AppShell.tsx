@@ -276,6 +276,8 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+        zIndex: 10,
+        position: 'relative' as any,
       },
     }),
   },
