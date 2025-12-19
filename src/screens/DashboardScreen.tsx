@@ -19,6 +19,8 @@ import { perf } from '../lib/performance';
 import { H1, Text, Button } from '../ui';
 import { colors, spacing, typography, radius } from '../styles/theme';
 import { useTaxProfile } from '../hooks/useTaxProfile';
+import { AppShell } from '../components/layout/AppShell';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'subscription' | 'account';
 
@@ -87,6 +89,24 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   // Fetch tax profile to check if state is set
   const { data: taxProfile } = useTaxProfile();
 
+  // Update document title based on active tab
+  const pageTitle = getPageTitle();
+  useDocumentTitle(pageTitle);
+
+  function getPageTitle() {
+    switch (activeTab) {
+      case 'dashboard': return 'Dashboard';
+      case 'payers': return 'Payers';
+      case 'gigs': return 'Gigs';
+      case 'expenses': return 'Expenses';
+      case 'mileage': return 'Mileage';
+      case 'exports': return 'Exports';
+      case 'subscription': return 'Subscription';
+      case 'account': return 'Account';
+      default: return 'Dashboard';
+    }
+  }
+
   const renderContent = () => {
     switch (activeTab) {
       case 'payers':
@@ -134,10 +154,14 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <H1>GigLedger</H1>
-        <View style={styles.headerActions}>
+    <AppShell
+      activeRoute={activeTab}
+      onNavigate={(route) => setActiveTab(route)}
+      pageTitle={pageTitle}
+      userName={profile?.full_name || undefined}
+      onSignOut={handleSignOut}
+      headerActions={
+        activeTab === 'dashboard' ? (
           <Button 
             variant="primary"
             size="sm"
@@ -145,97 +169,9 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
           >
             + Add Gig
           </Button>
-          <Button 
-            variant="secondary"
-            size="sm"
-            onPress={() => setActiveTab('account')}
-          >
-            Account
-          </Button>
-          <Button 
-            variant="ghost"
-            size="sm"
-            onPress={handleSignOut}
-          >
-            Sign Out
-          </Button>
-        </View>
-      </View>
-
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabBar}
-        contentContainerStyle={styles.tabBarContent}
-      >
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'dashboard' && styles.tabActive]}
-          onPress={() => setActiveTab('dashboard')}
-        >
-          <Text style={activeTab === 'dashboard' ? styles.tabTextActive : styles.tabText}>
-            Dashboard
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'payers' && styles.tabActive]}
-          onPress={() => setActiveTab('payers')}
-        >
-          <Text style={activeTab === 'payers' ? styles.tabTextActive : styles.tabText}>
-            Payers
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'gigs' && styles.tabActive]}
-          onPress={() => setActiveTab('gigs')}
-        >
-          <Text style={activeTab === 'gigs' ? styles.tabTextActive : styles.tabText}>
-            Gigs
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'expenses' && styles.tabActive]}
-          onPress={() => setActiveTab('expenses')}
-        >
-          <Text style={activeTab === 'expenses' ? styles.tabTextActive : styles.tabText}>
-            Expenses
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'mileage' && styles.tabActive]}
-          onPress={() => setActiveTab('mileage')}
-        >
-          <Text style={activeTab === 'mileage' ? styles.tabTextActive : styles.tabText}>
-            Mileage
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'exports' && styles.tabActive]}
-          onPress={() => setActiveTab('exports')}
-        >
-          <Text style={activeTab === 'exports' ? styles.tabTextActive : styles.tabText}>
-            Exports
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'subscription' && styles.tabActive]}
-          onPress={() => setActiveTab('subscription')}
-        >
-          <Text style={activeTab === 'subscription' ? styles.tabTextActive : styles.tabText}>
-            Subscription
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'account' && styles.tabActive]}
-          onPress={() => setActiveTab('account')}
-        >
-          <Text style={activeTab === 'account' ? styles.tabTextActive : styles.tabText}>
-            Account
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
+        ) : null
+      }
+    >
       {/* Show tax profile banner on dashboard tab if state is null */}
       {activeTab === 'dashboard' && taxProfile && !taxProfile.state && (
         <View style={styles.bannerContainer}>
@@ -266,7 +202,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         visible={showOnboardingToast}
         onHide={() => setShowOnboardingToast(false)}
       />
-    </View>
+    </AppShell>
   );
 }
 
