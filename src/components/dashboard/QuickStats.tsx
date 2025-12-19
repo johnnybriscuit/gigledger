@@ -5,7 +5,6 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import { spacing } from '../../styles/theme';
 
 interface QuickStatsProps {
   gigsCount: number;
@@ -85,67 +84,53 @@ export function QuickStats({
   );
 }
 
-const spacingNum = {
-  3: parseInt(spacing[3]),
-  4: parseInt(spacing[4]),
-  5: parseInt(spacing[5]),
-  6: parseInt(spacing[6]),
-};
-
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#f3f4f6',
+    padding: 24,
     ...Platform.select({
       web: {
-        boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.02), 0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
       },
       default: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
       },
     }),
   },
   grid: {
-    padding: spacingNum[6],
+    gap: 20,
   },
   row: {
     flexDirection: 'row',
-    gap: spacingNum[4],
+    gap: 20,
   },
   stat: {
     flex: 1,
-    paddingVertical: spacingNum[4],
-    paddingHorizontal: spacingNum[3],
-    borderRightWidth: 1,
-    borderRightColor: '#f3f4f6',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   statLeft: {
-    paddingLeft: 0,
+    // No special styling needed
   },
   statRight: {
-    borderRightWidth: 0,
-    paddingRight: 0,
+    // No special styling needed
   },
   statBottom: {
-    borderBottomWidth: 0,
+    // No special styling needed
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: '#6b7280',
-    marginBottom: spacingNum[3],
-    letterSpacing: 0.2,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   value: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.5,
