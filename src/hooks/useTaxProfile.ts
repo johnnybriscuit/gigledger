@@ -40,18 +40,26 @@ export function useTaxProfile() {
     queryKey: userId ? queryKeys.taxProfile(userId) : ['taxProfile-loading'],
     queryFn: async (): Promise<TaxProfile | null> => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user) {
+        console.log('🔵 Tax Profile: No authenticated user');
+        return null;
+      }
 
+      console.log('🔵 Tax Profile: Fetching for user', user.id);
       const { data, error } = await supabase
         .from('user_tax_profile')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('🔵 Tax Profile: Query error', error);
+        throw error;
+      }
 
       // If no profile exists, return defaults with null state
       if (!data) {
+        console.log('🔵 Tax Profile: No profile found, returning defaults');
         return {
           filingStatus: 'single' as const,
           state: null as any, // User must set their state
@@ -64,6 +72,7 @@ export function useTaxProfile() {
       }
 
       const row = data as TaxProfileRow;
+      console.log('🔵 Tax Profile: Found profile', { state: row.state, filingStatus: row.filing_status });
 
       return {
         filingStatus: row.filing_status as TaxProfile['filingStatus'],
