@@ -98,6 +98,12 @@ export type ScheduleCCalculationInput = {
   includeTips: boolean;
   includeFeesAsDeduction: boolean;
   mileageRate?: number; // IRS standard mileage rate (default 0.67 for 2025)
+  taxBreakdown?: {
+    selfEmployment: number;
+    federalIncome: number;
+    stateIncome: number;
+    total: number;
+  } | null;
 };
 
 /**
@@ -274,24 +280,40 @@ export function calculateScheduleCSummary(
   // TAX ESTIMATES (Informational only - not part of Schedule C)
   // ============================================================================
 
-  // SE tax basis (92.35% of net profit)
+  // SE tax basis (92.35% of net profit) - always calculate for informational purposes
   const seTaxBasis = Math.max(0, netProfit * 0.9235);
 
-  // Estimated SE tax (15.3% of SE tax basis, capped at SS wage base)
-  const SS_WAGE_BASE_2025 = 168600;
-  const ssTax = Math.min(seTaxBasis, SS_WAGE_BASE_2025) * 0.124; // 12.4% SS
-  const medicareTax = seTaxBasis * 0.029; // 2.9% Medicare
-  const estSETax = ssTax + medicareTax;
+  // Use tax breakdown from withholding hook if provided (accurate state-specific rates)
+  // Otherwise fall back to simplified calculations
+  let estSETax: number;
+  let estFederalIncomeTax: number;
+  let estStateIncomeTax: number;
+  let estTotalTax: number;
 
-  // Estimated federal income tax (simplified - use existing tax engine for accurate calc)
-  // For now, use rough estimate: 12% bracket assumption
-  const estFederalIncomeTax = Math.max(0, (netProfit - estSETax * 0.5) * 0.12);
+  if (input.taxBreakdown) {
+    // Use accurate tax calculations from withholding hook
+    // This correctly handles states with 0% income tax (TN, TX, FL, etc.)
+    estSETax = input.taxBreakdown.selfEmployment;
+    estFederalIncomeTax = input.taxBreakdown.federalIncome;
+    estStateIncomeTax = input.taxBreakdown.stateIncome;
+    estTotalTax = input.taxBreakdown.total;
+  } else {
+    // Fallback: simplified calculations (should rarely be used)
+    // Estimated SE tax (15.3% of SE tax basis, capped at SS wage base)
+    const SS_WAGE_BASE_2025 = 168600;
+    const ssTax = Math.min(seTaxBasis, SS_WAGE_BASE_2025) * 0.124; // 12.4% SS
+    const medicareTax = seTaxBasis * 0.029; // 2.9% Medicare
+    estSETax = ssTax + medicareTax;
 
-  // Estimated state income tax (simplified - 5% flat rate assumption)
-  const estStateIncomeTax = Math.max(0, netProfit * 0.05);
+    // Estimated federal income tax (simplified - 12% bracket assumption)
+    estFederalIncomeTax = Math.max(0, (netProfit - estSETax * 0.5) * 0.12);
 
-  // Total estimated tax
-  const estTotalTax = estSETax + estFederalIncomeTax + estStateIncomeTax;
+    // State income tax: DO NOT use hardcoded rate - default to 0
+    // Caller should always provide taxBreakdown for accurate state tax
+    estStateIncomeTax = 0;
+
+    estTotalTax = estSETax + estFederalIncomeTax + estStateIncomeTax;
+  }
 
   // Suggested set-aside amount
   const setAsideSuggested = Math.max(0, estTotalTax);
