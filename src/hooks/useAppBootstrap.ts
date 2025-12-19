@@ -54,12 +54,27 @@ export function useAppBootstrap() {
     session: null,
     needsOnboarding: false,
   });
+  const [authTrigger, setAuthTrigger] = useState(0);
+
+  // Listen for auth state changes to trigger re-bootstrap
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      console.log('🟡 Bootstrap: Auth state changed:', event);
+      if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') {
+        // Trigger bootstrap re-run
+        setAuthTrigger(prev => prev + 1);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     let cancelled = false;
 
     async function bootstrap() {
+      console.log('🟡 Bootstrap: Starting...');
       try {
         // Set timeout to prevent infinite loading
         timeoutId = setTimeout(() => {
@@ -242,7 +257,7 @@ export function useAppBootstrap() {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [queryClient]);
+  }, [queryClient, authTrigger]);
 
   const retry = () => {
     setStatus({

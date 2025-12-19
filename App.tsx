@@ -56,8 +56,10 @@ function AppContent() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🟢 Auth state changed:', event, 'Session:', !!session);
       // Clear all cached data on sign out to prevent data leakage
       if (event === 'SIGNED_OUT') {
+        console.log('🟢 SIGNED_OUT event detected, clearing cache and redirecting to auth');
         queryClient.clear();
         // Force re-render by resetting route
         setCurrentRoute('auth');
