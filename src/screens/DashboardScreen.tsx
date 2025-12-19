@@ -161,15 +161,31 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       userName={profile?.full_name || undefined}
       onSignOut={handleSignOut}
       headerActions={
-        activeTab === 'dashboard' ? (
+        <>
+          {activeTab === 'dashboard' && (
+            <Button 
+              variant="primary"
+              size="sm"
+              onPress={() => setShowAddGigModal(true)}
+            >
+              + Add Gig
+            </Button>
+          )}
           <Button 
-            variant="primary"
+            variant="secondary"
             size="sm"
-            onPress={() => setShowAddGigModal(true)}
+            onPress={() => setActiveTab('account')}
           >
-            + Add Gig
+            Account
           </Button>
-        ) : null
+          <Button 
+            variant="ghost"
+            size="sm"
+            onPress={handleSignOut}
+          >
+            Sign Out
+          </Button>
+        </>
       }
     >
       {/* Show tax profile banner on dashboard tab if state is null */}

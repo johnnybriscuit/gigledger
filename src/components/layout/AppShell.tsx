@@ -85,19 +85,6 @@ export function AppShell({
         ))}
       </ScrollView>
 
-      {/* User info at bottom */}
-      {userName && (
-        <View style={styles.userSection}>
-          <Text style={styles.userName} numberOfLines={1}>
-            {userName}
-          </Text>
-          {onSignOut && (
-            <TouchableOpacity onPress={onSignOut} style={styles.signOutButton}>
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
     </View>
   );
 
@@ -237,27 +224,6 @@ const styles = StyleSheet.create({
   navLabelActive: {
     color: '#2563eb',
     fontWeight: '600',
-  },
-  userSection: {
-    paddingHorizontal: spacingNum[6],
-    paddingTop: spacingNum[4],
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    marginTop: spacingNum[4],
-  },
-  userName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: spacingNum[2],
-  },
-  signOutButton: {
-    paddingVertical: spacingNum[1],
-  },
-  signOutText: {
-    fontSize: 14,
-    color: '#dc2626',
-    fontWeight: '500',
   },
   mobileHeader: {
     height: 60,
