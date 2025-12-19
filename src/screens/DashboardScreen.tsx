@@ -131,9 +131,6 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
             customEnd={customEnd}
             onDateRangeChange={setRange}
             onCustomRangeChange={setCustomRange}
-            onAddGig={() => setShowAddGigModal(true)}
-            onAddExpense={() => setShowAddExpenseModal(true)}
-            onExport={() => setActiveTab('exports')}
             onNavigateToExpenses={() => setActiveTab('expenses')}
             onNavigateToGigs={(payerFilter) => {
               // TODO: Pass payer filter to GigsScreen
@@ -163,9 +160,9 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       pageTitle={pageTitle}
       userName={profile?.full_name || undefined}
       onSignOut={handleSignOut}
-      headerActions={
-        <>
-          {activeTab === 'dashboard' && (
+      pageActions={
+        activeTab === 'dashboard' ? (
+          <>
             <Button 
               variant="primary"
               size="sm"
@@ -173,7 +170,25 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
             >
               + Add Gig
             </Button>
-          )}
+            <Button 
+              variant="secondary"
+              size="sm"
+              onPress={() => setShowAddExpenseModal(true)}
+            >
+              Add Expense
+            </Button>
+            <Button 
+              variant="secondary"
+              size="sm"
+              onPress={() => setActiveTab('exports')}
+            >
+              Export
+            </Button>
+          </>
+        ) : undefined
+      }
+      headerActions={
+        <>
           <Button 
             variant="secondary"
             size="sm"

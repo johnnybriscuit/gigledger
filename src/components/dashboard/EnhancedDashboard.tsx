@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { HeroNetProfit } from './HeroNetProfit';
-import { QuickActions } from './QuickActions';
 import { MonthlyOverview } from './MonthlyOverview';
 import { CumulativeNet } from './CumulativeNet';
 import { ExpenseBreakdown } from './ExpenseBreakdown';
@@ -29,9 +28,6 @@ interface EnhancedDashboardProps {
   customEnd?: Date;
   onDateRangeChange: (range: DateRange) => void;
   onCustomRangeChange?: (start: Date, end: Date) => void;
-  onAddGig: () => void;
-  onAddExpense: () => void;
-  onExport: () => void;
   onNavigateToExpenses?: () => void;
   onNavigateToGigs?: (payerFilter?: string) => void;
 }
@@ -41,9 +37,6 @@ export function EnhancedDashboard({
   customStart,
   customEnd,
   onDateRangeChange,
-  onAddGig,
-  onAddExpense,
-  onExport,
   onNavigateToExpenses,
   onNavigateToGigs,
 }: EnhancedDashboardProps) {
@@ -94,26 +87,17 @@ export function EnhancedDashboard({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Top Row: Hero + Quick Actions */}
-        <View style={styles.topRow}>
-          <View style={styles.heroContainer}>
-            {!data.isReady || !data.totals ? (
-              <SkeletonDashboardCard />
-            ) : (
-              <HeroNetProfit
-                dateRange={dateRange}
-                customStart={customStart}
-                customEnd={customEnd}
-              />
-            )}
-          </View>
-          <View style={styles.actionsContainer}>
-            <QuickActions
-              onAddGig={onAddGig}
-              onAddExpense={onAddExpense}
-              onExport={onExport}
+        {/* Hero Card */}
+        <View style={styles.heroContainer}>
+          {!data.isReady || !data.totals ? (
+            <SkeletonDashboardCard />
+          ) : (
+            <HeroNetProfit
+              dateRange={dateRange}
+              customStart={customStart}
+              customEnd={customEnd}
             />
-          </View>
+          )}
         </View>
 
         {/* Charts Grid */}
@@ -203,28 +187,16 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  topRow: {
-    flexDirection: 'row',
-    gap: parseInt(spacing[5]),
+  heroContainer: {
+    width: '100%',
     marginBottom: parseInt(spacing[8]),
-    flexWrap: 'wrap',
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          gap: parseInt(spacing[8]),
           marginBottom: parseInt(spacing[12]),
         },
       },
     }),
-  },
-  heroContainer: {
-    flex: 2,
-    minWidth: 320,
-  },
-  actionsContainer: {
-    flex: 1,
-    minWidth: 280,
-    justifyContent: 'flex-start',
   },
   chartsGrid: {
     gap: parseInt(spacing[5]),

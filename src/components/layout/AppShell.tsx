@@ -26,6 +26,7 @@ interface AppShellProps {
   onNavigate: (route: Route) => void;
   children: React.ReactNode;
   pageTitle?: string;
+  pageActions?: React.ReactNode;
   headerActions?: React.ReactNode;
   userName?: string;
   onSignOut?: () => void;
@@ -36,6 +37,7 @@ export function AppShell({
   onNavigate,
   children,
   pageTitle,
+  pageActions,
   headerActions,
   userName,
   onSignOut,
@@ -122,6 +124,13 @@ export function AppShell({
               {pageTitle && <Text style={styles.pageTitle}>{pageTitle}</Text>}
             </View>
             <View style={styles.headerRight}>{headerActions}</View>
+          </View>
+        )}
+
+        {/* Action bar directly under page title */}
+        {pageActions && (
+          <View style={styles.actionBar}>
+            {pageActions}
           </View>
         )}
 
@@ -294,6 +303,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.5,
+  },
+  actionBar: {
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    paddingHorizontal: spacingNum[10],
+    paddingVertical: spacingNum[4],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacingNum[3],
   },
   contentScroll: {
     flex: 1,
