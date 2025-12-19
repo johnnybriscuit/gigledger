@@ -205,14 +205,14 @@ const styles = StyleSheet.create({
   },
   topRow: {
     flexDirection: 'row',
-    gap: parseInt(spacing[4]),
-    marginBottom: parseInt(spacing[6]),
+    gap: parseInt(spacing[5]),
+    marginBottom: parseInt(spacing[8]),
     flexWrap: 'wrap',
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          gap: parseInt(spacing[6]),
-          marginBottom: parseInt(spacing[8]),
+          gap: parseInt(spacing[8]),
+          marginBottom: parseInt(spacing[12]),
         },
       },
     }),
@@ -227,11 +227,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   chartsGrid: {
-    gap: parseInt(spacing[4]),
+    gap: parseInt(spacing[5]),
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          gap: parseInt(spacing[6]),
+          gap: parseInt(spacing[8]),
         },
       },
     }),
@@ -241,12 +241,12 @@ const styles = StyleSheet.create({
   },
   twoColumn: {
     flexDirection: 'row',
-    gap: parseInt(spacing[4]),
+    gap: parseInt(spacing[5]),
     flexWrap: 'wrap',
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          gap: parseInt(spacing[6]),
+          gap: parseInt(spacing[8]),
         },
       },
     }),
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
       web: {
         '@media (min-width: 768px)': {
           // Each column takes 6/12 of the grid (50%)
-          flexBasis: `calc(50% - ${parseInt(spacing[3])}px)`,
+          flexBasis: `calc(50% - ${parseInt(spacing[4])}px)`,
         },
       },
     }),

@@ -159,14 +159,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#fafbfc',
   },
   sidebar: {
     width: SIDEBAR_WIDTH,
     backgroundColor: '#ffffff',
     borderRightWidth: 1,
     borderRightColor: '#e5e7eb',
-    paddingVertical: spacingNum[6],
+    paddingVertical: spacingNum[8],
     ...Platform.select({
       web: {
         position: 'fixed' as any,
@@ -174,6 +174,7 @@ const styles = StyleSheet.create({
         top: 0,
         bottom: 0,
         zIndex: 100,
+        boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.02), 0 1px 2px 0 rgba(0, 0, 0, 0.04)',
       },
     }),
   },
@@ -193,32 +194,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacingNum[6],
-    paddingBottom: spacingNum[6],
+    paddingBottom: spacingNum[8],
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    marginBottom: spacingNum[4],
+    borderBottomColor: '#f3f4f6',
+    marginBottom: spacingNum[6],
   },
   logo: {
-    width: 32,
-    height: 32,
-    marginRight: spacingNum[2],
+    width: 36,
+    height: 36,
+    marginRight: spacingNum[3],
   },
   logoText: {
     fontSize: 20,
     fontWeight: '700',
     color: '#111827',
+    letterSpacing: -0.5,
   },
   navContainer: {
     flex: 1,
-    paddingHorizontal: spacingNum[2],
+    paddingHorizontal: spacingNum[3],
   },
   navItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacingNum[2],
+    paddingVertical: spacingNum[3],
     paddingHorizontal: spacingNum[4],
-    borderRadius: 8,
-    marginBottom: spacingNum[1],
+    borderRadius: 10,
+    marginBottom: spacingNum[2],
   },
   navItemActive: {
     backgroundColor: '#eff6ff',
@@ -299,12 +301,17 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingHorizontal: spacingNum[8],
-    paddingVertical: spacingNum[6],
+    borderBottomColor: '#f3f4f6',
+    paddingHorizontal: spacingNum[10],
+    paddingVertical: spacingNum[8],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+      },
+    }),
   },
   headerLeft: {
     flex: 1,
@@ -312,27 +319,32 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacingNum[4],
+    gap: spacingNum[3],
   },
   pageTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
     color: '#111827',
+    letterSpacing: -0.5,
   },
   contentScroll: {
     flex: 1,
+    backgroundColor: '#fafbfc',
   },
   contentContainer: {
     flexGrow: 1,
   },
   contentInner: {
-    maxWidth: 1200,
+    maxWidth: 1280,
     width: '100%',
     alignSelf: 'center',
     paddingHorizontal: Platform.select({
-      web: spacingNum[8],
-      default: spacingNum[4],
+      web: spacingNum[10],
+      default: spacingNum[5],
     }),
-    paddingVertical: spacingNum[8],
+    paddingVertical: Platform.select({
+      web: spacingNum[10],
+      default: spacingNum[6],
+    }),
   },
 });
