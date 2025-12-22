@@ -233,8 +233,7 @@ const styles = StyleSheet.create({
   },
   heroCardDesktop: {
     flex: 2,
-    minWidth: 320,
-    maxWidth: '65%',
+    minWidth: 520,
     width: undefined,
   },
   quickStatsCard: {
@@ -242,8 +241,7 @@ const styles = StyleSheet.create({
   },
   quickStatsCardDesktop: {
     flex: 1,
-    minWidth: 280,
-    maxWidth: '35%',
+    minWidth: 320,
     width: undefined,
   },
   chartsGrid: {
