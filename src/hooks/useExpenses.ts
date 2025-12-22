@@ -68,6 +68,7 @@ export function useCreateExpense() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
       }
     },
   });
@@ -95,6 +96,7 @@ export function useUpdateExpense() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
       }
     },
   });
@@ -116,6 +118,7 @@ export function useDeleteExpense() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
       }
     },
   });

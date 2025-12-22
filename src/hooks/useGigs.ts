@@ -117,8 +117,12 @@ export function useCreateGig() {
       if (error) throw error;
       return data as Gig;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gigs'] });
+    onSuccess: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.gigs(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+      }
     },
   });
 }
@@ -161,6 +165,7 @@ export function useUpdateGig() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         queryClient.invalidateQueries({ queryKey: queryKeys.gigs(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
       }
     },
   });

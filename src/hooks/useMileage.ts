@@ -63,6 +63,7 @@ export function useCreateMileage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
       }
     },
   });
@@ -87,6 +88,7 @@ export function useUpdateMileage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
       }
     },
   });
@@ -108,6 +110,7 @@ export function useDeleteMileage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
       }
     },
   });
