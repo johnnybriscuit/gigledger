@@ -34,6 +34,9 @@ export function useExpenses() {
       return data as Expense[];
     },
     enabled: !!userId,
+    staleTime: 60 * 1000, // 60 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: (previousData) => previousData,
   });
 }
 

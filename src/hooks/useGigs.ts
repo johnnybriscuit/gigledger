@@ -59,7 +59,10 @@ export function useGigs() {
       if (error) throw error;
       return data as GigWithPayer[];
     },
-    enabled: !!userId, // Only run query when we have a user ID
+    enabled: !!userId,
+    staleTime: 60 * 1000, // 60 seconds - data stays fresh
+    gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache
+    placeholderData: (previousData) => previousData, // Keep previous data while refetching
   });
 }
 

@@ -216,13 +216,13 @@ const styles = StyleSheet.create({
     }),
   },
   heroRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: parseInt(spacing[5]),
     marginBottom: parseInt(spacing[8]),
-    flexWrap: 'wrap',
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
+          flexDirection: 'row',
           gap: parseInt(spacing[8]),
           marginBottom: parseInt(spacing[12]),
           flexWrap: 'nowrap',
@@ -231,23 +231,25 @@ const styles = StyleSheet.create({
     }),
   },
   heroCard: {
-    flex: 2,
-    minWidth: 320,
+    width: '100%',
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          flexBasis: '60%',
+          flex: 2,
+          minWidth: 320,
+          maxWidth: '60%',
         },
       },
     }),
   },
   quickStatsCard: {
-    flex: 1,
-    minWidth: 280,
+    width: '100%',
     ...Platform.select({
       web: {
         '@media (min-width: 768px)': {
-          flexBasis: '40%',
+          flex: 1,
+          minWidth: 280,
+          maxWidth: '40%',
         },
       },
     }),
