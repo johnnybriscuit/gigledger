@@ -234,7 +234,27 @@ const { isSlowNetwork } = useNetworkStatus();
 )}
 ```
 
-## Expected Performance Improvements
+## Expected Performance Improvements - December 2025
+
+This document tracks performance optimizations and mobile responsiveness fixes made to GigLedger.
+
+## Summary of Changes
+
+### ✅ Completed (Commit: adfc6d1)
+
+**Performance Optimizations:**
+1. React Query caching with 60s staleTime
+2. 5-minute garbage collection time
+3. PlaceholderData for smooth transitions
+4. Eliminated refetch storms
+
+**Mobile Responsiveness:**
+1. Dashboard cards stack on mobile (<768px)
+2. Responsive sidebar (hidden on mobile, drawer menu)
+3. Proper width constraints prevent overflow
+4. Mobile-first layout with desktop enhancements
+
+## Detailed Changes
 
 ### Before:
 - **Time to Interactive:** 2-3 seconds

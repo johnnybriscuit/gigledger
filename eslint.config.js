@@ -78,6 +78,14 @@ module.exports = [
           selector: 'Literal[value=/^rgba?\\(/]',
           message: '❌ Hardcoded RGB colors not allowed. Use colors.* tokens',
         },
+        {
+          selector: 'Property[key.name=/@media/]',
+          message: '❌ CSS media queries (@media) not supported in React Native StyleSheet.create(). Use Dimensions API or conditional rendering instead.',
+        },
+        {
+          selector: 'Literal[value=/@media/]',
+          message: '❌ CSS media queries (@media) not supported in React Native StyleSheet.create(). Use Dimensions API or conditional rendering instead.',
+        },
       ],
     },
   },
