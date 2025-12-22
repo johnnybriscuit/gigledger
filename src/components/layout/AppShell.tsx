@@ -163,18 +163,14 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#e5e7eb',
     paddingVertical: spacingNum[8],
-    display: 'none',
     ...Platform.select({
       web: {
-        '@media (min-width: 768px)': {
-          display: 'flex',
-          position: 'fixed' as any,
-          left: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 100,
-          boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.02), 0 1px 2px 0 rgba(0, 0, 0, 0.04)',
-        },
+        position: 'fixed' as any,
+        left: 0,
+        top: 0,
+        bottom: 0,
+        zIndex: 100,
+        boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.02), 0 1px 2px 0 rgba(0, 0, 0, 0.04)',
       },
     }),
   },
@@ -246,13 +242,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacingNum[4],
-    ...Platform.select({
-      web: {
-        '@media (min-width: 768px)': {
-          display: 'none',
-        },
-      },
-    }),
   },
   hamburger: {
     padding: spacingNum[2],
@@ -278,13 +267,9 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     flex: 1,
-    width: '100%',
     ...Platform.select({
       web: {
-        '@media (min-width: 768px)': {
-          marginLeft: SIDEBAR_WIDTH,
-          width: `calc(100% - ${SIDEBAR_WIDTH}px)`,
-        },
+        marginLeft: SIDEBAR_WIDTH,
       },
     }),
   },
