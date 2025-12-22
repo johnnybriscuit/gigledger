@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { HeroNetProfit } from './HeroNetProfit';
 import { QuickStats } from './QuickStats';
 import { MonthlyOverview } from './MonthlyOverview';
@@ -41,6 +41,8 @@ export function EnhancedDashboard({
   onNavigateToExpenses,
   onNavigateToGigs,
 }: EnhancedDashboardProps) {
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 768;
   const [drillThroughMonth, setDrillThroughMonth] = useState<string | null>(null);
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
 
@@ -89,8 +91,8 @@ export function EnhancedDashboard({
         contentContainerStyle={styles.scrollContent}
       >
         {/* Hero Row: Net Profit + Quick Stats */}
-        <View style={styles.heroRow}>
-          <View style={styles.heroCard}>
+        <View style={[styles.heroRow, isDesktop && styles.heroRowDesktop]}>
+          <View style={[styles.heroCard, isDesktop && styles.heroCardDesktop]}>
             {!data.isReady || !data.totals ? (
               <SkeletonDashboardCard />
             ) : (
@@ -102,7 +104,7 @@ export function EnhancedDashboard({
             )}
           </View>
           
-          <View style={styles.quickStatsCard}>
+          <View style={[styles.quickStatsCard, isDesktop && styles.quickStatsCardDesktop]}>
             {!data.isReady || !data.totals ? (
               <SkeletonDashboardCard />
             ) : (
@@ -219,40 +221,30 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: parseInt(spacing[5]),
     marginBottom: parseInt(spacing[8]),
-    ...Platform.select({
-      web: {
-        '@media (min-width: 768px)': {
-          flexDirection: 'row',
-          gap: parseInt(spacing[8]),
-          marginBottom: parseInt(spacing[12]),
-          flexWrap: 'nowrap',
-        },
-      },
-    }),
+  },
+  heroRowDesktop: {
+    flexDirection: 'row',
+    gap: parseInt(spacing[8]),
+    marginBottom: parseInt(spacing[12]),
+    flexWrap: 'nowrap',
   },
   heroCard: {
     width: '100%',
-    ...Platform.select({
-      web: {
-        '@media (min-width: 768px)': {
-          flex: 2,
-          minWidth: 320,
-          maxWidth: '60%',
-        },
-      },
-    }),
+  },
+  heroCardDesktop: {
+    flex: 2,
+    minWidth: 320,
+    maxWidth: '65%',
+    width: undefined,
   },
   quickStatsCard: {
     width: '100%',
-    ...Platform.select({
-      web: {
-        '@media (min-width: 768px)': {
-          flex: 1,
-          minWidth: 280,
-          maxWidth: '40%',
-        },
-      },
-    }),
+  },
+  quickStatsCardDesktop: {
+    flex: 1,
+    minWidth: 280,
+    maxWidth: '35%',
+    width: undefined,
   },
   chartsGrid: {
     gap: parseInt(spacing[5]),
