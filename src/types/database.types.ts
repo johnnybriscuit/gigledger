@@ -205,6 +205,262 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          rate: number
+          sort_order: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          rate: number
+          sort_order?: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          rate?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          reference_number: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          notes?: string | null
+          payment_date?: string
+          payment_method: string
+          reference_number?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_settings: {
+        Row: {
+          accepted_payment_methods: Json | null
+          address: string | null
+          business_name: string
+          color_scheme: string
+          created_at: string
+          default_currency: string
+          default_payment_terms: string | null
+          default_tax_rate: number | null
+          email: string
+          font_style: string
+          id: string
+          invoice_prefix: string
+          layout_style: string
+          logo_url: string | null
+          next_invoice_number: number
+          phone: string | null
+          tax_id: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          accepted_payment_methods?: Json | null
+          address?: string | null
+          business_name: string
+          color_scheme?: string
+          created_at?: string
+          default_currency?: string
+          default_payment_terms?: string | null
+          default_tax_rate?: number | null
+          email: string
+          font_style?: string
+          id?: string
+          invoice_prefix?: string
+          layout_style?: string
+          logo_url?: string | null
+          next_invoice_number?: number
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          accepted_payment_methods?: Json | null
+          address?: string | null
+          business_name?: string
+          color_scheme?: string
+          created_at?: string
+          default_currency?: string
+          default_payment_terms?: string | null
+          default_tax_rate?: number | null
+          email?: string
+          font_style?: string
+          id?: string
+          invoice_prefix?: string
+          layout_style?: string
+          logo_url?: string | null
+          next_invoice_number?: number
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          accepted_payment_methods: Json | null
+          client_address: string | null
+          client_company: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string
+          created_at: string
+          currency: string
+          discount_amount: number | null
+          due_date: string
+          gig_id: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          notes: string | null
+          paid_at: string | null
+          payment_terms: string | null
+          private_notes: string | null
+          sent_at: string | null
+          status: string
+          subtotal: number
+          tax_amount: number | null
+          tax_rate: number | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+          viewed_at: string | null
+        }
+        Insert: {
+          accepted_payment_methods?: Json | null
+          client_address?: string | null
+          client_company?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          currency?: string
+          discount_amount?: number | null
+          due_date: string
+          gig_id?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_terms?: string | null
+          private_notes?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+          viewed_at?: string | null
+        }
+        Update: {
+          accepted_payment_methods?: Json | null
+          client_address?: string | null
+          client_company?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          currency?: string
+          discount_amount?: number | null
+          due_date?: string
+          gig_id?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          notes?: string | null
+          paid_at?: string | null
+          payment_terms?: string | null
+          private_notes?: string | null
+          sent_at?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          tax_rate?: number | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "payers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mfa_backup_codes: {
         Row: {
           code_hash: string
@@ -327,6 +583,10 @@ export type Database = {
           filing_status: string | null
           full_name: string | null
           home_address: string | null
+          home_address_full: string | null
+          home_address_lat: number | null
+          home_address_lng: number | null
+          home_address_place_id: string | null
           id: string
           onboarding_complete: boolean | null
           plan: Database["public"]["Enums"]["user_plan"] | null
@@ -341,6 +601,10 @@ export type Database = {
           filing_status?: string | null
           full_name?: string | null
           home_address?: string | null
+          home_address_full?: string | null
+          home_address_lat?: number | null
+          home_address_lng?: number | null
+          home_address_place_id?: string | null
           id: string
           onboarding_complete?: boolean | null
           plan?: Database["public"]["Enums"]["user_plan"] | null
@@ -355,6 +619,10 @@ export type Database = {
           filing_status?: string | null
           full_name?: string | null
           home_address?: string | null
+          home_address_full?: string | null
+          home_address_lat?: number | null
+          home_address_lng?: number | null
+          home_address_place_id?: string | null
           id?: string
           onboarding_complete?: boolean | null
           plan?: Database["public"]["Enums"]["user_plan"] | null
@@ -839,6 +1107,7 @@ export type Database = {
         Args: { p_email: string; p_ip_address: string }
         Returns: boolean
       }
+      mark_overdue_invoices: { Args: never; Returns: undefined }
       record_auth_failure: {
         Args: { p_email: string; p_failure_type: string; p_ip_address: string }
         Returns: number
