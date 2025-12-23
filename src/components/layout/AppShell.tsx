@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Text } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Text, useWindowDimensions } from 'react-native';
 import { colors, spacingNum } from '../../styles/theme';
 
 type Route = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'subscription' | 'account';
@@ -42,11 +42,26 @@ export function AppShell({
   userName,
   onSignOut,
 }: AppShellProps) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isWeb = Platform.OS === 'web';
+
+  /*
+   * REGRESSION PREVENTION:
+   * - Desktop sidebar (width >= 768) must ALWAYS remain visible
+   * - Mobile (width < 768) uses hamburger menu + drawer overlay
+   * - DO NOT hide sidebar with display:none or CSS @media queries
+   * - Use useWindowDimensions for responsive behavior, NOT Platform.OS checks
+   */
+  useEffect(() => {
+    if (!isMobile && __DEV__) {
+      // Dev-only assertion: desktop sidebar should always render
+      console.log('[AppShell] Desktop mode - sidebar visible');
+    }
+  }, [isMobile]);
 
   const renderSidebar = () => (
-    <View style={[styles.sidebar, !isWeb && mobileMenuOpen && styles.sidebarMobile]}>
+    <View style={styles.sidebar}>
       {/* Logo */}
       <TouchableOpacity 
         style={styles.logoContainer}
@@ -71,7 +86,7 @@ export function AppShell({
             ]}
             onPress={() => {
               onNavigate(item.id);
-              if (!isWeb) setMobileMenuOpen(false);
+              if (isMobile) setMobileMenuOpen(false);
             }}
           >
             {item.icon && <Text style={styles.navIcon}>{item.icon}</Text>}
@@ -87,16 +102,43 @@ export function AppShell({
         ))}
       </ScrollView>
 
+      {/* Mobile: Account + Sign Out at bottom of drawer */}
+      {isMobile && (
+        <View style={styles.drawerFooter}>
+          <TouchableOpacity
+            style={styles.drawerFooterButton}
+            onPress={() => {
+              onNavigate('account');
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Text style={styles.drawerFooterIcon}>⚙️</Text>
+            <Text style={styles.drawerFooterLabel}>Account</Text>
+          </TouchableOpacity>
+          {onSignOut && (
+            <TouchableOpacity
+              style={styles.drawerFooterButton}
+              onPress={() => {
+                setMobileMenuOpen(false);
+                onSignOut();
+              }}
+            >
+              <Text style={styles.drawerFooterIcon}>🚪</Text>
+              <Text style={styles.drawerFooterLabel}>Sign Out</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Desktop: Always show sidebar */}
-      {isWeb && renderSidebar()}
+      {/* Desktop (≥768px): Always show fixed sidebar */}
+      {!isMobile && renderSidebar()}
 
-      {/* Mobile: Hamburger menu */}
-      {!isWeb && (
+      {/* Mobile (<768px): Hamburger menu + drawer */}
+      {isMobile && (
         <>
           <View style={styles.mobileHeader}>
             <TouchableOpacity
@@ -105,18 +147,32 @@ export function AppShell({
             >
               <Text style={styles.hamburgerIcon}>☰</Text>
             </TouchableOpacity>
+            <Image 
+              source={require('../../../assets/icon.png')}
+              style={styles.mobileHeaderLogo}
+              resizeMode="contain"
+            />
             <Text style={styles.mobileTitle}>GigLedger</Text>
           </View>
           {mobileMenuOpen && (
-            <View style={styles.mobileMenuOverlay}>
-              {renderSidebar()}
-            </View>
+            <>
+              {/* Backdrop overlay */}
+              <TouchableOpacity
+                style={styles.drawerBackdrop}
+                activeOpacity={1}
+                onPress={() => setMobileMenuOpen(false)}
+              />
+              {/* Drawer panel */}
+              <View style={styles.drawerPanel}>
+                {renderSidebar()}
+              </View>
+            </>
           )}
         </>
       )}
 
       {/* Main content area */}
-      <View style={styles.mainContainer}>
+      <View style={[styles.mainContainer, isMobile && styles.mainContainerMobile]}>
         {/* Header with page title and actions */}
         {(pageTitle || headerActions) && (
           <View style={styles.header}>
@@ -174,18 +230,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  sidebarMobile: {
-    position: 'absolute',
-    left: 0,
-    top: 60,
-    bottom: 0,
-    zIndex: 1000,
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -242,6 +286,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacingNum[4],
+    zIndex: 1001,
+  },
+  mobileHeaderLogo: {
+    width: 28,
+    height: 28,
+    marginRight: spacingNum[2],
   },
   hamburger: {
     padding: spacingNum[2],
@@ -256,7 +306,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
-  mobileMenuOverlay: {
+  drawerBackdrop: {
     position: 'absolute',
     top: 60,
     left: 0,
@@ -265,6 +315,43 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 999,
   },
+  drawerPanel: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    bottom: 0,
+    width: SIDEBAR_WIDTH,
+    backgroundColor: '#ffffff',
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  drawerFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingHorizontal: spacingNum[3],
+    paddingVertical: spacingNum[4],
+    gap: spacingNum[2],
+  },
+  drawerFooterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacingNum[3],
+    paddingHorizontal: spacingNum[4],
+    borderRadius: 10,
+  },
+  drawerFooterIcon: {
+    fontSize: 18,
+    marginRight: spacingNum[2],
+  },
+  drawerFooterLabel: {
+    fontSize: 15,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
   mainContainer: {
     flex: 1,
     ...Platform.select({
@@ -272,6 +359,9 @@ const styles = StyleSheet.create({
         marginLeft: SIDEBAR_WIDTH,
       },
     }),
+  },
+  mainContainerMobile: {
+    marginLeft: 0,
   },
   header: {
     backgroundColor: '#ffffff',
