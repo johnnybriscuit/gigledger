@@ -1,0 +1,261 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { Invoice } from '../types/invoice';
+
+interface SendInvoiceModalProps {
+  invoice: Invoice;
+  visible: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+export function SendInvoiceModal({ invoice, visible, onClose, onSuccess }: SendInvoiceModalProps) {
+  const [sending, setSending] = useState(false);
+  const [formData, setFormData] = useState({
+    recipientEmail: invoice.client_email || '',
+    message: `Hi ${invoice.client_name},\n\nPlease find attached invoice ${invoice.invoice_number} for your review.\n\nThank you for your business!`
+  });
+
+  const handleSend = async () => {
+    if (!formData.recipientEmail) {
+      Alert.alert('Error', 'Please enter a recipient email address');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.recipientEmail)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setSending(true);
+
+      // Get user ID from auth
+      const { supabase } = await import('../lib/supabase');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/invoices/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          invoiceId: invoice.id,
+          recipientEmail: formData.recipientEmail,
+          message: formData.message,
+          userId: user.id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send invoice');
+      }
+
+      Alert.alert('Success', `Invoice sent to ${formData.recipientEmail}`);
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      console.error('Error sending invoice:', error);
+      Alert.alert('Error', 'Failed to send invoice. Please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleClose = () => {
+    setFormData({
+      recipientEmail: invoice.client_email || '',
+      message: `Hi ${invoice.client_name},\n\nPlease find attached invoice ${invoice.invoice_number} for your review.\n\nThank you for your business!`
+    });
+    onClose();
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={handleClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Send Invoice via Email</Text>
+            <TouchableOpacity onPress={handleClose}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody}>
+            <View style={styles.invoiceInfo}>
+              <Text style={styles.invoiceInfoLabel}>Invoice: {invoice.invoice_number}</Text>
+              <Text style={styles.invoiceInfoLabel}>Client: {invoice.client_name}</Text>
+            </View>
+
+            <Text style={styles.label}>Recipient Email *</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.recipientEmail}
+              onChangeText={(text) => setFormData({ ...formData, recipientEmail: text })}
+              placeholder="client@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.label}>Message</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={formData.message}
+              onChangeText={(text) => setFormData({ ...formData, message: text })}
+              placeholder="Add a personal message..."
+              multiline
+              numberOfLines={6}
+            />
+
+            <View style={styles.infoBox}>
+              <Text style={styles.infoText}>
+                📧 The invoice will be sent as a professional email with a link to view and download the invoice.
+              </Text>
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+              onPress={handleSend}
+              disabled={sending}
+            >
+              {sending ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.sendButtonText}>Send Invoice</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  closeButton: {
+    fontSize: 28,
+    color: '#6b7280',
+    fontWeight: '300',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  invoiceInfo: {
+    backgroundColor: '#f9fafb',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  invoiceInfoLabel: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 4,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+    marginTop: 12,
+    color: '#374151',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  textArea: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  infoBox: {
+    backgroundColor: '#eff6ff',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2563eb',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#1e40af',
+    lineHeight: 20,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sendButton: {
+    flex: 1,
+    backgroundColor: '#2563eb',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    opacity: 0.6,
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
