@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Text, useWindowDimensions } from 'react-native';
 import { colors, spacingNum } from '../../styles/theme';
 
-type Route = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'subscription' | 'account';
+type Route = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
 
 interface NavItem {
   id: Route;
@@ -16,6 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'gigs', label: 'Gigs', icon: '🎵' },
   { id: 'expenses', label: 'Expenses', icon: '💰' },
   { id: 'mileage', label: 'Mileage', icon: '🚗' },
+  { id: 'invoices', label: 'Invoices', icon: '🧾' },
   { id: 'exports', label: 'Exports', icon: '📤' },
   { id: 'subscription', label: 'Subscription', icon: '⭐' },
   { id: 'account', label: 'Account', icon: '⚙️' },

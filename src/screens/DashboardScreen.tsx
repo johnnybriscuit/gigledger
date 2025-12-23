@@ -8,6 +8,7 @@ import { MileageScreen } from './MileageScreen';
 import { ExportsScreen } from './ExportsScreen';
 import { AccountScreen } from './AccountScreen';
 import { SubscriptionScreen } from './SubscriptionScreen';
+import { InvoicesScreen } from './InvoicesScreen';
 import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { useQuery } from '@tanstack/react-query';
@@ -22,7 +23,7 @@ import { useTaxProfile } from '../hooks/useTaxProfile';
 import { AppShell } from '../components/layout/AppShell';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
-type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'exports' | 'subscription' | 'account';
+type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
 
 interface DashboardScreenProps {
   onNavigateToBusinessStructures?: () => void;
@@ -100,6 +101,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       case 'gigs': return 'Gigs';
       case 'expenses': return 'Expenses';
       case 'mileage': return 'Mileage';
+      case 'invoices': return 'Invoices';
       case 'exports': return 'Exports';
       case 'subscription': return 'Subscription';
       case 'account': return 'Account';
@@ -117,6 +119,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         return <ExpensesScreen />;
       case 'mileage':
         return <MileageScreen />;
+      case 'invoices':
+        return <InvoicesScreen />;
       case 'exports':
         return <ExportsScreen />;
       case 'subscription':
