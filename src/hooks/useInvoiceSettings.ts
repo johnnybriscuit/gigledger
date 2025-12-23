@@ -29,7 +29,7 @@ export function useInvoiceSettings() {
         throw fetchError;
       }
 
-      setSettings(data);
+      setSettings(data as any);
     } catch (err) {
       console.error('Error fetching invoice settings:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch settings');
@@ -47,14 +47,14 @@ export function useInvoiceSettings() {
         .from('invoice_settings')
         .insert({
           user_id: user.id,
-          ...settingsData
+          ...settingsData as any
         })
         .select()
         .single();
 
       if (insertError) throw insertError;
 
-      setSettings(data);
+      setSettings(data as any);
       return data;
     } catch (err) {
       console.error('Error creating invoice settings:', err);
@@ -69,14 +69,14 @@ export function useInvoiceSettings() {
 
       const { data, error: updateError } = await supabase
         .from('invoice_settings')
-        .update(settingsData)
+        .update(settingsData as any)
         .eq('user_id', user.id)
         .select()
         .single();
 
       if (updateError) throw updateError;
 
-      setSettings(data);
+      setSettings(data as any);
       return data;
     } catch (err) {
       console.error('Error updating invoice settings:', err);

@@ -100,8 +100,8 @@ export function useInvoices() {
       }));
 
       const { error: lineItemsError } = await supabase
-        .from('invoice_line_items' as any)
-        .insert(lineItemsWithInvoiceId);
+        .from('invoice_line_items')
+        .insert(lineItemsWithInvoiceId as any);
 
       if (lineItemsError) throw lineItemsError;
 
