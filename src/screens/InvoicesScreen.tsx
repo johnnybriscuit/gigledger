@@ -49,23 +49,35 @@ export function InvoicesScreen() {
   };
 
   const handleDelete = async () => {
-    if (!selectedInvoice) return;
+    console.log('🗑️ Delete button clicked');
+    if (!selectedInvoice) {
+      console.log('❌ No invoice selected');
+      return;
+    }
+    console.log('Selected invoice:', selectedInvoice.id, selectedInvoice.invoice_number);
 
     Alert.alert(
       'Delete Invoice',
       `Are you sure you want to delete invoice ${selectedInvoice.invoice_number}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Cancel', 
+          style: 'cancel',
+          onPress: () => console.log('Delete cancelled')
+        },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            console.log('Delete confirmed, calling deleteInvoice...');
             try {
               await deleteInvoice(selectedInvoice.id);
+              console.log('✓ Delete successful, updating UI');
               setViewMode('list');
               setSelectedInvoice(null);
               Alert.alert('Success', 'Invoice deleted successfully');
             } catch (error) {
+              console.error('❌ Delete failed:', error);
               Alert.alert('Error', 'Failed to delete invoice');
             }
           }

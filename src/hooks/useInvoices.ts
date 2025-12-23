@@ -179,20 +179,30 @@ export function useInvoices() {
 
   const deleteInvoice = async (invoiceId: string) => {
     try {
+      console.log('🗑️ Attempting to delete invoice:', invoiceId);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+      console.log('✓ User authenticated:', user.id);
 
-      const { error: deleteError } = await supabase
+      console.log('Deleting invoice with params:', { id: invoiceId, user_id: user.id });
+      const { data, error: deleteError } = await supabase
         .from('invoices' as any)
         .delete()
         .eq('id', invoiceId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .select();
 
-      if (deleteError) throw deleteError;
+      console.log('Delete response:', { data, error: deleteError });
 
+      if (deleteError) {
+        console.error('❌ Delete error:', deleteError);
+        throw deleteError;
+      }
+
+      console.log('✓ Invoice deleted successfully');
       await fetchInvoices();
     } catch (err) {
-      console.error('Error deleting invoice:', err);
+      console.error('❌ Error deleting invoice:', err);
       throw err;
     }
   };
