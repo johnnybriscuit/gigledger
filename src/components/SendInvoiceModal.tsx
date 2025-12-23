@@ -39,16 +39,18 @@ export function SendInvoiceModal({ invoice, visible, onClose, onSuccess }: SendI
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch('/api/invoices/send-email', {
+      // Call Supabase Edge Function
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://jvostkeswuhfwntbrfzl.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
         },
         body: JSON.stringify({
           invoiceId: invoice.id,
           recipientEmail: formData.recipientEmail,
-          message: formData.message,
-          userId: user.id
+          message: formData.message
         }),
       });
 
