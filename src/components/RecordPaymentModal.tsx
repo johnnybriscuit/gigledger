@@ -123,19 +123,28 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
               {PAYMENT_METHODS.map((method) => (
                 <TouchableOpacity
                   key={method}
+                  activeOpacity={0.7}
                   style={[
                     styles.paymentMethodButton,
                     formData.payment_method === method && styles.paymentMethodButtonActive
                   ]}
                   onPress={() => {
-                    console.log('Payment method selected:', method);
-                    setFormData({ ...formData, payment_method: method });
+                    console.log('Payment method button clicked:', method);
+                    const newFormData = { ...formData, payment_method: method };
+                    console.log('New form data:', newFormData);
+                    setFormData(newFormData);
                   }}
                 >
-                  <Text style={[
-                    styles.paymentMethodButtonText,
-                    formData.payment_method === method && styles.paymentMethodButtonTextActive
-                  ]}>
+                  <Text 
+                    style={[
+                      styles.paymentMethodButtonText,
+                      formData.payment_method === method && styles.paymentMethodButtonTextActive
+                    ]}
+                    onPress={() => {
+                      console.log('Text clicked, selecting:', method);
+                      setFormData({ ...formData, payment_method: method });
+                    }}
+                  >
                     {method}
                   </Text>
                 </TouchableOpacity>
@@ -269,9 +278,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#d1d5db',
     backgroundColor: '#fff',
+    cursor: 'pointer',
+    minWidth: 80,
   },
   paymentMethodButtonActive: {
     backgroundColor: '#2563eb',
