@@ -22,20 +22,22 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
   });
 
   const handleSave = async () => {
+    console.log('Recording payment with data:', formData);
+    
     if (!formData.payment_method) {
-      Alert.alert('Error', 'Please select a payment method');
+      Alert.alert('Validation Error', 'Please select a payment method (Cash, Check, etc.)');
       return;
     }
 
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
-      Alert.alert('Error', 'Please enter a valid payment amount');
+      Alert.alert('Validation Error', 'Please enter a valid payment amount greater than 0');
       return;
     }
 
     const balanceDue = invoice.balance_due ?? invoice.total_amount;
     if (amount > balanceDue) {
-      Alert.alert('Error', `Payment amount cannot exceed balance due (${formatCurrency(balanceDue, invoice.currency)})`);
+      Alert.alert('Validation Error', `Payment amount cannot exceed balance due (${formatCurrency(balanceDue, invoice.currency)})`);
       return;
     }
 
@@ -114,6 +116,9 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
             />
 
             <Text style={styles.label}>Payment Method *</Text>
+            {formData.payment_method && (
+              <Text style={styles.selectedMethodText}>Selected: {formData.payment_method}</Text>
+            )}
             <View style={styles.paymentMethodsGrid}>
               {PAYMENT_METHODS.map((method) => (
                 <TouchableOpacity
@@ -122,7 +127,10 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
                     styles.paymentMethodButton,
                     formData.payment_method === method && styles.paymentMethodButtonActive
                   ]}
-                  onPress={() => setFormData({ ...formData, payment_method: method })}
+                  onPress={() => {
+                    console.log('Payment method selected:', method);
+                    setFormData({ ...formData, payment_method: method });
+                  }}
                 >
                   <Text style={[
                     styles.paymentMethodButtonText,
@@ -232,6 +240,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 12,
     color: '#374151',
+  },
+  selectedMethodText: {
+    fontSize: 12,
+    color: '#2563eb',
+    fontWeight: '600',
+    marginBottom: 8,
   },
   input: {
     borderWidth: 1,
