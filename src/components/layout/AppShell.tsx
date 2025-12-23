@@ -175,7 +175,7 @@ export function AppShell({
       <View style={[styles.mainContainer, isMobile && styles.mainContainerMobile]}>
         {/* Header with page title and actions */}
         {(pageTitle || headerActions) && (
-          <View style={styles.header}>
+          <View style={[styles.header, isMobile && styles.headerMobile]}>
             <View style={styles.headerLeft}>
               {pageTitle && <Text style={styles.pageTitle}>{pageTitle}</Text>}
             </View>
@@ -185,7 +185,7 @@ export function AppShell({
 
         {/* Action bar directly under page title */}
         {pageActions && (
-          <View style={styles.actionBar}>
+          <View style={[styles.actionBar, isMobile && styles.actionBarMobile]}>
             {pageActions}
           </View>
         )}
@@ -196,7 +196,7 @@ export function AppShell({
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.contentInner}>
+          <View style={[styles.contentInner, isMobile && styles.contentInnerMobile]}>
             {children}
           </View>
         </ScrollView>
@@ -380,6 +380,10 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  headerMobile: {
+    paddingHorizontal: spacingNum[4],
+    paddingVertical: spacingNum[5],
+  },
   headerLeft: {
     flex: 1,
   },
@@ -404,6 +408,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacingNum[3],
   },
+  actionBarMobile: {
+    paddingHorizontal: spacingNum[4],
+  },
   contentScroll: {
     flex: 1,
     backgroundColor: '#fafbfc',
@@ -423,5 +430,9 @@ const styles = StyleSheet.create({
       web: spacingNum[10],
       default: spacingNum[6],
     }),
+  },
+  contentInnerMobile: {
+    paddingHorizontal: spacingNum[4],
+    paddingVertical: spacingNum[5],
   },
 });
