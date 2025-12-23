@@ -431,8 +431,20 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       };
 
       console.log('Form data before validation:', formData);
-      const validated = gigSchema.parse(formData);
-      console.log('Validated data:', validated);
+      let validated;
+      try {
+        validated = gigSchema.parse(formData);
+        console.log('Validated data:', validated);
+      } catch (validationError: any) {
+        console.error('Validation failed:', validationError);
+        if (validationError.errors) {
+          console.error('Validation errors:', validationError.errors);
+          Alert.alert('Validation Error', validationError.errors[0].message);
+        } else {
+          Alert.alert('Validation Error', validationError.message || 'Invalid form data');
+        }
+        return;
+      }
 
       // Prepare inline expenses data (used for both create and edit)
       const expensesData = inlineExpenses.map(exp => ({
@@ -464,11 +476,23 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       } else {
         // Create gig with inline items
-        await createGigWithLines({
+        console.log('Creating gig with data:', {
           gig: validated,
           expenses: expensesData,
           mileage: mileageData,
         });
+        
+        try {
+          const result = await createGigWithLines({
+            gig: validated,
+            expenses: expensesData,
+            mileage: mileageData,
+          });
+          console.log('Gig created successfully:', result);
+        } catch (createError: any) {
+          console.error('Error creating gig:', createError);
+          throw createError;
+        }
         
         // Invalidate queries to refresh the UI
         queryClient.invalidateQueries({ queryKey: ['gigs'] });
