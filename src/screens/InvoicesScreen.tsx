@@ -56,34 +56,27 @@ export function InvoicesScreen() {
     }
     console.log('Selected invoice:', selectedInvoice.id, selectedInvoice.invoice_number);
 
-    Alert.alert(
-      'Delete Invoice',
-      `Are you sure you want to delete invoice ${selectedInvoice.invoice_number}?`,
-      [
-        { 
-          text: 'Cancel', 
-          style: 'cancel',
-          onPress: () => console.log('Delete cancelled')
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('Delete confirmed, calling deleteInvoice...');
-            try {
-              await deleteInvoice(selectedInvoice.id);
-              console.log('✓ Delete successful, updating UI');
-              setViewMode('list');
-              setSelectedInvoice(null);
-              Alert.alert('Success', 'Invoice deleted successfully');
-            } catch (error) {
-              console.error('❌ Delete failed:', error);
-              Alert.alert('Error', 'Failed to delete invoice');
-            }
-          }
-        }
-      ]
+    // Use window.confirm for web compatibility
+    const confirmed = window.confirm(
+      `Are you sure you want to delete invoice ${selectedInvoice.invoice_number}? This action cannot be undone.`
     );
+
+    if (!confirmed) {
+      console.log('Delete cancelled');
+      return;
+    }
+
+    console.log('Delete confirmed, calling deleteInvoice...');
+    try {
+      await deleteInvoice(selectedInvoice.id);
+      console.log('✓ Delete successful, updating UI');
+      setViewMode('list');
+      setSelectedInvoice(null);
+      window.alert('Invoice deleted successfully');
+    } catch (error) {
+      console.error('❌ Delete failed:', error);
+      window.alert('Failed to delete invoice');
+    }
   };
 
   const handleSend = () => {
