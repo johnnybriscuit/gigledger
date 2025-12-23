@@ -121,6 +121,12 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   const [showEditPayerModal, setShowEditPayerModal] = useState(false);
   const [editingPayer, setEditingPayer] = useState<Payer | null>(null);
   const [showPayerPicker, setShowPayerPicker] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{
+    payerId?: string;
+    title?: string;
+    date?: string;
+    grossAmount?: string;
+  }>({});
 
   const { data: payers } = usePayers();
   const createGig = useCreateGig();
@@ -395,12 +401,32 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     return `${parts.join(' + ').replace(' + Fees', ' − Fees')} = $${total.toFixed(2)}`;
   };
 
-  const handleSubmit = async () => {
-    // Early validation for payer
+  const validateForm = () => {
+    const errors: typeof fieldErrors = {};
+    
     if (!payerId) {
+      errors.payerId = 'Please select a payer';
+    }
+    if (!title.trim()) {
+      errors.title = 'Show title is required';
+    }
+    if (!date) {
+      errors.date = 'Date is required';
+    }
+    if (!grossAmount || parseFloat(grossAmount) < 0) {
+      errors.grossAmount = 'Gross amount must be 0 or greater';
+    }
+    
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    // Validate form
+    if (!validateForm()) {
       Alert.alert(
-        'Payer Required',
-        'Please select a payer before adding this gig. You can add a new payer from the Payers tab if needed.',
+        'Missing Required Fields',
+        'Please fill in all required fields marked with *',
         [{ text: 'OK' }]
       );
       return;
@@ -501,7 +527,15 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }
 
+      // Show success message
+      Alert.alert(
+        '✓ Success',
+        editingGig ? 'Gig updated successfully!' : 'Gig created successfully!',
+        [{ text: 'OK' }]
+      );
+      
       resetForm();
+      setFieldErrors({});
       onClose();
     } catch (error: any) {
       if (error.code === 'FREE_PLAN_LIMIT_REACHED') {
@@ -555,7 +589,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               ) : (
                 <>
                   <TouchableOpacity
-                    style={styles.pickerButton}
+                    style={[styles.pickerButton, fieldErrors.payerId && styles.inputError]}
                     onPress={() => setShowPayerPicker(true)}
                   >
                     <Text style={[styles.pickerButtonText, !payerId && styles.placeholderText]}>
@@ -565,6 +599,9 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     </Text>
                     <Text style={styles.pickerButtonIcon}>▼</Text>
                   </TouchableOpacity>
+                  {fieldErrors.payerId && (
+                    <Text style={styles.errorText}>⚠️ {fieldErrors.payerId}</Text>
+                  )}
                   
                   <View style={styles.payerActions}>
                     <TouchableOpacity
@@ -705,12 +742,20 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             <View style={[styles.inputGroup, { zIndex: 0 }]}>
               <Text style={styles.label}>Title *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, fieldErrors.title && styles.inputError]}
                 value={title}
-                onChangeText={setTitle}
+                onChangeText={(text) => {
+                  setTitle(text);
+                  if (fieldErrors.title && text.trim()) {
+                    setFieldErrors({ ...fieldErrors, title: undefined });
+                  }
+                }}
                 placeholder="e.g., Friday Night Show"
                 placeholderTextColor="#9ca3af"
               />
+              {fieldErrors.title && (
+                <Text style={styles.errorText}>⚠️ {fieldErrors.title}</Text>
+              )}
             </View>
 
             <View style={[styles.row, { zIndex: 0 }]}>
@@ -745,13 +790,21 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               <View style={[styles.inputGroup, styles.flex1]}>
                 <Text style={styles.label}>Gross Amount *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, fieldErrors.grossAmount && styles.inputError]}
                   value={grossAmount}
-                  onChangeText={setGrossAmount}
+                  onChangeText={(text) => {
+                    setGrossAmount(text);
+                    if (fieldErrors.grossAmount && text && parseFloat(text) >= 0) {
+                      setFieldErrors({ ...fieldErrors, grossAmount: undefined });
+                    }
+                  }}
                   placeholder="0.00"
                   placeholderTextColor="#9ca3af"
                   keyboardType="decimal-pad"
                 />
+                {fieldErrors.grossAmount && (
+                  <Text style={styles.errorText}>⚠️ {fieldErrors.grossAmount}</Text>
+                )}
               </View>
 
               <View style={[styles.inputGroup, styles.flex1]}>
@@ -1271,6 +1324,16 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: '#111827',
+  },
+  inputError: {
+    borderColor: '#dc2626',
+    borderWidth: 2,
+  },
+  errorText: {
+    color: '#dc2626',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
   },
   textArea: {
     minHeight: 100,
