@@ -133,12 +133,20 @@ export function InvoicesScreen() {
         <>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Invoices</Text>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={() => setViewMode('settings')}
-            >
-              <Text style={styles.settingsButtonText}>⚙️ Settings</Text>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.createHeaderButton}
+                onPress={handleCreateNew}
+              >
+                <Text style={styles.createHeaderButtonText}>+ Create Invoice</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={() => setViewMode('settings')}
+              >
+                <Text style={styles.settingsButtonText}>⚙️ Settings</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <InvoiceList
             onSelectInvoice={handleSelectInvoice}
@@ -293,6 +301,22 @@ const styles = StyleSheet.create({
   backButton: {
     fontSize: 16,
     color: '#2563eb',
+    fontWeight: '600',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  createHeaderButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: '#2563eb',
+  },
+  createHeaderButtonText: {
+    fontSize: 14,
+    color: '#fff',
     fontWeight: '600',
   },
   settingsButton: {
