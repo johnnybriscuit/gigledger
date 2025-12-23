@@ -65,12 +65,12 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel }: InvoiceFormProps
   const addLineItem = () => {
     setFormData({
       ...formData,
-      line_items: [...formData.line_items, { description: '', quantity: 1, rate: 0 }]
+      line_items: [...(formData.line_items || []), { description: '', quantity: 1, rate: 0 }]
     });
   };
 
   const removeLineItem = (index: number) => {
-    if (formData.line_items.length === 1) {
+    if (!formData.line_items || formData.line_items.length === 1) {
       Alert.alert('Error', 'Invoice must have at least one line item');
       return;
     }
@@ -79,6 +79,7 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel }: InvoiceFormProps
   };
 
   const updateLineItem = (index: number, field: string, value: any) => {
+    if (!formData.line_items) return;
     const newLineItems = [...formData.line_items];
     newLineItems[index] = { ...newLineItems[index], [field]: value };
     setFormData({ ...formData, line_items: newLineItems });
@@ -107,21 +108,23 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel }: InvoiceFormProps
   };
 
   const togglePaymentMethod = (method: string) => {
-    const exists = formData.accepted_payment_methods.find(pm => pm.method === method);
+    const paymentMethods = formData.accepted_payment_methods || [];
+    const exists = paymentMethods.find(pm => pm.method === method);
     if (exists) {
       setFormData({
         ...formData,
-        accepted_payment_methods: formData.accepted_payment_methods.filter(pm => pm.method !== method)
+        accepted_payment_methods: paymentMethods.filter(pm => pm.method !== method)
       });
     } else {
       setFormData({
         ...formData,
-        accepted_payment_methods: [...formData.accepted_payment_methods, { method: method as any, details: '' }]
+        accepted_payment_methods: [...paymentMethods, { method: method as any, details: '' }]
       });
     }
   };
 
   const calculateSubtotal = () => {
+    if (!formData.line_items) return 0;
     return formData.line_items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
   };
 
@@ -171,7 +174,7 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel }: InvoiceFormProps
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Client Information</Text>
 
-        {payers.length > 0 && !invoiceId && (
+        {payers && payers.length > 0 && !invoiceId && (
           <>
             <Text style={styles.label}>Select Existing Client</Text>
             <ScrollView horizontal style={styles.clientSelector}>
@@ -278,11 +281,11 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel }: InvoiceFormProps
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Line Items</Text>
 
-        {formData.line_items.map((item, index) => (
+        {(formData.line_items || []).map((item, index) => (
           <View key={index} style={styles.lineItemContainer}>
             <View style={styles.lineItemHeader}>
               <Text style={styles.lineItemNumber}>Item {index + 1}</Text>
-              {formData.line_items.length > 1 && (
+              {formData.line_items && formData.line_items.length > 1 && (
                 <TouchableOpacity onPress={() => removeLineItem(index)}>
                   <Text style={styles.removeButton}>Remove</Text>
                 </TouchableOpacity>
