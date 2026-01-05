@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar, useWindowDimensions } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { PayersScreen } from './PayersScreen';
 import { GigsScreen } from './GigsScreen';
@@ -30,6 +30,9 @@ interface DashboardScreenProps {
 }
 
 export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScreenProps = {}) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  
   // Mark dashboard mount
   useEffect(() => {
     perf.mark('dashboard-mounted');
@@ -192,14 +195,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         ) : undefined
       }
       headerActions={
-        <>
-          <Button 
-            variant="secondary"
-            size="sm"
-            onPress={() => setActiveTab('account')}
-          >
-            Account
-          </Button>
+        isMobile ? (
           <Button 
             variant="ghost"
             size="sm"
@@ -207,7 +203,24 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
           >
             Sign Out
           </Button>
-        </>
+        ) : (
+          <>
+            <Button 
+              variant="secondary"
+              size="sm"
+              onPress={() => setActiveTab('account')}
+            >
+              Account
+            </Button>
+            <Button 
+              variant="ghost"
+              size="sm"
+              onPress={handleSignOut}
+            >
+              Sign Out
+            </Button>
+          </>
+        )
       }
     >
       {/* Show tax profile banner on dashboard tab if state is null */}

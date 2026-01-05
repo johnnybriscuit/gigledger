@@ -178,7 +178,11 @@ export function AppShell({
         {(pageTitle || headerActions) && (
           <View style={[styles.header, isMobile && styles.headerMobile]}>
             <View style={styles.headerLeft}>
-              {pageTitle && <Text style={styles.pageTitle}>{pageTitle}</Text>}
+              {pageTitle && (
+                <Text style={[styles.pageTitle, isMobile && styles.pageTitleMobile]}>
+                  {pageTitle}
+                </Text>
+              )}
             </View>
             <View style={styles.headerRight}>{headerActions}</View>
           </View>
@@ -387,17 +391,28 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
+    minWidth: 0, // Allow flex child to shrink below content size
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacingNum[3],
+    flexShrink: 0, // Prevent buttons from shrinking
   },
   pageTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.5,
+    ...Platform.select({
+      web: {
+        whiteSpace: 'nowrap' as any,
+      },
+    }),
+  },
+  pageTitleMobile: {
+    fontSize: 22,
+    flexShrink: 1, // Allow title to shrink on mobile if needed
   },
   actionBar: {
     backgroundColor: '#ffffff',
