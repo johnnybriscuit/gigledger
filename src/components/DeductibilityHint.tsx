@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, LayoutAnimation, Platform } from 'react-native';
 
 interface DeductibilityHintProps {
   category: string;
@@ -58,30 +58,29 @@ export function DeductibilityHint({ category }: DeductibilityHintProps) {
 
   if (!hintData) return null;
 
+  const toggleExpanded = () => {
+    if (Platform.OS !== 'web') {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+    setExpanded(!expanded);
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.hintRow}>
+      <TouchableOpacity 
+        onPress={toggleExpanded}
+        style={styles.headerRow}
+        activeOpacity={0.7}
+      >
         <Text style={styles.icon}>ℹ️</Text>
         <Text style={styles.hintText}>{hintData.hint}</Text>
-      </View>
+        <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
       
-      {hintData.details && (
-        <>
-          <TouchableOpacity 
-            onPress={() => setExpanded(!expanded)}
-            style={styles.learnMoreButton}
-          >
-            <Text style={styles.learnMoreText}>
-              {expanded ? '▼ Show less' : '▶ Learn more'}
-            </Text>
-          </TouchableOpacity>
-          
-          {expanded && (
-            <View style={styles.detailsContainer}>
-              <Text style={styles.detailsText}>{hintData.details}</Text>
-            </View>
-          )}
-        </>
+      {expanded && hintData.details && (
+        <View style={styles.detailsContainer}>
+          <Text style={styles.detailsText}>{hintData.details}</Text>
+        </View>
       )}
     </View>
   );
@@ -92,18 +91,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#eff6ff',
     borderRadius: 8,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#bfdbfe',
   },
-  hintRow: {
+  headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 8,
   },
   icon: {
     fontSize: 16,
-    marginTop: 1,
   },
   hintText: {
     flex: 1,
@@ -112,18 +110,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 18,
   },
-  learnMoreButton: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-  },
-  learnMoreText: {
-    fontSize: 12,
+  chevron: {
+    fontSize: 10,
     color: '#2563eb',
     fontWeight: '600',
   },
   detailsContainer: {
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#bfdbfe',
   },

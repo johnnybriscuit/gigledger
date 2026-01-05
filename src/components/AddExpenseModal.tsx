@@ -10,12 +10,14 @@ import {
   Platform,
   Alert,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { useCreateExpense, useUpdateExpense, uploadReceipt } from '../hooks/useExpenses';
 import { expenseSchema, type ExpenseFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { DeductibilityHint } from './DeductibilityHint';
+import { BusinessUseSlider } from './BusinessUseSlider';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -44,6 +46,9 @@ const CATEGORIES_WITH_BUSINESS_USE = [
 ];
 
 export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpenseModalProps) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  
   const [date, setDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [category, setCategory] = useState<typeof EXPENSE_CATEGORIES[number]>('Other');
@@ -53,7 +58,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
   const [notes, setNotes] = useState('');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [businessUsePercent, setBusinessUsePercent] = useState('100');
+  const [businessUsePercent, setBusinessUsePercent] = useState(100);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -71,7 +76,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
       setAmount(editingExpense.amount.toString());
       setVendor(editingExpense.vendor || '');
       setNotes(editingExpense.notes || '');
-      setBusinessUsePercent((editingExpense.business_use_percent || 100).toString());
+      setBusinessUsePercent(editingExpense.business_use_percent || 100);
     } else {
       resetForm();
     }
@@ -85,7 +90,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
     setVendor('');
     setNotes('');
     setReceiptFile(null);
-    setBusinessUsePercent('100');
+    setBusinessUsePercent(100);
   };
 
   const handleFileSelect = () => {
@@ -120,7 +125,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
         vendor: vendor || undefined,
         notes: notes || undefined,
         business_use_percent: CATEGORIES_WITH_BUSINESS_USE.includes(category) 
-          ? parseFloat(businessUsePercent) || 100 
+          ? businessUsePercent 
           : undefined,
         meals_percent_allowed: category === 'Meals & Entertainment' ? 50 : undefined,
       };
@@ -190,21 +195,23 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
           </View>
 
           <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Date *</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Text style={styles.dateButtonText}>
-                  {date || 'YYYY-MM-DD'}
-                </Text>
-                <Text style={styles.calendarIcon}>📅</Text>
-              </TouchableOpacity>
-            </View>
+            {/* Section 1: Date + Category */}
+            <View style={styles.section}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Date <Text style={styles.required}>*</Text></Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={styles.dateButtonText}>
+                    {date || 'YYYY-MM-DD'}
+                  </Text>
+                  <Text style={styles.calendarIcon}>📅</Text>
+                </TouchableOpacity>
+              </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Category *</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Category <Text style={styles.required}>*</Text></Text>
               <View style={styles.categoryButtons}>
                 {EXPENSE_CATEGORIES.map((cat) => (
                   <TouchableOpacity
@@ -226,63 +233,68 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
               </View>
             </View>
 
-            {/* Deductibility Hint */}
-            <DeductibilityHint category={category} />
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Description *</Text>
-              <TextInput
-                style={styles.input}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="e.g., Gas for tour"
-                placeholderTextColor="#9ca3af"
-              />
             </View>
 
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>Amount *</Text>
-                <TextInput
-                  style={styles.input}
-                  value={amount}
-                  onChangeText={setAmount}
-                  placeholder="0.00"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="decimal-pad"
-                />
-              </View>
-
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>Vendor (Optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={vendor}
-                  onChangeText={setVendor}
-                  placeholder="e.g., Shell"
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
+            {/* Section 2: Deductibility Hint + Business Use */}
+            <View style={styles.hintSection}>
+              <DeductibilityHint category={category} />
+              
+              {CATEGORIES_WITH_BUSINESS_USE.includes(category) && (
+                <View style={styles.businessUseContainer}>
+                  <Text style={styles.label}>Business Use %</Text>
+                  <BusinessUseSlider
+                    value={businessUsePercent}
+                    onChange={setBusinessUsePercent}
+                    amount={parseFloat(amount) || 0}
+                  />
+                </View>
+              )}
             </View>
 
-            {/* Business Use Percentage Field */}
-            {CATEGORIES_WITH_BUSINESS_USE.includes(category) && (
+            {/* Section 3: Transaction Details */}
+            <View style={styles.section}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Business Use %</Text>
+                <Text style={styles.label}>Description <Text style={styles.required}>*</Text></Text>
                 <TextInput
-                  style={styles.input}
-                  value={businessUsePercent}
-                  onChangeText={setBusinessUsePercent}
-                  placeholder="100"
+                  style={[styles.input, styles.textArea]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="e.g., Gas for tour to Chicago - Jan 5-7 weekend run"
                   placeholderTextColor="#9ca3af"
-                  keyboardType="number-pad"
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
                 />
-                <Text style={styles.helperText}>What % was used for business purposes?</Text>
               </View>
-            )}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Receipt (Optional)</Text>
+              <View style={isMobile ? styles.column : styles.row}>
+                <View style={[styles.inputGroup, isMobile ? {} : { flex: 0.6 }]}>
+                  <Text style={styles.label}>Amount <Text style={styles.required}>*</Text></Text>
+                  <TextInput
+                    style={styles.input}
+                    value={amount}
+                    onChangeText={setAmount}
+                    placeholder="0.00"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                <View style={[styles.inputGroup, isMobile ? {} : { flex: 0.4 }]}>
+                  <Text style={styles.label}>Vendor (Optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={vendor}
+                    onChangeText={setVendor}
+                    placeholder="e.g., Shell"
+                    placeholderTextColor="#9ca3af"
+                  />
+                  <Text style={styles.helperText}>Who did you pay?</Text>
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Receipt (Optional)</Text>
               <TouchableOpacity
                 style={styles.fileButton}
                 onPress={handleFileSelect}
@@ -301,18 +313,19 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
               )}
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Notes (Optional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Add notes about this expense..."
-                placeholderTextColor="#9ca3af"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Notes (Optional)</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Add notes about this expense..."
+                  placeholderTextColor="#9ca3af"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
             </View>
 
             <TouchableOpacity 
@@ -389,11 +402,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#374151',
     marginBottom: 8,
   },
@@ -428,7 +441,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   textArea: {
-    minHeight: 100,
+    minHeight: 80,
     paddingTop: 12,
   },
   row: {
@@ -669,5 +682,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     marginTop: 4,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  hintSection: {
+    marginBottom: 20,
+  },
+  businessUseContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  required: {
+    color: '#ef4444',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  column: {
+    flexDirection: 'column',
   },
 });
