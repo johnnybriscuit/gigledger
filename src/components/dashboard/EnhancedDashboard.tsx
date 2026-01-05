@@ -88,7 +88,10 @@ export function EnhancedDashboard({
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          isDesktop && styles.scrollContentDesktop,
+        ]}
       >
         {/* Hero Row: Net Profit + Quick Stats */}
         <View style={[styles.heroRow, isDesktop && styles.heroRowDesktop]}>
@@ -120,7 +123,7 @@ export function EnhancedDashboard({
         </View>
 
         {/* Charts Grid */}
-        <View style={styles.chartsGrid}>
+        <View style={[styles.chartsGrid, isDesktop && styles.chartsGridDesktop]}>
           {/* Monthly Overview - Full Width */}
           <View style={styles.fullWidth}>
             <MonthlyOverview data={data.monthly} onMonthClick={handleMonthClick} />
@@ -141,14 +144,14 @@ export function EnhancedDashboard({
           </View>
 
           {/* Two Column Layout: Expense Breakdown + Top Payers */}
-          <View style={styles.twoColumn}>
-            <View style={styles.column}>
+          <View style={[styles.twoColumn, isDesktop && styles.twoColumnDesktop]}>
+            <View style={[styles.column, isDesktop && styles.columnDesktop]}>
               <ExpenseBreakdown
                 data={data.expenseBreakdown}
                 onViewAll={handleViewAllExpenses}
               />
             </View>
-            <View style={styles.column}>
+            <View style={[styles.column, isDesktop && styles.columnDesktop]}>
               <TopPayers data={data.payerBreakdown} onPayerClick={handlePayerClick} />
             </View>
           </View>
@@ -198,24 +201,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: parseInt(spacing[4]),
     paddingBottom: parseInt(spacing[12]),
-    ...Platform.select({
-      web: {
-        '@media (min-width: 768px)': {
-          padding: parseInt(spacing[6]),
-        },
-      },
-    }),
+  },
+  scrollContentDesktop: {
+    padding: parseInt(spacing[6]),
   },
   heroContainer: {
     width: '100%',
     marginBottom: parseInt(spacing[8]),
-    ...Platform.select({
-      web: {
-        '@media (min-width: 768px)': {
-          marginBottom: parseInt(spacing[12]),
-        },
-      },
-    }),
+  },
+  heroContainerDesktop: {
+    marginBottom: parseInt(spacing[12]),
   },
   heroRow: {
     flexDirection: 'column',
@@ -246,13 +241,9 @@ const styles = StyleSheet.create({
   },
   chartsGrid: {
     gap: parseInt(spacing[5]),
-    ...Platform.select({
-      web: {
-        '@media (min-width: 768px)': {
-          gap: parseInt(spacing[8]),
-        },
-      },
-    }),
+  },
+  chartsGridDesktop: {
+    gap: parseInt(spacing[8]),
   },
   fullWidth: {
     width: '100%',
@@ -261,24 +252,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: parseInt(spacing[5]),
     flexWrap: 'wrap',
-    ...Platform.select({
-      web: {
-        '@media (min-width: 768px)': {
-          gap: parseInt(spacing[8]),
-        },
-      },
-    }),
+  },
+  twoColumnDesktop: {
+    gap: parseInt(spacing[8]),
   },
   column: {
     flex: 1,
     minWidth: 320,
-    ...Platform.select({
-      web: {
-        '@media (min-width: 768px)': {
-          // Each column takes 6/12 of the grid (50%)
-          flexBasis: `calc(50% - ${parseInt(spacing[4])}px)`,
-        },
-      },
-    }),
+  },
+  columnDesktop: {
+    flexBasis: `calc(50% - ${parseInt(spacing[4])}px)` as any,
   },
 });
