@@ -50,6 +50,7 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
+          business_use_percent: number | null
           category: Database["public"]["Enums"]["expense_category"]
           created_at: string
           date: string
@@ -67,6 +68,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          business_use_percent?: number | null
           category: Database["public"]["Enums"]["expense_category"]
           created_at?: string
           date: string
@@ -84,6 +86,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          business_use_percent?: number | null
           category?: Database["public"]["Enums"]["expense_category"]
           created_at?: string
           date?: string
@@ -1124,17 +1127,17 @@ export type Database = {
     }
     Enums: {
       expense_category:
+        | "Meals & Entertainment"
         | "Travel"
-        | "Meals"
         | "Lodging"
+        | "Equipment/Gear"
         | "Supplies"
-        | "Marketing"
-        | "Education"
-        | "Software"
-        | "Fees"
-        | "Equipment"
+        | "Software/Subscriptions"
+        | "Marketing/Promotion"
+        | "Professional Fees"
+        | "Education/Training"
+        | "Rent/Studio"
         | "Other"
-        | "Rent"
       payer_type:
         | "Venue"
         | "Client"
@@ -1278,17 +1281,17 @@ export const Constants = {
   public: {
     Enums: {
       expense_category: [
+        "Meals & Entertainment",
         "Travel",
-        "Meals",
         "Lodging",
+        "Equipment/Gear",
         "Supplies",
-        "Marketing",
-        "Education",
-        "Software",
-        "Fees",
-        "Equipment",
+        "Software/Subscriptions",
+        "Marketing/Promotion",
+        "Professional Fees",
+        "Education/Training",
+        "Rent/Studio",
         "Other",
-        "Rent",
       ],
       payer_type: [
         "Venue",

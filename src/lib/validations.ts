@@ -38,12 +38,14 @@ export type GigFormData = z.infer<typeof gigSchema>;
 
 export const expenseSchema = z.object({
   date: z.string().min(1, 'Date is required'),
-  category: z.enum(['Rent', 'Travel', 'Meals', 'Lodging', 'Supplies', 'Marketing', 'Education', 'Software', 'Fees', 'Equipment', 'Other']),
+  category: z.enum(['Meals & Entertainment', 'Travel', 'Lodging', 'Equipment/Gear', 'Supplies', 'Software/Subscriptions', 'Marketing/Promotion', 'Professional Fees', 'Education/Training', 'Rent/Studio', 'Other']),
   description: z.string().min(1, 'Description is required'),
   amount: z.number().min(0, 'Must be 0 or greater'),
   vendor: z.string().optional(),
   notes: z.string().optional(),
   receipt_path: z.string().optional(),
+  business_use_percent: z.number().min(0).max(100).optional(),
+  meals_percent_allowed: z.number().min(0).max(100).optional(),
 });
 
 export type ExpenseFormData = z.infer<typeof expenseSchema>;

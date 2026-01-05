@@ -22,6 +22,7 @@ import { usePlanLimits } from '../hooks/usePlanLimits';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
+import { DeductionInfoCard } from '../components/DeductionInfoCard';
 
 interface ExpensesScreenProps {
   onNavigateToSubscription?: () => void;
@@ -246,26 +247,29 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            isFreePlan ? (
-              <View style={styles.usageIndicator}>
-                <View style={styles.usageHeader}>
-                  <Text style={styles.usageText}>
-                    You've used {expenseCount} of {maxExpenses} expenses on the free plan
-                  </Text>
-                  <TouchableOpacity onPress={() => onNavigateToSubscription?.()}>
-                    <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
-                  </TouchableOpacity>
+            <>
+              <DeductionInfoCard />
+              {isFreePlan && (
+                <View style={styles.usageIndicator}>
+                  <View style={styles.usageHeader}>
+                    <Text style={styles.usageText}>
+                      You've used {expenseCount} of {maxExpenses} expenses on the free plan
+                    </Text>
+                    <TouchableOpacity onPress={() => onNavigateToSubscription?.()}>
+                      <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.progressBar}>
+                    <View 
+                      style={[
+                        styles.progressFill, 
+                        { width: `${Math.min((expenseCount / maxExpenses) * 100, 100)}%` }
+                      ]} 
+                    />
+                  </View>
                 </View>
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressFill, 
-                      { width: `${Math.min((expenseCount / maxExpenses) * 100, 100)}%` }
-                    ]} 
-                  />
-                </View>
-              </View>
-            ) : null
+              )}
+            </>
           }
           renderItem={({ item }) => (
             <Card variant="elevated" style={styles.card}>

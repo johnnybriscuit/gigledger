@@ -15,6 +15,7 @@ import { useCreateExpense, useUpdateExpense, uploadReceipt } from '../hooks/useE
 import { expenseSchema, type ExpenseFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
+import { DeductibilityHint } from './DeductibilityHint';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -23,18 +24,24 @@ interface AddExpenseModalProps {
 }
 
 const EXPENSE_CATEGORIES = [
-  'Rent',
+  'Meals & Entertainment',
   'Travel',
-  'Meals',
   'Lodging',
+  'Equipment/Gear',
   'Supplies',
-  'Marketing',
-  'Education',
-  'Software',
-  'Fees',
-  'Equipment',
+  'Software/Subscriptions',
+  'Marketing/Promotion',
+  'Professional Fees',
+  'Education/Training',
+  'Rent/Studio',
   'Other',
 ] as const;
+
+const CATEGORIES_WITH_BUSINESS_USE = [
+  'Software/Subscriptions',
+  'Equipment/Gear',
+  'Rent/Studio',
+];
 
 export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpenseModalProps) {
   const [date, setDate] = useState('');
@@ -46,6 +53,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
   const [notes, setNotes] = useState('');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [businessUsePercent, setBusinessUsePercent] = useState('100');
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -63,6 +71,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
       setAmount(editingExpense.amount.toString());
       setVendor(editingExpense.vendor || '');
       setNotes(editingExpense.notes || '');
+      setBusinessUsePercent((editingExpense.business_use_percent || 100).toString());
     } else {
       resetForm();
     }
@@ -76,6 +85,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
     setVendor('');
     setNotes('');
     setReceiptFile(null);
+    setBusinessUsePercent('100');
   };
 
   const handleFileSelect = () => {
@@ -109,6 +119,10 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
         amount: parseFloat(amount) || 0,
         vendor: vendor || undefined,
         notes: notes || undefined,
+        business_use_percent: CATEGORIES_WITH_BUSINESS_USE.includes(category) 
+          ? parseFloat(businessUsePercent) || 100 
+          : undefined,
+        meals_percent_allowed: category === 'Meals & Entertainment' ? 50 : undefined,
       };
 
       const validated = expenseSchema.parse(formData);
@@ -212,6 +226,9 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
               </View>
             </View>
 
+            {/* Deductibility Hint */}
+            <DeductibilityHint category={category} />
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Description *</Text>
               <TextInput
@@ -247,6 +264,22 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
                 />
               </View>
             </View>
+
+            {/* Business Use Percentage Field */}
+            {CATEGORIES_WITH_BUSINESS_USE.includes(category) && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Business Use %</Text>
+                <TextInput
+                  style={styles.input}
+                  value={businessUsePercent}
+                  onChangeText={setBusinessUsePercent}
+                  placeholder="100"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="number-pad"
+                />
+                <Text style={styles.helperText}>What % was used for business purposes?</Text>
+              </View>
+            )}
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Receipt (Optional)</Text>
@@ -631,5 +664,10 @@ const styles = StyleSheet.create({
   },
   monthButtonTextSelected: {
     color: '#fff',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 4,
   },
 });
