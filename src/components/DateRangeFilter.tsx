@@ -18,103 +18,81 @@ const FILTER_OPTIONS: { value: DateRange; label: string }[] = [
 
 export function DateRangeFilter({ selected, onSelect }: DateRangeFilterProps) {
   const { isMobileWeb } = useResponsive();
-  const [modalVisible, setModalVisible] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const selectedOption = FILTER_OPTIONS.find(opt => opt.value === selected);
 
   const handleSelect = (value: DateRange) => {
     onSelect(value);
-    setModalVisible(false);
+    setDropdownOpen(false);
   };
 
-  // Mobile: Dropdown with modal
-  if (isMobileWeb) {
-    return (
-      <>
-        <View style={styles.container}>
-          <TouchableOpacity
-            style={styles.dropdownButton}
-            onPress={() => setModalVisible(true)}
-          >
-            <Text style={styles.dropdownIcon}>📅</Text>
-            <Text style={styles.dropdownText}>{selectedOption?.label || 'Select Range'}</Text>
-            <Text style={styles.dropdownArrow}>▼</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Modal
-          visible={modalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setModalVisible(false)}
+  // Both mobile and desktop: Dropdown selector
+  return (
+    <>
+      <View style={[styles.container, !isMobileWeb && styles.containerDesktop]}>
+        <TouchableOpacity
+          style={[
+            styles.dropdownButton,
+            isMobileWeb ? styles.dropdownButtonMobile : styles.dropdownButtonDesktop,
+          ]}
+          onPress={() => setDropdownOpen(true)}
         >
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setModalVisible(false)}
+          <Text style={styles.dropdownIcon}>📅</Text>
+          <Text style={styles.dropdownText}>{selectedOption?.label || 'Select Range'}</Text>
+          <Text style={styles.dropdownArrow}>▼</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Modal
+        visible={dropdownOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDropdownOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setDropdownOpen(false)}
+        >
+          <View 
+            style={[
+              styles.modalContent,
+              !isMobileWeb && styles.modalContentDesktop,
+            ]}
+            onStartShouldSetResponder={() => true}
           >
-            <View style={styles.modalContent}>
+            {isMobileWeb && (
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Select Date Range</Text>
               </View>
-              {FILTER_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
+            )}
+            {FILTER_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.modalOption,
+                  selected === option.value && styles.modalOptionActive,
+                ]}
+                onPress={() => handleSelect(option.value)}
+              >
+                <Text
                   style={[
-                    styles.modalOption,
-                    selected === option.value && styles.modalOptionActive,
+                    styles.modalOptionText,
+                    selected === option.value && styles.modalOptionTextActive,
                   ]}
-                  onPress={() => handleSelect(option.value)}
                 >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      selected === option.value && styles.modalOptionTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {selected === option.value && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableOpacity>
-        </Modal>
-      </>
-    );
-  }
-
-  // Desktop: Button row (existing implementation)
-  return (
-    <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {FILTER_OPTIONS.map((option) => (
-          <TouchableOpacity
-            key={option.value}
-            style={[
-              styles.filterButton,
-              selected === option.value && styles.filterButtonActive,
-            ]}
-            onPress={() => onSelect(option.value)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                selected === option.value && styles.filterTextActive,
-              ]}
-            >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
+                  {option.label}
+                </Text>
+                {selected === option.value && (
+                  <Text style={styles.checkmark}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
 
@@ -124,40 +102,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
-  scrollContent: {
+  containerDesktop: {
+    borderBottomWidth: 0,
+    backgroundColor: 'transparent',
+    paddingVertical: 12,
     paddingHorizontal: 24,
-    paddingVertical: 16,
-    gap: 12,
   },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  filterButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  filterTextActive: {
-    color: '#fff',
-  },
-  // Mobile dropdown styles
+  // Dropdown button styles
   dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    marginHorizontal: 16,
-    marginVertical: 12,
     minHeight: 48,
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -168,6 +125,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+  },
+  dropdownButtonMobile: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+  },
+  dropdownButtonDesktop: {
+    width: 220,
+    alignSelf: 'flex-start',
   },
   dropdownIcon: {
     fontSize: 18,
@@ -202,6 +167,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
+  },
+  modalContentDesktop: {
+    maxWidth: 280,
+    borderRadius: 12,
   },
   modalHeader: {
     paddingHorizontal: 20,
