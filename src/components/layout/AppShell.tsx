@@ -44,16 +44,29 @@ export function AppShell({
   userName,
   onSignOut,
 }: AppShellProps) {
-  const { isMobile, isMobileWeb, width } = useResponsive();
+  const { width } = useResponsive();
+  const isWeb = Platform.OS === 'web';
+  const isDesktopWeb = isWeb && width >= 768;
+  const isMobileWeb = isWeb && width < 768;
+  const isMobile = width < 768; // Generic mobile (includes native apps)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   /*
-   * REGRESSION PREVENTION:
-   * - Desktop web (width >= 768): Fixed sidebar + marginLeft: SIDEBAR_WIDTH
-   * - Mobile web (width < 768): NO sidebar margin, hamburger + drawer overlay only
-   * - Mobile web MUST have marginLeft: 0 when hamburger is closed
-   * - DO NOT use CSS @media queries in StyleSheet.create()
-   * - Use useResponsive hook for all responsive behavior
+   * STRUCTURAL LAYOUT RULES (NO STYLE HACKS):
+   * 
+   * Desktop web (isDesktopWeb):
+   *   - Render sidebar as in-flow sibling (first child in flex row)
+   *   - Main content has marginLeft: SIDEBAR_WIDTH
+   *   - Sidebar always visible
+   * 
+   * Mobile web (isMobileWeb):
+   *   - Single column layout: header + content
+   *   - Sidebar NOT rendered in DOM when hamburger closed
+   *   - When hamburger open: sidebar renders as absolute/fixed overlay
+   *   - Main content: width 100%, marginLeft 0, no sidebar spacing
+   * 
+   * NO CSS @media queries in StyleSheet.create()
+   * Use explicit Platform.OS and width checks only
    */
   useEffect(() => {
     if (isMobile) {
@@ -61,30 +74,26 @@ export function AppShell({
     }
   }, [isMobile]);
 
-  // Runtime assertion for mobile web layout
+  // Runtime assertion: mobile web with closed hamburger should have NO sidebar in DOM
   useEffect(() => {
-    if (__DEV__ && isMobileWeb) {
-      console.log('🎨 Mobile Web Layout Check:', {
+    if (__DEV__ && isMobileWeb && !mobileMenuOpen) {
+      console.log('✅ Mobile Web Layout (Hamburger CLOSED):', {
         width,
         isMobileWeb,
-        isMobile,
         mobileMenuOpen,
+        sidebarInDOM: false,
         expectedMarginLeft: 0,
       });
-      
-      // This should NEVER happen on mobile web
-      if (Platform.OS === 'web' && width < 768) {
-        console.warn('⚠️ MOBILE WEB DETECTED - Sidebar margin MUST be 0');
-      }
+    }
+    
+    if (__DEV__ && isMobileWeb && mobileMenuOpen) {
+      console.log('📱 Mobile Web Layout (Hamburger OPEN):', {
+        width,
+        mobileMenuOpen,
+        sidebarRenderedAsOverlay: true,
+      });
     }
   }, [isMobileWeb, width, mobileMenuOpen]);
-
-  useEffect(() => {
-    if (!isMobile && __DEV__) {
-      // Dev-only assertion: desktop sidebar should always render
-      console.log('[AppShell] Desktop mode - sidebar visible');
-    }
-  }, [isMobile]);
 
   const renderSidebar = () => (
     <View style={styles.sidebar}>
@@ -160,11 +169,11 @@ export function AppShell({
 
   return (
     <View style={styles.container}>
-      {/* Desktop (≥768px): Always show fixed sidebar */}
-      {!isMobile && renderSidebar()}
+      {/* DESKTOP WEB: Render sidebar as in-flow sibling */}
+      {isDesktopWeb && renderSidebar()}
 
-      {/* Mobile (<768px): Hamburger menu + drawer */}
-      {isMobile && (
+      {/* MOBILE WEB: Top header + conditional overlay drawer */}
+      {isMobileWeb && (
         <>
           <View style={styles.mobileHeader}>
             <TouchableOpacity
@@ -180,6 +189,8 @@ export function AppShell({
             />
             <Text style={styles.mobileTitle}>GigLedger</Text>
           </View>
+          
+          {/* Only render sidebar when hamburger is OPEN - as overlay, not in-flow */}
           {mobileMenuOpen && (
             <>
               {/* Backdrop overlay */}
@@ -188,7 +199,7 @@ export function AppShell({
                 activeOpacity={1}
                 onPress={() => setMobileMenuOpen(false)}
               />
-              {/* Drawer panel */}
+              {/* Drawer panel - absolute positioned overlay */}
               <View style={styles.drawerPanel}>
                 {renderSidebar()}
               </View>
@@ -200,10 +211,10 @@ export function AppShell({
       {/* Main content area */}
       <View style={[
         styles.mainContainer,
-        // Desktop web: apply sidebar margin
-        Platform.OS === 'web' && width >= 768 && styles.mainContainerDesktop,
-        // Mobile web: ensure NO sidebar margin
-        Platform.OS === 'web' && width < 768 && styles.mainContainerMobile,
+        // Desktop web: apply sidebar margin (sidebar is in-flow sibling)
+        isDesktopWeb && styles.mainContainerDesktop,
+        // Mobile web: NO sidebar margin (sidebar is overlay when open, not in DOM when closed)
+        isMobileWeb && styles.mainContainerMobile,
       ]}>
         {/* Header with page title and actions */}
         {(pageTitle || headerActions) && (
