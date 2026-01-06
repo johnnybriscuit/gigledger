@@ -44,7 +44,7 @@ export function AppShell({
   userName,
   onSignOut,
 }: AppShellProps) {
-  const { isMobile, width } = useResponsive();
+  const { isMobile, isMobileWeb, width } = useResponsive();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   /*
@@ -173,7 +173,11 @@ export function AppShell({
       )}
 
       {/* Main content area */}
-      <View style={[styles.mainContainer, isMobile && styles.mainContainerMobile]}>
+      <View style={[
+        styles.mainContainer,
+        !isMobileWeb && styles.mainContainerDesktop,
+        isMobileWeb && styles.mainContainerMobile,
+      ]}>
         {/* Header with page title and actions */}
         {(pageTitle || headerActions) && (
           <View style={[styles.header, isMobile && styles.headerMobile]}>
@@ -363,6 +367,8 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     minWidth: 0,
+  },
+  mainContainerDesktop: {
     ...Platform.select({
       web: {
         marginLeft: SIDEBAR_WIDTH,
@@ -409,6 +415,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.5,
+    flexShrink: 1,
     ...Platform.select({
       web: {
         whiteSpace: 'nowrap' as any,
@@ -417,7 +424,6 @@ const styles = StyleSheet.create({
   },
   pageTitleMobile: {
     fontSize: 22,
-    flexShrink: 1, // Allow title to shrink on mobile if needed
   },
   actionBar: {
     backgroundColor: '#ffffff',
