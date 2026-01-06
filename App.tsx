@@ -4,6 +4,7 @@ import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import { supabase } from './src/lib/supabase';
 import { AuthScreen } from './src/screens/AuthScreen';
@@ -306,6 +307,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AppContent />
+        <Analytics />
       </ThemeProvider>
     </QueryClientProvider>
   );
