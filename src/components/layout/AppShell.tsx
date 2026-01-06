@@ -168,7 +168,18 @@ export function AppShell({
   );
 
   return (
-    <View style={styles.container}>
+    <View 
+      style={[
+        styles.container,
+        isMobileWeb && styles.containerMobile,
+      ]}
+      onLayout={(e) => {
+        if (__DEV__ && isMobileWeb) {
+          console.log('📐 [AppShell] Root container width:', e.nativeEvent.layout.width);
+          console.log('📐 [AppShell] flexDirection:', isMobileWeb ? 'column' : 'row');
+        }
+      }}
+    >
       {/* DESKTOP WEB: Render sidebar as in-flow sibling */}
       {isDesktopWeb && renderSidebar()}
 
@@ -209,13 +220,20 @@ export function AppShell({
       )}
 
       {/* Main content area */}
-      <View style={[
-        styles.mainContainer,
-        // Desktop web: apply sidebar margin (sidebar is in-flow sibling)
-        isDesktopWeb && styles.mainContainerDesktop,
-        // Mobile web: NO sidebar margin (sidebar is overlay when open, not in DOM when closed)
-        isMobileWeb && styles.mainContainerMobile,
-      ]}>
+      <View 
+        style={[
+          styles.mainContainer,
+          // Desktop web: apply sidebar margin (sidebar is in-flow sibling)
+          isDesktopWeb && styles.mainContainerDesktop,
+          // Mobile web: NO sidebar margin (sidebar is overlay when open, not in DOM when closed)
+          isMobileWeb && styles.mainContainerMobile,
+        ]}
+        onLayout={(e) => {
+          if (__DEV__ && isMobileWeb) {
+            console.log('📐 [AppShell] Main container width:', e.nativeEvent.layout.width);
+          }
+        }}
+      >
         {/* Header with page title and actions */}
         {(pageTitle || headerActions) && (
           <View style={[styles.header, isMobile && styles.headerMobile]}>
@@ -242,8 +260,20 @@ export function AppShell({
           style={styles.contentScroll}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
+          onLayout={(e) => {
+            if (__DEV__ && isMobileWeb) {
+              console.log('📐 [AppShell] ScrollView width:', e.nativeEvent.layout.width);
+            }
+          }}
         >
-          <View style={[styles.contentInner, isMobile && styles.contentInnerMobile]}>
+          <View 
+            style={[styles.contentInner, isMobile && styles.contentInnerMobile]}
+            onLayout={(e) => {
+              if (__DEV__ && isMobileWeb) {
+                console.log('📐 [AppShell] Content inner width:', e.nativeEvent.layout.width);
+              }
+            }}
+          >
             {children}
           </View>
         </ScrollView>
@@ -257,10 +287,13 @@ const SIDEBAR_WIDTH = 240;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'row', // Desktop: row for sidebar + content
     backgroundColor: '#fafbfc',
     width: '100%',
     minWidth: 0,
+  },
+  containerMobile: {
+    flexDirection: 'column', // Mobile: column for header + content
   },
   sidebar: {
     width: SIDEBAR_WIDTH,

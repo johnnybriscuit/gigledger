@@ -81,7 +81,14 @@ export function EnhancedDashboard({
   };
 
   return (
-    <View style={styles.container}>
+    <View 
+      style={styles.container}
+      onLayout={(e) => {
+        if (__DEV__) {
+          console.log('📐 [EnhancedDashboard] Container width:', e.nativeEvent.layout.width);
+        }
+      }}
+    >
       {/* Date Range Filter */}
       <DateRangeFilter selected={dateRange} onSelect={onDateRangeChange} />
 
@@ -92,6 +99,11 @@ export function EnhancedDashboard({
           styles.scrollContent,
           isDesktop && styles.scrollContentDesktop,
         ]}
+        onLayout={(e) => {
+          if (__DEV__) {
+            console.log('📐 [EnhancedDashboard] ScrollView width:', e.nativeEvent.layout.width);
+          }
+        }}
       >
         {/* Hero Row: Net Profit + Quick Stats */}
         <View style={[styles.heroRow, isDesktop && styles.heroRowDesktop]}>
