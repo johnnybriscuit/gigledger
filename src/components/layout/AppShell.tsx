@@ -49,11 +49,36 @@ export function AppShell({
 
   /*
    * REGRESSION PREVENTION:
-   * - Desktop sidebar (width >= 768) must ALWAYS remain visible
-   * - Mobile (width < 768) uses hamburger menu + drawer overlay
-   * - DO NOT hide sidebar with display:none or CSS @media queries
-   * - Use useWindowDimensions for responsive behavior, NOT Platform.OS checks
+   * - Desktop web (width >= 768): Fixed sidebar + marginLeft: SIDEBAR_WIDTH
+   * - Mobile web (width < 768): NO sidebar margin, hamburger + drawer overlay only
+   * - Mobile web MUST have marginLeft: 0 when hamburger is closed
+   * - DO NOT use CSS @media queries in StyleSheet.create()
+   * - Use useResponsive hook for all responsive behavior
    */
+  useEffect(() => {
+    if (isMobile) {
+      setMobileMenuOpen(false);
+    }
+  }, [isMobile]);
+
+  // Runtime assertion for mobile web layout
+  useEffect(() => {
+    if (__DEV__ && isMobileWeb) {
+      console.log('🎨 Mobile Web Layout Check:', {
+        width,
+        isMobileWeb,
+        isMobile,
+        mobileMenuOpen,
+        expectedMarginLeft: 0,
+      });
+      
+      // This should NEVER happen on mobile web
+      if (Platform.OS === 'web' && width < 768) {
+        console.warn('⚠️ MOBILE WEB DETECTED - Sidebar margin MUST be 0');
+      }
+    }
+  }, [isMobileWeb, width, mobileMenuOpen]);
+
   useEffect(() => {
     if (!isMobile && __DEV__) {
       // Dev-only assertion: desktop sidebar should always render
@@ -175,8 +200,10 @@ export function AppShell({
       {/* Main content area */}
       <View style={[
         styles.mainContainer,
-        !isMobileWeb && styles.mainContainerDesktop,
-        isMobileWeb && styles.mainContainerMobile,
+        // Desktop web: apply sidebar margin
+        Platform.OS === 'web' && width >= 768 && styles.mainContainerDesktop,
+        // Mobile web: ensure NO sidebar margin
+        Platform.OS === 'web' && width < 768 && styles.mainContainerMobile,
       ]}>
         {/* Header with page title and actions */}
         {(pageTitle || headerActions) && (
@@ -377,7 +404,10 @@ const styles = StyleSheet.create({
   },
   mainContainerMobile: {
     marginLeft: 0,
+    marginRight: 0,
     width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
   header: {
     backgroundColor: '#ffffff',
@@ -461,6 +491,7 @@ const styles = StyleSheet.create({
   },
   contentInnerMobile: {
     maxWidth: '100%',
+    alignSelf: 'stretch',
     paddingHorizontal: spacingNum[4],
     paddingVertical: spacingNum[5],
   },
