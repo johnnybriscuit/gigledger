@@ -49,7 +49,6 @@ ALTER TABLE expenses
 -- Step 4: Recreate the v_expenses_export view
 CREATE OR REPLACE VIEW v_expenses_export AS
 SELECT 
-  e.expense_id,
   e.user_id,
   e.date,
   e.category,
@@ -58,9 +57,7 @@ SELECT
   e.amount,
   e.receipt_url,
   e.notes,
-  e.recurring_expense_id,
-  e.business_use_percent,
-  e.created_at
+  e.recurring_expense_id
 FROM expenses e
 ORDER BY e.date DESC;
 
