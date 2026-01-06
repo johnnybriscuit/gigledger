@@ -1,8 +1,10 @@
 -- Fix invalid expense categories in the database
 -- This migration cleans up any rows with invalid category values
 
--- Step 1: Identify and fix any invalid categories
--- Convert category to text temporarily to allow updates
+-- Step 1: Drop the view that depends on the category column
+DROP VIEW IF EXISTS v_expenses_export;
+
+-- Step 2: Convert category to text temporarily to allow updates
 ALTER TABLE expenses 
   ALTER COLUMN category TYPE text;
 
@@ -33,10 +35,31 @@ SET category = CASE
   ELSE category
 END;
 
--- Step 2: Convert back to enum type
+-- Step 3: Convert back to enum type
 ALTER TABLE expenses 
   ALTER COLUMN category TYPE expense_category
   USING category::expense_category;
 
--- Step 3: Add a comment documenting the valid values
+-- Step 4: Recreate the v_expenses_export view
+CREATE OR REPLACE VIEW v_expenses_export AS
+SELECT 
+  e.expense_id,
+  e.user_id,
+  e.date,
+  e.category,
+  e.vendor,
+  e.description,
+  e.amount,
+  e.receipt_url,
+  e.notes,
+  e.recurring_expense_id,
+  e.business_use_percent,
+  e.created_at
+FROM expenses e
+ORDER BY e.date DESC;
+
+-- Enable RLS on the view
+ALTER VIEW v_expenses_export SET (security_invoker = on);
+
+-- Step 5: Add a comment documenting the valid values
 COMMENT ON TYPE expense_category IS 'Valid expense categories: Meals & Entertainment, Travel, Lodging, Equipment/Gear, Supplies, Software/Subscriptions, Marketing/Promotion, Professional Fees, Education/Training, Rent/Studio, Other';
