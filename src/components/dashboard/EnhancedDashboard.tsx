@@ -4,7 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
+import { useResponsive } from '../../hooks/useResponsive';
 import { HeroNetProfit } from './HeroNetProfit';
 import { QuickStats } from './QuickStats';
 import { MonthlyOverview } from './MonthlyOverview';
@@ -41,8 +42,7 @@ export function EnhancedDashboard({
   onNavigateToExpenses,
   onNavigateToGigs,
 }: EnhancedDashboardProps) {
-  const { width } = useWindowDimensions();
-  const isDesktop = width >= 768;
+  const { isDesktop } = useResponsive();
   const [drillThroughMonth, setDrillThroughMonth] = useState<string | null>(null);
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Text, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Text } from 'react-native';
 import { colors, spacingNum } from '../../styles/theme';
+import { useResponsive } from '../../hooks/useResponsive';
 
 type Route = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
 
@@ -43,8 +44,7 @@ export function AppShell({
   userName,
   onSignOut,
 }: AppShellProps) {
-  const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const { isMobile, width } = useResponsive();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   /*
@@ -217,6 +217,8 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: '#fafbfc',
+    width: '100%',
+    minWidth: 0,
   },
   sidebar: {
     width: SIDEBAR_WIDTH,
@@ -359,6 +361,8 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     flex: 1,
+    width: '100%',
+    minWidth: 0,
     ...Platform.select({
       web: {
         marginLeft: SIDEBAR_WIDTH,
@@ -367,6 +371,7 @@ const styles = StyleSheet.create({
   },
   mainContainerMobile: {
     marginLeft: 0,
+    width: '100%',
   },
   header: {
     backgroundColor: '#ffffff',
@@ -437,6 +442,7 @@ const styles = StyleSheet.create({
   contentInner: {
     maxWidth: 1280,
     width: '100%',
+    minWidth: 0,
     alignSelf: 'center',
     paddingHorizontal: Platform.select({
       web: spacingNum[10],
@@ -448,6 +454,7 @@ const styles = StyleSheet.create({
     }),
   },
   contentInnerMobile: {
+    maxWidth: '100%',
     paddingHorizontal: spacingNum[4],
     paddingVertical: spacingNum[5],
   },

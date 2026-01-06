@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { useResponsive } from '../hooks/useResponsive';
 import { PayersScreen } from './PayersScreen';
 import { GigsScreen } from './GigsScreen';
 import { ExpensesScreen } from './ExpensesScreen';
@@ -30,8 +31,7 @@ interface DashboardScreenProps {
 }
 
 export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScreenProps = {}) {
-  const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const { isMobile } = useResponsive();
   
   // Mark dashboard mount
   useEffect(() => {
