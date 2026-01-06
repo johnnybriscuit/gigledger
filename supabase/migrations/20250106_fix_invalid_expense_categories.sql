@@ -9,6 +9,12 @@ ALTER TABLE expenses
   ALTER COLUMN category TYPE text;
 
 -- Update any invalid categories to valid enum values
+-- Handle NULL values first
+UPDATE expenses 
+SET category = 'Other'
+WHERE category IS NULL;
+
+-- Then map legacy and invalid values
 UPDATE expenses 
 SET category = CASE
   WHEN category = 'Meals' THEN 'Meals & Entertainment'
