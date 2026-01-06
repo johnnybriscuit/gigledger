@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { coerceToValidCategory } from '../lib/categoryMapping';
 
 export type ExportFilters = {
   startDate: string;
@@ -130,7 +131,12 @@ export function useExpensesExport(filters: ExportFilters) {
         .order('date', { ascending: false });
 
       if (error) throw error;
-      return data as ExpenseExport[];
+      
+      // Defensive guard: coerce any invalid categories to valid enum values
+      return data.map(expense => ({
+        ...expense,
+        category: coerceToValidCategory(expense.category),
+      })) as ExpenseExport[];
     },
   });
 }
