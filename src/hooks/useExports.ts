@@ -122,9 +122,10 @@ export function useExpensesExport(filters: ExportFilters) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Cast category to text to bypass enum validation errors
       const { data, error } = await supabase
         .from('expenses')
-        .select('user_id, date, category, vendor, description, amount, receipt_url, notes, recurring_expense_id')
+        .select('user_id, date, category::text, vendor, description, amount, receipt_url, notes, recurring_expense_id')
         .eq('user_id', user.id)
         .gte('date', filters.startDate)
         .lte('date', filters.endDate)
@@ -133,7 +134,7 @@ export function useExpensesExport(filters: ExportFilters) {
       if (error) throw error;
       
       // Defensive guard: coerce any invalid categories to valid enum values
-      return data.map(expense => ({
+      return (data || []).map(expense => ({
         ...expense,
         category: coerceToValidCategory(expense.category),
       })) as ExpenseExport[];
