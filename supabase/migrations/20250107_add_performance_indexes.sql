@@ -2,8 +2,8 @@
 -- These indexes will dramatically speed up user-specific queries by date range
 
 -- User tax profile lookups (172-342ms -> 10-20ms expected)
-CREATE INDEX IF NOT EXISTS idx_user_tax_profiles_user_id 
-ON user_tax_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_tax_profile_user_id 
+ON user_tax_profile(user_id);
 
 -- Gig queries by user and date (most common dashboard query)
 CREATE INDEX IF NOT EXISTS idx_gigs_user_date 
@@ -46,7 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_expenses_user_date_amounts
 ON expenses(user_id, date DESC, amount, category);
 
 -- Add comments documenting the performance impact
-COMMENT ON INDEX idx_user_tax_profiles_user_id IS 'Speeds up tax profile lookups from 172-342ms to 10-20ms';
+COMMENT ON INDEX idx_user_tax_profile_user_id IS 'Speeds up tax profile lookups from 172-342ms to 10-20ms';
 COMMENT ON INDEX idx_gigs_user_date IS 'Optimizes dashboard gig queries by user and date range';
 COMMENT ON INDEX idx_expenses_user_date IS 'Optimizes dashboard expense queries by user and date range';
 COMMENT ON INDEX idx_gigs_user_date_amounts IS 'Composite index for faster aggregation queries on dashboard';
@@ -56,7 +56,7 @@ COMMENT ON INDEX idx_expenses_user_date_amounts IS 'Composite index for faster e
 ANALYZE gigs;
 ANALYZE expenses;
 ANALYZE mileage;
-ANALYZE user_tax_profiles;
+ANALYZE user_tax_profile;
 ANALYZE profiles;
 ANALYZE payers;
 ANALYZE invoices;
