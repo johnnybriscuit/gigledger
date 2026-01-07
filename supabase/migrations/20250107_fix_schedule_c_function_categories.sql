@@ -40,7 +40,7 @@ BEGIN
   expenses_by_category AS (
     SELECT 
       category::text AS category,
-      SUM(amount) AS total
+      SUM(expenses.amount) AS total
     FROM expenses
     WHERE user_id = p_user_id
       AND date >= p_start_date
