@@ -25,6 +25,7 @@ import { useAppBootstrap } from './src/hooks/useAppBootstrap';
 import { LoadingScreen } from './src/components/LoadingScreen';
 import { ErrorScreen } from './src/components/ErrorScreen';
 import { perf } from './src/lib/performance';
+import { enableQueryDebug } from './src/lib/queryDebug';
 import type { Session } from '@supabase/supabase-js';
 
 const queryClient = new QueryClient({
@@ -39,6 +40,11 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Enable query debugging in development
+if (__DEV__) {
+  enableQueryDebug(queryClient);
+}
 
 function AppContent() {
   const bootstrap = useAppBootstrap();
