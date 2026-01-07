@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } fr
 import { useProfile, useUpdateProfile, type BusinessStructure } from '../hooks/useProfile';
 import { useSubscription } from '../hooks/useSubscription';
 import { getResolvedPlan } from '../lib/businessStructure';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
+import { useUser } from '../contexts/UserContext';
 
 type ProfitRange = 'low' | 'medium' | 'high';
 type LiabilityPreference = 'yes' | 'no';
@@ -31,17 +30,10 @@ export function BusinessStructureWizard() {
   const [showResult, setShowResult] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
 
-  const { data: user } = useQuery({
-    queryKey: ['user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-  });
-
-  const { data: profile } = useProfile(user?.id);
+  const { userId, profile: userProfile } = useUser();
+  const { data: profile } = useProfile(userId || undefined);
   const { data: subscription } = useSubscription();
-  const updateProfile = useUpdateProfile(user?.id || '');
+  const updateProfile = useUpdateProfile(userId || '');
 
   const plan = getResolvedPlan({
     subscriptionTier: subscription?.tier,
@@ -118,7 +110,7 @@ export function BusinessStructureWizard() {
   };
 
   const handleApplyStructure = async () => {
-    if (!user || !profile) {
+    if (!userId || !profile) {
       Alert.alert('Sign In Required', 'Please sign in to apply this business structure.');
       return;
     }
@@ -186,7 +178,7 @@ export function BusinessStructureWizard() {
             This is a general suggestion only. Please confirm with a tax professional.
           </Text>
           
-          {user && profile && (
+          {userId && profile && (
             <TouchableOpacity
               style={[styles.applyButton, isApplying && styles.applyButtonDisabled]}
               onPress={handleApplyStructure}
@@ -195,12 +187,12 @@ export function BusinessStructureWizard() {
               {isApplying ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.applyButtonText}>Set my business structure to this</Text>
+                <Text style={styles.applyButtonText}>Apply This Structure</Text>
               )}
             </TouchableOpacity>
           )}
           
-          {(!user || !profile) && (
+          {(!userId || !profile) && (
             <Text style={styles.signInPrompt}>Sign in to apply this structure to your profile</Text>
           )}
 
