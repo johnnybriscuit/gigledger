@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './src/contexts/ThemeContext';
+import { UserProvider } from './src/contexts/UserContext';
 import { supabase } from './src/lib/supabase';
 import { AuthScreen } from './src/screens/AuthScreen';
 import { AuthCallbackScreen } from './src/screens/AuthCallbackScreen';
@@ -296,7 +297,9 @@ function AppContent() {
   return (
     <>
       <StatusBar style="dark" />
-      <DashboardScreen onNavigateToBusinessStructures={() => setCurrentRoute('business-structures')} />
+      <UserProvider>
+        <DashboardScreen onNavigateToBusinessStructures={() => setCurrentRoute('business-structures')} />
+      </UserProvider>
     </>
   );
 }

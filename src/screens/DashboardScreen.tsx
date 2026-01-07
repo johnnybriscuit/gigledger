@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useResponsive } from '../hooks/useResponsive';
+import { useUser } from '../contexts/UserContext';
 import { PayersScreen } from './PayersScreen';
 import { GigsScreen } from './GigsScreen';
 import { ExpensesScreen } from './ExpensesScreen';
@@ -12,7 +13,6 @@ import { SubscriptionScreen } from './SubscriptionScreen';
 import { InvoicesScreen } from './InvoicesScreen';
 import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
-import { useQuery } from '@tanstack/react-query';
 import { useDateRange } from '../hooks/useDateRange';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
 import { Toast } from '../components/Toast';
@@ -20,7 +20,6 @@ import { TaxProfileBanner } from '../components/TaxProfileBanner';
 import { perf } from '../lib/performance';
 import { H1, Text, Button } from '../ui';
 import { colors, spacing, typography, radius } from '../styles/theme';
-import { useTaxProfile } from '../hooks/useTaxProfile';
 import { AppShell } from '../components/layout/AppShell';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
@@ -32,6 +31,9 @@ interface DashboardScreenProps {
 
 export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScreenProps = {}) {
   const { isMobile } = useResponsive();
+  
+  // Use shared user context instead of individual queries
+  const { profile, taxProfile } = useUser();
   
   // Mark dashboard mount
   useEffect(() => {
@@ -71,27 +73,6 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       localStorage.setItem('activeTab', activeTab);
     }
   }, [activeTab]);
-
-  // Fetch user profile
-  const { data: profile } = useQuery<{ full_name: string | null } | null>({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) return null;
-      return data;
-    },
-  });
-
-  // Fetch tax profile to check if state is set
-  const { data: taxProfile } = useTaxProfile();
 
   // Update document title based on active tab
   const pageTitle = getPageTitle();
