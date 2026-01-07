@@ -32,8 +32,8 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false, // Don't refetch when tab regains focus
       refetchOnMount: false, // Don't refetch on component mount if data exists
       refetchOnReconnect: false, // Don't refetch on network reconnect
-      staleTime: 60000, // 1 minute - balance freshness with performance
-      gcTime: 300000, // 5 minutes - keep data in cache for reasonable time
+      staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh longer
+      gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
       retry: 1, // Only retry failed requests once
     },
   },
