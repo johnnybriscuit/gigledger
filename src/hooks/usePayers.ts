@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
-import { getSharedUserId } from '../lib/sharedAuth';
+import { getSharedUserId, getCachedUserId } from '../lib/sharedAuth';
 
 export type Payer = Database['public']['Tables']['payers']['Row'];
 type PayerInsert = Database['public']['Tables']['payers']['Insert'];
@@ -52,9 +52,9 @@ export function useCreatePayer() {
       return data as Payer;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.payers(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.payers(userId) });
       }
     },
   });
@@ -76,9 +76,9 @@ export function useUpdatePayer() {
       return data as Payer;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.payers(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.payers(userId) });
       }
     },
   });
@@ -108,9 +108,9 @@ export function useDeletePayer() {
     },
     onSuccess: async () => {
       console.log('Delete successful, invalidating cache');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.payers(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.payers(userId) });
       }
     },
     onError: (error) => {

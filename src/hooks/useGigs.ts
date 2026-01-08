@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
-import { getSharedUserId } from '../lib/sharedAuth';
+import { getSharedUserId, getCachedUserId } from '../lib/sharedAuth';
 
 type Gig = Database['public']['Tables']['gigs']['Row'];
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
@@ -114,10 +114,10 @@ export function useCreateGig() {
       return data as Gig;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.gigs(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.gigs(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
       }
     },
   });
@@ -158,10 +158,10 @@ export function useUpdateGig() {
       return data as Gig;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.gigs(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.gigs(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
       }
     },
   });
@@ -180,12 +180,12 @@ export function useDeleteGig() {
       if (error) throw error;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.gigs(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.gigs(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(userId) });
       }
     },
   });

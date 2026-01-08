@@ -8,7 +8,7 @@ import type { TaxProfile } from '../tax/engine';
 import type { StateCode } from '../tax/config/2025';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
-import { getSharedUserId } from '../lib/sharedAuth';
+import { getSharedUserId, getCachedUserId } from '../lib/sharedAuth';
 
 interface TaxProfileRow {
   user_id: string;
@@ -118,9 +118,9 @@ export function useUpsertTaxProfile() {
       if (error) throw error;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.taxProfile(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.taxProfile(userId) });
       }
     },
   });

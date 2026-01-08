@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
-import { getSharedUserId } from '../lib/sharedAuth';
+import { getSharedUserId, getCachedUserId } from '../lib/sharedAuth';
 
 type Mileage = Database['public']['Tables']['mileage']['Row'];
 type MileageInsert = Database['public']['Tables']['mileage']['Insert'];
@@ -58,10 +58,10 @@ export function useCreateMileage() {
       return data as Mileage;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
       }
     },
   });
@@ -83,10 +83,10 @@ export function useUpdateMileage() {
       return data as Mileage;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
       }
     },
   });
@@ -105,10 +105,10 @@ export function useDeleteMileage() {
       if (error) throw error;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.mileage(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
       }
     },
   });

@@ -4,7 +4,7 @@ import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
 import { getPlanAndUsage, createExpenseLimitError } from '../lib/planLimits';
-import { getSharedUserId } from '../lib/sharedAuth';
+import { getSharedUserId, getCachedUserId } from '../lib/sharedAuth';
 
 type Expense = Database['public']['Tables']['expenses']['Row'];
 type ExpenseInsert = Database['public']['Tables']['expenses']['Insert'];
@@ -63,10 +63,10 @@ export function useCreateExpense() {
       return data as Expense;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
       }
     },
   });
@@ -91,10 +91,10 @@ export function useUpdateExpense() {
       return data as Expense;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
       }
     },
   });
@@ -105,6 +105,9 @@ export function useDeleteExpense() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      const userId = getCachedUserId();
+      if (!userId) throw new Error('Not authenticated');
+
       const { error } = await supabase
         .from('expenses')
         .delete()
@@ -113,10 +116,10 @@ export function useDeleteExpense() {
       if (error) throw error;
     },
     onSuccess: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(user.id) });
+      const userId = getCachedUserId();
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.expenses(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
       }
     },
   });
