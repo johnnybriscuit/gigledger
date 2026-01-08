@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
-import { FREE_GIG_LIMIT } from '../config/plans';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
+import { getSharedUserId } from '../lib/sharedAuth';
 
 type Gig = Database['public']['Tables']['gigs']['Row'];
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
@@ -30,20 +30,16 @@ export interface GigWithPayer extends Gig {
 }
 
 export function useGigs() {
-  // Get user ID synchronously from session
   const [userId, setUserId] = useState<string | null>(null);
   
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id || null);
-    });
+    getSharedUserId().then(setUserId);
   }, []);
   
   return useQuery({
     queryKey: userId ? queryKeys.gigs(userId) : ['gigs-loading'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!userId) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
         .from('gigs')
@@ -53,7 +49,7 @@ export function useGigs() {
           expenses(id, category, description, amount, notes),
           mileage(id, miles, notes)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('date', { ascending: false });
 
       if (error) throw error;

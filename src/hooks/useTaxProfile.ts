@@ -8,6 +8,7 @@ import type { TaxProfile } from '../tax/engine';
 import type { StateCode } from '../tax/config/2025';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
+import { getSharedUserId } from '../lib/sharedAuth';
 
 interface TaxProfileRow {
   user_id: string;
@@ -31,25 +32,22 @@ export function useTaxProfile() {
   const [userId, setUserId] = useState<string | null>(null);
   
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id || null);
-    });
+    getSharedUserId().then(setUserId);
   }, []);
   
   return useQuery({
     queryKey: userId ? queryKeys.taxProfile(userId) : ['taxProfile-loading'],
     queryFn: async (): Promise<TaxProfile | null> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!userId) {
         console.log('🔵 Tax Profile: No authenticated user');
         return null;
       }
 
-      console.log('🔵 Tax Profile: Fetching for user', user.id);
+      console.log('🔵 Tax Profile: Fetching for user', userId);
       const { data, error } = await supabase
         .from('user_tax_profile')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (error) {

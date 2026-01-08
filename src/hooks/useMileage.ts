@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
+import { getSharedUserId } from '../lib/sharedAuth';
 
 type Mileage = Database['public']['Tables']['mileage']['Row'];
 type MileageInsert = Database['public']['Tables']['mileage']['Insert'];
@@ -15,21 +16,18 @@ export function useMileage() {
   const [userId, setUserId] = useState<string | null>(null);
   
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id || null);
-    });
+    getSharedUserId().then(setUserId);
   }, []);
   
   return useQuery({
     queryKey: userId ? queryKeys.mileage(userId) : ['mileage-loading'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!userId) throw new Error('Not authenticated');
       
       const { data, error } = await supabase
         .from('mileage')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('date', { ascending: false});
 
       if (error) throw error;
