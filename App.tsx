@@ -19,6 +19,7 @@ import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { TermsScreen } from './src/screens/TermsScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen';
+import { LandingScreen } from './src/screens/LandingScreen';
 import { initializeUserData } from './src/services/profileService';
 import { invalidateUserQueries } from './src/lib/queryKeys';
 import { useAppBootstrap } from './src/hooks/useAppBootstrap';
@@ -48,7 +49,7 @@ if (__DEV__) {
 
 function AppContent() {
   const bootstrap = useAppBootstrap();
-  const [currentRoute, setCurrentRoute] = useState<'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('auth');
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('landing');
 
   // Mark when bootstrap completes
   useEffect(() => {
@@ -127,12 +128,25 @@ function AppContent() {
     return <ErrorScreen error={bootstrap.error} onRetry={bootstrap.retry} />;
   }
 
+  // Landing page - shown first to all users
+  if (currentRoute === 'landing') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <LandingScreen 
+          onGetStarted={() => setCurrentRoute('auth')}
+          onSignIn={() => setCurrentRoute('auth')}
+        />
+      </>
+    );
+  }
+
   // Allow Terms page to be accessed without authentication
   if (currentRoute === 'terms') {
     return (
       <>
         <StatusBar style="dark" />
-        <TermsScreen onNavigateBack={() => setCurrentRoute('auth')} />
+        <TermsScreen onNavigateBack={() => setCurrentRoute('landing')} />
       </>
     );
   }
@@ -142,7 +156,7 @@ function AppContent() {
     return (
       <>
         <StatusBar style="dark" />
-        <PrivacyScreen onNavigateBack={() => setCurrentRoute('auth')} />
+        <PrivacyScreen onNavigateBack={() => setCurrentRoute('landing')} />
       </>
     );
   }
@@ -202,7 +216,7 @@ function AppContent() {
     return (
       <>
         <StatusBar style="dark" />
-        <ForgotPasswordScreen onBack={() => setCurrentRoute('auth')} />
+        <ForgotPasswordScreen onBack={() => setCurrentRoute('landing')} />
       </>
     );
   }
@@ -213,8 +227,8 @@ function AppContent() {
       <>
         <StatusBar style="dark" />
         <ResetPasswordScreen 
-          onSuccess={() => setCurrentRoute('auth')}
-          onBack={() => setCurrentRoute('auth')}
+          onSuccess={() => setCurrentRoute('landing')}
+          onBack={() => setCurrentRoute('landing')}
         />
       </>
     );
