@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { getSharedUserId } from '../lib/sharedAuth';
 import { 
   calcTotalTax, 
   type TaxProfile as EngineTaxProfile,
@@ -38,16 +38,13 @@ export function useTaxCalculation(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [hasProfile, setHasProfile] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   
-  const { data: user } = useQuery({
-    queryKey: ['user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-  });
+  useEffect(() => {
+    getSharedUserId().then(setUserId);
+  }, []);
   
-  const { data: profile } = useProfile(user?.id);
+  const { data: profile } = useProfile(userId || undefined);
   const { data: subscription } = useSubscription();
   
   const plan = getResolvedPlan({
@@ -66,18 +63,21 @@ export function useTaxCalculation(
         setLoading(true);
         setError(null);
 
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        // Get userId from shared auth
+        const currentUserId = await getSharedUserId();
+        if (!currentUserId) {
           throw new Error('Not authenticated');
         }
 
-        // Get user's tax profile from user_tax_profile table
-        const { data: taxProfile, error: profileError } = await supabase
-          .from('user_tax_profile')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        // Use useTaxProfile hook data if available, otherwise fetch directly
+        // Note: This direct fetch is kept for backward compatibility
+        const { data: taxProfile, error: profileError } = await import('../lib/supabase').then(m => m.supabase)
+          .then(supabase => supabase
+            .from('user_tax_profile')
+            .select('*')
+            .eq('user_id', currentUserId)
+            .maybeSingle()
+          );
 
         if (profileError) throw profileError;
 

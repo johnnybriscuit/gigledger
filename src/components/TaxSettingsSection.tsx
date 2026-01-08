@@ -21,8 +21,7 @@ import type { StateCode, FilingStatus } from '../tax/config/2025';
 import { useProfile, type BusinessStructure } from '../hooks/useProfile';
 import { useSubscription } from '../hooks/useSubscription';
 import { getResolvedPlan } from '../lib/businessStructure';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
+import { getSharedUserId } from '../lib/sharedAuth';
 
 const TAX_STATES: { code: StateCode; name: string }[] = [
   { code: 'AL', name: 'Alabama' },
@@ -100,16 +99,13 @@ export function TaxSettingsSection({
 }: TaxSettingsSectionProps = {}) {
   const { data: currentProfile, isLoading } = useTaxProfile();
   const upsertProfile = useUpsertTaxProfile();
+  const [userId, setUserId] = useState<string | null>(null);
   
-  const { data: user } = useQuery({
-    queryKey: ['user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-  });
+  useEffect(() => {
+    getSharedUserId().then(setUserId);
+  }, []);
   
-  const { data: profile } = useProfile(user?.id);
+  const { data: profile } = useProfile(userId || undefined);
   const { data: subscription } = useSubscription();
   
   const plan = getResolvedPlan({
