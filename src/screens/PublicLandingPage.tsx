@@ -77,7 +77,7 @@ export function PublicLandingPage({ onGetStarted, onSignIn }: PublicLandingPageP
               </TouchableOpacity>
             </View>
             
-            <Text style={styles.trustBadge}>✓ Free forever • No credit card required</Text>
+            <Text style={styles.trustBadge}>✓ No credit card required to start</Text>
           </View>
         </View>
 
