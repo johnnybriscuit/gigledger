@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,178 +14,223 @@ interface PublicLandingPageProps {
 }
 
 /**
- * Public marketing landing page - mobile-first, no AppShell
+ * Public marketing landing page - Dropbox-style, mobile-first, no AppShell
  * This is the first impression for new users
  */
 export function PublicLandingPage({ onGetStarted, onSignIn }: PublicLandingPageProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const maxWidth = 1200;
 
   return (
-    <ScrollView 
-      style={styles.container} 
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Hero Section */}
-      <View style={[styles.hero, isMobile && styles.heroMobile]}>
-        <View style={[styles.heroContent, isMobile && styles.heroContentMobile]}>
-          <Text style={[styles.logo, isMobile && styles.logoMobile]}>💼 GigLedger</Text>
-          
-          <Text style={[styles.headline, isMobile && styles.headlineMobile]}>
-            Track Your Gig Income.{'\n'}Maximize Your Tax Savings.
-          </Text>
-          
-          <Text style={[styles.subheadline, isMobile && styles.subheadlineMobile]}>
-            The all-in-one platform for freelancers, contractors, and gig workers to manage income, expenses, and taxes with confidence.
-          </Text>
-          
-          <View style={[styles.ctaButtons, isMobile && styles.ctaButtonsMobile]}>
+    <View style={styles.container}>
+      {/* Top Navigation Bar */}
+      <View style={[styles.navBar, isMobile && styles.navBarMobile]}>
+        <View style={[styles.navContent, { maxWidth }, isMobile && styles.navContentMobile]}>
+          <Text style={styles.navLogo}>💼 GigLedger</Text>
+          <View style={[styles.navButtons, isMobile && styles.navButtonsMobile]}>
+            <TouchableOpacity onPress={onSignIn} activeOpacity={0.7}>
+              <Text style={styles.navLinkText}>Log in</Text>
+            </TouchableOpacity>
             <TouchableOpacity 
-              style={[styles.primaryButton, isMobile && styles.primaryButtonMobile]} 
+              style={styles.navPrimaryButton} 
               onPress={onGetStarted}
               activeOpacity={0.8}
             >
-              <Text style={styles.primaryButtonText}>Get Started Free</Text>
+              <Text style={styles.navPrimaryButtonText}>Get started</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView 
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Section */}
+        <View style={[styles.hero, isMobile && styles.heroMobile]}>
+          <View style={[styles.heroContent, { maxWidth }, isMobile && styles.heroContentMobile]}>
+            <Text style={[styles.headline, isMobile && styles.headlineMobile]}>
+              Know what you earned.{'\n'}Know what to set aside.
+            </Text>
             
-            <TouchableOpacity 
-              style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile]} 
-              onPress={onSignIn}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.secondaryButtonText}>Sign In</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.trustBadge}>✓ Free forever • No credit card required</Text>
-        </View>
-      </View>
-
-      {/* How It Works Section */}
-      <View style={[styles.section, isMobile && styles.sectionMobile]}>
-        <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
-          How It Works
-        </Text>
-        
-        <View style={[styles.stepsContainer, isMobile && styles.stepsContainerMobile]}>
-          <StepCard
-            number="1"
-            title="Sign Up Free"
-            description="Create your account in seconds. No credit card required."
-            isMobile={isMobile}
-          />
-          <StepCard
-            number="2"
-            title="Track Your Work"
-            description="Log gigs, expenses, and mileage as you go. Quick and effortless."
-            isMobile={isMobile}
-          />
-          <StepCard
-            number="3"
-            title="Stay Tax-Ready"
-            description="See real-time tax estimates and export reports at tax time."
-            isMobile={isMobile}
-          />
-        </View>
-      </View>
-
-      {/* Features Section */}
-      <View style={[styles.section, styles.featuresSection, isMobile && styles.sectionMobile]}>
-        <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
-          Everything You Need
-        </Text>
-        
-        <View style={[styles.featuresGrid, isMobile && styles.featuresGridMobile]}>
-          <FeatureCard
-            icon="📊"
-            title="Income Tracking"
-            description="Log gigs and track payments with beautiful dashboards."
-            isMobile={isMobile}
-          />
-          <FeatureCard
-            icon="💰"
-            title="Expense Management"
-            description="Capture receipts and maximize your deductions automatically."
-            isMobile={isMobile}
-          />
-          <FeatureCard
-            icon="🧮"
-            title="Tax Calculations"
-            description="Real-time estimates for federal, state, and self-employment taxes."
-            isMobile={isMobile}
-          />
-          <FeatureCard
-            icon="🚗"
-            title="Mileage Tracking"
-            description="IRS-compliant logs. Every mile counts toward deductions."
-            isMobile={isMobile}
-          />
-          <FeatureCard
-            icon="📄"
-            title="Export Reports"
-            description="Generate Schedule C and quarterly reports for your accountant."
-            isMobile={isMobile}
-          />
-          <FeatureCard
-            icon="🔒"
-            title="Secure & Private"
-            description="Bank-level encryption. Your data stays yours. Always."
-            isMobile={isMobile}
-          />
-        </View>
-      </View>
-
-      {/* Pricing Teaser */}
-      <View style={[styles.section, isMobile && styles.sectionMobile]}>
-        <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
-          Simple Pricing
-        </Text>
-        
-        <View style={[styles.pricingContainer, isMobile && styles.pricingContainerMobile]}>
-          <View style={[styles.pricingCard, isMobile && styles.pricingCardMobile]}>
-            <Text style={styles.pricingLabel}>Free Forever</Text>
-            <Text style={styles.pricingAmount}>$0</Text>
-            <Text style={styles.pricingDescription}>
-              Perfect for getting started{'\n'}25 gigs • 50 expenses • Basic features
+            <Text style={[styles.subheadline, isMobile && styles.subheadlineMobile]}>
+              Track gigs, expenses, and exports so tax season isn't a scramble.
             </Text>
-          </View>
-          
-          <View style={[styles.pricingCard, styles.pricingCardPro, isMobile && styles.pricingCardMobile]}>
-            <View style={styles.popularBadge}>
-              <Text style={styles.popularText}>MOST POPULAR</Text>
+            
+            <View style={[styles.ctaButtons, isMobile && styles.ctaButtonsMobile]}>
+              <TouchableOpacity 
+                style={[styles.primaryButton, isMobile && styles.primaryButtonMobile]} 
+                onPress={onGetStarted}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.primaryButtonText}>Create free account</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile]} 
+                onPress={onSignIn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryButtonText}>Log in</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.pricingLabel}>Pro</Text>
-            <Text style={styles.pricingAmount}>$9.99<Text style={styles.pricingPeriod}>/mo</Text></Text>
-            <Text style={styles.pricingDescription}>
-              For serious freelancers{'\n'}Unlimited • Advanced features • Priority support
-            </Text>
+            
+            <Text style={styles.trustBadge}>✓ Free forever • No credit card required</Text>
           </View>
         </View>
-      </View>
 
-      {/* Final CTA */}
-      <View style={[styles.ctaSection, isMobile && styles.ctaSectionMobile]}>
-        <Text style={[styles.ctaTitle, isMobile && styles.ctaTitleMobile]}>
-          Ready to Take Control?
-        </Text>
-        <Text style={[styles.ctaSubtitle, isMobile && styles.ctaSubtitleMobile]}>
-          Join thousands of gig workers who trust GigLedger.
-        </Text>
-        <TouchableOpacity 
-          style={[styles.primaryButton, styles.ctaButton, isMobile && styles.ctaButtonMobile]} 
-          onPress={onGetStarted}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.primaryButtonText}>Get Started Free</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Benefits Section */}
+        <View style={[styles.section, isMobile && styles.sectionMobile]}>
+          <View style={[styles.sectionContent, { maxWidth }]}>
+            <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
+              Built for gig workers
+            </Text>
+            
+            <View style={[styles.benefitsGrid, isMobile && styles.benefitsGridMobile]}>
+              <BenefitCard
+                icon="⚡"
+                title="Track gigs fast"
+                description="Log income in seconds. See what you've earned at a glance."
+                isMobile={isMobile}
+              />
+              <BenefitCard
+                icon="💵"
+                title="See estimated set-aside"
+                description="Know how much to save for taxes. No surprises in April."
+                isMobile={isMobile}
+              />
+              <BenefitCard
+                icon="📤"
+                title="Export for CPA / TurboTax"
+                description="Generate reports your accountant or tax software needs."
+                isMobile={isMobile}
+              />
+              <BenefitCard
+                icon="📅"
+                title="Stay organized all year"
+                description="Track expenses and mileage as you go. Tax-ready anytime."
+                isMobile={isMobile}
+              />
+            </View>
+          </View>
+        </View>
 
-      {/* Footer */}
-      <View style={[styles.footer, isMobile && styles.footerMobile]}>
-        <Text style={styles.footerText}>© 2025 GigLedger. All rights reserved.</Text>
-      </View>
-    </ScrollView>
+        {/* How It Works Section */}
+        <View style={[styles.section, styles.howItWorksSection, isMobile && styles.sectionMobile]}>
+          <View style={[styles.sectionContent, { maxWidth }]}>
+            <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
+              How it works
+            </Text>
+            
+            <View style={[styles.stepsContainer, isMobile && styles.stepsContainerMobile]}>
+              <StepCard
+                number="1"
+                title="Add gig income"
+                description="Log each gig with amount, date, and payer."
+                isMobile={isMobile}
+              />
+              <StepCard
+                number="2"
+                title="Add expenses/mileage"
+                description="Track deductions to lower your tax bill."
+                isMobile={isMobile}
+              />
+              <StepCard
+                number="3"
+                title="Export when ready"
+                description="Download reports for your CPA or tax software."
+                isMobile={isMobile}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Social Proof Section */}
+        <View style={[styles.section, styles.socialProofSection, isMobile && styles.sectionMobile]}>
+          <View style={[styles.sectionContent, { maxWidth }]}>
+            <View style={[styles.socialProofContent, isMobile && styles.socialProofContentMobile]}>
+              <Text style={[styles.socialProofQuote, isMobile && styles.socialProofQuoteMobile]}>
+                "Finally, a simple way to track gig income without the QuickBooks headache."
+              </Text>
+              <Text style={styles.socialProofAttribution}>
+                — Built by a freelance musician who got tired of spreadsheets
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* FAQ Section */}
+        <View style={[styles.section, isMobile && styles.sectionMobile]}>
+          <View style={[styles.sectionContent, { maxWidth }]}>
+            <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
+              Common questions
+            </Text>
+            
+            <View style={[styles.faqContainer, isMobile && styles.faqContainerMobile]}>
+              <FAQItem
+                question="Do I need a CPA?"
+                answer="No. GigLedger helps you track income and expenses, but you can file yourself or export data for your accountant."
+                isMobile={isMobile}
+              />
+              <FAQItem
+                question="Can I use this if I'm an LLC or S-Corp?"
+                answer="Yes. GigLedger works for sole proprietors, LLCs, and S-Corps. Track income and expenses the same way."
+                isMobile={isMobile}
+              />
+              <FAQItem
+                question="Does this replace QuickBooks?"
+                answer="For simple gig tracking, yes. For complex business accounting with invoicing and payroll, QuickBooks is better."
+                isMobile={isMobile}
+              />
+              <FAQItem
+                question="Is this tax advice?"
+                answer="No. GigLedger provides estimates only. Consult a tax professional for advice specific to your situation."
+                isMobile={isMobile}
+              />
+              <FAQItem
+                question="What if I have multiple income sources?"
+                answer="Perfect use case. Track all your gigs, side hustles, and 1099 work in one place."
+                isMobile={isMobile}
+              />
+              <FAQItem
+                question="Can I track mileage?"
+                answer="Yes. Log business miles with IRS-compliant tracking. We calculate the deduction for you."
+                isMobile={isMobile}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Final CTA */}
+        <View style={[styles.ctaSection, isMobile && styles.ctaSectionMobile]}>
+          <View style={[styles.sectionContent, { maxWidth }]}>
+            <Text style={[styles.ctaTitle, isMobile && styles.ctaTitleMobile]}>
+              Ready to feel caught up in 5 minutes?
+            </Text>
+            <View style={[styles.ctaButtons, isMobile && styles.ctaButtonsMobile]}>
+              <TouchableOpacity 
+                style={[styles.primaryButton, styles.ctaButton, isMobile && styles.ctaButtonMobile]} 
+                onPress={onGetStarted}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.primaryButtonText}>Create free account</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onSignIn} activeOpacity={0.7}>
+                <Text style={styles.ctaLinkText}>Log in</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <View style={[styles.footer, isMobile && styles.footerMobile]}>
+          <Text style={styles.footerText}>© 2025 GigLedger. All rights reserved.</Text>
+          <Text style={styles.footerDisclaimer}>Estimates only. Not tax advice.</Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -208,19 +253,45 @@ function StepCard({ number, title, description, isMobile }: StepCardProps) {
   );
 }
 
-interface FeatureCardProps {
+interface BenefitCardProps {
   icon: string;
   title: string;
   description: string;
   isMobile: boolean;
 }
 
-function FeatureCard({ icon, title, description, isMobile }: FeatureCardProps) {
+function BenefitCard({ icon, title, description, isMobile }: BenefitCardProps) {
   return (
-    <View style={[styles.featureCard, isMobile && styles.featureCardMobile]}>
-      <Text style={styles.featureIcon}>{icon}</Text>
-      <Text style={styles.featureTitle}>{title}</Text>
-      <Text style={styles.featureDescription}>{description}</Text>
+    <View style={[styles.benefitCard, isMobile && styles.benefitCardMobile]}>
+      <Text style={styles.benefitIcon}>{icon}</Text>
+      <Text style={styles.benefitTitle}>{title}</Text>
+      <Text style={styles.benefitDescription}>{description}</Text>
+    </View>
+  );
+}
+
+interface FAQItemProps {
+  question: string;
+  answer: string;
+  isMobile: boolean;
+}
+
+function FAQItem({ question, answer, isMobile }: FAQItemProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <View style={[styles.faqItem, isMobile && styles.faqItemMobile]}>
+      <TouchableOpacity 
+        style={styles.faqQuestion}
+        onPress={() => setIsOpen(!isOpen)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.faqQuestionText}>{question}</Text>
+        <Text style={styles.faqToggle}>{isOpen ? '−' : '+'}</Text>
+      </TouchableOpacity>
+      {isOpen && (
+        <Text style={styles.faqAnswer}>{answer}</Text>
+      )}
     </View>
   );
 }
@@ -230,66 +301,109 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
+  scrollContainer: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
   },
   
-  // Hero Section - Mobile-first
-  hero: {
+  // Top Nav Bar
+  navBar: {
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  navBarMobile: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  navContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 'auto',
+    width: '100%',
+  },
+  navContentMobile: {
+    maxWidth: '100%',
+  },
+  navLogo: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  navButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  navButtonsMobile: {
+    gap: 12,
+  },
+  navLinkText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1a1a1a',
+  },
+  navPrimaryButton: {
     backgroundColor: '#0066FF',
-    paddingVertical: 80,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+  },
+  navPrimaryButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
+  // Hero Section
+  hero: {
+    backgroundColor: '#f9fafb',
+    paddingVertical: 96,
     paddingHorizontal: 24,
     alignItems: 'center',
-    minHeight: 500,
   },
   heroMobile: {
-    paddingVertical: 48,
-    paddingHorizontal: 20,
-    minHeight: 'auto',
+    paddingVertical: 64,
+    paddingHorizontal: 16,
   },
   heroContent: {
-    maxWidth: 800,
     width: '100%',
     alignItems: 'center',
   },
   heroContentMobile: {
     maxWidth: '100%',
   },
-  logo: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 32,
-  },
-  logoMobile: {
-    fontSize: 24,
-    marginBottom: 24,
-  },
   headline: {
-    fontSize: 48,
+    fontSize: 56,
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#1a1a1a',
     textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 56,
+    marginBottom: 24,
+    lineHeight: 64,
+    letterSpacing: -1,
   },
   headlineMobile: {
-    fontSize: 32,
-    lineHeight: 38,
-    marginBottom: 16,
+    fontSize: 36,
+    lineHeight: 42,
+    marginBottom: 20,
   },
   subheadline: {
-    fontSize: 18,
-    color: '#E6F0FF',
+    fontSize: 20,
+    color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 28,
+    marginBottom: 40,
+    lineHeight: 30,
     maxWidth: 600,
   },
   subheadlineMobile: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 28,
+    fontSize: 18,
+    lineHeight: 27,
+    marginBottom: 32,
   },
   ctaButtons: {
     flexDirection: 'row',
@@ -302,13 +416,14 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     width: '100%',
     gap: 12,
+    maxWidth: 400,
   },
   primaryButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#0066FF',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 8,
-    minWidth: 160,
+    minWidth: 200,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -321,7 +436,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   primaryButtonText: {
-    color: '#0066FF',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -331,8 +446,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#ffffff',
-    minWidth: 160,
+    borderColor: '#0066FF',
+    minWidth: 200,
     alignItems: 'center',
   },
   secondaryButtonMobile: {
@@ -340,56 +455,97 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   secondaryButtonText: {
-    color: '#ffffff',
+    color: '#0066FF',
     fontSize: 16,
     fontWeight: '600',
   },
   trustBadge: {
-    color: '#E6F0FF',
+    color: '#6b7280',
     fontSize: 14,
     textAlign: 'center',
   },
 
   // Section Styles
   section: {
-    paddingVertical: 64,
+    paddingVertical: 96,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
   sectionMobile: {
-    paddingVertical: 48,
-    paddingHorizontal: 20,
+    paddingVertical: 64,
+    paddingHorizontal: 16,
+  },
+  sectionContent: {
+    width: '100%',
   },
   sectionTitle: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: '700',
     color: '#1a1a1a',
     textAlign: 'center',
-    marginBottom: 48,
+    marginBottom: 64,
+    letterSpacing: -0.5,
   },
   sectionTitleMobile: {
-    fontSize: 28,
-    marginBottom: 32,
+    fontSize: 32,
+    marginBottom: 48,
+  },
+
+  // Benefits Section
+  benefitsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 32,
+    justifyContent: 'center',
+  },
+  benefitsGridMobile: {
+    flexDirection: 'column',
+    gap: 32,
+  },
+  benefitCard: {
+    flex: 1,
+    minWidth: 250,
+    maxWidth: 280,
+  },
+  benefitCardMobile: {
+    maxWidth: '100%',
+    minWidth: 0,
+  },
+  benefitIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  benefitTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  benefitDescription: {
+    fontSize: 16,
+    color: '#6b7280',
+    lineHeight: 24,
   },
 
   // How It Works
+  howItWorksSection: {
+    backgroundColor: '#f9fafb',
+  },
   stepsContainer: {
     flexDirection: 'row',
-    maxWidth: 1000,
-    gap: 32,
+    gap: 48,
     flexWrap: 'wrap',
     justifyContent: 'center',
   },
   stepsContainerMobile: {
     flexDirection: 'column',
-    width: '100%',
-    gap: 32,
+    gap: 40,
   },
   stepCard: {
     alignItems: 'center',
     flex: 1,
     minWidth: 250,
-    maxWidth: 300,
+    maxWidth: 320,
   },
   stepCardMobile: {
     maxWidth: '100%',
@@ -402,7 +558,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0066FF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   stepNumberText: {
     fontSize: 24,
@@ -417,181 +573,141 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   stepDescription: {
-    fontSize: 15,
-    color: '#666666',
-    lineHeight: 22,
+    fontSize: 16,
+    color: '#6b7280',
+    lineHeight: 24,
     textAlign: 'center',
   },
 
-  // Features Section
-  featuresSection: {
-    backgroundColor: '#f8f9fa',
-  },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    maxWidth: 1000,
-    gap: 24,
-    justifyContent: 'center',
-  },
-  featuresGridMobile: {
-    flexDirection: 'column',
-    width: '100%',
-  },
-  featureCard: {
+  // Social Proof Section
+  socialProofSection: {
     backgroundColor: '#ffffff',
-    padding: 24,
-    borderRadius: 12,
-    width: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  featureCardMobile: {
-    width: '100%',
-    padding: 20,
+  socialProofContent: {
+    maxWidth: 700,
+    marginHorizontal: 'auto',
   },
-  featureIcon: {
-    fontSize: 40,
-    marginBottom: 12,
+  socialProofContentMobile: {
+    maxWidth: '100%',
   },
-  featureTitle: {
+  socialProofQuote: {
+    fontSize: 28,
+    fontWeight: '500',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 40,
+    fontStyle: 'italic',
+  },
+  socialProofQuoteMobile: {
+    fontSize: 22,
+    lineHeight: 32,
+  },
+  socialProofAttribution: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+
+  // FAQ Section
+  faqContainer: {
+    maxWidth: 800,
+    marginHorizontal: 'auto',
+  },
+  faqContainerMobile: {
+    maxWidth: '100%',
+  },
+  faqItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    paddingVertical: 24,
+  },
+  faqItemMobile: {
+    paddingVertical: 20,
+  },
+  faqQuestion: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  faqQuestionText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1a1a1a',
-    marginBottom: 8,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 21,
-  },
-
-  // Pricing
-  pricingContainer: {
-    flexDirection: 'row',
-    gap: 24,
-    maxWidth: 700,
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  pricingContainerMobile: {
-    flexDirection: 'column',
-    width: '100%',
-  },
-  pricingCard: {
-    backgroundColor: '#ffffff',
-    padding: 32,
-    borderRadius: 12,
     flex: 1,
-    minWidth: 280,
-    maxWidth: 320,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-    alignItems: 'center',
-    position: 'relative',
+    paddingRight: 16,
   },
-  pricingCardMobile: {
-    maxWidth: '100%',
-    minWidth: 0,
-  },
-  pricingCardPro: {
-    borderWidth: 2,
-    borderColor: '#0066FF',
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: -12,
-    backgroundColor: '#0066FF',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  popularText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  pricingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666666',
-    marginBottom: 8,
-  },
-  pricingAmount: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#0066FF',
-    marginBottom: 12,
-  },
-  pricingPeriod: {
-    fontSize: 16,
-    color: '#666666',
-  },
-  pricingDescription: {
-    fontSize: 14,
-    color: '#666666',
+  faqToggle: {
+    fontSize: 24,
+    fontWeight: '300',
+    color: '#6b7280',
+    width: 24,
     textAlign: 'center',
-    lineHeight: 21,
+  },
+  faqAnswer: {
+    fontSize: 16,
+    color: '#6b7280',
+    lineHeight: 24,
+    marginTop: 12,
+    paddingRight: 40,
   },
 
   // CTA Section
   ctaSection: {
     backgroundColor: '#0066FF',
-    paddingVertical: 64,
+    paddingVertical: 96,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
   ctaSectionMobile: {
-    paddingVertical: 48,
-    paddingHorizontal: 20,
+    paddingVertical: 64,
+    paddingHorizontal: 16,
   },
   ctaTitle: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: '700',
     color: '#ffffff',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 32,
+    letterSpacing: -0.5,
   },
   ctaTitleMobile: {
-    fontSize: 28,
-  },
-  ctaSubtitle: {
-    fontSize: 16,
-    color: '#E6F0FF',
-    textAlign: 'center',
+    fontSize: 32,
     marginBottom: 28,
-    maxWidth: 500,
-  },
-  ctaSubtitleMobile: {
-    fontSize: 15,
   },
   ctaButton: {
-    minWidth: 200,
+    backgroundColor: '#ffffff',
   },
   ctaButtonMobile: {
-    width: '100%',
-    maxWidth: 320,
+    maxWidth: 400,
+  },
+  ctaLinkText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginTop: 16,
   },
 
   // Footer
   footer: {
     backgroundColor: '#1a1a1a',
-    paddingVertical: 32,
+    paddingVertical: 48,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
   footerMobile: {
-    paddingVertical: 24,
-    paddingHorizontal: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 16,
   },
   footerText: {
-    color: '#999999',
+    color: '#9ca3af',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  footerDisclaimer: {
+    color: '#6b7280',
     fontSize: 13,
+    fontStyle: 'italic',
   },
 });
