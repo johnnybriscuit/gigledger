@@ -19,7 +19,7 @@ import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { TermsScreen } from './src/screens/TermsScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen';
-import { LandingScreen } from './src/screens/LandingScreen';
+import { PublicLandingPage } from './src/screens/PublicLandingPage';
 import { initializeUserData } from './src/services/profileService';
 import { invalidateUserQueries } from './src/lib/queryKeys';
 import { useAppBootstrap } from './src/hooks/useAppBootstrap';
@@ -128,12 +128,12 @@ function AppContent() {
     return <ErrorScreen error={bootstrap.error} onRetry={bootstrap.retry} />;
   }
 
-  // Landing page - shown first to all users
+  // Landing page - shown first to all users (NO AppShell)
   if (currentRoute === 'landing') {
     return (
       <>
         <StatusBar style="dark" />
-        <LandingScreen 
+        <PublicLandingPage 
           onGetStarted={() => setCurrentRoute('auth')}
           onSignIn={() => setCurrentRoute('auth')}
         />
