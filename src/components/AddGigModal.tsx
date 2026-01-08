@@ -27,6 +27,7 @@ import { useTaxEstimate, calculateMileageDeduction } from '../hooks/useTaxEstima
 import { createGigWithLines, updateGigWithLines } from '../services/gigService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { getSharedUserId } from '../lib/sharedAuth';
 import { useTaxProfile } from '../hooks/useTaxProfile';
 import { taxDeltaForGig, formatTaxAmount, formatTaxRate } from '../tax/engine';
 import { TaxSummary } from './gigs/TaxSummary';
@@ -133,17 +134,14 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   const updateGig = useUpdateGig();
   const queryClient = useQueryClient();
   
-  // Fetch user for profile
-  const { data: user } = useQuery({
-    queryKey: ['user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-  });
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    getSharedUserId().then(setUserId);
+  }, []);
   
   // Fetch user profile with home address
-  const { data: profile } = useProfile(user?.id);
+  const { data: profile } = useProfile(userId || undefined);
   
   // Calculate totals for inline items
   const totalExpenses = inlineExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);

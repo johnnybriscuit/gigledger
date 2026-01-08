@@ -4,8 +4,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
+import { getSharedUserId } from '../lib/sharedAuth';
 
 export type SubscriptionTier = 'free' | 'monthly' | 'yearly';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
@@ -31,21 +33,18 @@ export function useSubscription() {
   const [userId, setUserId] = useState<string | null>(null);
   
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id || null);
-    });
+    getSharedUserId().then(setUserId);
   }, []);
   
   return useQuery({
     queryKey: userId ? queryKeys.subscription(userId) : ['subscription-loading'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!userId) return null;
 
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (error) {
@@ -54,7 +53,7 @@ export function useSubscription() {
           return {
             tier: 'free' as SubscriptionTier,
             status: 'active' as SubscriptionStatus,
-            user_id: user.id,
+            user_id: userId,
           } as Partial<Subscription>;
         }
         throw error;
