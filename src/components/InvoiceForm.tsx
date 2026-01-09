@@ -397,9 +397,16 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel, onNavigateToAccoun
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Payment Methods Accepted</Text>
-        <Text style={styles.helperText}>
-          Payment instructions are pulled from Account → Payment Methods and will appear on the invoice.
-        </Text>
+        <View style={styles.paymentHelperBox}>
+          <Text style={styles.paymentHelperText}>
+            💡 Payment instructions are pulled from <Text style={styles.paymentHelperBold}>Account → Payment Methods</Text>.{' '}
+            {onNavigateToAccount && (
+              <Text style={styles.paymentHelperLink} onPress={onNavigateToAccount}>
+                Edit payment details
+              </Text>
+            )}
+          </Text>
+        </View>
         <View style={styles.paymentMethodsGrid}>
           {PAYMENT_METHODS.map((method) => {
             const isSelected = formData.accepted_payment_methods.find(pm => pm.method === method);
@@ -710,6 +717,27 @@ const styles = StyleSheet.create({
   },
   paymentWarningLink: {
     color: '#2563eb',
+    textDecorationLine: 'underline',
+  },
+  paymentHelperBox: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  paymentHelperText: {
+    fontSize: 13,
+    color: '#1e40af',
+    lineHeight: 18,
+  },
+  paymentHelperBold: {
+    fontWeight: '600',
+  },
+  paymentHelperLink: {
+    color: '#2563eb',
+    fontWeight: '600',
     textDecorationLine: 'underline',
   },
   helperText: {
