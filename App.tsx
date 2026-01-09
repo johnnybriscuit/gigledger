@@ -136,6 +136,8 @@ function AppContent() {
         <PublicLandingPage 
           onGetStarted={() => setCurrentRoute('auth')}
           onSignIn={() => setCurrentRoute('auth')}
+          onNavigateToTerms={() => setCurrentRoute('terms')}
+          onNavigateToPrivacy={() => setCurrentRoute('privacy')}
         />
       </>
     );

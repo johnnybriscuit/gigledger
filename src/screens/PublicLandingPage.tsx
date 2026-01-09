@@ -11,13 +11,15 @@ import {
 interface PublicLandingPageProps {
   onGetStarted: () => void;
   onSignIn: () => void;
+  onNavigateToTerms?: () => void;
+  onNavigateToPrivacy?: () => void;
 }
 
 /**
  * Public marketing landing page - Dropbox-style, mobile-first, no AppShell
  * This is the first impression for new users
  */
-export function PublicLandingPage({ onGetStarted, onSignIn }: PublicLandingPageProps) {
+export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, onNavigateToPrivacy }: PublicLandingPageProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const maxWidth = 1200;
@@ -212,6 +214,15 @@ export function PublicLandingPage({ onGetStarted, onSignIn }: PublicLandingPageP
 
         {/* Footer */}
         <View style={[styles.footer, isMobile && styles.footerMobile]}>
+          <View style={styles.footerLinks}>
+            <TouchableOpacity onPress={onNavigateToTerms} activeOpacity={0.7}>
+              <Text style={styles.footerLink}>Terms of Service</Text>
+            </TouchableOpacity>
+            <Text style={styles.footerDivider}>•</Text>
+            <TouchableOpacity onPress={onNavigateToPrivacy} activeOpacity={0.7}>
+              <Text style={styles.footerLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.footerText}>© 2025 GigLedger. All rights reserved.</Text>
           <Text style={styles.footerDisclaimer}>Estimates only. Not tax advice.</Text>
         </View>
@@ -690,6 +701,21 @@ const styles = StyleSheet.create({
   footerMobile: {
     paddingVertical: 32,
     paddingHorizontal: 16,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 12,
+  },
+  footerLink: {
+    color: '#9ca3af',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
+  footerDivider: {
+    color: '#6b7280',
+    fontSize: 14,
   },
   footerText: {
     color: '#9ca3af',
