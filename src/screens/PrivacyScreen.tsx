@@ -28,12 +28,12 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
 
         {/* Header */}
         <Text style={styles.mainTitle}>GigLedger Privacy Policy</Text>
-        <Text style={styles.effectiveDate}>Effective Date: December 1, 2025</Text>
-        <Text style={styles.effectiveDate}>Last Updated: December 1, 2025</Text>
+        <Text style={styles.effectiveDate}>Effective Date: Upon Acceptance</Text>
+        <Text style={styles.effectiveDate}>Last Updated: January 9, 2026</Text>
 
         {/* Introduction */}
         <Text style={styles.paragraph}>
-          GigLedger LLC ("GigLedger," "we," "us," or "our") provides tools that help musicians and other gig-based workers track income, gigs, expenses, mileage, and related financial activity via our web and mobile applications (the "Service") and our website(s), including gigledger.com and related subdomains (the "Website").
+          GigLedger ("GigLedger," "we," "us," or "our") provides tools that help musicians and other gig-based workers track income, gigs, expenses, mileage, and related financial activity via our web and mobile applications (the "Service") and any websites we operate (the "Website").
         </Text>
         <Text style={styles.paragraph}>
           This Privacy Policy ("Policy") explains how we collect, use, disclose, and protect information in connection with the Service and Website, and the choices you have.
@@ -45,7 +45,7 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
           If you do not agree, please do not use GigLedger.
         </Text>
         <Text style={styles.paragraph}>
-          If you have questions, contact us at support@gigledger.com.
+          If you have questions, contact us at gigledgers@gmail.com.
         </Text>
 
         {/* Table of Contents */}
@@ -111,7 +111,7 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
             If we learn that we have collected personal information from a child, we will delete it.
           </Text>
           <Text style={styles.paragraph}>
-            If you believe a child has provided us information, please contact support@gigledger.com.
+            If you believe a child has provided us information, please contact gigledgers@gmail.com.
           </Text>
         </View>
 
@@ -323,7 +323,7 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
           <Text style={styles.listItem}>• Request a copy of your data in a portable format;</Text>
           <Text style={styles.listItem}>• Opt out of non-essential marketing communications.</Text>
           <Text style={styles.paragraph}>
-            You can exercise many of these controls directly in your account settings (e.g., updating profile info, exports, email preferences). For other requests, contact us at support@gigledger.com. We may verify your identity before acting on your request.
+            You can exercise many of these controls directly in your account settings (e.g., updating profile info, exports, email preferences). For other requests, contact us at gigledgers@gmail.com. We may verify your identity before acting on your request.
           </Text>
           <Text style={styles.paragraph}>
             We will not discriminate against you for exercising your privacy rights.
@@ -341,7 +341,7 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
           <Text style={styles.listItem}>• Access controls and role-based permissions;</Text>
           <Text style={styles.listItem}>• Logging and monitoring for suspicious activity.</Text>
           <Text style={styles.paragraph}>
-            However, no system is 100% secure. If you believe your account or data has been compromised, please contact us immediately at support@gigledger.com.
+            However, no system is 100% secure. If you believe your account or data has been compromised, please contact us immediately at gigledgers@gmail.com.
           </Text>
         </View>
 
@@ -365,7 +365,7 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
           
           <Text style={styles.subsectionTitle}>California Residents (CCPA/CPRA)</Text>
           <Text style={styles.paragraph}>
-            If applicable law grants you specific rights (e.g., access, deletion, information about categories of information collected and disclosed), you may exercise them by contacting support@gigledger.com. GigLedger does not sell personal information as defined under California law.
+            If applicable law grants you specific rights (e.g., access, deletion, information about categories of information collected and disclosed), you may exercise them by contacting gigledgers@gmail.com. GigLedger does not sell personal information as defined under California law.
           </Text>
 
           <Text style={styles.subsectionTitle}>Nevada Residents</Text>
@@ -402,10 +402,10 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
             If you have questions about this Policy or our data practices, please contact:
           </Text>
           <Text style={styles.paragraph}>
-            <Text style={styles.bold}>GigLedger LLC</Text>
+            <Text style={styles.bold}>GigLedger</Text>
           </Text>
-          <TouchableOpacity onPress={() => Linking.openURL('mailto:support@gigledger.com?subject=GigLedger Privacy Policy')}>
-            <Text style={styles.emailLink}>Email: support@gigledger.com</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('mailto:gigledgers@gmail.com?subject=GigLedger Privacy Policy')}>
+            <Text style={styles.emailLink}>Email: gigledgers@gmail.com</Text>
           </TouchableOpacity>
           <Text style={styles.paragraph}>
             (Additional contact details can be added once finalized.)

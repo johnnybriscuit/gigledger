@@ -28,18 +28,18 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
 
         {/* Header */}
         <Text style={styles.mainTitle}>GigLedger Terms of Service</Text>
-        <Text style={styles.effectiveDate}>Effective Date: December 1, 2025</Text>
-        <Text style={styles.effectiveDate}>Last Updated: December 1, 2025</Text>
+        <Text style={styles.effectiveDate}>Effective Date: Upon Acceptance</Text>
+        <Text style={styles.effectiveDate}>Last Updated: January 9, 2026</Text>
 
         {/* Introduction */}
         <Text style={styles.paragraph}>
-          These GigLedger Terms of Service ("Terms") are a legal agreement between you ("you" or "User") and GigLedger LLC ("GigLedger," "we," "us," or "our") governing your access to and use of:
+          These GigLedger Terms of Service ("Terms") are a legal agreement between you ("you" or "User") and GigLedger ("GigLedger," "we," "us," or "our") governing your access to and use of:
         </Text>
         <Text style={styles.paragraph}>
           The GigLedger web application, mobile application(s), and related tools for tracking income, gigs, payers, expenses, mileage, and tax estimates (collectively, the "Service"); and
         </Text>
         <Text style={styles.paragraph}>
-          Any websites we operate, including gigledger.com and its subdomains (the "Website").
+          Any websites we operate, including the website/URL where you access the Service (the "Website").
         </Text>
         <Text style={styles.paragraph}>
           GigLedger is designed primarily for musicians and other gig-based workers in the United States to help organize income & expenses and generate informational summaries and exports for tax preparation. GigLedger does not hold client funds, process payments, or provide tax, legal, or accounting advice.
@@ -150,7 +150,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           <Text style={styles.listItem}>• All activity that occurs under your account, whether authorized or not.</Text>
           <Text style={styles.listItem}>• Maintaining the confidentiality of your password and login.</Text>
           <Text style={styles.paragraph}>
-            If you suspect unauthorized access, email us promptly at support@gigledger.com. We may require information to verify your identity before restoring or modifying access.
+            If you suspect unauthorized access, email us promptly at gigledgers@gmail.com. We may require information to verify your identity before restoring or modifying access.
           </Text>
           <Text style={styles.paragraph}>
             GigLedger is not liable for losses arising from unauthorized use of your account. You may be liable for losses GigLedger or others incur due to such use.
@@ -255,7 +255,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
         <View nativeID="section7" style={styles.section}>
           <Text style={styles.sectionTitle}>7. Privacy</Text>
           <Text style={styles.paragraph}>
-            Your use of GigLedger is subject to our Privacy Policy (which will live at gigledger.com/privacy), describing how we collect, use, and protect your information. By using the Service, you consent to our data practices as described there.
+            Your use of GigLedger is subject to our Privacy Policy, describing how we collect, use, and protect your information. By using the Service, you consent to our data practices as described there.
           </Text>
         </View>
 
@@ -279,13 +279,15 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
         {/* Section 9 */}
         <View nativeID="section9" style={styles.section}>
           <Text style={styles.sectionTitle}>9. Subscriptions, Billing, Cancellation & Data Retention</Text>
+          <Text style={styles.subsectionTitle}>9.1 Subscriptions & Pricing</Text>
           <Text style={styles.paragraph}>
-            Details here are general; your actual plans/prices can plug into this.
+            GigLedger offers the following plans:
           </Text>
-
-          <Text style={styles.subsectionTitle}>9.1 Subscriptions</Text>
+          <Text style={styles.listItem}>• Free Plan: Up to 20 gigs and up to 20 expenses per account.</Text>
+          <Text style={styles.listItem}>• Pro Monthly: $5/month for unlimited gigs and expenses.</Text>
+          <Text style={styles.listItem}>• Pro Annual: $50/year for unlimited gigs and expenses.</Text>
           <Text style={styles.paragraph}>
-            Some features may require a paid subscription. Plan details, pricing, and billing terms are shown at signup or within the app and are incorporated into these Terms.
+            Plan details, features, and billing terms are shown at signup or within the app and are incorporated into these Terms.
           </Text>
 
           <Text style={styles.subsectionTitle}>9.2 Renewals & Cancellation</Text>
@@ -304,7 +306,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
 
           <Text style={styles.subsectionTitle}>9.3 Data Retention</Text>
           <Text style={styles.paragraph}>Upon cancellation or expiration:</Text>
-          <Text style={styles.listItem}>• We may keep your account in a limited/disabled state for a defined retention period (e.g., 60–90 days) to allow exports.</Text>
+          <Text style={styles.listItem}>• We may keep your account in a limited/disabled state for a retention period of 90 days to allow exports.</Text>
           <Text style={styles.listItem}>• After that period, we may permanently delete your data from active systems, subject to legal retention obligations.</Text>
           <Text style={styles.listItem}>• You are responsible for exporting and backing up your records.</Text>
         </View>
@@ -346,7 +348,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
         <View nativeID="section11" style={styles.section}>
           <Text style={styles.sectionTitle}>11. Indemnification</Text>
           <Text style={styles.paragraph}>
-            You agree to indemnify and hold harmless GigLedger and its members, managers, employees, and agents from and against any claims, damages, losses, liabilities, and expenses (including reasonable attorneys' fees) arising out of or related to:
+            You agree to indemnify and hold harmless GigLedger and its owners, representatives, employees, and agents from and against any claims, damages, losses, liabilities, and expenses (including reasonable attorneys' fees) arising out of or related to:
           </Text>
           <Text style={styles.listItem}>• Your use of the Service,</Text>
           <Text style={styles.listItem}>• Your User Data,</Text>
@@ -376,7 +378,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           </Text>
           <Text style={styles.paragraph}>To help resolve issues efficiently:</Text>
           <Text style={styles.paragraph}>
-            You agree to first contact us at support@gigledger.com so we can try to resolve any dispute informally.
+            You agree to first contact us at gigledgers@gmail.com so we can try to resolve any dispute informally.
           </Text>
           <Text style={styles.paragraph}>
             If we cannot resolve it informally, any dispute, claim, or controversy arising out of or relating to these Terms or your use of the Service will be resolved by binding arbitration (not in court), except that:
@@ -432,7 +434,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
             <Text style={styles.bold}>Survival.</Text> Provisions that by nature should survive (e.g., limitations, arbitration, IP, indemnity) will survive termination.
           </Text>
           <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Notices.</Text> We may send notices via email or in-app. You can contact us at: support@gigledger.com.
+            <Text style={styles.bold}>Notices.</Text> We may send notices via email or in-app. You can contact us at: gigledgers@gmail.com.
           </Text>
         </View>
 
@@ -442,8 +444,8 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           <Text style={styles.paragraph}>
             If you have any questions about these Terms, contact us at:
           </Text>
-          <TouchableOpacity onPress={() => Linking.openURL('mailto:support@gigledger.com?subject=GigLedger Terms of Service')}>
-            <Text style={styles.emailLink}>support@gigledger.com</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('mailto:gigledgers@gmail.com?subject=GigLedger Terms of Service')}>
+            <Text style={styles.emailLink}>gigledgers@gmail.com</Text>
           </TouchableOpacity>
           <Text style={styles.paragraph}>
             Subject line: "GigLedger Terms of Service"
