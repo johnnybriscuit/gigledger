@@ -57,7 +57,18 @@ export function SendInvoiceModal({ invoice, visible, onClose, onSuccess }: SendI
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Send invoice error:', errorData);
-        throw new Error(errorData.error || 'Failed to send invoice');
+        
+        // Check for Resend testing mode limitation
+        if (errorData.message && errorData.message.includes('send testing emails to your own email')) {
+          Alert.alert(
+            'Email Service in Testing Mode',
+            `The email service is currently in testing mode and can only send to verified addresses. For now, please manually send the invoice to ${formData.recipientEmail}.\n\nYou can download the invoice using the Download button.`,
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        
+        throw new Error(errorData.error || errorData.message || 'Failed to send invoice');
       }
 
       Alert.alert('Success', `Invoice sent to ${formData.recipientEmail}`);
