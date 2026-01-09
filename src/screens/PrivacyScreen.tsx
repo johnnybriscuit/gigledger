@@ -279,6 +279,11 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
           <Text style={styles.paragraph}>
             You can manage cookies via your browser settings and (where implemented) our cookie preferences banner. Disabling certain cookies may affect Service functionality.
           </Text>
+          
+          <Text style={styles.subsectionTitle}>Analytics</Text>
+          <Text style={styles.paragraph}>
+            We may use analytics tools to understand how users interact with the Service, measure performance, and improve the user experience. These tools may collect information such as page views, feature usage, and session duration. Any data collected is used in accordance with this Privacy Policy.
+          </Text>
         </View>
 
         {/* Section 7 */}
