@@ -23,7 +23,7 @@ interface InvoicesScreenProps {
 
 export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}) {
   const { settings, loading: settingsLoading } = useInvoiceSettings();
-  const { updateInvoiceStatus, deleteInvoice } = useInvoices();
+  const { updateInvoiceStatus, deleteInvoice, deletePayment } = useInvoices();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -141,6 +141,15 @@ export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}
     setSelectedInvoice(null);
   };
 
+  const handleDeletePayment = async (paymentId: string) => {
+    try {
+      await deletePayment(paymentId);
+      Alert.alert('Success', 'Payment deleted successfully');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to delete payment');
+    }
+  };
+
   if (settingsLoading) {
     return (
       <View style={styles.container}>
@@ -256,7 +265,11 @@ export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}
             </TouchableOpacity>
           </View>
 
-          <InvoiceTemplate invoice={selectedInvoice} settings={settings} />
+          <InvoiceTemplate 
+            invoice={selectedInvoice} 
+            settings={settings} 
+            onDeletePayment={handleDeletePayment}
+          />
 
           {showPaymentModal && (
             <RecordPaymentModal

@@ -278,6 +278,31 @@ export function useInvoices() {
     }
   };
 
+  const deletePayment = async (paymentId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      console.log('Deleting payment:', paymentId);
+
+      const { error: deleteError } = await supabase
+        .from('invoice_payments' as any)
+        .delete()
+        .eq('id', paymentId);
+
+      if (deleteError) {
+        console.error('Payment delete error:', deleteError);
+        throw new Error(deleteError.message || 'Failed to delete payment');
+      }
+
+      console.log('Payment deleted successfully');
+      await fetchInvoices();
+    } catch (err: any) {
+      console.error('Error deleting payment:', err);
+      throw new Error(err.message || 'Failed to delete payment');
+    }
+  };
+
   const duplicateInvoice = async (invoiceId: string) => {
     try {
       const invoice = invoices.find(i => i.id === invoiceId);
@@ -320,6 +345,7 @@ export function useInvoices() {
     deleteInvoice,
     updateInvoiceStatus,
     recordPayment,
+    deletePayment,
     duplicateInvoice,
     refetch: fetchInvoices
   };

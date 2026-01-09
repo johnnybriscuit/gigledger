@@ -1,13 +1,28 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Invoice, InvoiceSettings, formatCurrency } from '../types/invoice';
 
 interface InvoiceTemplateProps {
   invoice: Invoice;
   settings: InvoiceSettings;
+  onDeletePayment?: (paymentId: string) => void;
 }
 
-export function InvoiceTemplate({ invoice, settings }: InvoiceTemplateProps) {
+export function InvoiceTemplate({ invoice, settings, onDeletePayment }: InvoiceTemplateProps) {
+  const handleDeletePayment = (paymentId: string, paymentAmount: number) => {
+    Alert.alert(
+      'Delete Payment',
+      `Are you sure you want to delete this payment of ${formatCurrency(paymentAmount, invoice.currency)}? This will update the invoice status.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDeletePayment?.(paymentId)
+        }
+      ]
+    );
+  };
   const getColorScheme = () => {
     switch (settings.color_scheme) {
       case 'blue':
@@ -146,6 +161,38 @@ export function InvoiceTemplate({ invoice, settings }: InvoiceTemplateProps) {
           <View style={styles.termsSection}>
             <Text style={styles.termsSectionLabel}>Notes:</Text>
             <Text style={styles.termsSectionText}>{invoice.notes}</Text>
+          </View>
+        )}
+
+        {invoice.payments && invoice.payments.length > 0 && (
+          <View style={styles.paymentsSection}>
+            <Text style={styles.paymentsSectionTitle}>Payment History</Text>
+            {invoice.payments.map((payment) => (
+              <View key={payment.id} style={styles.paymentRow}>
+                <View style={styles.paymentInfo}>
+                  <Text style={styles.paymentDate}>
+                    {new Date(payment.payment_date).toLocaleDateString()}
+                  </Text>
+                  <Text style={styles.paymentMethod}>{payment.payment_method}</Text>
+                  {payment.reference_number && (
+                    <Text style={styles.paymentReference}>Ref: {payment.reference_number}</Text>
+                  )}
+                </View>
+                <View style={styles.paymentRight}>
+                  <Text style={styles.paymentAmount}>
+                    {formatCurrency(payment.amount, invoice.currency)}
+                  </Text>
+                  {onDeletePayment && (
+                    <TouchableOpacity
+                      onPress={() => handleDeletePayment(payment.id, payment.amount)}
+                      style={styles.deletePaymentButton}
+                    >
+                      <Text style={styles.deletePaymentText}>✕ Undo</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
           </View>
         )}
 
@@ -341,5 +388,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     fontStyle: 'italic',
+  },
+  paymentsSection: {
+    marginTop: 24,
+    marginBottom: 16,
+    borderTopWidth: 2,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 16,
+  },
+  paymentsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  paymentInfo: {
+    flex: 1,
+  },
+  paymentDate: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  paymentMethod: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  paymentReference: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  paymentRight: {
+    alignItems: 'flex-end',
+  },
+  paymentAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#059669',
+    marginBottom: 4,
+  },
+  deletePaymentButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#fee2e2',
+    borderRadius: 4,
+  },
+  deletePaymentText: {
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '600',
   },
 });
