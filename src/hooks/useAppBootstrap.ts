@@ -72,13 +72,16 @@ export function useAppBootstrap() {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     let cancelled = false;
+    const runId = Math.random().toString(36).substring(7); // Unique ID for this bootstrap run
 
     async function bootstrap() {
-      console.log('🟡 Bootstrap: Starting...');
+      console.log(`🟡 Bootstrap [${runId}]: Starting...`);
       try {
         // Set timeout to prevent infinite loading
+        console.log(`🟡 Bootstrap [${runId}]: Timeout set (${BOOTSTRAP_TIMEOUT}ms)`);
         timeoutId = setTimeout(() => {
           if (!cancelled) {
+            console.error(`🔴 Bootstrap [${runId}]: TIMEOUT FIRED after ${BOOTSTRAP_TIMEOUT}ms`);
             setStatus(prev => ({
               ...prev,
               status: 'error',
@@ -95,7 +98,9 @@ export function useAppBootstrap() {
         // If session check fails (e.g., CSRF token error), treat as unauthenticated
         // This allows user to proceed to login screen instead of showing error
         if (sessionError) {
-          console.warn('[Bootstrap] Session error, treating as unauthenticated:', sessionError.message);
+          console.warn(`🟡 Bootstrap [${runId}]: Session error, treating as unauthenticated:`, sessionError.message);
+          console.log(`🟡 Bootstrap [${runId}]: Timeout cleared (session error)`);
+          clearTimeout(timeoutId); // Clear timeout immediately
           setStatus({
             status: 'unauthenticated',
             debug: {
@@ -112,6 +117,9 @@ export function useAppBootstrap() {
         }
 
         if (!session) {
+          console.log(`🟡 Bootstrap [${runId}]: No session found, returning unauthenticated status`);
+          console.log(`🟡 Bootstrap [${runId}]: Timeout cleared (no session)`);
+          clearTimeout(timeoutId); // Clear timeout immediately - no need to wait
           setStatus({
             status: 'unauthenticated',
             debug: {
@@ -224,6 +232,8 @@ export function useAppBootstrap() {
         });
 
         // Bootstrap complete
+        console.log(`🟢 Bootstrap [${runId}]: Complete! Timeout cleared.`);
+        clearTimeout(timeoutId);
         setStatus({
           status: 'ready',
           debug: {
@@ -236,17 +246,16 @@ export function useAppBootstrap() {
           session,
           needsOnboarding: !profile.onboarding_complete,
         });
-
-        clearTimeout(timeoutId);
       } catch (error: any) {
         if (!cancelled) {
-          console.error('[Bootstrap] Error:', error);
+          console.error(`🔴 Bootstrap [${runId}]: Error:`, error);
+          console.log(`🟡 Bootstrap [${runId}]: Timeout cleared (error)`);
+          clearTimeout(timeoutId);
           setStatus(prev => ({
             ...prev,
             status: 'error',
             error: error.message || 'Failed to initialize app',
           }));
-          clearTimeout(timeoutId);
         }
       }
     }
@@ -254,6 +263,7 @@ export function useAppBootstrap() {
     bootstrap();
 
     return () => {
+      console.log(`🟡 Bootstrap [${runId}]: Cleanup - cancelled and timeout cleared`);
       cancelled = true;
       clearTimeout(timeoutId);
     };
