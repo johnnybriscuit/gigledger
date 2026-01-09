@@ -10,18 +10,22 @@ interface InvoiceTemplateProps {
 
 export function InvoiceTemplate({ invoice, settings, onDeletePayment }: InvoiceTemplateProps) {
   const handleDeletePayment = (paymentId: string, paymentAmount: number) => {
-    Alert.alert(
-      'Delete Payment',
-      `Are you sure you want to delete this payment of ${formatCurrency(paymentAmount, invoice.currency)}? This will update the invoice status.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => onDeletePayment?.(paymentId)
-        }
-      ]
+    console.log('Delete payment clicked:', paymentId, paymentAmount);
+    
+    if (!onDeletePayment) {
+      console.error('onDeletePayment callback not provided');
+      return;
+    }
+
+    // Use window.confirm for web compatibility
+    const confirmed = window.confirm(
+      `Are you sure you want to delete this payment of ${formatCurrency(paymentAmount, invoice.currency)}? This will update the invoice status.`
     );
+
+    if (confirmed) {
+      console.log('Delete confirmed, calling onDeletePayment');
+      onDeletePayment(paymentId);
+    }
   };
   const getColorScheme = () => {
     switch (settings.color_scheme) {
@@ -444,10 +448,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     backgroundColor: '#fee2e2',
     borderRadius: 4,
+    cursor: 'pointer',
   },
   deletePaymentText: {
     fontSize: 12,
     color: '#dc2626',
     fontWeight: '600',
+    userSelect: 'none',
   },
 });
