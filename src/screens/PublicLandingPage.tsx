@@ -147,20 +147,6 @@ export function PublicLandingPage({ onGetStarted, onSignIn }: PublicLandingPageP
           </View>
         </View>
 
-        {/* Social Proof Section */}
-        <View style={[styles.section, styles.socialProofSection, isMobile && styles.sectionMobile]}>
-          <View style={[styles.sectionContent, { maxWidth }]}>
-            <View style={[styles.socialProofContent, isMobile && styles.socialProofContentMobile]}>
-              <Text style={[styles.socialProofQuote, isMobile && styles.socialProofQuoteMobile]}>
-                "Finally, a simple way to track gig income without the QuickBooks headache."
-              </Text>
-              <Text style={styles.socialProofAttribution}>
-                — Built by a freelance musician who got tired of spreadsheets
-              </Text>
-            </View>
-          </View>
-        </View>
-
         {/* FAQ Section */}
         <View style={[styles.section, isMobile && styles.sectionMobile]}>
           <View style={[styles.sectionContent, { maxWidth }]}>
