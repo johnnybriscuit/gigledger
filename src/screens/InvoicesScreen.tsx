@@ -144,9 +144,12 @@ export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}
   const handleDeletePayment = async (paymentId: string) => {
     try {
       await deletePayment(paymentId);
-      Alert.alert('Success', 'Payment deleted successfully');
+      // Navigate back to list so user can see updated invoice status
+      setViewMode('list');
+      setSelectedInvoice(null);
+      window.alert('Payment deleted successfully. Invoice status updated.');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to delete payment');
+      window.alert(error.message || 'Failed to delete payment');
     }
   };
 
