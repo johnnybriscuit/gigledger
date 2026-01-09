@@ -51,13 +51,19 @@ function AppContent() {
   const bootstrap = useAppBootstrap();
   const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('landing');
 
-  // Mark when bootstrap completes
+  // Mark when bootstrap completes and auto-route authenticated users
   useEffect(() => {
     if (bootstrap.status === 'ready') {
       perf.mark('bootstrap-ready');
       console.log('[Perf] Bootstrap ready. View full report with: perf.getReport()');
+      
+      // Auto-route to dashboard if user just logged in and is still on landing/auth route
+      if (currentRoute === 'landing' || currentRoute === 'auth') {
+        console.log('[Routing] User authenticated, redirecting to dashboard');
+        setCurrentRoute('dashboard');
+      }
     }
-  }, [bootstrap.status]);
+  }, [bootstrap.status, currentRoute]);
 
   // Listen for auth changes (sign out)
   useEffect(() => {
