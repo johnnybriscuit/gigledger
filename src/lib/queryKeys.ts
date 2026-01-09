@@ -51,6 +51,9 @@ export const queryKeys = {
   // Exports
   exports: (userId: string, type?: string) =>
     type ? ['exports', userId, type] as const : ['exports', userId] as const,
+  
+  // Payment methods
+  paymentMethods: (userId: string) => ['payment-methods', userId] as const,
 } as const;
 
 /**
