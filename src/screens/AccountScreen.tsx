@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -217,14 +217,18 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
   const { data: paymentMethods = [] } = usePaymentMethodDetails(user?.id);
   const upsertPaymentMethod = useUpsertPaymentMethodDetail(user?.id || '');
 
-  // Initialize payment method details from fetched data
+  // Track if we've initialized to prevent cursor jumping
+  const initializedRef = useRef(false);
+
+  // Initialize payment method details from fetched data (only once)
   useEffect(() => {
-    if (paymentMethods.length > 0) {
+    if (paymentMethods.length > 0 && !initializedRef.current) {
       const newDetails = { ...paymentMethodDetails };
       paymentMethods.forEach((pm) => {
         newDetails[pm.method] = { enabled: pm.enabled, details: pm.details };
       });
       setPaymentMethodDetails(newDetails);
+      initializedRef.current = true;
     }
   }, [paymentMethods]);
 

@@ -157,6 +157,11 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
               <Text style={styles.emptyStateCTAText}>Create Invoice</Text>
             </TouchableOpacity>
           )}
+          <View style={styles.reminderBox}>
+            <Text style={styles.reminderText}>
+              💡 <Text style={styles.reminderBold}>Tip:</Text> Configure payment methods (Venmo, Zelle, PayPal, Cash App) in <Text style={styles.reminderBold}>Account → Payment Methods</Text> to include payment instructions on your invoices.
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -165,6 +170,13 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
   // Has invoices - show full UI with metrics, search, filters
   return (
     <View style={styles.container}>
+      {/* Payment Methods Reminder */}
+      <View style={styles.reminderBanner}>
+        <Text style={styles.reminderBannerText}>
+          💡 <Text style={styles.reminderBannerBold}>Tip:</Text> Add payment details in <Text style={styles.reminderBannerBold}>Account → Payment Methods</Text> to include payment instructions on invoices.
+        </Text>
+      </View>
+
       <View style={styles.metricsContainer}>
         <View style={styles.metricCard}>
           <Text style={styles.metricLabel}>Outstanding</Text>
@@ -593,6 +605,40 @@ const styles = StyleSheet.create({
   },
   balanceDue: {
     color: '#2563eb',
+    fontWeight: '600',
+  },
+  reminderBanner: {
+    backgroundColor: '#eff6ff',
+    borderLeftWidth: 4,
+    borderLeftColor: '#2563eb',
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    borderRadius: 8,
+  },
+  reminderBannerText: {
+    fontSize: 13,
+    color: '#1e40af',
+    lineHeight: 18,
+  },
+  reminderBannerBold: {
+    fontWeight: '600',
+  },
+  reminderBox: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 24,
+  },
+  reminderText: {
+    fontSize: 14,
+    color: '#1e40af',
+    lineHeight: 20,
+  },
+  reminderBold: {
     fontWeight: '600',
   },
 });
