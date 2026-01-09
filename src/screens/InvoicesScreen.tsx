@@ -9,12 +9,19 @@ import { SendInvoiceModal } from '../components/SendInvoiceModal';
 import { DuplicateInvoiceModal } from '../components/DuplicateInvoiceModal';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { useInvoices } from '../hooks/useInvoices';
+import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
+import { supabase } from '../lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
-export function InvoicesScreen() {
+interface InvoicesScreenProps {
+  onNavigateToAccount?: () => void;
+}
+
+export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}) {
   const { settings, loading: settingsLoading } = useInvoiceSettings();
   const { updateInvoiceStatus, deleteInvoice } = useInvoices();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -22,6 +29,16 @@ export function InvoicesScreen() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+
+  // Fetch user and payment method details for invoice export
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+  const { data: paymentMethods = [] } = usePaymentMethodDetails(user?.id);
 
   const handleSelectInvoice = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
@@ -85,13 +102,13 @@ export function InvoicesScreen() {
 
   const handleDownload = () => {
     if (selectedInvoice && settings) {
-      downloadInvoiceHTML(selectedInvoice, settings);
+      downloadInvoiceHTML(selectedInvoice, settings, paymentMethods);
     }
   };
 
   const handlePrint = () => {
     if (selectedInvoice && settings) {
-      printInvoice(selectedInvoice, settings);
+      printInvoice(selectedInvoice, settings, paymentMethods);
     }
   };
 
@@ -172,6 +189,7 @@ export function InvoicesScreen() {
           <InvoiceForm
             onSuccess={handleFormSuccess}
             onCancel={() => setViewMode('list')}
+            onNavigateToAccount={onNavigateToAccount}
           />
         </>
       )}
@@ -189,6 +207,7 @@ export function InvoicesScreen() {
             invoiceId={selectedInvoice.id}
             onSuccess={handleFormSuccess}
             onCancel={() => setViewMode('view')}
+            onNavigateToAccount={onNavigateToAccount}
           />
         </>
       )}

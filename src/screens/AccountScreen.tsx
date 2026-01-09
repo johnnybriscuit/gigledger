@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Switch,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { formatRelativeTime } from '../lib/profile';
 import { H1, H2, Text, Button, Card } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
+import { usePaymentMethodDetails, useUpsertPaymentMethodDetail, PaymentMethod } from '../hooks/usePaymentMethodDetails';
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' },
@@ -92,6 +94,19 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Payment method states
+  const [paymentMethodDetails, setPaymentMethodDetails] = useState<{
+    venmo: { enabled: boolean; details: string };
+    zelle: { enabled: boolean; details: string };
+    paypal: { enabled: boolean; details: string };
+    cashapp: { enabled: boolean; details: string };
+  }>({
+    venmo: { enabled: false, details: '' },
+    zelle: { enabled: false, details: '' },
+    paypal: { enabled: false, details: '' },
+    cashapp: { enabled: false, details: '' },
+  });
 
   // Fetch user
   const { data: user } = useQuery({
@@ -196,6 +211,62 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
 
   const handleChangePassword = () => {
     changePasswordMutation.mutate();
+  };
+
+  // Fetch payment method details
+  const { data: paymentMethods = [] } = usePaymentMethodDetails(user?.id);
+  const upsertPaymentMethod = useUpsertPaymentMethodDetail(user?.id || '');
+
+  // Initialize payment method details from fetched data
+  useEffect(() => {
+    if (paymentMethods.length > 0) {
+      const newDetails = { ...paymentMethodDetails };
+      paymentMethods.forEach((pm) => {
+        newDetails[pm.method] = { enabled: pm.enabled, details: pm.details };
+      });
+      setPaymentMethodDetails(newDetails);
+    }
+  }, [paymentMethods]);
+
+  const handlePaymentMethodToggle = async (method: PaymentMethod, enabled: boolean) => {
+    const currentDetails = paymentMethodDetails[method].details;
+    setPaymentMethodDetails((prev) => ({
+      ...prev,
+      [method]: { ...prev[method], enabled },
+    }));
+
+    try {
+      await upsertPaymentMethod.mutateAsync({
+        method,
+        details: currentDetails,
+        enabled,
+      });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update payment method');
+      // Revert on error
+      setPaymentMethodDetails((prev) => ({
+        ...prev,
+        [method]: { ...prev[method], enabled: !enabled },
+      }));
+    }
+  };
+
+  const handlePaymentMethodDetailsChange = async (method: PaymentMethod, details: string) => {
+    const currentEnabled = paymentMethodDetails[method].enabled;
+    setPaymentMethodDetails((prev) => ({
+      ...prev,
+      [method]: { ...prev[method], details },
+    }));
+
+    try {
+      await upsertPaymentMethod.mutateAsync({
+        method,
+        details,
+        enabled: currentEnabled,
+      });
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update payment method');
+    }
   };
 
   if (profileLoading) {
@@ -323,6 +394,110 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
               hideEditButton={true}
               onNavigateToBusinessStructures={onNavigateToBusinessStructures}
             />
+
+            {/* Payment Methods Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <H2>Payment Methods</H2>
+              </View>
+              <Card variant="flat" style={styles.card}>
+                <Text subtle style={styles.sectionDescription}>
+                  Configure payment methods that will appear on your invoices. Enable methods and add details so clients know where to send payment.
+                </Text>
+
+                {/* Venmo */}
+                <View style={styles.paymentMethodRow}>
+                  <View style={styles.paymentMethodHeader}>
+                    <Text semibold style={styles.paymentMethodLabel}>Venmo</Text>
+                    <Switch
+                      value={paymentMethodDetails.venmo.enabled}
+                      onValueChange={(enabled) => handlePaymentMethodToggle('venmo', enabled)}
+                      trackColor={{ false: colors.border.DEFAULT, true: colors.brand.DEFAULT }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    value={paymentMethodDetails.venmo.details}
+                    onChangeText={(text) => handlePaymentMethodDetailsChange('venmo', text)}
+                    placeholder="@yourhandle"
+                    editable={paymentMethodDetails.venmo.enabled}
+                  />
+                  {paymentMethodDetails.venmo.enabled && !paymentMethodDetails.venmo.details.trim() && (
+                    <Text style={styles.warningText}>⚠️ Add details so clients know where to pay</Text>
+                  )}
+                </View>
+
+                {/* Zelle */}
+                <View style={styles.paymentMethodRow}>
+                  <View style={styles.paymentMethodHeader}>
+                    <Text semibold style={styles.paymentMethodLabel}>Zelle</Text>
+                    <Switch
+                      value={paymentMethodDetails.zelle.enabled}
+                      onValueChange={(enabled) => handlePaymentMethodToggle('zelle', enabled)}
+                      trackColor={{ false: colors.border.DEFAULT, true: colors.brand.DEFAULT }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    value={paymentMethodDetails.zelle.details}
+                    onChangeText={(text) => handlePaymentMethodDetailsChange('zelle', text)}
+                    placeholder="email or phone"
+                    editable={paymentMethodDetails.zelle.enabled}
+                  />
+                  {paymentMethodDetails.zelle.enabled && !paymentMethodDetails.zelle.details.trim() && (
+                    <Text style={styles.warningText}>⚠️ Add details so clients know where to pay</Text>
+                  )}
+                </View>
+
+                {/* PayPal */}
+                <View style={styles.paymentMethodRow}>
+                  <View style={styles.paymentMethodHeader}>
+                    <Text semibold style={styles.paymentMethodLabel}>PayPal</Text>
+                    <Switch
+                      value={paymentMethodDetails.paypal.enabled}
+                      onValueChange={(enabled) => handlePaymentMethodToggle('paypal', enabled)}
+                      trackColor={{ false: colors.border.DEFAULT, true: colors.brand.DEFAULT }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    value={paymentMethodDetails.paypal.details}
+                    onChangeText={(text) => handlePaymentMethodDetailsChange('paypal', text)}
+                    placeholder="paypal.me/you or email"
+                    editable={paymentMethodDetails.paypal.enabled}
+                  />
+                  {paymentMethodDetails.paypal.enabled && !paymentMethodDetails.paypal.details.trim() && (
+                    <Text style={styles.warningText}>⚠️ Add details so clients know where to pay</Text>
+                  )}
+                </View>
+
+                {/* Cash App */}
+                <View style={styles.paymentMethodRow}>
+                  <View style={styles.paymentMethodHeader}>
+                    <Text semibold style={styles.paymentMethodLabel}>Cash App</Text>
+                    <Switch
+                      value={paymentMethodDetails.cashapp.enabled}
+                      onValueChange={(enabled) => handlePaymentMethodToggle('cashapp', enabled)}
+                      trackColor={{ false: colors.border.DEFAULT, true: colors.brand.DEFAULT }}
+                      thumbColor="#fff"
+                    />
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    value={paymentMethodDetails.cashapp.details}
+                    onChangeText={(text) => handlePaymentMethodDetailsChange('cashapp', text)}
+                    placeholder="$cashtag"
+                    editable={paymentMethodDetails.cashapp.enabled}
+                  />
+                  {paymentMethodDetails.cashapp.enabled && !paymentMethodDetails.cashapp.details.trim() && (
+                    <Text style={styles.warningText}>⚠️ Add details so clients know where to pay</Text>
+                  )}
+                </View>
+              </Card>
+            </View>
           </View>
 
           {/* Right Column: Account Actions */}
@@ -636,5 +811,30 @@ const styles = StyleSheet.create({
     paddingTop: parseInt(spacing[2]),
     borderTopWidth: 1,
     borderTopColor: colors.border.muted,
+  },
+  sectionDescription: {
+    marginBottom: parseInt(spacing[4]),
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  paymentMethodRow: {
+    marginBottom: parseInt(spacing[4]),
+    paddingBottom: parseInt(spacing[4]),
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.muted,
+  },
+  paymentMethodHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: parseInt(spacing[2]),
+  },
+  paymentMethodLabel: {
+    fontSize: 16,
+  },
+  warningText: {
+    marginTop: parseInt(spacing[2]),
+    fontSize: 13,
+    color: colors.warning.DEFAULT,
   },
 });

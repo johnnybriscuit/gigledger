@@ -1,6 +1,19 @@
 import { Invoice, InvoiceSettings, formatCurrency } from '../types/invoice';
+import { PaymentMethodDetail } from '../hooks/usePaymentMethodDetails';
 
-export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings): string {
+// HTML sanitization helper to prevent injection attacks
+function escapeHtml(text: string): string {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
+export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, paymentMethodDetails?: PaymentMethodDetail[]): string {
   const getColorScheme = () => {
     switch (settings.color_scheme) {
       case 'blue': return { primary: '#2563eb', secondary: '#dbeafe' };
@@ -360,9 +373,14 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings):
       ${invoice.accepted_payment_methods && invoice.accepted_payment_methods.length > 0 ? `
         <div class="terms-label">Payment Methods Accepted:</div>
         <div class="terms-text">
-          ${invoice.accepted_payment_methods.map(pm => 
-            `${pm.method}${pm.details ? `: ${pm.details}` : ''}`
-          ).join('<br>')}
+          ${invoice.accepted_payment_methods.map(pm => {
+            const methodKey = pm.method.toLowerCase().replace(/\s+/g, '');
+            const detail = paymentMethodDetails?.find(pmd => pmd.method === methodKey);
+            const detailText = detail?.enabled && detail?.details?.trim() 
+              ? escapeHtml(detail.details) 
+              : '(details not provided)';
+            return `• ${escapeHtml(pm.method)}: ${detailText}`;
+          }).join('<br>')}
         </div>
       ` : ''}
       
@@ -383,8 +401,8 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings):
   return htmlContent;
 }
 
-export function downloadInvoiceHTML(invoice: Invoice, settings: InvoiceSettings) {
-  const html = generateInvoicePDF(invoice, settings);
+export function downloadInvoiceHTML(invoice: Invoice, settings: InvoiceSettings, paymentMethodDetails?: PaymentMethodDetail[]) {
+  const html = generateInvoicePDF(invoice, settings, paymentMethodDetails);
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -396,8 +414,8 @@ export function downloadInvoiceHTML(invoice: Invoice, settings: InvoiceSettings)
   URL.revokeObjectURL(url);
 }
 
-export function printInvoice(invoice: Invoice, settings: InvoiceSettings) {
-  const html = generateInvoicePDF(invoice, settings);
+export function printInvoice(invoice: Invoice, settings: InvoiceSettings, paymentMethodDetails?: PaymentMethodDetail[]) {
+  const html = generateInvoicePDF(invoice, settings, paymentMethodDetails);
   const printWindow = window.open('', '_blank');
   if (printWindow) {
     printWindow.document.write(html);

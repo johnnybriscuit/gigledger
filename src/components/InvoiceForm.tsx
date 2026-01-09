@@ -4,18 +4,32 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
 import { useInvoices } from '../hooks/useInvoices';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { usePayers } from '../hooks/usePayers';
+import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
+import { supabase } from '../lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 import { InvoiceFormData, PAYMENT_TERM_PRESETS, calculateDueDate, PaymentMethodDetail, PAYMENT_METHODS } from '../types/invoice';
 
 interface InvoiceFormProps {
   invoiceId?: string;
   onSuccess?: () => void;
   onCancel?: () => void;
+  onNavigateToAccount?: () => void;
 }
 
-export function InvoiceForm({ invoiceId, onSuccess, onCancel }: InvoiceFormProps) {
+export function InvoiceForm({ invoiceId, onSuccess, onCancel, onNavigateToAccount }: InvoiceFormProps) {
   const { createInvoice, updateInvoice, invoices } = useInvoices();
   const { settings, getNextInvoiceNumber } = useInvoiceSettings();
   const { payers } = usePayers();
+  
+  // Fetch user and payment method details
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+  const { data: paymentMethods = [] } = usePaymentMethodDetails(user?.id);
   
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<InvoiceFormData>({
@@ -383,25 +397,46 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel }: InvoiceFormProps
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Payment Methods Accepted</Text>
+        <Text style={styles.helperText}>
+          Payment instructions are pulled from Account → Payment Methods and will appear on the invoice.
+        </Text>
         <View style={styles.paymentMethodsGrid}>
           {PAYMENT_METHODS.map((method) => {
             const isSelected = formData.accepted_payment_methods.find(pm => pm.method === method);
+            const methodKey = method.toLowerCase().replace(/\s+/g, '');
+            const paymentMethodDetail = paymentMethods.find(pm => pm.method === methodKey);
+            const hasDetails = paymentMethodDetail?.enabled && paymentMethodDetail?.details?.trim();
+            const showWarning = isSelected && !hasDetails;
+            
             return (
-              <TouchableOpacity
-                key={method}
-                style={[
-                  styles.paymentMethodChip,
-                  isSelected && styles.paymentMethodChipActive
-                ]}
-                onPress={() => togglePaymentMethod(method)}
-              >
-                <Text style={[
-                  styles.paymentMethodChipText,
-                  isSelected && styles.paymentMethodChipTextActive
-                ]}>
-                  {method}
-                </Text>
-              </TouchableOpacity>
+              <View key={method} style={styles.paymentMethodContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.paymentMethodChip,
+                    isSelected && styles.paymentMethodChipActive
+                  ]}
+                  onPress={() => togglePaymentMethod(method)}
+                >
+                  <Text style={[
+                    styles.paymentMethodChipText,
+                    isSelected && styles.paymentMethodChipTextActive
+                  ]}>
+                    {method}
+                  </Text>
+                </TouchableOpacity>
+                {showWarning && (
+                  <View style={styles.paymentWarningContainer}>
+                    <Text style={styles.paymentWarningText}>
+                      ⚠️ Payment details missing.{' '}
+                      {onNavigateToAccount && (
+                        <Text style={styles.paymentWarningLink} onPress={onNavigateToAccount}>
+                          Add in Account → Payment Methods
+                        </Text>
+                      )}
+                    </Text>
+                  </View>
+                )}
+              </View>
             );
           })}
         </View>
@@ -662,6 +697,26 @@ const styles = StyleSheet.create({
   paymentMethodChipTextActive: {
     color: '#fff',
     fontWeight: '500',
+  },
+  paymentMethodContainer: {
+    marginBottom: 8,
+  },
+  paymentWarningContainer: {
+    marginTop: 4,
+  },
+  paymentWarningText: {
+    fontSize: 12,
+    color: '#dc2626',
+  },
+  paymentWarningLink: {
+    color: '#2563eb',
+    textDecorationLine: 'underline',
+  },
+  helperText: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 12,
+    fontStyle: 'italic',
   },
   buttonContainer: {
     flexDirection: 'row',

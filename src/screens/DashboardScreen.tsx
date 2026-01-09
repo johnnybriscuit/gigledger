@@ -104,7 +104,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       case 'mileage':
         return <MileageScreen />;
       case 'invoices':
-        return <InvoicesScreen />;
+        return <InvoicesScreen onNavigateToAccount={() => setActiveTab('account')} />;
       case 'exports':
         return <ExportsScreen />;
       case 'subscription':
