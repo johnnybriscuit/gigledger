@@ -50,6 +50,30 @@ if (__DEV__) {
 function AppContent() {
   const bootstrap = useAppBootstrap();
   const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('landing');
+  const [authResolved, setAuthResolved] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+
+  // Resolve auth state on mount to prevent landing page flash
+  useEffect(() => {
+    async function resolveAuth() {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log('[Auth] Initial session resolved:', !!currentSession);
+        setSession(currentSession);
+        setAuthResolved(true);
+        
+        // If user has session and is on landing, redirect to dashboard
+        if (currentSession && currentRoute === 'landing') {
+          console.log('[Auth] Session exists on landing, redirecting to dashboard');
+          setCurrentRoute('dashboard');
+        }
+      } catch (error) {
+        console.error('[Auth] Failed to resolve session:', error);
+        setAuthResolved(true); // Still mark as resolved to avoid infinite loading
+      }
+    }
+    resolveAuth();
+  }, []);
 
   // Mark when bootstrap completes and auto-route authenticated users
   useEffect(() => {
@@ -69,8 +93,11 @@ function AppContent() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🟢 Auth state changed:', event, 'Session:', !!session);
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      console.log('🟢 Auth state changed:', event, 'Session:', !!newSession);
+      setSession(newSession);
+      setAuthResolved(true);
+      
       // Clear all cached data on sign out to prevent data leakage
       if (event === 'SIGNED_OUT') {
         console.log('🟢 SIGNED_OUT event detected, clearing cache and redirecting to auth');
@@ -124,10 +151,16 @@ function AppContent() {
     return () => subscription.remove();
   }, []);
 
+  // AUTH RESOLUTION GATE - Prevent landing page flash on refresh
+  if (!authResolved) {
+    return <LoadingScreen />;
+  }
+
   // PUBLIC ROUTES - Check these BEFORE bootstrap to avoid timeout on public pages
   
   // Landing page - shown first to all users (NO AppShell, NO bootstrap required)
-  if (currentRoute === 'landing') {
+  // Only show if session is null (logged out)
+  if (currentRoute === 'landing' && !session) {
     return (
       <>
         <StatusBar style="dark" />
