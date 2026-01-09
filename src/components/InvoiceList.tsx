@@ -9,19 +9,15 @@ interface InvoiceListProps {
 }
 
 export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) {
-  const { invoices, loading, updateInvoiceStatus, deleteInvoice } = useInvoices();
+  const { invoices, loading } = useInvoices();
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'due_date'>('date');
-  const { width, height } = useWindowDimensions();
+  const [tipDismissed, setTipDismissed] = useState(false);
+  const { width } = useWindowDimensions();
   const isMobile = Platform.OS === 'web' && width < 768;
 
   const isEmpty = invoices.length === 0;
-
-  // Debug log
-  if (__DEV__) {
-    console.log('[Invoices] width=', width, 'isEmpty=', isEmpty);
-  }
 
   const filteredInvoices = useMemo(() => {
     let filtered = invoices;
@@ -97,8 +93,6 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
       totalOutstanding,
       overdueAmount,
       totalPaidThisMonth,
-      unpaidCount: unpaidInvoices.length,
-      overdueCount: overdueInvoices.length
     };
   }, [invoices]);
 
@@ -138,7 +132,6 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
     );
   }
 
-  // Empty state - show prominent CTA above the fold
   if (isEmpty) {
     return (
       <View style={styles.container}>
@@ -159,7 +152,7 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
           )}
           <View style={styles.reminderBox}>
             <Text style={styles.reminderText}>
-              💡 <Text style={styles.reminderBold}>Tip:</Text> Configure payment methods (Venmo, Zelle, PayPal, Cash App) in <Text style={styles.reminderBold}>Account → Payment Methods</Text> to include payment instructions on your invoices.
+              💡 <Text style={styles.reminderBold}>Tip:</Text> Configure payment methods in <Text style={styles.reminderBold}>Account → Payment Methods</Text> to include payment instructions on invoices.
             </Text>
           </View>
         </View>
@@ -167,176 +160,181 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
     );
   }
 
-  // Has invoices - show full UI with metrics, search, filters
   return (
     <View style={styles.container}>
-      {/* Payment Methods Reminder */}
-      <View style={styles.reminderBanner}>
-        <Text style={styles.reminderBannerText}>
-          💡 <Text style={styles.reminderBannerBold}>Tip:</Text> Add payment details in <Text style={styles.reminderBannerBold}>Account → Payment Methods</Text> to include payment instructions on invoices.
-        </Text>
+      {!tipDismissed && (
+        <View style={styles.compactTipBanner}>
+          <Text style={styles.compactTipText}>
+            💡 Add payment details in <Text style={styles.compactTipBold}>Account → Payment Methods</Text>
+          </Text>
+          <TouchableOpacity onPress={() => setTipDismissed(true)} style={styles.dismissButton}>
+            <Text style={styles.dismissButtonText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.compactMetricsStrip}>
+        <View style={styles.compactMetric}>
+          <Text style={styles.compactMetricLabel}>Outstanding</Text>
+          <Text style={styles.compactMetricValue}>{formatCurrency(metrics.totalOutstanding)}</Text>
+        </View>
+        <View style={styles.metricDivider} />
+        <View style={styles.compactMetric}>
+          <Text style={styles.compactMetricLabel}>Overdue</Text>
+          <Text style={[styles.compactMetricValue, styles.compactMetricDanger]}>{formatCurrency(metrics.overdueAmount)}</Text>
+        </View>
+        <View style={styles.metricDivider} />
+        <View style={styles.compactMetric}>
+          <Text style={styles.compactMetricLabel}>Paid This Month</Text>
+          <Text style={[styles.compactMetricValue, styles.compactMetricSuccess]}>{formatCurrency(metrics.totalPaidThisMonth)}</Text>
+        </View>
       </View>
 
-      <View style={styles.metricsContainer}>
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Outstanding</Text>
-          <Text style={styles.metricValue}>{formatCurrency(metrics.totalOutstanding)}</Text>
-          <Text style={styles.metricSubtext}>{metrics.unpaidCount} invoices</Text>
-        </View>
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Overdue</Text>
-          <Text style={[styles.metricValue, styles.metricValueDanger]}>{formatCurrency(metrics.overdueAmount)}</Text>
-          <Text style={styles.metricSubtext}>{metrics.overdueCount} invoices</Text>
-        </View>
-
-        <View style={styles.metricCard}>
-          <Text style={styles.metricLabel}>Paid This Month</Text>
-          <Text style={[styles.metricValue, styles.metricValueSuccess]}>{formatCurrency(metrics.totalPaidThisMonth)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.searchContainer}>
+      <View style={styles.searchSortRow}>
         <TextInput
-          style={styles.searchInput}
+          style={styles.compactSearchInput}
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search invoices..."
           placeholderTextColor="#9ca3af"
         />
+        <View style={styles.sortDropdown}>
+          <TouchableOpacity
+            style={[styles.sortOptionButton, sortBy === 'date' && styles.sortOptionActive]}
+            onPress={() => setSortBy('date')}
+          >
+            <Text style={[styles.sortOptionText, sortBy === 'date' && styles.sortOptionTextActive]}>Date</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sortOptionButton, sortBy === 'due_date' && styles.sortOptionActive]}
+            onPress={() => setSortBy('due_date')}
+          >
+            <Text style={[styles.sortOptionText, sortBy === 'due_date' && styles.sortOptionTextActive]}>Due</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sortOptionButton, sortBy === 'amount' && styles.sortOptionActive]}
+            onPress={() => setSortBy('amount')}
+          >
+            <Text style={[styles.sortOptionText, sortBy === 'amount' && styles.sortOptionTextActive]}>Amt</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        style={styles.compactFilterContainer}
+        contentContainerStyle={styles.compactFilterContent}
+      >
         <TouchableOpacity
-          style={[styles.filterButton, statusFilter === 'all' && styles.filterButtonActive]}
+          style={[styles.compactPill, statusFilter === 'all' && styles.compactPillActive]}
           onPress={() => setStatusFilter('all')}
         >
-          <Text style={[styles.filterButtonText, statusFilter === 'all' && styles.filterButtonTextActive]}>
+          <Text style={[styles.compactPillText, statusFilter === 'all' && styles.compactPillTextActive]}>
             All ({statusCounts.all})
           </Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={[styles.filterButton, statusFilter === 'sent' && styles.filterButtonActive]}
+          style={[styles.compactPill, statusFilter === 'sent' && styles.compactPillActive]}
           onPress={() => setStatusFilter('sent')}
         >
-          <Text style={[styles.filterButtonText, statusFilter === 'sent' && styles.filterButtonTextActive]}>
+          <Text style={[styles.compactPillText, statusFilter === 'sent' && styles.compactPillTextActive]}>
             Sent ({statusCounts.sent})
           </Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={[styles.filterButton, statusFilter === 'overdue' && styles.filterButtonActive]}
+          style={[styles.compactPill, statusFilter === 'overdue' && styles.compactPillActive]}
           onPress={() => setStatusFilter('overdue')}
         >
-          <Text style={[styles.filterButtonText, statusFilter === 'overdue' && styles.filterButtonTextActive]}>
+          <Text style={[styles.compactPillText, statusFilter === 'overdue' && styles.compactPillTextActive]}>
             Overdue ({statusCounts.overdue})
           </Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={[styles.filterButton, statusFilter === 'paid' && styles.filterButtonActive]}
+          style={[styles.compactPill, statusFilter === 'paid' && styles.compactPillActive]}
           onPress={() => setStatusFilter('paid')}
         >
-          <Text style={[styles.filterButtonText, statusFilter === 'paid' && styles.filterButtonTextActive]}>
+          <Text style={[styles.compactPillText, statusFilter === 'paid' && styles.compactPillTextActive]}>
             Paid ({statusCounts.paid})
           </Text>
         </TouchableOpacity>
-
         <TouchableOpacity
-          style={[styles.filterButton, statusFilter === 'draft' && styles.filterButtonActive]}
+          style={[styles.compactPill, statusFilter === 'draft' && styles.compactPillActive]}
           onPress={() => setStatusFilter('draft')}
         >
-          <Text style={[styles.filterButtonText, statusFilter === 'draft' && styles.filterButtonTextActive]}>
+          <Text style={[styles.compactPillText, statusFilter === 'draft' && styles.compactPillTextActive]}>
             Draft ({statusCounts.draft})
           </Text>
         </TouchableOpacity>
       </ScrollView>
 
-      <View style={styles.sortContainer}>
-        <Text style={styles.sortLabel}>Sort by:</Text>
-        <TouchableOpacity
-          style={[styles.sortButton, sortBy === 'date' && styles.sortButtonActive]}
-          onPress={() => setSortBy('date')}
+      <View style={styles.listWrapper}>
+        <ScrollView 
+          style={styles.listContainer}
+          contentContainerStyle={styles.listContentContainer}
         >
-          <Text style={[styles.sortButtonText, sortBy === 'date' && styles.sortButtonTextActive]}>Date</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.sortButton, sortBy === 'due_date' && styles.sortButtonActive]}
-          onPress={() => setSortBy('due_date')}
-        >
-          <Text style={[styles.sortButtonText, sortBy === 'due_date' && styles.sortButtonTextActive]}>Due Date</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.sortButton, sortBy === 'amount' && styles.sortButtonActive]}
-          onPress={() => setSortBy('amount')}
-        >
-          <Text style={[styles.sortButtonText, sortBy === 'amount' && styles.sortButtonTextActive]}>Amount</Text>
-        </TouchableOpacity>
-      </View>
+          {filteredInvoices.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No invoices found</Text>
+              {onCreateNew && (
+                <TouchableOpacity style={styles.createButton} onPress={onCreateNew}>
+                  <Text style={styles.createButtonText}>Create Your First Invoice</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            filteredInvoices.map((invoice) => (
+              <TouchableOpacity
+                key={invoice.id}
+                style={styles.invoiceCard}
+                onPress={() => onSelectInvoice?.(invoice)}
+              >
+                <View style={styles.invoiceHeader}>
+                  <View>
+                    <Text style={styles.invoiceNumber}>{invoice.invoice_number}</Text>
+                    <Text style={styles.clientName}>{invoice.client_name}</Text>
+                    {invoice.client_company && (
+                      <Text style={styles.clientCompany}>{invoice.client_company}</Text>
+                    )}
+                  </View>
+                  <View style={styles.invoiceHeaderRight}>
+                    <Text style={styles.invoiceAmount}>{formatCurrency(invoice.total_amount)}</Text>
+                    <View style={[styles.statusBadge, getStatusBadgeStyle(invoice.status)]}>
+                      <Text style={[styles.statusText, { color: getStatusTextColor(invoice.status) }]}>
+                        {getStatusLabel(invoice.status)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
 
-      <ScrollView style={styles.listContainer}>
-        {filteredInvoices.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No invoices found</Text>
-            {onCreateNew && (
-              <TouchableOpacity style={styles.createButton} onPress={onCreateNew}>
-                <Text style={styles.createButtonText}>Create Your First Invoice</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          filteredInvoices.map((invoice) => (
-            <TouchableOpacity
-              key={invoice.id}
-              style={styles.invoiceCard}
-              onPress={() => onSelectInvoice?.(invoice)}
-            >
-              <View style={styles.invoiceHeader}>
-                <View>
-                  <Text style={styles.invoiceNumber}>{invoice.invoice_number}</Text>
-                  <Text style={styles.clientName}>{invoice.client_name}</Text>
-                  {invoice.client_company && (
-                    <Text style={styles.clientCompany}>{invoice.client_company}</Text>
+                <View style={styles.invoiceDetails}>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Invoice Date:</Text>
+                    <Text style={styles.detailValue}>{new Date(invoice.invoice_date).toLocaleDateString()}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Due Date:</Text>
+                    <Text style={[
+                      styles.detailValue,
+                      invoice.status === 'overdue' && styles.detailValueOverdue
+                    ]}>
+                      {new Date(invoice.due_date).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  {invoice.balance_due !== undefined && invoice.balance_due > 0 && invoice.status !== 'paid' && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Balance Due:</Text>
+                      <Text style={[styles.detailValue, styles.balanceDue]}>
+                        {formatCurrency(invoice.balance_due)}
+                      </Text>
+                    </View>
                   )}
                 </View>
-                <View style={styles.invoiceHeaderRight}>
-                  <Text style={styles.invoiceAmount}>{formatCurrency(invoice.total_amount)}</Text>
-                  <View style={[styles.statusBadge, getStatusBadgeStyle(invoice.status)]}>
-                    <Text style={[styles.statusText, { color: getStatusTextColor(invoice.status) }]}>
-                      {getStatusLabel(invoice.status)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.invoiceDetails}>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Invoice Date:</Text>
-                  <Text style={styles.detailValue}>{new Date(invoice.invoice_date).toLocaleDateString()}</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Due Date:</Text>
-                  <Text style={[
-                    styles.detailValue,
-                    invoice.status === 'overdue' && styles.detailValueOverdue
-                  ]}>
-                    {new Date(invoice.due_date).toLocaleDateString()}
-                  </Text>
-                </View>
-                {invoice.balance_due !== undefined && invoice.balance_due > 0 && invoice.status !== 'paid' && (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Balance Due:</Text>
-                    <Text style={[styles.detailValue, styles.balanceDue]}>
-                      {formatCurrency(invoice.balance_due)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      </View>
     </View>
   );
 }
@@ -351,112 +349,151 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  metricsContainer: {
+  compactTipBanner: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#eff6ff',
+    padding: 10,
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: 6,
   },
-  metricCard: {
+  compactTipText: {
     flex: 1,
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  metricLabel: {
     fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 4,
+    color: '#1e40af',
+    lineHeight: 16,
   },
-  metricValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  metricValueDanger: {
-    color: '#dc2626',
-  },
-  metricValueSuccess: {
-    color: '#059669',
-  },
-  metricSubtext: {
-    fontSize: 11,
-    color: '#9ca3af',
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  searchInput: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  filterContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
-    marginRight: 8,
-  },
-  filterButtonActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  filterButtonTextActive: {
-    color: '#fff',
+  compactTipBold: {
     fontWeight: '600',
   },
-  sortContainer: {
+  dismissButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  dismissButtonText: {
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  compactMetricsStrip: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 12,
+  },
+  compactMetric: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  compactMetricLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  compactMetricValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  compactMetricDanger: {
+    color: '#dc2626',
+  },
+  compactMetricSuccess: {
+    color: '#059669',
+  },
+  metricDivider: {
+    width: 1,
+    backgroundColor: '#e5e7eb',
+    marginHorizontal: 8,
+  },
+  searchSortRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     marginBottom: 12,
+    gap: 8,
   },
-  sortLabel: {
+  compactSearchInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 10,
     fontSize: 14,
-    color: '#6b7280',
-    marginRight: 8,
   },
-  sortButton: {
+  sortDropdown: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  sortOptionButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#fff',
+  },
+  sortOptionActive: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#2563eb',
+  },
+  sortOptionText: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  sortOptionTextActive: {
+    color: '#2563eb',
+    fontWeight: '600',
+  },
+  compactFilterContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    maxHeight: 40,
+  },
+  compactFilterContent: {
+    paddingRight: 16,
+  },
+  compactPill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#d1d5db',
     backgroundColor: '#fff',
     marginRight: 6,
   },
-  sortButtonActive: {
-    backgroundColor: '#eff6ff',
+  compactPillActive: {
+    backgroundColor: '#2563eb',
     borderColor: '#2563eb',
   },
-  sortButtonText: {
+  compactPillText: {
     fontSize: 13,
     color: '#374151',
   },
-  sortButtonTextActive: {
-    color: '#2563eb',
-    fontWeight: '500',
+  compactPillTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  listWrapper: {
+    flex: 1,
+    minHeight: 0,
   },
   listContainer: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  listContentContainer: {
+    paddingBottom: 24,
   },
   emptyStateHero: {
     alignItems: 'center',
@@ -605,24 +642,6 @@ const styles = StyleSheet.create({
   },
   balanceDue: {
     color: '#2563eb',
-    fontWeight: '600',
-  },
-  reminderBanner: {
-    backgroundColor: '#eff6ff',
-    borderLeftWidth: 4,
-    borderLeftColor: '#2563eb',
-    padding: 12,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    borderRadius: 8,
-  },
-  reminderBannerText: {
-    fontSize: 13,
-    color: '#1e40af',
-    lineHeight: 18,
-  },
-  reminderBannerBold: {
     fontWeight: '600',
   },
   reminderBox: {
