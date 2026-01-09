@@ -184,6 +184,9 @@ export function useInvoices() {
       if (!user) throw new Error('Not authenticated');
       console.log('✓ User authenticated:', user.id);
 
+      // Optimistic update: Remove from UI immediately
+      setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
+
       console.log('Deleting invoice with params:', { id: invoiceId, user_id: user.id });
       const { data, error: deleteError } = await supabase
         .from('invoices' as any)
@@ -196,11 +199,13 @@ export function useInvoices() {
 
       if (deleteError) {
         console.error('❌ Delete error:', deleteError);
+        // Rollback optimistic update on error
+        await fetchInvoices();
         throw deleteError;
       }
 
       console.log('✓ Invoice deleted successfully');
-      await fetchInvoices();
+      // No need to refetch - optimistic update already applied
     } catch (err) {
       console.error('❌ Error deleting invoice:', err);
       throw err;
