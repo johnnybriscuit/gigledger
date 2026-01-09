@@ -118,17 +118,9 @@ function AppContent() {
     return () => subscription.remove();
   }, []);
 
-  // Bootstrap loading state
-  if (bootstrap.status === 'loading') {
-    return <LoadingScreen />;
-  }
-
-  // Bootstrap error state
-  if (bootstrap.status === 'error') {
-    return <ErrorScreen error={bootstrap.error} onRetry={bootstrap.retry} />;
-  }
-
-  // Landing page - shown first to all users (NO AppShell)
+  // PUBLIC ROUTES - Check these BEFORE bootstrap to avoid timeout on public pages
+  
+  // Landing page - shown first to all users (NO AppShell, NO bootstrap required)
   if (currentRoute === 'landing') {
     return (
       <>
@@ -143,7 +135,7 @@ function AppContent() {
     );
   }
 
-  // Allow Terms page to be accessed without authentication
+  // Allow Terms page to be accessed without authentication (NO bootstrap required)
   if (currentRoute === 'terms') {
     return (
       <>
@@ -153,7 +145,7 @@ function AppContent() {
     );
   }
 
-  // Allow Privacy page to be accessed without authentication
+  // Allow Privacy page to be accessed without authentication (NO bootstrap required)
   if (currentRoute === 'privacy') {
     return (
       <>
@@ -161,6 +153,18 @@ function AppContent() {
         <PrivacyScreen onNavigateBack={() => setCurrentRoute('landing')} />
       </>
     );
+  }
+
+  // AUTHENTICATED ROUTES - Bootstrap required beyond this point
+  
+  // Bootstrap loading state
+  if (bootstrap.status === 'loading') {
+    return <LoadingScreen />;
+  }
+
+  // Bootstrap error state
+  if (bootstrap.status === 'error') {
+    return <ErrorScreen error={bootstrap.error} onRetry={bootstrap.retry} />;
   }
 
   // Allow Business Structures page (requires authentication)
