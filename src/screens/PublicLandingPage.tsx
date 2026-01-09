@@ -201,7 +201,7 @@ export function PublicLandingPage({ onGetStarted, onSignIn }: PublicLandingPageP
                 onPress={onGetStarted}
                 activeOpacity={0.8}
               >
-                <Text style={styles.primaryButtonText}>Create free account</Text>
+                <Text style={styles.ctaButtonText}>Create free account</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={onSignIn} activeOpacity={0.7}>
                 <Text style={styles.ctaLinkText}>Log in</Text>
@@ -663,6 +663,11 @@ const styles = StyleSheet.create({
   },
   ctaButton: {
     backgroundColor: '#ffffff',
+  },
+  ctaButtonText: {
+    color: '#0066FF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   ctaButtonMobile: {
     maxWidth: 400,
