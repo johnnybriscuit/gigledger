@@ -55,15 +55,28 @@ export function SendInvoiceModal({ invoice, visible, onClose, onSuccess }: SendI
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send invoice');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Send invoice error:', errorData);
+        throw new Error(errorData.error || 'Failed to send invoice');
       }
 
       Alert.alert('Success', `Invoice sent to ${formData.recipientEmail}`);
       onSuccess?.();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending invoice:', error);
-      Alert.alert('Error', 'Failed to send invoice. Please try again.');
+      const errorMessage = error.message || 'Failed to send invoice. Please try again.';
+      
+      // Check if it's an email service configuration issue
+      if (errorMessage.includes('Email service not configured')) {
+        Alert.alert(
+          'Email Service Not Configured',
+          'The email service is not yet set up. Please contact support or manually send the invoice to your client.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
       setSending(false);
     }

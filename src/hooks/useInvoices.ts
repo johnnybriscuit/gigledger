@@ -252,19 +252,29 @@ export function useInvoices() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error: paymentError } = await supabase
+      console.log('Inserting payment record:', {
+        invoice_id: invoiceId,
+        ...paymentData
+      });
+
+      const { data, error: paymentError } = await supabase
         .from('invoice_payments' as any)
         .insert({
           invoice_id: invoiceId,
           ...paymentData
-        });
+        })
+        .select();
 
-      if (paymentError) throw paymentError;
+      if (paymentError) {
+        console.error('Payment insert error:', paymentError);
+        throw new Error(paymentError.message || 'Failed to record payment');
+      }
 
+      console.log('Payment recorded successfully:', data);
       await fetchInvoices();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error recording payment:', err);
-      throw err;
+      throw new Error(err.message || 'Failed to record payment');
     }
   };
 

@@ -43,6 +43,14 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
 
     try {
       setSaving(true);
+      console.log('Recording payment with data:', {
+        payment_date: formData.payment_date,
+        amount,
+        payment_method: formData.payment_method,
+        reference_number: formData.reference_number || undefined,
+        notes: formData.notes || undefined
+      });
+      
       await recordPayment(invoice.id, {
         payment_date: formData.payment_date,
         amount,
@@ -54,9 +62,10 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
       Alert.alert('Success', 'Payment recorded successfully');
       onSuccess?.();
       onClose();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to record payment');
-      console.error(error);
+    } catch (error: any) {
+      console.error('Error recording payment:', error);
+      const errorMessage = error.message || 'Failed to record payment';
+      Alert.alert('Error', errorMessage);
     } finally {
       setSaving(false);
     }
