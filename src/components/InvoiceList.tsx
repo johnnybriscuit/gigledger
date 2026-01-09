@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, TextInput, useWindowDimensions, Platform } from 'react-native';
 import { useInvoices } from '../hooks/useInvoices';
 import { Invoice, InvoiceStatus, getStatusColor, getStatusLabel, formatCurrency } from '../types/invoice';
 
@@ -13,6 +13,15 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'due_date'>('date');
+  const { width, height } = useWindowDimensions();
+  const isMobile = Platform.OS === 'web' && width < 768;
+
+  const isEmpty = invoices.length === 0;
+
+  // Debug log
+  if (__DEV__) {
+    console.log('[Invoices] width=', width, 'isEmpty=', isEmpty);
+  }
 
   const filteredInvoices = useMemo(() => {
     let filtered = invoices;
@@ -129,6 +138,31 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
     );
   }
 
+  // Empty state - show prominent CTA above the fold
+  if (isEmpty) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.emptyStateHero, isMobile && styles.emptyStateHeroMobile]}>
+          <Text style={[styles.emptyStateTitle, isMobile && styles.emptyStateTitleMobile]}>
+            Create your first invoice
+          </Text>
+          <Text style={[styles.emptyStateSubtitle, isMobile && styles.emptyStateSubtitleMobile]}>
+            Track payments, send professional invoices, and get paid faster.
+          </Text>
+          {onCreateNew && (
+            <TouchableOpacity 
+              style={[styles.emptyStateCTA, isMobile && styles.emptyStateCTAMobile]} 
+              onPress={onCreateNew}
+            >
+              <Text style={styles.emptyStateCTAText}>Create Invoice</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  }
+
+  // Has invoices - show full UI with metrics, search, filters
   return (
     <View style={styles.container}>
       <View style={styles.metricsContainer}>
@@ -411,6 +445,60 @@ const styles = StyleSheet.create({
   listContainer: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  emptyStateHero: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 80,
+    paddingBottom: 40,
+  },
+  emptyStateHeroMobile: {
+    paddingHorizontal: 16,
+    paddingTop: 60,
+  },
+  emptyStateTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  emptyStateTitleMobile: {
+    fontSize: 24,
+  },
+  emptyStateSubtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 32,
+    maxWidth: 500,
+    lineHeight: 24,
+  },
+  emptyStateSubtitleMobile: {
+    fontSize: 15,
+    marginBottom: 24,
+  },
+  emptyStateCTA: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emptyStateCTAMobile: {
+    width: '100%',
+    maxWidth: 400,
+  },
+  emptyStateCTAText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   emptyState: {
     alignItems: 'center',
