@@ -389,14 +389,16 @@ function AppContent() {
         <OnboardingFlow
           onComplete={() => {
             console.log('🔵 [App] OnboardingFlow onComplete called');
+            console.log('🔵 [App] SKIPPING bootstrap.retry() - rendering dashboard immediately');
             // Invalidate user queries after onboarding
             if (bootstrap.session?.user) {
               console.log('🔵 [App] Invalidating user queries for:', bootstrap.session.user.id);
               invalidateUserQueries(queryClient, bootstrap.session.user.id);
             }
-            // Trigger re-bootstrap to update needsOnboarding status
-            console.log('🔵 [App] Calling bootstrap.retry() to re-check onboarding_complete flag');
-            bootstrap.retry();
+            // DON'T call bootstrap.retry() - just force route to dashboard
+            // The bootstrap will naturally update on next mount
+            console.log('🔵 [App] Forcing route to dashboard');
+            setCurrentRoute('dashboard');
           }}
         />
       </>
