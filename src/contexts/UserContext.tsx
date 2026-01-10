@@ -54,7 +54,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return user;
     },
     retry: 1,
-    staleTime: 30000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   const userId = user?.id || null;
@@ -69,15 +73,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Profile and taxProfile queries are disabled when userId is null, so they'll never resolve
   // We should only wait for them if userId exists
   const isLoading = userLoading || (userId ? (profileLoading || taxProfileLoading) : false);
-  const isReady = !isLoading && !!user && !!profile;
+  
+  // Force ready state if timeout triggered OR if we have user and profile
+  const isReady = loadingTimeout ? (!!user && !!profile) : (!isLoading && !!user && !!profile);
 
-  // Safety timeout: If loading for more than 10 seconds, force ready state
+  // Safety timeout: If loading for more than 5 seconds, force ready state
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
         if (!mountedRef.current) return; // Don't update state if unmounted
         
-        console.error('🔴 [UserContext] Loading timeout after 10 seconds!');
+        console.error('🔴 [UserContext] Loading timeout after 5 seconds!');
+        console.error('🔴 [UserContext] Forcing ready state to prevent infinite loading');
         console.error('🔴 [UserContext] State:', {
           userLoading,
           profileLoading,
@@ -90,7 +97,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           taxProfileError,
         });
         setLoadingTimeout(true);
-      }, 10000);
+      }, 5000); // Reduced from 10s to 5s
 
       return () => clearTimeout(timeout);
     }
