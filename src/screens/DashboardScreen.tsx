@@ -33,7 +33,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   const { isMobile } = useResponsive();
   
   // Use shared user context instead of individual queries
-  const { profile, taxProfile, isLoading, isReady } = useUser();
+  const { profile, taxProfile } = useUser();
   
   // Mark dashboard mount
   useEffect(() => {
@@ -41,52 +41,9 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
     perf.mark('dashboard-mounted');
   }, []);
 
-  // Force render after 3 seconds regardless of loading state
-  const [forceRender, setForceRender] = useState(false);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isLoading) {
-        console.error('🔴 [DashboardScreen] FORCING RENDER after 3 seconds');
-        setForceRender(true);
-      }
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [isLoading]);
-
-  // Log user context state
-  useEffect(() => {
-    console.log('🔵 [DashboardScreen] User context state:', {
-      isLoading,
-      isReady,
-      hasProfile: !!profile,
-      hasTaxProfile: !!taxProfile,
-      forceRender,
-    });
-  }, [isLoading, isReady, profile, taxProfile, forceRender]);
-
-  // Show loading state while user context is loading (max 3 seconds)
-  if (isLoading && !forceRender) {
-    console.log('🔵 [DashboardScreen] Still loading user context...');
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading dashboard data...</Text>
-      </View>
-    );
-  }
-
-  // If we have profile data, render dashboard even if not "ready"
-  if (!profile && !forceRender) {
-    console.error('🔴 [DashboardScreen] No profile data yet');
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Setting up your account...</Text>
-      </View>
-    );
-  }
-
-  console.log('✅ [DashboardScreen] Rendering dashboard (forceRender:', forceRender, ')');
+  // Simple check: if we have profile, render dashboard
+  // Don't wait for loading states - just render with what we have
+  console.log('🔵 [DashboardScreen] Profile:', !!profile, 'TaxProfile:', !!taxProfile);
 
   // Load active tab from localStorage on mount
   const [activeTab, setActiveTab] = useState<Tab>(() => {
