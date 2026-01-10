@@ -5,6 +5,9 @@ import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
 import { getSharedUserId, getCachedUserId } from '../lib/sharedAuth';
 
+// Free plan gig limit
+const FREE_GIG_LIMIT = 20;
+
 type Gig = Database['public']['Tables']['gigs']['Row'];
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
 type GigUpdate = Database['public']['Tables']['gigs']['Update'];

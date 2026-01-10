@@ -33,12 +33,44 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   const { isMobile } = useResponsive();
   
   // Use shared user context instead of individual queries
-  const { profile, taxProfile } = useUser();
+  const { profile, taxProfile, isLoading, isReady } = useUser();
   
   // Mark dashboard mount
   useEffect(() => {
+    console.log('🔵 [DashboardScreen] Component mounted');
     perf.mark('dashboard-mounted');
   }, []);
+
+  // Log user context state
+  useEffect(() => {
+    console.log('🔵 [DashboardScreen] User context state:', {
+      isLoading,
+      isReady,
+      hasProfile: !!profile,
+      hasTaxProfile: !!taxProfile,
+    });
+  }, [isLoading, isReady, profile, taxProfile]);
+
+  // Show loading state while user context is loading
+  if (isLoading) {
+    console.log('🔵 [DashboardScreen] Still loading user context...');
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading dashboard data...</Text>
+      </View>
+    );
+  }
+
+  if (!isReady || !profile) {
+    console.error('🔴 [DashboardScreen] User context not ready or no profile');
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Setting up your account...</Text>
+      </View>
+    );
+  }
+
+  console.log('✅ [DashboardScreen] User context ready, rendering dashboard');
 
   // Load active tab from localStorage on mount
   const [activeTab, setActiveTab] = useState<Tab>(() => {
@@ -492,6 +524,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#78350f',
     lineHeight: 18,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
   },
   taxPlanningNote: {
     backgroundColor: '#dbeafe',
