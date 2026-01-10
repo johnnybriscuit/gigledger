@@ -98,23 +98,31 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
   const estimatedNet = netBeforeTax - (taxEstimate?.total || 0);
 
   const handleComplete = async () => {
+    console.log('🔵 [OnboardingAddGig] handleComplete called');
+    console.log('🔵 [OnboardingAddGig] Form data:', { payerId, title, grossAmount, fees, otherIncome });
+    
     if (!payerId) {
+      console.log('🔴 [OnboardingAddGig] Validation failed: No payer');
       Alert.alert('Error', 'No payer selected. Please go back and add a payer first.');
       return;
     }
 
     if (!title.trim()) {
+      console.log('🔴 [OnboardingAddGig] Validation failed: No title');
       Alert.alert('Title Required', 'Please enter a gig title');
       return;
     }
 
     if (!grossAmount || parseFloat(grossAmount) <= 0) {
+      console.log('🔴 [OnboardingAddGig] Validation failed: Invalid amount');
       Alert.alert('Amount Required', 'Please enter a valid amount');
       return;
     }
 
+    console.log('✅ [OnboardingAddGig] Validation passed, creating gig...');
+
     try {
-      await createGig.mutateAsync({
+      const gigData = {
         payer_id: payerId,
         date,
         title: title.trim(),
@@ -128,24 +136,59 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
         net_amount: netBeforeTax,
         paid: false,
         taxes_withheld: taxesWithheld,
-      });
+      };
+      
+      console.log('🔵 [OnboardingAddGig] Calling createGig.mutateAsync with:', gigData);
+      
+      await createGig.mutateAsync(gigData);
+      
+      console.log('✅ [OnboardingAddGig] Gig created successfully');
 
       // Mark onboarding as complete
+      console.log('🔵 [OnboardingAddGig] Marking onboarding as complete...');
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .update({ onboarding_complete: true })
           .eq('id', user.id);
+        
+        if (updateError) {
+          console.error('🔴 [OnboardingAddGig] Error updating profile:', updateError);
+          throw updateError;
+        }
+        console.log('✅ [OnboardingAddGig] Profile updated successfully');
+      } else {
+        console.error('🔴 [OnboardingAddGig] No user found');
       }
 
       // Invalidate all queries to ensure dashboard loads with fresh data
+      console.log('🔵 [OnboardingAddGig] Invalidating queries...');
       queryClient.invalidateQueries();
 
+      console.log('✅ [OnboardingAddGig] Calling onComplete()');
       onComplete();
     } catch (error: any) {
-      console.error('[OnboardingAddGig] Error creating gig:', error);
-      Alert.alert('Error', error.message || 'Failed to create gig');
+      console.error('🔴 [OnboardingAddGig] Error in handleComplete:', error);
+      console.error('🔴 [OnboardingAddGig] Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+      
+      // Show user-friendly error message
+      const errorMessage = error.message || 'Failed to create gig. Please try again.';
+      Alert.alert(
+        'Error Creating Gig',
+        errorMessage,
+        [
+          { 
+            text: 'OK',
+            onPress: () => console.log('🔵 [OnboardingAddGig] User dismissed error alert')
+          }
+        ]
+      );
     }
   };
 
