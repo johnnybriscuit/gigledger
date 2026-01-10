@@ -52,6 +52,7 @@ function AppContent() {
   const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('landing');
   const [authResolved, setAuthResolved] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [onboardingJustCompleted, setOnboardingJustCompleted] = useState(false);
 
   // Resolve auth state on mount to prevent landing page flash
   useEffect(() => {
@@ -381,24 +382,23 @@ function AppContent() {
     );
   }
 
-  // Bootstrap ready - check if needs onboarding
-  if (bootstrap.needsOnboarding) {
+  // Bootstrap ready - check if needs onboarding (unless just completed)
+  if (bootstrap.needsOnboarding && !onboardingJustCompleted) {
     return (
       <>
         <StatusBar style="dark" />
         <OnboardingFlow
           onComplete={() => {
             console.log('🔵 [App] OnboardingFlow onComplete called');
-            console.log('🔵 [App] SKIPPING bootstrap.retry() - rendering dashboard immediately');
+            console.log('🔵 [App] Setting onboardingJustCompleted flag to bypass needsOnboarding check');
             // Invalidate user queries after onboarding
             if (bootstrap.session?.user) {
               console.log('🔵 [App] Invalidating user queries for:', bootstrap.session.user.id);
               invalidateUserQueries(queryClient, bootstrap.session.user.id);
             }
-            // DON'T call bootstrap.retry() - just force route to dashboard
-            // The bootstrap will naturally update on next mount
-            console.log('🔵 [App] Forcing route to dashboard');
-            setCurrentRoute('dashboard');
+            // Set flag to bypass onboarding check and render dashboard
+            setOnboardingJustCompleted(true);
+            console.log('🔵 [App] Flag set - component will re-render and show dashboard');
           }}
         />
       </>
