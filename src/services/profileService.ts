@@ -6,6 +6,16 @@ import { supabase } from '../lib/supabase';
  */
 export async function ensureUserProfile(userId: string, email: string) {
   try {
+    // First, verify the user actually exists in Supabase Auth
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error('🔴 [ensureUserProfile] User not authenticated or deleted from auth:', authError);
+      // Sign out to clear stale session
+      await supabase.auth.signOut();
+      throw new Error('User session invalid - user may have been deleted');
+    }
+
     // Check if profile already exists
     const { data: existing, error: fetchError } = await supabase
       .from('profiles')
@@ -44,14 +54,30 @@ export async function ensureUserProfile(userId: string, email: string) {
         console.log('[ensureUserProfile] Profile was created by another process (race condition)');
         return { success: true, created: false };
       }
+      
+      // Check if it's a foreign key constraint error (user deleted from auth)
+      if (insertError.code === '23503') {
+        console.error('🔴 [ensureUserProfile] Foreign key constraint failed - user deleted from auth');
+        console.error('🔴 [ensureUserProfile] Signing out and clearing stale session');
+        await supabase.auth.signOut();
+        throw new Error('User session invalid - user was deleted from authentication system');
+      }
+      
       console.error('[ensureUserProfile] Error creating profile:', insertError);
       throw insertError;
     }
 
     console.log('[ensureUserProfile] Profile created successfully');
     return { success: true, created: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('[ensureUserProfile] Unexpected error:', error);
+    
+    // If foreign key error, ensure we sign out
+    if (error.code === '23503') {
+      console.error('🔴 [ensureUserProfile] Forcing sign out due to foreign key error');
+      await supabase.auth.signOut();
+    }
+    
     return { success: false, created: false, error };
   }
 }

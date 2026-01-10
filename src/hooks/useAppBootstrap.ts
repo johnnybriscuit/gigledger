@@ -251,11 +251,34 @@ export function useAppBootstrap() {
           console.error(`🔴 Bootstrap [${runId}]: Error:`, error);
           console.log(`🟡 Bootstrap [${runId}]: Timeout cleared (error)`);
           clearTimeout(timeoutId);
-          setStatus(prev => ({
-            ...prev,
-            status: 'error',
-            error: error.message || 'Failed to initialize app',
-          }));
+          
+          // Check if this is a session/auth error (user deleted)
+          const isSessionError = 
+            error.message?.includes('session invalid') ||
+            error.message?.includes('user was deleted') ||
+            error.message?.includes('User session invalid');
+          
+          if (isSessionError) {
+            console.error('🔴 Bootstrap: Session error detected, treating as unauthenticated');
+            setStatus({
+              status: 'unauthenticated',
+              debug: {
+                sessionChecked: true,
+                profileLoaded: false,
+                settingsLoaded: false,
+                taxProfileLoaded: false,
+                onboardingChecked: false,
+              },
+              session: null,
+              needsOnboarding: false,
+            });
+          } else {
+            setStatus(prev => ({
+              ...prev,
+              status: 'error',
+              error: error.message || 'Failed to initialize app',
+            }));
+          }
         }
       }
     }

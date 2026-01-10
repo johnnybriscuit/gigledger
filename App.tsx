@@ -59,6 +59,30 @@ function AppContent() {
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         console.log('[Auth] Initial session resolved:', !!currentSession);
+        
+        // If we have a session, validate that the user actually exists
+        if (currentSession) {
+          console.log('[Auth] Validating session user exists in database...');
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          
+          if (userError || !user) {
+            console.error('🔴 [Auth] Session validation failed - user deleted or invalid');
+            console.log('🔴 [Auth] Clearing stale session and cached data');
+            await supabase.auth.signOut();
+            queryClient.clear();
+            if (Platform.OS === 'web') {
+              localStorage.clear();
+              sessionStorage.clear();
+            }
+            setSession(null);
+            setAuthResolved(true);
+            setCurrentRoute('auth');
+            return;
+          }
+          
+          console.log('✅ [Auth] Session validated successfully');
+        }
+        
         setSession(currentSession);
         setAuthResolved(true);
         
@@ -89,11 +113,11 @@ function AppContent() {
     }
   }, [bootstrap.status, currentRoute]);
 
-  // Listen for auth changes (sign out)
+  // Listen for auth changes (sign out, token refresh failures)
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, newSession) => {
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('🟢 Auth state changed:', event, 'Session:', !!newSession);
       setSession(newSession);
       setAuthResolved(true);
@@ -102,7 +126,24 @@ function AppContent() {
       if (event === 'SIGNED_OUT') {
         console.log('🟢 SIGNED_OUT event detected, clearing cache and redirecting to auth');
         queryClient.clear();
+        if (Platform.OS === 'web') {
+          localStorage.clear();
+          sessionStorage.clear();
+        }
         // Force re-render by resetting route
+        setCurrentRoute('auth');
+      }
+      
+      // Handle token refresh failures (user deleted or invalid session)
+      if (event === 'TOKEN_REFRESHED' && !newSession) {
+        console.error('🔴 Token refresh failed - session invalid, user may have been deleted');
+        console.log('🔴 Signing out and clearing all cached data');
+        await supabase.auth.signOut();
+        queryClient.clear();
+        if (Platform.OS === 'web') {
+          localStorage.clear();
+          sessionStorage.clear();
+        }
         setCurrentRoute('auth');
       }
     });
