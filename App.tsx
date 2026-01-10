@@ -388,17 +388,22 @@ function AppContent() {
         <StatusBar style="dark" />
         <OnboardingFlow
           onComplete={() => {
+            console.log('🔵 [App] OnboardingFlow onComplete called');
             // Invalidate user queries after onboarding
             if (bootstrap.session?.user) {
+              console.log('🔵 [App] Invalidating user queries for:', bootstrap.session.user.id);
               invalidateUserQueries(queryClient, bootstrap.session.user.id);
             }
             // Trigger re-bootstrap to update needsOnboarding status
+            console.log('🔵 [App] Calling bootstrap.retry() to re-check onboarding_complete flag');
             bootstrap.retry();
           }}
         />
       </>
     );
   }
+
+  console.log('🔵 [App] Rendering dashboard - bootstrap complete, onboarding not needed');
 
   return (
     <>

@@ -30,12 +30,18 @@ interface TaxProfileRow {
  */
 export function useTaxProfile() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   
   useEffect(() => {
-    getSharedUserId().then(setUserId);
+    console.log('🔵 [useTaxProfile] Fetching userId...');
+    getSharedUserId().then((id) => {
+      console.log('🔵 [useTaxProfile] UserId fetched:', !!id);
+      setUserId(id);
+      setIsInitializing(false);
+    });
   }, []);
   
-  return useQuery({
+  const query = useQuery({
     queryKey: userId ? queryKeys.taxProfile(userId) : ['taxProfile-loading'],
     queryFn: async (): Promise<TaxProfile | null> => {
       if (!userId) {
@@ -85,6 +91,12 @@ export function useTaxProfile() {
     },
     enabled: !!userId,
   });
+
+  // Return loading state that accounts for userId initialization
+  return {
+    ...query,
+    isLoading: isInitializing || query.isLoading,
+  };
 }
 
 /**

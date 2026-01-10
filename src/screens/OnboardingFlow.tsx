@@ -29,14 +29,19 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const handleComplete = () => {
+    console.log('🔵 [OnboardingFlow] handleComplete called');
+    
     // Set flag to show toast on dashboard
     if (Platform.OS === 'web') {
       sessionStorage.setItem('onboarding_just_completed', 'true');
+      console.log('🔵 [OnboardingFlow] Set onboarding_just_completed flag in sessionStorage');
     }
     
     // Invalidate all queries to ensure fresh data loads
+    console.log('🔵 [OnboardingFlow] Invalidating all queries...');
     queryClient.invalidateQueries();
     
+    console.log('🔵 [OnboardingFlow] Calling onComplete() to trigger bootstrap.retry()');
     onComplete();
   };
 
