@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import type { TaxProfile } from '../tax/engine';
 import type { StateCode } from '../tax/config/2025';
 import { queryKeys } from '../lib/queryKeys';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getSharedUserId, getCachedUserId } from '../lib/sharedAuth';
 
 interface TaxProfileRow {
@@ -31,14 +31,20 @@ interface TaxProfileRow {
 export function useTaxProfile() {
   const [userId, setUserId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const mountedRef = useRef(true);
   
   useEffect(() => {
     console.log('🔵 [useTaxProfile] Fetching userId...');
     getSharedUserId().then((id) => {
+      if (!mountedRef.current) return; // Don't update state if unmounted
       console.log('🔵 [useTaxProfile] UserId fetched:', !!id);
       setUserId(id);
       setIsInitializing(false);
     });
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
   
   const query = useQuery({

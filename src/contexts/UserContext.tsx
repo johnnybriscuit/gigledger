@@ -3,7 +3,7 @@
  * Eliminates N+1 query problem by fetching once and sharing across components
  */
 
-import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useTaxProfile } from '../hooks/useTaxProfile';
@@ -31,6 +31,14 @@ const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount to prevent state updates
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Fetch user once
   const { data: user, isLoading: userLoading, error: userError } = useQuery({
@@ -67,6 +75,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
+        if (!mountedRef.current) return; // Don't update state if unmounted
+        
         console.error('🔴 [UserContext] Loading timeout after 10 seconds!');
         console.error('🔴 [UserContext] State:', {
           userLoading,
