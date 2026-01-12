@@ -119,6 +119,57 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
           </View>
         </View>
 
+        {/* Pricing Section */}
+        <View style={[styles.section, isMobile && styles.sectionMobile]}>
+          <View style={[styles.sectionContent, { maxWidth }]}>
+            <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
+              Simple, transparent pricing
+            </Text>
+            
+            <View style={[styles.pricingGrid, isMobile && styles.pricingGridMobile]}>
+              <PricingCard
+                title="Free"
+                price="$0"
+                period="forever"
+                features={[
+                  'Track gigs & expenses',
+                  'Basic dashboard',
+                  'Up to 20 gigs',
+                  'Up to 20 expenses',
+                  'Tax estimates',
+                ]}
+                ctaText="Get started"
+                onPress={onGetStarted}
+                isMobile={isMobile}
+                isPopular={false}
+              />
+              <PricingCard
+                title="Pro"
+                price="$8"
+                period="per month"
+                annualPrice="$80/year (2 months free)"
+                features={[
+                  'Everything in Free',
+                  'Unlimited gigs & expenses',
+                  'Export to CPA/TurboTax',
+                  'Invoice generation',
+                  'Advanced tax readiness',
+                  'Priority support',
+                ]}
+                ctaText="Upgrade to Pro"
+                onPress={onGetStarted}
+                isMobile={isMobile}
+                isPopular={true}
+              />
+            </View>
+            
+            <View style={styles.comingSoonBadge}>
+              <Text style={styles.comingSoonText}>💼 Tax Season Pass (Coming Soon)</Text>
+              <Text style={styles.comingSoonDescription}>One-time purchase for tax season prep</Text>
+            </View>
+          </View>
+        </View>
+
         {/* How It Works Section */}
         <View style={[styles.section, styles.howItWorksSection, isMobile && styles.sectionMobile]}>
           <View style={[styles.sectionContent, { maxWidth }]}>
@@ -158,18 +209,13 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
             
             <View style={[styles.faqContainer, isMobile && styles.faqContainerMobile]}>
               <FAQItem
-                question="Do I need a CPA?"
-                answer="No. GigLedger helps you track income and expenses, but you can file yourself or export data for your accountant."
+                question="What does Pro include?"
+                answer="Pro gives you unlimited gigs and expenses, export capabilities for your CPA or tax software, invoice generation, and advanced tax readiness features. Free is limited to 20 gigs and 20 expenses."
                 isMobile={isMobile}
               />
               <FAQItem
-                question="Can I use this if I'm an LLC or S-Corp?"
-                answer="Yes. GigLedger works for sole proprietors, LLCs, and S-Corps. Track income and expenses the same way."
-                isMobile={isMobile}
-              />
-              <FAQItem
-                question="Does this replace QuickBooks?"
-                answer="For simple gig tracking, yes. For complex business accounting with invoicing and payroll, QuickBooks is better."
+                question="Can I cancel anytime?"
+                answer="Yes. Cancel your Pro subscription anytime with no penalties. Your data stays yours forever, and you can export it before downgrading."
                 isMobile={isMobile}
               />
               <FAQItem
@@ -178,8 +224,18 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
                 isMobile={isMobile}
               />
               <FAQItem
-                question="What if I have multiple income sources?"
-                answer="Perfect use case. Track all your gigs, side hustles, and 1099 work in one place."
+                question="Can I share exports with my CPA?"
+                answer="Yes. Pro members can export reports in formats your accountant or tax software needs. Perfect for tax season."
+                isMobile={isMobile}
+              />
+              <FAQItem
+                question="What happens if I downgrade?"
+                answer="Your data is never deleted. If you downgrade to Free, you'll keep all your data but won't be able to add more than 20 gigs or 20 expenses until you upgrade again."
+                isMobile={isMobile}
+              />
+              <FAQItem
+                question="Do you support LLC/S-Corp?"
+                answer="Yes. GigLedger works for sole proprietors, LLCs, and S-Corps. Track income and expenses the same way regardless of your business structure."
                 isMobile={isMobile}
               />
               <FAQItem
@@ -289,6 +345,53 @@ function FAQItem({ question, answer, isMobile }: FAQItemProps) {
       {isOpen && (
         <Text style={styles.faqAnswer}>{answer}</Text>
       )}
+    </View>
+  );
+}
+
+interface PricingCardProps {
+  title: string;
+  price: string;
+  period: string;
+  annualPrice?: string;
+  features: string[];
+  ctaText: string;
+  onPress: () => void;
+  isMobile: boolean;
+  isPopular: boolean;
+}
+
+function PricingCard({ title, price, period, annualPrice, features, ctaText, onPress, isMobile, isPopular }: PricingCardProps) {
+  return (
+    <View style={[styles.pricingCard, isMobile && styles.pricingCardMobile, isPopular && styles.pricingCardPopular]}>
+      {isPopular && (
+        <View style={styles.popularBadge}>
+          <Text style={styles.popularBadgeText}>BEST VALUE</Text>
+        </View>
+      )}
+      <Text style={styles.pricingTitle}>{title}</Text>
+      <View style={styles.pricingPriceContainer}>
+        <Text style={styles.pricingPrice}>{price}</Text>
+        <Text style={styles.pricingPeriod}>{period}</Text>
+      </View>
+      {annualPrice && (
+        <Text style={styles.pricingAnnual}>{annualPrice}</Text>
+      )}
+      <View style={styles.pricingFeatures}>
+        {features.map((feature, index) => (
+          <View key={index} style={styles.pricingFeature}>
+            <Text style={styles.pricingFeatureCheck}>✓</Text>
+            <Text style={styles.pricingFeatureText}>{feature}</Text>
+          </View>
+        ))}
+      </View>
+      <TouchableOpacity 
+        style={[styles.pricingButton, isPopular && styles.pricingButtonPopular]} 
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <Text style={[styles.pricingButtonText, isPopular && styles.pricingButtonTextPopular]}>{ctaText}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -726,5 +829,147 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontSize: 13,
     fontStyle: 'italic',
+  },
+
+  // Pricing Section
+  pricingGrid: {
+    flexDirection: 'row',
+    gap: 32,
+    justifyContent: 'center',
+    marginBottom: 48,
+  },
+  pricingGridMobile: {
+    flexDirection: 'column',
+    gap: 24,
+  },
+  pricingCard: {
+    flex: 1,
+    maxWidth: 380,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 32,
+    position: 'relative',
+  },
+  pricingCardMobile: {
+    maxWidth: '100%',
+  },
+  pricingCardPopular: {
+    borderColor: '#0066FF',
+    borderWidth: 3,
+    shadowColor: '#0066FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  popularBadge: {
+    position: 'absolute',
+    top: -12,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  popularBadgeText: {
+    backgroundColor: '#0066FF',
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    letterSpacing: 0.5,
+  },
+  pricingTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  pricingPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  pricingPrice: {
+    fontSize: 48,
+    fontWeight: '800',
+    color: '#1a1a1a',
+    letterSpacing: -1,
+  },
+  pricingPeriod: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginLeft: 8,
+  },
+  pricingAnnual: {
+    fontSize: 14,
+    color: '#0066FF',
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '600',
+  },
+  pricingFeatures: {
+    marginBottom: 32,
+  },
+  pricingFeature: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  pricingFeatureCheck: {
+    fontSize: 18,
+    color: '#10b981',
+    marginRight: 12,
+    fontWeight: '700',
+  },
+  pricingFeatureText: {
+    fontSize: 16,
+    color: '#4b5563',
+    flex: 1,
+    lineHeight: 24,
+  },
+  pricingButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#0066FF',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  pricingButtonPopular: {
+    backgroundColor: '#0066FF',
+  },
+  pricingButtonText: {
+    color: '#0066FF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  pricingButtonTextPopular: {
+    color: '#ffffff',
+  },
+  comingSoonBadge: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 32,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+  },
+  comingSoonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  comingSoonDescription: {
+    fontSize: 14,
+    color: '#9ca3af',
   },
 });

@@ -29,8 +29,8 @@ import { colors, spacing, radius, typography } from '../styles/theme';
 const STRIPE_MONTHLY_PRICE_ID = Constants.expoConfig?.extra?.stripeMonthlyPriceId || 'price_1SREuh1zc5DHhlVtxhHYiIwG';
 const STRIPE_YEARLY_PRICE_ID = Constants.expoConfig?.extra?.stripeYearlyPriceId || 'price_1SQZzb1zc5DHhlVtIejNSBvx';
 
-const MONTHLY_PRICE = 4.99;
-const YEARLY_PRICE = 49.99;
+const MONTHLY_PRICE = 8;
+const YEARLY_PRICE = 80;
 
 export function SubscriptionScreen() {
   const { data: subscription, isLoading } = useSubscription();
@@ -140,11 +140,11 @@ export function SubscriptionScreen() {
           {subscription.tier === 'monthly' && !subscription.cancel_at_period_end && (
             <Card variant="elevated" style={styles.upgradeContainer}>
               <Badge variant="success" size="sm" style={styles.upgradeBadge}>
-                💰 Save 16%
+                💰 Best value — 2 months free
               </Badge>
               <H3>Upgrade to Yearly</H3>
               <Text muted style={styles.upgradeDescription}>
-                Pay ${YEARLY_PRICE}/year instead of ${(MONTHLY_PRICE * 12).toFixed(2)}/year
+                Pay ${YEARLY_PRICE}/year instead of ${(MONTHLY_PRICE * 12)}/year
               </Text>
               <Button
                 variant="success"
@@ -203,7 +203,7 @@ export function SubscriptionScreen() {
 
           <H2>Choose Your Plan</H2>
           <Text muted style={styles.subtitle}>
-            Unlock premium features and support GigLedger development
+            Upgrade to Pro for unlimited tracking and exports
           </Text>
 
           {/* Monthly Plan */}
@@ -252,7 +252,7 @@ export function SubscriptionScreen() {
             activeOpacity={0.7}
           >
             <Badge variant="success" size="sm" style={styles.planBadge}>
-              Save 16%
+              Best value — 2 months free
             </Badge>
             <View style={styles.planHeader}>
               <H3>Yearly</H3>
@@ -288,12 +288,12 @@ export function SubscriptionScreen() {
             <Text semibold>Premium Features</Text>
             <View style={styles.featuresGrid}>
               {[
-                'Unlimited gigs and expenses',
-                'Advanced tax calculations',
-                'Export to CSV and PDF',
+                'Unlimited gigs & expenses',
+                'Export to CPA/TurboTax',
+                'Invoice generation',
+                'Advanced tax readiness',
                 'Priority support',
-                'Early access to new features',
-                'Ad-free experience',
+                'Cancel anytime',
               ].map((feature, index) => (
                 <View key={index} style={styles.featureRow}>
                   <Text style={styles.featureIcon}>✓</Text>

@@ -127,7 +127,7 @@ export function canCreateGigBatch(
       allowed: false,
       error: {
         code: 'GIG_LIMIT_REACHED',
-        message: `Import would exceed your free plan limit of ${planCheck.gigLimit} gigs. You currently have ${planCheck.usage.gigCount}. Upgrade to Pro for unlimited gigs.`,
+        message: `You've reached the Free plan limit. Upgrade to Pro to unlock unlimited gigs, expenses, invoices, and exports. Cancel anytime. Your data stays yours.`,
         limit: planCheck.gigLimit,
         current: planCheck.usage.gigCount,
       },
@@ -155,7 +155,7 @@ export function canCreateExpenseBatch(
       allowed: false,
       error: {
         code: 'EXPENSE_LIMIT_REACHED',
-        message: `Import would exceed your free plan limit of ${planCheck.expenseLimit} expenses. You currently have ${planCheck.usage.expenseCount}. Upgrade to Pro for unlimited expenses.`,
+        message: `You've reached the Free plan limit. Upgrade to Pro to unlock unlimited gigs, expenses, invoices, and exports. Cancel anytime. Your data stays yours.`,
         limit: planCheck.expenseLimit,
         current: planCheck.usage.expenseCount,
       },
@@ -170,7 +170,7 @@ export function canCreateExpenseBatch(
  */
 export function createGigLimitError(planCheck: PlanCheckResult): Error {
   const error: any = new Error(
-    `Free plan allows up to ${planCheck.gigLimit} gigs. Please upgrade to add more.`
+    `You've reached the Free plan limit of ${planCheck.gigLimit} gigs. Upgrade to Pro to unlock unlimited gigs, expenses, invoices, and exports. Cancel anytime. Your data stays yours.`
   );
   error.code = 'GIG_LIMIT_REACHED';
   error.limit = planCheck.gigLimit;
@@ -183,7 +183,7 @@ export function createGigLimitError(planCheck: PlanCheckResult): Error {
  */
 export function createExpenseLimitError(planCheck: PlanCheckResult): Error {
   const error: any = new Error(
-    `Free plan allows up to ${planCheck.expenseLimit} expenses. Please upgrade to add more.`
+    `You've reached the Free plan limit of ${planCheck.expenseLimit} expenses. Upgrade to Pro to unlock unlimited gigs, expenses, invoices, and exports. Cancel anytime. Your data stays yours.`
   );
   error.code = 'EXPENSE_LIMIT_REACHED';
   error.limit = planCheck.expenseLimit;

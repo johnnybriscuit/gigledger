@@ -1131,8 +1131,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
           onClose();
           onNavigateToSubscription?.();
         }}
-        title="Free plan limit reached"
-        message="You can track up to 20 gigs on the free plan. Upgrade to keep logging shows and unlock exports & advanced tax tools."
+        title="You've reached the Free plan limit"
+        message="Upgrade to Pro to unlock unlimited gigs, expenses, invoices, and exports. Cancel anytime. Your data stays yours."
       />
 
       {/* Date Picker Modal */}
