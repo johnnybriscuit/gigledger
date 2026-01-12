@@ -162,11 +162,6 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
                 isPopular={true}
               />
             </View>
-            
-            <View style={styles.comingSoonBadge}>
-              <Text style={styles.comingSoonText}>💼 Tax Season Pass (Coming Soon)</Text>
-              <Text style={styles.comingSoonDescription}>One-time purchase for tax season prep</Text>
-            </View>
           </View>
         </View>
 
@@ -951,25 +946,5 @@ const styles = StyleSheet.create({
   },
   pricingButtonTextPopular: {
     color: '#ffffff',
-  },
-  comingSoonBadge: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 32,
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    borderStyle: 'dashed',
-  },
-  comingSoonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  comingSoonDescription: {
-    fontSize: 14,
-    color: '#9ca3af',
   },
 });
