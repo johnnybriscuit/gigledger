@@ -17,6 +17,8 @@ import { useDateRange } from '../hooks/useDateRange';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
 import { Toast } from '../components/Toast';
 import { TaxProfileBanner } from '../components/TaxProfileBanner';
+import { RangePopover } from '../components/RangePopover';
+import type { DateRange } from '../hooks/useDashboardData';
 import { perf } from '../lib/performance';
 import { H1, Text, Button } from '../ui';
 import { colors, spacing, typography, radius } from '../styles/theme';
@@ -30,7 +32,8 @@ interface DashboardScreenProps {
 }
 
 export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScreenProps = {}) {
-  const { isMobile } = useResponsive();
+  const { isMobile, width } = useResponsive();
+  const isDesktopWidth = Platform.OS === 'web' && width >= 768;
   
   // Use shared user context instead of individual queries
   const { profile, taxProfile } = useUser();
@@ -177,6 +180,18 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
             >
               Export
             </Button>
+            {isDesktopWidth && (
+              <RangePopover
+                value={range}
+                onChange={setRange}
+                options={[
+                  { value: 'ytd' as DateRange, label: 'YTD' },
+                  { value: 'last30' as DateRange, label: 'Last 30 Days' },
+                  { value: 'last90' as DateRange, label: 'Last 90 Days' },
+                  { value: 'lastYear' as DateRange, label: 'Last Year' },
+                ]}
+              />
+            )}
           </>
         ) : undefined
       }

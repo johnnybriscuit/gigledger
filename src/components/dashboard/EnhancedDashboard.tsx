@@ -89,8 +89,8 @@ export function EnhancedDashboard({
         }
       }}
     >
-      {/* Date Range Filter */}
-      <DateRangeFilter selected={dateRange} onSelect={onDateRangeChange} />
+      {/* Date Range Filter - Mobile only (desktop shows in action bar) */}
+      {!isDesktop && <DateRangeFilter selected={dateRange} onSelect={onDateRangeChange} />}
 
       <ScrollView
         style={styles.scrollView}
