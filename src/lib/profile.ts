@@ -67,6 +67,10 @@ export async function updateProfile(
   updates: {
     full_name?: string;
     home_address?: string;
+    home_address_full?: string;
+    home_address_place_id?: string;
+    home_address_lat?: number;
+    home_address_lng?: number;
     email?: string;
   }
 ) {
