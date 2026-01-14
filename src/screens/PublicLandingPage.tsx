@@ -145,9 +145,9 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
               />
               <PricingCard
                 title="Pro"
-                price="$8"
+                price="$7.99"
                 period="per month"
-                annualPrice="$80/year (2 months free)"
+                annualPrice="$79.99/year (2 months free)"
                 features={[
                   'Everything in Free',
                   'Unlimited gigs & expenses',

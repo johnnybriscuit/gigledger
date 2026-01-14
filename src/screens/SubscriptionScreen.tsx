@@ -29,8 +29,8 @@ import { colors, spacing, radius, typography } from '../styles/theme';
 const STRIPE_MONTHLY_PRICE_ID = Constants.expoConfig?.extra?.stripeMonthlyPriceId || 'price_1SREuh1zc5DHhlVtxhHYiIwG';
 const STRIPE_YEARLY_PRICE_ID = Constants.expoConfig?.extra?.stripeYearlyPriceId || 'price_1SQZzb1zc5DHhlVtIejNSBvx';
 
-const MONTHLY_PRICE = 8;
-const YEARLY_PRICE = 80;
+const MONTHLY_PRICE = 7.99;
+const YEARLY_PRICE = 79.99;
 
 export function SubscriptionScreen() {
   const { data: subscription, isLoading } = useSubscription();

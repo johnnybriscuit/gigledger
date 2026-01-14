@@ -9,8 +9,8 @@
     "newArchEnabled": true,
     "extra": {
       "googleMapsApiKey": "AIzaSyBNJRJ7kKDS1bGHaKmbpQf9D9nFc51wZqw",
-      "stripeMonthlyPriceId": "price_1SREuh1zc5DHhlVtxhHYiIwG",
-      "stripeYearlyPriceId": "price_1SQZzb1zc5DHhlVtIejNSBvx"
+      "stripeMonthlyPriceId": "price_1SovHN1zc5DHhlVtA1IoLeI4",
+      "stripeYearlyPriceId": "price_1SovI51zc5DHhlVtHVloGoGs"
     },
     "splash": {
       "image": "./assets/splash-icon.png",
