@@ -68,7 +68,7 @@ export function useProfile(userId?: string) {
       } as Profile;
     },
     enabled: !!userId,
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    staleTime: 0, // Always fetch fresh data to ensure address updates are visible
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });

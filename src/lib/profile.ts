@@ -47,13 +47,21 @@ export async function getProfile(supabase: SupabaseClient, userId: string) {
       .single();
     
     if (error) {
-      console.error('getProfile error:', error);
+      console.error('[getProfile] Error:', error);
       return { data: null, error };
     }
     
+    console.log('[getProfile] Data from database:', {
+      home_address: data?.home_address,
+      home_address_full: data?.home_address_full,
+      home_address_place_id: data?.home_address_place_id,
+      home_address_lat: data?.home_address_lat,
+      home_address_lng: data?.home_address_lng,
+    });
+    
     return { data, error: null };
   } catch (err) {
-    console.error('getProfile exception:', err);
+    console.error('[getProfile] Exception:', err);
     return { data: null, error: err };
   }
 }
