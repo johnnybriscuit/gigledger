@@ -298,19 +298,26 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
         isMobileWeb && styles.contentMobile,
         isDesktopWeb && styles.contentDesktop,
       ]}>
+        {/* Debug indicator - DEV ONLY */}
+        {__DEV__ && (
+          <View style={styles.debugBadge}>
+            <Text style={styles.debugText}>
+              {Platform.OS} | width={width} | isDesktopWeb={isDesktopWeb ? 'true' : 'false'} | {isDesktopWeb ? 'DESKTOP' : 'MOBILE'}
+            </Text>
+          </View>
+        )}
+        
         <H1>Account Settings</H1>
 
         {/* Two-column layout on desktop, stacked on mobile */}
         <View style={[
           styles.gridContainer,
-          isMobileWeb && styles.gridContainerMobile,
           isDesktopWeb && styles.gridContainerDesktop,
         ]}>
           {/* Left Column: Profile + Tax Settings */}
           <View style={[
             styles.leftColumn,
             isDesktopWeb && styles.leftColumnDesktop,
-            isMobileWeb && styles.columnMobile,
           ]}>
             {/* Profile Section */}
             <View style={styles.section}>
@@ -529,7 +536,7 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
           {/* Right Column: Account Actions */}
           <View style={[
             styles.rightColumn,
-            isMobileWeb && styles.columnMobile,
+            isDesktopWeb && styles.rightColumnDesktop,
           ]}>
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -662,38 +669,65 @@ const styles = StyleSheet.create({
     maxWidth: 1200,
     alignSelf: 'center',
   },
+  // Mobile-first: base styles apply to ALL (mobile default)
   gridContainer: {
     flexDirection: 'column',
-  },
-  gridContainerMobile: {
-    flexDirection: 'column',
+    alignItems: 'stretch',
   },
   gridContainerDesktop: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
   },
+  // Mobile-first column styles
   leftColumn: {
-    flex: 1,
-    minWidth: 0,
-  },
-  leftColumnDesktop: {
-    marginRight: parseInt(spacing[6]),
-  },
-  rightColumn: {
-    width: 320,
-    flexShrink: 0,
-  },
-  columnMobile: {
     width: '100%',
     maxWidth: '100%',
-    flex: 0,
+    minWidth: 0,
     flexShrink: 1,
+    alignSelf: 'stretch',
     marginRight: 0,
     marginBottom: parseInt(spacing[6]),
-    alignSelf: 'stretch',
     position: 'relative',
   },
-  section: {
+  leftColumnDesktop: {
+    flex: 1,
+    width: undefined,
+    maxWidth: undefined,
+    marginRight: parseInt(spacing[6]),
+    marginBottom: 0,
+  },
+  rightColumn: {
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+    flexShrink: 1,
+    alignSelf: 'stretch',
+    marginRight: 0,
     marginBottom: parseInt(spacing[6]),
+    position: 'relative',
+  },
+  rightColumnDesktop: {
+    width: 320,
+    maxWidth: 320,
+    flexShrink: 0,
+    marginBottom: 0,
+  },
+  // Debug badge styles
+  debugBadge: {
+    backgroundColor: '#fef3c7',
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: parseInt(spacing[4]),
+  },
+  debugText: {
+    fontSize: 12,
+    fontFamily: Platform.OS === 'web' ? 'monospace' : 'Courier',
+    color: '#92400e',
+  },
+  section: {
+    marginBottom: parseInt(spacing[4]),
   },
   sectionHeader: {
     flexDirection: 'row',
