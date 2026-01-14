@@ -25,9 +25,9 @@ import { supabase } from '../lib/supabase';
 import { H1, H2, H3, Text, Button, Card, Badge } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 
-// Get Stripe Price IDs from app.json
-const STRIPE_MONTHLY_PRICE_ID = Constants.expoConfig?.extra?.stripeMonthlyPriceId || 'price_1SREuh1zc5DHhlVtxhHYiIwG';
-const STRIPE_YEARLY_PRICE_ID = Constants.expoConfig?.extra?.stripeYearlyPriceId || 'price_1SQZzb1zc5DHhlVtIejNSBvx';
+// Get Stripe Price IDs from environment variables (for web) or app.json (for native)
+const STRIPE_MONTHLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID || Constants.expoConfig?.extra?.stripeMonthlyPriceId || 'price_1SovHN1zc5DHhlVtA1IoLeI4';
+const STRIPE_YEARLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID || Constants.expoConfig?.extra?.stripeYearlyPriceId || 'price_1SovI51zc5DHhlVtHVloGoGs';
 
 const MONTHLY_PRICE = 7.99;
 const YEARLY_PRICE = 79.99;
