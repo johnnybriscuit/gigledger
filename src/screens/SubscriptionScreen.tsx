@@ -3,7 +3,7 @@
  * Allows users to subscribe, upgrade, or manage their subscription
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
 } from 'react-native';
 import Constants from 'expo-constants';
 import {
@@ -20,7 +21,7 @@ import {
   useCreatePortalSession,
 } from '../hooks/useSubscription';
 import { useSyncSubscription } from '../hooks/useSyncSubscription';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { H1, H2, H3, Text, Button, Card, Badge } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
@@ -33,10 +34,11 @@ const MONTHLY_PRICE = 7.99;
 const YEARLY_PRICE = 79.99;
 
 export function SubscriptionScreen() {
-  const { data: subscription, isLoading } = useSubscription();
+  const { data: subscription, isLoading, refetch } = useSubscription();
   const createCheckout = useCreateCheckoutSession();
   const createPortal = useCreatePortalSession();
   const syncSubscription = useSyncSubscription();
+  const queryClient = useQueryClient();
 
   // Fetch user's plan
   const { data: profile } = useQuery({
@@ -57,6 +59,22 @@ export function SubscriptionScreen() {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>(
     currentPlan === 'pro_yearly' ? 'yearly' : 'monthly'
   );
+
+  // Refresh subscription data when screen is focused (e.g., returning from Stripe checkout)
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleFocus = () => {
+        console.log('[SubscriptionScreen] Window focused - refreshing subscription data');
+        refetch();
+        // Also invalidate entitlements to ensure fresh plan data
+        queryClient.invalidateQueries({ queryKey: ['entitlements'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+      };
+      
+      window.addEventListener('focus', handleFocus);
+      return () => window.removeEventListener('focus', handleFocus);
+    }
+  }, [refetch, queryClient]);
 
   const handleSubscribe = async (tier: 'monthly' | 'yearly') => {
     try {

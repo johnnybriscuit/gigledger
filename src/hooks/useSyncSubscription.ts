@@ -32,6 +32,7 @@ export function useSyncSubscription() {
       // Invalidate queries to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['entitlements'] });
     },
   });
 }

@@ -5,6 +5,7 @@ import { useInvoices } from '../hooks/useInvoices';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { usePayers } from '../hooks/usePayers';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
+import { useEntitlements } from '../hooks/useEntitlements';
 import { supabase } from '../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { InvoiceFormData, PAYMENT_TERM_PRESETS, calculateDueDate, PaymentMethodDetail, PAYMENT_METHODS } from '../types/invoice';
@@ -20,6 +21,7 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel, onNavigateToAccoun
   const { createInvoice, updateInvoice, invoices } = useInvoices();
   const { settings, getNextInvoiceNumber } = useInvoiceSettings();
   const { payers } = usePayers();
+  const entitlements = useEntitlements();
   
   // Fetch user and payment method details
   const { data: user } = useQuery({
@@ -162,6 +164,15 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel, onNavigateToAccoun
       return;
     }
 
+    // Check invoice limit for new invoices (not edits)
+    if (!invoiceId && !entitlements.can.createInvoice) {
+      Alert.alert(
+        "You've reached the Free plan invoice limit",
+        "Free includes up to 3 invoices. Upgrade to Pro for unlimited invoices (plus exports and unlimited tracking). Cancel anytime."
+      );
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -175,9 +186,18 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel, onNavigateToAccoun
       }
 
       onSuccess?.();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save invoice');
-      console.error(error);
+    } catch (error: any) {
+      console.error('Error saving invoice:', error);
+      
+      // Handle RLS policy violation (server-side limit enforcement)
+      if (error?.code === '42501' || error?.message?.includes('policy')) {
+        Alert.alert(
+          "You've reached the Free plan invoice limit",
+          "Free includes up to 3 invoices. Upgrade to Pro for unlimited invoices (plus exports and unlimited tracking). Cancel anytime."
+        );
+      } else {
+        Alert.alert('Error', error?.message || 'Failed to save invoice');
+      }
     } finally {
       setSaving(false);
     }

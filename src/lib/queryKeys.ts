@@ -54,6 +54,10 @@ export const queryKeys = {
   
   // Payment methods
   paymentMethods: (userId: string) => ['payment-methods', userId] as const,
+  
+  // Invoices
+  invoices: (userId: string) => ['invoices', userId] as const,
+  invoice: (userId: string, invoiceId: string) => ['invoices', userId, invoiceId] as const,
 } as const;
 
 /**

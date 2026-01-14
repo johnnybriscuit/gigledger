@@ -7,9 +7,11 @@ import { InvoiceSettings } from '../components/InvoiceSettings';
 import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { SendInvoiceModal } from '../components/SendInvoiceModal';
 import { DuplicateInvoiceModal } from '../components/DuplicateInvoiceModal';
+import { PaywallModal } from '../components/PaywallModal';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { useInvoices } from '../hooks/useInvoices';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
+import { useEntitlements } from '../hooks/useEntitlements';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
 import { supabase } from '../lib/supabase';
@@ -19,16 +21,20 @@ type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
 interface InvoicesScreenProps {
   onNavigateToAccount?: () => void;
+  onNavigateToSubscription?: () => void;
 }
 
-export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}) {
+export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }: InvoicesScreenProps = {}) {
   const { settings, loading: settingsLoading } = useInvoiceSettings();
   const { updateInvoiceStatus, deleteInvoice, deletePayment } = useInvoices();
+  const entitlements = useEntitlements();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
+  const [paywallReason, setPaywallReason] = useState<'invoice_limit' | 'export_limit'>('invoice_limit');
 
   // Fetch user and payment method details for invoice export
   const { data: user } = useQuery({
@@ -57,6 +63,14 @@ export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}
       );
       return;
     }
+    
+    // Check invoice limit
+    if (!entitlements.can.createInvoice) {
+      setPaywallReason('invoice_limit');
+      setShowPaywallModal(true);
+      return;
+    }
+    
     setSelectedInvoice(null);
     setViewMode('create');
   };
@@ -101,6 +115,11 @@ export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}
   };
 
   const handleDownload = () => {
+    if (!entitlements.can.exportData) {
+      setPaywallReason('export_limit');
+      setShowPaywallModal(true);
+      return;
+    }
     if (selectedInvoice && settings) {
       downloadInvoiceHTML(selectedInvoice, settings, paymentMethods);
     }
@@ -168,6 +187,11 @@ export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Invoices</Text>
             <View style={styles.headerActions}>
+              {!entitlements.isPro && entitlements.remaining.invoicesRemaining !== null && (
+                <Text style={styles.remainingText}>
+                  Free: {entitlements.remaining.invoicesRemaining} invoice{entitlements.remaining.invoicesRemaining !== 1 ? 's' : ''} remaining
+                </Text>
+              )}
               <TouchableOpacity
                 style={styles.createHeaderButton}
                 onPress={handleCreateNew}
@@ -300,6 +324,21 @@ export function InvoicesScreen({ onNavigateToAccount }: InvoicesScreenProps = {}
               onSuccess={handleDuplicateSuccess}
             />
           )}
+
+          {showPaywallModal && (
+            <PaywallModal
+              visible={showPaywallModal}
+              reason={paywallReason}
+              onClose={() => setShowPaywallModal(false)}
+              onUpgrade={() => {
+                setShowPaywallModal(false);
+                if (onNavigateToSubscription) {
+                  onNavigateToSubscription();
+                }
+              }}
+              remainingCount={paywallReason === 'invoice_limit' ? entitlements.remaining.invoicesRemaining ?? undefined : undefined}
+            />
+          )}
         </>
       )}
 
@@ -368,6 +407,11 @@ const styles = StyleSheet.create({
   settingsButtonText: {
     fontSize: 14,
     color: '#374151',
+  },
+  remainingText: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginRight: 12,
   },
   actionBar: {
     flexDirection: 'row',
