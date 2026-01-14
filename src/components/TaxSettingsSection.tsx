@@ -170,11 +170,12 @@ export function TaxSettingsSection({
     try {
       await upsertProfile.mutateAsync(taxProfileForm as TaxProfile);
       
-      if (user?.id && businessStructure !== profile?.business_structure) {
+      if (userId && businessStructure !== profile?.business_structure) {
+        const { supabase } = await import('../lib/supabase');
         const { error } = await supabase
           .from('profiles')
           .update({ business_structure: businessStructure })
-          .eq('id', user.id);
+          .eq('id', userId);
         
         if (error) {
           if (error.message?.includes('SCORP_REQUIRES_PRO')) {
