@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
   Switch,
+  useWindowDimensions,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -80,6 +81,15 @@ interface AccountScreenProps {
 
 export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenProps = {}) {
   const queryClient = useQueryClient();
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+  const isDesktopWeb = isWeb && width >= 768;
+  const isMobileWeb = isWeb && width < 768;
+
+  // Dev logging for breakpoint verification
+  if (__DEV__) {
+    console.log('[AccountScreen] width:', width, 'isDesktopWeb:', isDesktopWeb, 'isMobileWeb:', isMobileWeb);
+  }
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingTaxSettings, setIsEditingTaxSettings] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -283,13 +293,24 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.content}>
+      <View style={[
+        styles.content,
+        isMobileWeb && styles.contentMobile,
+        isDesktopWeb && styles.contentDesktop,
+      ]}>
         <H1>Account Settings</H1>
 
         {/* Two-column layout on desktop, stacked on mobile */}
-        <View style={styles.gridContainer}>
+        <View style={[
+          styles.gridContainer,
+          isMobileWeb && styles.gridContainerMobile,
+          isDesktopWeb && styles.gridContainerDesktop,
+        ]}>
           {/* Left Column: Profile + Tax Settings */}
-          <View style={styles.leftColumn}>
+          <View style={[
+            styles.leftColumn,
+            isMobileWeb && styles.columnMobile,
+          ]}>
             {/* Profile Section */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
@@ -505,7 +526,10 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
           </View>
 
           {/* Right Column: Account Actions */}
-          <View style={styles.rightColumn}>
+          <View style={[
+            styles.rightColumn,
+            isMobileWeb && styles.columnMobile,
+          ]}>
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <H2>Account Actions</H2>
@@ -625,46 +649,41 @@ const styles = StyleSheet.create({
   content: {
     padding: parseInt(spacing[5]),
     paddingBottom: parseInt(spacing[10]),
-    maxWidth: 1200,
     width: '100%',
+  },
+  contentMobile: {
+    padding: parseInt(spacing[4]),
+    paddingBottom: parseInt(spacing[8]),
+    maxWidth: '100%',
+    alignSelf: 'stretch',
+  },
+  contentDesktop: {
+    maxWidth: 1200,
     alignSelf: 'center',
   },
   gridContainer: {
-    ...Platform.select({
-      web: {
-        display: 'flex',
-        flexDirection: 'row',
-        gap: parseInt(spacing[6]),
-        '@media (max-width: 768px)': {
-          flexDirection: 'column',
-        },
-      },
-      default: {
-        flexDirection: 'column',
-      },
-    }),
+    flexDirection: 'column',
+  },
+  gridContainerMobile: {
+    flexDirection: 'column',
+    gap: parseInt(spacing[4]),
+  },
+  gridContainerDesktop: {
+    flexDirection: 'row',
+    gap: parseInt(spacing[6]),
   },
   leftColumn: {
-    ...Platform.select({
-      web: {
-        flex: 1,
-        minWidth: 0,
-      },
-      default: {
-        width: '100%',
-      },
-    }),
+    flex: 1,
+    minWidth: 0,
   },
   rightColumn: {
-    ...Platform.select({
-      web: {
-        width: 320,
-        flexShrink: 0,
-      },
-      default: {
-        width: '100%',
-      },
-    }),
+    width: 320,
+    flexShrink: 0,
+  },
+  columnMobile: {
+    width: '100%',
+    flex: 0,
+    flexShrink: 1,
   },
   section: {
     marginBottom: parseInt(spacing[6]),
