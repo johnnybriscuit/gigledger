@@ -309,6 +309,7 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
           {/* Left Column: Profile + Tax Settings */}
           <View style={[
             styles.leftColumn,
+            isDesktopWeb && styles.leftColumnDesktop,
             isMobileWeb && styles.columnMobile,
           ]}>
             {/* Profile Section */}
@@ -673,6 +674,8 @@ const styles = StyleSheet.create({
   leftColumn: {
     flex: 1,
     minWidth: 0,
+  },
+  leftColumnDesktop: {
     marginRight: parseInt(spacing[6]),
   },
   rightColumn: {
