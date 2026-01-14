@@ -75,6 +75,9 @@ export async function updateProfile(
   }
 ) {
   try {
+    console.log('[updateProfile] Updating profile for user:', userId);
+    console.log('[updateProfile] Updates:', updates);
+    
     const { data, error } = await supabase
       .from('profiles')
       .update(updates)
@@ -83,13 +86,14 @@ export async function updateProfile(
       .single();
     
     if (error) {
-      console.error('updateProfile error:', error);
+      console.error('[updateProfile] Error:', error);
       return { data: null, error };
     }
     
+    console.log('[updateProfile] Success! Data returned:', data);
     return { data, error: null };
   } catch (err) {
-    console.error('updateProfile exception:', err);
+    console.error('[updateProfile] Exception:', err);
     return { data: null, error: err };
   }
 }

@@ -136,6 +136,13 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
   // Initialize form values when profile loads
   useEffect(() => {
     if (profile) {
+      console.log('[AccountScreen] Loading profile data:', {
+        home_address: profile.home_address,
+        home_address_full: profile.home_address_full,
+        home_address_place_id: profile.home_address_place_id,
+        home_address_lat: profile.home_address_lat,
+        home_address_lng: profile.home_address_lng,
+      });
       setFullName(profile.full_name || '');
       setHomeAddress(profile.home_address || '');
       setHomeAddressFull(profile.home_address_full || '');
@@ -203,18 +210,24 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
       return;
     }
     
+    const updates = { 
+      full_name: fullName,
+      home_address: homeAddress || undefined,
+      home_address_full: homeAddressFull || undefined,
+      home_address_place_id: homeAddressPlaceId || undefined,
+      home_address_lat: homeAddressLat ?? undefined,
+      home_address_lng: homeAddressLng ?? undefined,
+    };
+    
+    console.log('[AccountScreen] Saving profile with updates:', updates);
+    
     try {
-      await updateProfileMutation.mutateAsync({ 
-        full_name: fullName,
-        home_address: homeAddress || undefined,
-        home_address_full: homeAddressFull || undefined,
-        home_address_place_id: homeAddressPlaceId || undefined,
-        home_address_lat: homeAddressLat ?? undefined,
-        home_address_lng: homeAddressLng ?? undefined,
-      });
+      const result = await updateProfileMutation.mutateAsync(updates);
+      console.log('[AccountScreen] Profile saved successfully:', result);
       setIsEditingProfile(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error: any) {
+      console.error('[AccountScreen] Failed to save profile:', error);
       Alert.alert('Error', error.message || 'Failed to update profile');
     }
   };
