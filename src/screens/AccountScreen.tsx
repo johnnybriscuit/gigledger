@@ -666,15 +666,14 @@ const styles = StyleSheet.create({
   },
   gridContainerMobile: {
     flexDirection: 'column',
-    gap: parseInt(spacing[4]),
   },
   gridContainerDesktop: {
     flexDirection: 'row',
-    gap: parseInt(spacing[6]),
   },
   leftColumn: {
     flex: 1,
     minWidth: 0,
+    marginRight: parseInt(spacing[6]),
   },
   rightColumn: {
     width: 320,
@@ -682,8 +681,13 @@ const styles = StyleSheet.create({
   },
   columnMobile: {
     width: '100%',
+    maxWidth: '100%',
     flex: 0,
     flexShrink: 1,
+    marginRight: 0,
+    marginBottom: parseInt(spacing[6]),
+    alignSelf: 'stretch',
+    position: 'relative',
   },
   section: {
     marginBottom: parseInt(spacing[6]),
