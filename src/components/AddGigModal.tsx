@@ -846,6 +846,11 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 </TouchableOpacity>
               </View>
             </View>
+            
+            {/* Subtle hint about optional details below */}
+            <Text style={styles.optionalDetailsHint}>
+              💡 Optional details below (venue, tips/fees, subcontractors, mileage)
+            </Text>
             </View>
 
             {/* ACCORDION: DETAILS */}
@@ -1116,14 +1121,15 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               </View>
             </Accordion>
 
-            {/* Bottom padding to prevent sticky footer overlap - 200px for summary + 80px for button */}
-            <View style={{ height: 280 }} />
+            {/* Bottom padding to prevent sticky footer overlap - compact summary ~140px + button 80px */}
+            <View style={{ height: 220 }} />
           </ScrollView>
 
           {/* Sticky Summary Footer */}
           {gigSetAside && taxProfile && (
             <View style={styles.stickyFooter}>
               <StickySummary
+                variant="compact"
                 grossIncome={(parseFloat(grossAmount) || 0) + (parseFloat(tips) || 0) + (parseFloat(perDiem) || 0) + (parseFloat(otherIncome) || 0)}
                 fees={parseFloat(fees) || 0}
                 expenses={totalExpenses}
@@ -1423,6 +1429,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     marginBottom: 16,
+  },
+  optionalDetailsHint: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginTop: 12,
+    textAlign: 'center',
   },
   inputGroup: {
     marginBottom: 20,

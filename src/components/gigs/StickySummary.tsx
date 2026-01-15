@@ -11,6 +11,7 @@ interface StickySummaryProps {
   mileageDeduction: number;
   taxSetAside: number;
   taxRate: number;
+  variant?: 'compact' | 'default';
 }
 
 export function StickySummary({
@@ -21,6 +22,7 @@ export function StickySummary({
   mileageDeduction,
   taxSetAside,
   taxRate,
+  variant = 'compact',
 }: StickySummaryProps) {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -28,31 +30,33 @@ export function StickySummary({
   const netBeforeTax = grossIncome - totalDeductions;
   const takeHome = netBeforeTax - taxSetAside;
 
+  const isCompact = variant === 'compact';
+
   return (
     <View style={styles.container}>
-      <View style={styles.summary}>
-        <View style={styles.summaryRow}>
+      <View style={[styles.summary, isCompact && styles.summaryCompact]}>
+        <View style={[styles.summaryRow, isCompact && styles.summaryRowCompact]}>
           <View>
-            <Text style={styles.label}>Estimated take-home</Text>
-            <Text style={styles.amount}>{formatCurrency(takeHome)}</Text>
+            <Text style={[styles.label, isCompact && styles.labelCompact]}>Estimated take-home</Text>
+            <Text style={[styles.amount, isCompact && styles.amountCompact]}>{formatCurrency(takeHome)}</Text>
           </View>
           <View style={styles.taxInfo}>
-            <Text style={styles.taxLabel}>Set aside</Text>
-            <Text style={styles.taxAmount}>
+            <Text style={[styles.taxLabel, isCompact && styles.taxLabelCompact]}>Set aside</Text>
+            <Text style={[styles.taxAmount, isCompact && styles.taxAmountCompact]}>
               {formatCurrency(taxSetAside)} ({Math.round(taxRate)}%)
             </Text>
           </View>
         </View>
         
         <TouchableOpacity
-          style={styles.detailsButton}
+          style={[styles.detailsButton, isCompact && styles.detailsButtonCompact]}
           onPress={() => setShowDetails(!showDetails)}
           activeOpacity={0.7}
         >
-          <Text style={styles.detailsButtonText}>
+          <Text style={[styles.detailsButtonText, isCompact && styles.detailsButtonTextCompact]}>
             {showDetails ? 'Hide' : 'Show'} breakdown
           </Text>
-          <Text style={styles.chevron}>{showDetails ? '▲' : '▼'}</Text>
+          <Text style={[styles.chevron, isCompact && styles.chevronCompact]}>{showDetails ? '▲' : '▼'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -122,21 +126,35 @@ const styles = StyleSheet.create({
   summary: {
     padding: parseInt(spacing[4]),
   },
+  summaryCompact: {
+    padding: parseInt(spacing[3]),
+    paddingBottom: parseInt(spacing[2]),
+  },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: parseInt(spacing[3]),
   },
+  summaryRowCompact: {
+    marginBottom: parseInt(spacing[2]),
+  },
   label: {
     fontSize: 13,
     color: colors.text.muted,
     marginBottom: 4,
   },
+  labelCompact: {
+    fontSize: 11,
+    marginBottom: 2,
+  },
   amount: {
     fontSize: 24,
     fontWeight: typography.fontWeight.bold,
     color: colors.success.DEFAULT,
+  },
+  amountCompact: {
+    fontSize: 20,
   },
   taxInfo: {
     alignItems: 'flex-end',
@@ -146,10 +164,16 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     marginBottom: 2,
   },
+  taxLabelCompact: {
+    fontSize: 10,
+  },
   taxAmount: {
     fontSize: 14,
     fontWeight: typography.fontWeight.semibold,
     color: colors.warning.DEFAULT,
+  },
+  taxAmountCompact: {
+    fontSize: 12,
   },
   detailsButton: {
     flexDirection: 'row',
@@ -157,15 +181,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: parseInt(spacing[2]),
   },
+  detailsButtonCompact: {
+    paddingVertical: parseInt(spacing[1]),
+  },
   detailsButtonText: {
     fontSize: 13,
     color: colors.brand.DEFAULT,
     fontWeight: typography.fontWeight.medium,
     marginRight: parseInt(spacing[1]),
   },
+  detailsButtonTextCompact: {
+    fontSize: 11,
+  },
   chevron: {
     fontSize: 10,
     color: colors.brand.DEFAULT,
+  },
+  chevronCompact: {
+    fontSize: 9,
   },
   breakdown: {
     padding: parseInt(spacing[4]),
