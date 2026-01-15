@@ -48,6 +48,12 @@ export function StickySummary({
           </View>
         </View>
         
+        {isCompact && !showDetails && (
+          <Text style={styles.hintText}>
+            Optional details below (venue, tips/fees, subcontractors, mileage)
+          </Text>
+        )}
+        
         <TouchableOpacity
           style={[styles.detailsButton, isCompact && styles.detailsButtonCompact]}
           onPress={() => setShowDetails(!showDetails)}
@@ -199,6 +205,12 @@ const styles = StyleSheet.create({
   },
   chevronCompact: {
     fontSize: 9,
+  },
+  hintText: {
+    fontSize: 11,
+    color: colors.text.muted,
+    textAlign: 'left',
+    marginBottom: parseInt(spacing[2]),
   },
   breakdown: {
     padding: parseInt(spacing[4]),

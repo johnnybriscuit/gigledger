@@ -846,11 +846,6 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 </TouchableOpacity>
               </View>
             </View>
-            
-            {/* Subtle hint about optional details below */}
-            <Text style={styles.optionalDetailsHint}>
-              💡 Optional details below (venue, tips/fees, subcontractors, mileage)
-            </Text>
             </View>
 
             {/* ACCORDION: DETAILS */}
@@ -1429,13 +1424,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     marginBottom: 16,
-  },
-  optionalDetailsHint: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-    marginTop: 12,
-    textAlign: 'center',
   },
   inputGroup: {
     marginBottom: 20,
