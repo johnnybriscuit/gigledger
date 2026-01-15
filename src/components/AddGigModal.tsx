@@ -34,6 +34,7 @@ import { useTaxProfile } from '../hooks/useTaxProfile';
 import { taxDeltaForGig, formatTaxAmount, formatTaxRate } from '../tax/engine';
 import { TaxSummary } from './gigs/TaxSummary';
 import type { TaxEstimate } from './gigs/TaxSummary';
+import { StickySummary } from './gigs/StickySummary';
 import { UpgradeModal } from './UpgradeModal';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
@@ -1152,39 +1153,21 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               onAddSubcontractor={() => setShowAddSubcontractorModal(true)}
             />
 
-            <View style={{ height: 100 }} />
+            {/* Bottom padding to prevent sticky footer overlap - 200px for summary + 80px for button */}
+            <View style={{ height: 280 }} />
           </ScrollView>
 
-          {/* Net After Tax Section */}
+          {/* Sticky Summary Footer */}
           {gigSetAside && taxProfile && (
-            <View style={styles.netAfterTaxSection}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionTitle}>Net After Tax</Text>
-              </View>
-              <TaxSummary
-                gross={parseFloat(grossAmount) || 0}
-                tips={parseFloat(tips) || 0}
-                perDiem={parseFloat(perDiem) || 0}
+            <View style={styles.stickyFooter}>
+              <StickySummary
+                grossIncome={(parseFloat(grossAmount) || 0) + (parseFloat(tips) || 0) + (parseFloat(perDiem) || 0) + (parseFloat(otherIncome) || 0)}
                 fees={parseFloat(fees) || 0}
-                otherIncome={parseFloat(otherIncome) || 0}
-                gigExpenses={totalExpenses}
-                mileageDeduction={mileageDeduction}
+                expenses={totalExpenses}
                 subcontractorPayments={totalSubcontractorPayments}
-                filingStatus={taxProfile.filingStatus}
-                state={taxProfile.state}
-                taxYear={2025}
-                estimate={{
-                  federal: gigSetAside.breakdown.federal,
-                  state: gigSetAside.breakdown.state + gigSetAside.breakdown.local,
-                  se: gigSetAside.breakdown.seTax,
-                  setAside: gigSetAside.amount,
-                  setAsidePct: gigSetAside.rate,
-                  thresholdNote: gigSetAside.breakdown.federal === 0 ? 'below $30k threshold' : undefined,
-                }}
-                isExpanded={showTaxBreakdown}
-                onToggle={setShowTaxBreakdown}
-                business_structure={businessStructure}
-                plan={plan}
+                mileageDeduction={mileageDeduction}
+                taxSetAside={gigSetAside.amount}
+                taxRate={gigSetAside.rate * 100}
               />
             </View>
           )}
@@ -1716,7 +1699,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontStyle: 'italic',
   },
+  stickyFooter: {
+    position: 'absolute',
+    bottom: 80,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
   submitButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: 16,
     backgroundColor: '#fff',
     borderTopWidth: 1,
