@@ -35,6 +35,7 @@ import { taxDeltaForGig, formatTaxAmount, formatTaxRate } from '../tax/engine';
 import { TaxSummary } from './gigs/TaxSummary';
 import type { TaxEstimate } from './gigs/TaxSummary';
 import { StickySummary } from './gigs/StickySummary';
+import { Accordion } from './ui/Accordion';
 import { UpgradeModal } from './UpgradeModal';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
@@ -695,9 +696,13 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
           </View>
 
           <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Payer *</Text>
-              <Text style={styles.helperText}>Who is paying you for this gig?</Text>
+            {/* QUICK ADD SECTION - Always Visible */}
+            <View style={styles.quickAddSection}>
+              <Text style={styles.sectionTitle}>Quick Add</Text>
+              <Text style={styles.sectionDescription}>Required fields to get started</Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Payer *</Text>
               
               {payers && payers.length === 0 ? (
                 <View style={styles.emptyPayerContainer}>
@@ -849,66 +854,6 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               />
             </View>
 
-            <View style={[styles.inputGroup, { zIndex: 0 }]}>
-              <Text style={styles.label}>Date *</Text>
-              <TouchableOpacity
-                style={styles.pickerButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Text style={[styles.pickerButtonText, !date && styles.placeholderText]}>
-                  {date || 'Select date'}
-                </Text>
-                <Text style={styles.pickerButtonIcon}>📅</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={[styles.inputGroup, { zIndex: 0 }]}>
-              <Text style={styles.label}>Title</Text>
-              <TextInput
-                style={[styles.input, fieldErrors.title && styles.inputError]}
-                value={title}
-                onChangeText={(text) => {
-                  setTitle(text);
-                  if (fieldErrors.title && text.trim()) {
-                    setFieldErrors({ ...fieldErrors, title: undefined });
-                  }
-                }}
-                placeholder="e.g., Friday Night Show (optional)"
-                placeholderTextColor="#9ca3af"
-              />
-              {fieldErrors.title && (
-                <Text style={styles.errorText}>⚠️ {fieldErrors.title}</Text>
-              )}
-            </View>
-
-            <View style={[styles.row, { zIndex: 0 }]}>
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>State</Text>
-                <TouchableOpacity
-                  style={styles.pickerButton}
-                  onPress={() => setShowStatePicker(true)}
-                >
-                  <Text style={[styles.pickerButtonText, !state && styles.placeholderText]}>
-                    {state ? US_STATES.find(s => s.code === state)?.name || state : 'Select state'}
-                  </Text>
-                  <Text style={styles.pickerButtonIcon}>▼</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>Country</Text>
-                <TouchableOpacity
-                  style={styles.pickerButton}
-                  onPress={() => setShowCountryPicker(true)}
-                >
-                  <Text style={styles.pickerButtonText}>
-                    {COUNTRIES.find(c => c.code === country)?.name || 'United States'}
-                  </Text>
-                  <Text style={styles.pickerButtonIcon}>▼</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
             <View style={[styles.row, { zIndex: 0 }]}>
               <View style={[styles.inputGroup, styles.flex1]}>
                 <Text style={styles.label}>Gross Amount *</Text>
@@ -931,143 +876,36 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               </View>
 
               <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>Tips</Text>
-                <TextInput
-                  style={styles.input}
-                  value={tips}
-                  onChangeText={setTips}
-                  placeholder="0.00"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="decimal-pad"
-                />
-              </View>
-            </View>
-
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>Fees</Text>
-                <TextInput
-                  style={styles.input}
-                  value={fees}
-                  onChangeText={setFees}
-                  placeholder="0.00"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="decimal-pad"
-                />
-              </View>
-
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>Per Diem</Text>
-                <TextInput
-                  style={styles.input}
-                  value={perDiem}
-                  onChangeText={setPerDiem}
-                  placeholder="0.00"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="decimal-pad"
-                />
+                <Text style={styles.label}>Date *</Text>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={[styles.pickerButtonText, !date && styles.placeholderText]}>
+                    {date || 'Select date'}
+                  </Text>
+                  <Text style={styles.pickerButtonIcon}>📅</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Other Income</Text>
+              <Text style={styles.label}>Title (Optional)</Text>
               <TextInput
-                style={styles.input}
-                value={otherIncome}
-                onChangeText={setOtherIncome}
-                placeholder="0.00"
+                style={[styles.input, fieldErrors.title && styles.inputError]}
+                value={title}
+                onChangeText={(text) => {
+                  setTitle(text);
+                  if (fieldErrors.title && text.trim()) {
+                    setFieldErrors({ ...fieldErrors, title: undefined });
+                  }
+                }}
+                placeholder="e.g., Friday Night Show"
                 placeholderTextColor="#9ca3af"
-                keyboardType="decimal-pad"
               />
-            </View>
-
-            <View style={styles.netAmountCard}>
-              <View style={styles.netAmountHeader}>
-                <Text style={styles.netAmountLabel}>Total gig pay</Text>
-                <Text style={styles.netAmountSubtitle}>(before expenses & taxes)</Text>
-              </View>
-              <Text style={styles.netAmountValue}>
-                ${totalGigPay.toFixed(2)}
-              </Text>
-              <Text style={styles.netAmountFormula}>
-                {generatePayBreakdown()}
-              </Text>
-            </View>
-
-            {/* Withholding Recommendation Card - Only show if no new tax profile */}
-            {withholdingAmount > 0 && withholdingBreakdown && !gigSetAside && (
-              <View style={styles.withholdingCard}>
-                <View style={styles.withholdingHeader}>
-                  <Text style={styles.withholdingTitle}>💰 Recommended Set-Aside</Text>
-                  {!hasProfile && (
-                    <TouchableOpacity style={styles.setupTaxButton}>
-                      <Text style={styles.setupTaxButtonText}>Setup Tax Info</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <Text style={styles.withholdingTotal}>
-                  ${withholdingBreakdown.total.toFixed(2)}
-                </Text>
-                <View style={styles.withholdingBreakdown}>
-                  <View style={styles.withholdingRow}>
-                    <Text style={styles.withholdingLabel}>Federal (est.):</Text>
-                    <Text style={styles.withholdingValue}>
-                      ${withholdingBreakdown.federalIncome.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.withholdingRow}>
-                    <Text style={styles.withholdingLabel}>SE Tax (est.):</Text>
-                    <Text style={styles.withholdingValue}>
-                      ${withholdingBreakdown.selfEmployment.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.withholdingRow}>
-                    <Text style={styles.withholdingLabel}>State (est.):</Text>
-                    <Text style={styles.withholdingValue}>
-                      ${withholdingBreakdown.stateIncome.toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.withholdingDisclaimer}>
-                  Estimates only. Not tax advice.
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Payment Method</Text>
-              <View style={styles.typeButtons}>
-                {PAYMENT_METHODS.map((method) => (
-                  <TouchableOpacity
-                    key={method}
-                    style={[
-                      styles.typeButton,
-                      paymentMethod === method && styles.typeButtonActive,
-                    ]}
-                    onPress={() => setPaymentMethod(method)}
-                  >
-                    <Text style={[
-                      styles.typeButtonText,
-                      paymentMethod === method && styles.typeButtonTextActive,
-                    ]}>
-                      {method}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Invoice Link (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                value={invoiceLink}
-                onChangeText={setInvoiceLink}
-                placeholder="https://..."
-                placeholderTextColor="#9ca3af"
-                keyboardType="url"
-                autoCapitalize="none"
-              />
+              {fieldErrors.title && (
+                <Text style={styles.errorText}>⚠️ {fieldErrors.title}</Text>
+              )}
             </View>
 
             <View style={styles.row}>
@@ -1095,63 +933,275 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 </TouchableOpacity>
               </View>
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Notes (Optional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Add notes about this gig..."
-                placeholderTextColor="#9ca3af"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
             </View>
 
-            {/* Copy Expenses Toggle (only shown when duplicating) */}
-            {duplicatingGig && (
+            {/* ACCORDION: DETAILS */}
+            <Accordion title="Details" description="Venue, location, and other details">
               <View style={styles.inputGroup}>
-                <View style={styles.toggleRow}>
-                  <View style={styles.toggleLabel}>
-                    <Text style={styles.label}>Copy gig-specific expenses?</Text>
-                    <Text style={styles.helperText}>Expenses from the original gig (e.g., subcontractor payouts)</Text>
-                  </View>
+                <Text style={styles.label}>Venue</Text>
+                <VenuePlacesInput
+                  label=""
+                  placeholder="Search for a venue..."
+                  types="establishment"
+                  value={location}
+                  onChange={(text: string) => {
+                    setLocation(text);
+                    setVenueDetails(null);
+                    setVenueError('');
+                  }}
+                  onSelect={async (item: { description: string; place_id: string }) => {
+                    setLocation(item.description);
+                    setVenueError('');
+                    
+                    try {
+                      const response = await fetch(`/api/places/details?place_id=${item.place_id}`, {
+                        credentials: 'include',
+                      });
+                      
+                      if (response.ok) {
+                        const details = await response.json();
+                        setVenueDetails(details);
+                        
+                        if (details.parts.city) {
+                          setCity(details.parts.city);
+                        }
+                        if (details.parts.state) {
+                          setState(details.parts.state);
+                        }
+                        if (details.parts.country) {
+                          setCountry(details.parts.country);
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Error fetching venue details:', error);
+                    }
+                  }}
+                  error={venueError}
+                  locationBias={cityDetails?.location}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>City</Text>
+                <VenuePlacesInput
+                  label=""
+                  placeholder="Search for a city..."
+                  types="(cities)"
+                  value={city}
+                  onChange={(text: string) => {
+                    setCity(text);
+                    setCityDetails(null);
+                    setCityError('');
+                  }}
+                  onSelect={async (item: { description: string; place_id: string }) => {
+                    setCity(item.description);
+                    setCityError('');
+                    
+                    try {
+                      const response = await fetch(`/api/places/details?place_id=${item.place_id}`, {
+                        credentials: 'include',
+                      });
+                      
+                      if (response.ok) {
+                        const details = await response.json();
+                        setCityDetails(details);
+                        
+                        if (details.parts.state) {
+                          setState(details.parts.state);
+                        }
+                        if (details.parts.country) {
+                          setCountry(details.parts.country);
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Error fetching city details:', error);
+                    }
+                  }}
+                  error={cityError}
+                />
+              </View>
+
+              <View style={styles.row}>
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>State</Text>
                   <TouchableOpacity
-                    style={[styles.toggle, copyExpenses && styles.toggleActive]}
-                    onPress={() => setCopyExpenses(!copyExpenses)}
+                    style={styles.pickerButton}
+                    onPress={() => setShowStatePicker(true)}
                   >
-                    <View style={[styles.toggleThumb, copyExpenses && styles.toggleThumbActive]} />
+                    <Text style={[styles.pickerButtonText, !state && styles.placeholderText]}>
+                      {state ? US_STATES.find(s => s.code === state)?.name || state : 'Select state'}
+                    </Text>
+                    <Text style={styles.pickerButtonIcon}>▼</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>Country</Text>
+                  <TouchableOpacity
+                    style={styles.pickerButton}
+                    onPress={() => setShowCountryPicker(true)}
+                  >
+                    <Text style={styles.pickerButtonText}>
+                      {COUNTRIES.find(c => c.code === country)?.name || 'United States'}
+                    </Text>
+                    <Text style={styles.pickerButtonIcon}>▼</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
 
-            {/* Inline Expenses */}
-            <InlineExpensesList 
-              expenses={inlineExpenses}
-              onChange={setInlineExpenses}
-            />
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Invoice Link (Optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={invoiceLink}
+                  onChangeText={setInvoiceLink}
+                  placeholder="https://..."
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+              </View>
+            </Accordion>
 
-            {/* Inline Mileage */}
-            <InlineMileageRow
-              mileage={inlineMileage}
-              onChange={setInlineMileage}
-              homeAddress={profile ? {
-                full: profile.home_address_full,
-                lat: profile.home_address_lat,
-                lng: profile.home_address_lng,
-              } : null}
-              venueLocation={venueDetails?.location || cityDetails?.location || null}
-            />
+            {/* ACCORDION: MONEY BREAKDOWN */}
+            <Accordion title="Money Breakdown" description="Tips, fees, per diem, and payment method">
+              <View style={styles.row}>
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>Tips</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={tips}
+                    onChangeText={setTips}
+                    placeholder="0.00"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
 
-            {/* Subcontractor Payments */}
-            <InlineSubcontractorPayments
-              payments={inlineSubcontractorPayments}
-              onChange={setInlineSubcontractorPayments}
-              onAddSubcontractor={() => setShowAddSubcontractorModal(true)}
-            />
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>Fees</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={fees}
+                    onChangeText={setFees}
+                    placeholder="0.00"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.row}>
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>Per Diem</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={perDiem}
+                    onChangeText={setPerDiem}
+                    placeholder="0.00"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                <View style={[styles.inputGroup, styles.flex1]}>
+                  <Text style={styles.label}>Other Income</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={otherIncome}
+                    onChangeText={setOtherIncome}
+                    placeholder="0.00"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Payment Method</Text>
+                <View style={styles.typeButtons}>
+                  {PAYMENT_METHODS.map((method) => (
+                    <TouchableOpacity
+                      key={method}
+                      style={[
+                        styles.typeButton,
+                        paymentMethod === method && styles.typeButtonActive,
+                      ]}
+                      onPress={() => setPaymentMethod(method)}
+                    >
+                      <Text style={[
+                        styles.typeButtonText,
+                        paymentMethod === method && styles.typeButtonTextActive,
+                      ]}>
+                        {method}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </Accordion>
+
+            {/* ACCORDION: DEDUCTIONS */}
+            <Accordion title="Deductions" description="Expenses, subcontractors, and mileage">
+              {/* Copy Expenses Toggle (only shown when duplicating) */}
+              {duplicatingGig && (
+                <View style={styles.inputGroup}>
+                  <View style={styles.toggleRow}>
+                    <View style={styles.toggleLabel}>
+                      <Text style={styles.label}>Copy gig-specific expenses?</Text>
+                      <Text style={styles.helperText}>Expenses from the original gig</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.toggle, copyExpenses && styles.toggleActive]}
+                      onPress={() => setCopyExpenses(!copyExpenses)}
+                    >
+                      <View style={[styles.toggleThumb, copyExpenses && styles.toggleThumbActive]} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Inline Expenses */}
+              <InlineExpensesList 
+                expenses={inlineExpenses}
+                onChange={setInlineExpenses}
+              />
+
+              {/* Subcontractor Payments */}
+              <InlineSubcontractorPayments
+                payments={inlineSubcontractorPayments}
+                onChange={setInlineSubcontractorPayments}
+                onAddSubcontractor={() => setShowAddSubcontractorModal(true)}
+              />
+
+              {/* Inline Mileage */}
+              <InlineMileageRow
+                mileage={inlineMileage}
+                onChange={setInlineMileage}
+                homeAddress={profile ? {
+                  full: profile.home_address_full,
+                  lat: profile.home_address_lat,
+                  lng: profile.home_address_lng,
+                } : null}
+                venueLocation={venueDetails?.location || cityDetails?.location || null}
+              />
+            </Accordion>
+
+            {/* ACCORDION: NOTES */}
+            <Accordion title="Notes" description="Additional notes about this gig">
+              <View style={styles.inputGroup}>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Add notes about this gig..."
+                  placeholderTextColor="#9ca3af"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+              </View>
+            </Accordion>
 
             {/* Bottom padding to prevent sticky footer overlap - 200px for summary + 80px for button */}
             <View style={{ height: 280 }} />
@@ -1443,6 +1493,23 @@ const styles = StyleSheet.create({
   },
   form: {
     paddingHorizontal: 20,
+  },
+  quickAddSection: {
+    marginBottom: 24,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  sectionDescription: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 16,
   },
   inputGroup: {
     marginBottom: 20,
@@ -2154,11 +2221,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
   },
   // Toggle styles
   toggleRow: {
