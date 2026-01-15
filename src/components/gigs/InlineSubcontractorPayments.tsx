@@ -35,29 +35,35 @@ export function InlineSubcontractorPayments({
       amount: '',
       note: '',
     };
-    onChange([...payments, newPayment]);
+    console.log('[InlineSubcontractorPayments] Adding payment:', newPayment);
+    console.log('[InlineSubcontractorPayments] Current payments:', payments);
+    const updatedPayments = [...payments, newPayment];
+    console.log('[InlineSubcontractorPayments] Updated payments:', updatedPayments);
+    onChange(updatedPayments);
   };
 
   const updatePayment = (id: string, field: keyof InlineSubcontractorPayment, value: string) => {
-    onChange(
-      payments.map((payment) =>
-        payment.id === id ? { ...payment, [field]: value } : payment
-      )
+    console.log('[InlineSubcontractorPayments] Updating payment:', { id, field, value });
+    const updatedPayments = payments.map((payment) =>
+      payment.id === id ? { ...payment, [field]: value } : payment
     );
+    console.log('[InlineSubcontractorPayments] Updated payments:', updatedPayments);
+    onChange(updatedPayments);
   };
 
   const selectSubcontractor = (paymentId: string, subcontractor: Subcontractor) => {
-    onChange(
-      payments.map((payment) =>
-        payment.id === paymentId
-          ? {
-              ...payment,
-              subcontractor_id: subcontractor.id,
-              subcontractor_name: subcontractor.name,
-            }
-          : payment
-      )
+    console.log('[InlineSubcontractorPayments] Selecting subcontractor:', { paymentId, subcontractor });
+    const updatedPayments = payments.map((payment) =>
+      payment.id === paymentId
+        ? {
+            ...payment,
+            subcontractor_id: subcontractor.id,
+            subcontractor_name: subcontractor.name,
+          }
+        : payment
     );
+    console.log('[InlineSubcontractorPayments] Updated payments:', updatedPayments);
+    onChange(updatedPayments);
     setShowDropdown(null);
   };
 
