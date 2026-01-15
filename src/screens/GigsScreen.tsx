@@ -42,10 +42,11 @@ function GigCard({
     + (item.per_diem || 0) 
     + (item.other_income || 0);
   
-  const expensesTotal = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0) 
+  const subcontractorPaymentsTotal = (item.subcontractor_payments || []).reduce((sum, p) => sum + p.amount, 0);
+  const expensesOnly = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0) 
     + (item.fees || 0)
-    + ((item.mileage || []).reduce((sum, m) => sum + (m.miles * 0.67), 0)) // Standard mileage rate
-    + ((item.subcontractor_payments || []).reduce((sum, p) => sum + p.amount, 0)); // Subcontractor payouts
+    + ((item.mileage || []).reduce((sum, m) => sum + (m.miles * 0.67), 0)); // Standard mileage rate
+  const expensesTotal = expensesOnly + subcontractorPaymentsTotal;
   
   const netBeforeTax = gross - expensesTotal;
   
@@ -105,7 +106,8 @@ function GigCard({
 
           <Text style={styles.breakdownText}>
             {formatCurrency(gross)} gross
-            {expensesTotal > 0 && <> − {formatCurrency(expensesTotal)} expenses</>}
+            {expensesOnly > 0 && <> − {formatCurrency(expensesOnly)} expenses</>}
+            {subcontractorPaymentsTotal > 0 && <> − {formatCurrency(subcontractorPaymentsTotal)} subs</>}
             {taxToSetAside > 0 && <> − {formatCurrency(taxToSetAside)} taxes</>}
             {' = '}
             {formatCurrency(takeHome)}

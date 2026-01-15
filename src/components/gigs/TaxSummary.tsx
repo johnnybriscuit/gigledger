@@ -147,10 +147,17 @@ export function TaxSummary({
                 <Text style={styles.breakdownValue}>{formatCurrency(summary.gross)}</Text>
               </View>
               
-              {summary.expensesTotal > 0 && (
+              {(fees + gigExpenses + mileageDeduction) > 0 && (
                 <View style={styles.breakdownRow}>
                   <Text style={styles.breakdownLabel}>Expenses</Text>
-                  <Text style={[styles.breakdownValue, styles.negative]}>-{formatCurrency(summary.expensesTotal)}</Text>
+                  <Text style={[styles.breakdownValue, styles.negative]}>-{formatCurrency(fees + gigExpenses + mileageDeduction)}</Text>
+                </View>
+              )}
+              
+              {subcontractorPayments > 0 && (
+                <View style={styles.breakdownRow}>
+                  <Text style={styles.breakdownLabel}>Subcontractors</Text>
+                  <Text style={[styles.breakdownValue, styles.negative]}>-{formatCurrency(subcontractorPayments)}</Text>
                 </View>
               )}
               
