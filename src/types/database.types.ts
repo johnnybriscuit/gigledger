@@ -757,6 +757,108 @@ export type Database = {
         }
         Relationships: []
       }
+      subcontractors: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          role: string | null
+          email: string | null
+          phone: string | null
+          address: string | null
+          tax_id_type: string | null
+          tax_id_last4: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          role?: string | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          tax_id_type?: string | null
+          tax_id_last4?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          role?: string | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          tax_id_type?: string | null
+          tax_id_last4?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontractors_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gig_subcontractor_payments: {
+        Row: {
+          id: string
+          user_id: string
+          gig_id: string
+          subcontractor_id: string
+          amount: number
+          note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          gig_id: string
+          subcontractor_id: string
+          amount: number
+          note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          gig_id?: string
+          subcontractor_id?: string
+          amount?: number
+          note?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_subcontractor_payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_subcontractor_payments_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_subcontractor_payments_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null

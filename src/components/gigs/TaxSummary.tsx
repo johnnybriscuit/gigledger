@@ -27,6 +27,7 @@ export interface TaxSummaryProps {
   otherIncome?: number;
   gigExpenses?: number;
   mileageDeduction?: number;
+  subcontractorPayments?: number;
   filingStatus: 'single' | 'married_joint' | 'married_separate' | 'head';
   state: string;
   taxYear?: number;
@@ -46,6 +47,7 @@ export function TaxSummary({
   otherIncome = 0,
   gigExpenses = 0,
   mileageDeduction = 0,
+  subcontractorPayments = 0,
   estimate,
   isExpanded: controlledExpanded,
   onToggle,
@@ -57,7 +59,7 @@ export function TaxSummary({
   const heightAnim = useRef(new Animated.Value(0)).current;
 
   const totalGross = gross + tips + perDiem + otherIncome;
-  const totalExpenses = fees + gigExpenses + mileageDeduction;
+  const totalExpenses = fees + gigExpenses + mileageDeduction + subcontractorPayments;
 
   const taxInput: BusinessStructureGigTaxInput = {
     gross: totalGross,

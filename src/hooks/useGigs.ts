@@ -30,6 +30,12 @@ export interface GigWithPayer extends Gig {
     miles: number;
     notes: string | null;
   }>;
+  subcontractor_payments?: Array<{
+    id: string;
+    subcontractor_id: string;
+    amount: number;
+    note: string | null;
+  }>;
 }
 
 export function useGigs() {

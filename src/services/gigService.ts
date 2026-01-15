@@ -10,6 +10,7 @@ import { getPlanAndUsage, createGigLimitError } from '../lib/planLimits';
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
 type ExpenseInsert = Database['public']['Tables']['expenses']['Insert'];
 type MileageInsert = Database['public']['Tables']['mileage']['Insert'];
+type SubcontractorPaymentInsert = Database['public']['Tables']['gig_subcontractor_payments']['Insert'];
 
 export interface InlineExpenseData {
   category: string;
@@ -23,10 +24,17 @@ export interface InlineMileageData {
   note?: string;
 }
 
+export interface InlineSubcontractorPaymentData {
+  subcontractor_id: string;
+  amount: number;
+  note?: string;
+}
+
 export interface CreateGigWithLinesParams {
   gig: Omit<GigInsert, 'user_id'>;
   expenses?: InlineExpenseData[];
   mileage?: InlineMileageData;
+  subcontractorPayments?: InlineSubcontractorPaymentData[];
 }
 
 export interface UpdateGigWithLinesParams {
@@ -34,6 +42,7 @@ export interface UpdateGigWithLinesParams {
   gig: Partial<Omit<GigInsert, 'user_id'>>;
   expenses?: InlineExpenseData[];
   mileage?: InlineMileageData;
+  subcontractorPayments?: InlineSubcontractorPaymentData[];
 }
 
 /**
@@ -45,6 +54,7 @@ export async function updateGigWithLines({
   gig,
   expenses = [],
   mileage,
+  subcontractorPayments = [],
 }: UpdateGigWithLinesParams) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -107,7 +117,43 @@ export async function updateGigWithLines({
     throw new Error(`Failed to delete old mileage: ${deleteMileageError.message}`);
   }
 
-  // 5. Create new inline mileage if provided
+  // 5. Delete existing gig-related subcontractor payments
+  const { error: deletePaymentsError } = await supabase
+    .from('gig_subcontractor_payments')
+    .delete()
+    .eq('gig_id', gigId)
+    .eq('user_id', user.id);
+
+  if (deletePaymentsError) {
+    console.error('Failed to delete old subcontractor payments:', deletePaymentsError);
+    throw new Error(`Failed to delete old subcontractor payments: ${deletePaymentsError.message}`);
+  }
+
+  // 6. Create new subcontractor payments if any
+  if (subcontractorPayments.length > 0) {
+    const paymentInserts = subcontractorPayments
+      .filter(payment => payment.subcontractor_id && payment.amount > 0)
+      .map((payment) => ({
+        user_id: user.id,
+        gig_id: gigId,
+        subcontractor_id: payment.subcontractor_id,
+        amount: payment.amount,
+        note: payment.note || null,
+      }));
+
+    if (paymentInserts.length > 0) {
+      const { error: paymentsError } = await supabase
+        .from('gig_subcontractor_payments')
+        .insert(paymentInserts as any);
+
+      if (paymentsError) {
+        console.error('Failed to create subcontractor payments:', paymentsError);
+        throw new Error(`Failed to create subcontractor payments: ${paymentsError.message}`);
+      }
+    }
+  }
+
+  // 7. Create new inline mileage if provided
   if (mileage && mileage.miles > 0) {
     const mileageInsert = {
       user_id: user.id,
@@ -141,6 +187,7 @@ export async function createGigWithLines({
   gig,
   expenses = [],
   mileage,
+  subcontractorPayments = [],
 }: CreateGigWithLinesParams) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -191,7 +238,33 @@ export async function createGigWithLines({
       }
     }
 
-    // 3. Create inline mileage if provided
+    // 3. Create subcontractor payments if any
+    if (subcontractorPayments.length > 0) {
+      const paymentInserts = subcontractorPayments
+        .filter(payment => payment.subcontractor_id && payment.amount > 0)
+        .map((payment) => ({
+          user_id: user.id,
+          gig_id: gigId,
+          subcontractor_id: payment.subcontractor_id,
+          amount: payment.amount,
+          note: payment.note || null,
+        }));
+
+      if (paymentInserts.length > 0) {
+        const { error: paymentsError } = await supabase
+          .from('gig_subcontractor_payments')
+          .insert(paymentInserts as any);
+
+        if (paymentsError) {
+          // Rollback: delete the gig
+          await supabase.from('gigs').delete().eq('id', gigId);
+          console.error('Failed to create subcontractor payments:', paymentsError);
+          throw new Error(`Failed to create subcontractor payments: ${paymentsError.message}`);
+        }
+      }
+    }
+
+    // 4. Create inline mileage if provided
     if (mileage && mileage.miles > 0) {
       const mileageInsert = {
         user_id: user.id,

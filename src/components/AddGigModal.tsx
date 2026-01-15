@@ -22,6 +22,8 @@ import { formatWithholdingBreakdown } from '../lib/tax/withholding';
 import { hasCompletedTaxProfile } from '../services/taxService';
 import { InlineExpensesList, type InlineExpense } from './gigs/InlineExpensesList';
 import { InlineMileageRow, type InlineMileage } from './gigs/InlineMileageRow';
+import { InlineSubcontractorPayments, type InlineSubcontractorPayment } from './gigs/InlineSubcontractorPayments';
+import { SubcontractorFormModal } from './SubcontractorFormModal';
 import { VenuePlacesInput } from './VenuePlacesInput';
 import { useTaxEstimate, calculateMileageDeduction } from '../hooks/useTaxEstimate';
 import { createGigWithLines, updateGigWithLines } from '../services/gigService';
@@ -118,11 +120,14 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   const [notes, setNotes] = useState('');
   const [inlineExpenses, setInlineExpenses] = useState<InlineExpense[]>([]);
   const [inlineMileage, setInlineMileage] = useState<InlineMileage | null>(null);
+  const [inlineSubcontractorPayments, setInlineSubcontractorPayments] = useState<InlineSubcontractorPayment[]>([]);
   const [copyExpenses, setCopyExpenses] = useState(false);
+  const [copySubcontractorPayments, setCopySubcontractorPayments] = useState(false);
   const [showAddPayerModal, setShowAddPayerModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showEditPayerModal, setShowEditPayerModal] = useState(false);
   const [editingPayer, setEditingPayer] = useState<Payer | null>(null);
+  const [showAddSubcontractorModal, setShowAddSubcontractorModal] = useState(false);
   const [showPayerPicker, setShowPayerPicker] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     payerId?: string;
@@ -148,6 +153,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   // Calculate totals for inline items
   const totalExpenses = inlineExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
   const mileageDeduction = inlineMileage ? calculateMileageDeduction(parseFloat(inlineMileage.miles) || 0) : 0;
+  const totalSubcontractorPayments = inlineSubcontractorPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
   
   // Construct venue address from form fields
   const venueAddress = [location, city, state].filter(Boolean).join(', ');
@@ -230,10 +236,11 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       + (parseFloat(perDiem) || 0)
       + (parseFloat(otherIncome) || 0);
     
-    // Calculate total expenses for this gig (fees + inline expenses + mileage)
+    // Calculate total expenses for this gig (fees + inline expenses + mileage + subcontractor payments)
     const gigTotalExpenses = (parseFloat(fees) || 0)
       + totalExpenses
-      + mileageDeduction;
+      + mileageDeduction
+      + totalSubcontractorPayments;
     
     const gigData = {
       gross: gigGrossIncome,
@@ -329,6 +336,10 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       
       loadGigExpenses();
       loadGigMileage();
+      
+      // Note: Subcontractor payments are NOT automatically loaded when duplicating
+      // They must be explicitly copied via the copySubcontractorPayments toggle
+      // This prevents accidental duplication of payouts to bandmates/crew
     }
   }, [duplicatingGig, visible, copyExpenses]);
 
@@ -419,7 +430,9 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     setNotes('');
     setInlineExpenses([]);
     setInlineMileage(null);
+    setInlineSubcontractorPayments([]);
     setCopyExpenses(false);
+    setCopySubcontractorPayments(false);
   };
 
   // Date picker handler
@@ -555,6 +568,15 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         note: inlineMileage.note,
       } : undefined;
 
+      // Prepare subcontractor payments data (used for both create and edit)
+      const subcontractorPaymentsData = inlineSubcontractorPayments
+        .filter(payment => payment.subcontractor_id && payment.amount)
+        .map(payment => ({
+          subcontractor_id: payment.subcontractor_id,
+          amount: parseFloat(payment.amount) || 0,
+          note: payment.note,
+        }));
+
       if (editingGig) {
         // Update gig with inline items
         await updateGigWithLines({
@@ -562,12 +584,14 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
           gig: validated,
           expenses: expensesData,
           mileage: mileageData,
+          subcontractorPayments: subcontractorPaymentsData,
         });
         
         // Invalidate queries to refresh the UI
         queryClient.invalidateQueries({ queryKey: ['gigs'] });
         queryClient.invalidateQueries({ queryKey: ['expenses'] });
         queryClient.invalidateQueries({ queryKey: ['mileage'] });
+        queryClient.invalidateQueries({ queryKey: ['gig-subcontractor-payments'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       } else {
         // Create gig with inline items
@@ -582,6 +606,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             gig: validated,
             expenses: expensesData,
             mileage: mileageData,
+            subcontractorPayments: subcontractorPaymentsData,
           });
           console.log('Gig created successfully:', result);
         } catch (createError: any) {
@@ -593,6 +618,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         queryClient.invalidateQueries({ queryKey: ['gigs'] });
         queryClient.invalidateQueries({ queryKey: ['expenses'] });
         queryClient.invalidateQueries({ queryKey: ['mileage'] });
+        queryClient.invalidateQueries({ queryKey: ['gig-subcontractor-payments'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }
 
@@ -1092,6 +1118,13 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               venueLocation={venueDetails?.location || cityDetails?.location || null}
             />
 
+            {/* Subcontractor Payments */}
+            <InlineSubcontractorPayments
+              payments={inlineSubcontractorPayments}
+              onChange={setInlineSubcontractorPayments}
+              onAddSubcontractor={() => setShowAddSubcontractorModal(true)}
+            />
+
             <View style={{ height: 100 }} />
           </ScrollView>
 
@@ -1109,6 +1142,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 otherIncome={parseFloat(otherIncome) || 0}
                 gigExpenses={totalExpenses}
                 mileageDeduction={mileageDeduction}
+                subcontractorPayments={totalSubcontractorPayments}
                 filingStatus={taxProfile.filingStatus}
                 state={taxProfile.state}
                 taxYear={2025}
@@ -1209,6 +1243,12 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
           setEditingPayer(null);
         }}
         editingPayer={editingPayer}
+      />
+
+      {/* Add Subcontractor Modal */}
+      <SubcontractorFormModal
+        visible={showAddSubcontractorModal}
+        onClose={() => setShowAddSubcontractorModal(false)}
       />
 
       {/* Upgrade Modal */}

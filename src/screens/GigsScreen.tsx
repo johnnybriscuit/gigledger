@@ -44,7 +44,8 @@ function GigCard({
   
   const expensesTotal = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0) 
     + (item.fees || 0)
-    + ((item.mileage || []).reduce((sum, m) => sum + (m.miles * 0.67), 0)); // Standard mileage rate
+    + ((item.mileage || []).reduce((sum, m) => sum + (m.miles * 0.67), 0)) // Standard mileage rate
+    + ((item.subcontractor_payments || []).reduce((sum, p) => sum + p.amount, 0)); // Subcontractor payouts
   
   const netBeforeTax = gross - expensesTotal;
   
