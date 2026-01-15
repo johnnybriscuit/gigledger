@@ -170,10 +170,10 @@ export function useUpdateGig() {
     onSuccess: async () => {
       const userId = getCachedUserId();
       if (userId) {
-        // Invalidate gigs list
+        // Invalidate gigs list (this will trigger dashboard to recalculate)
         queryClient.invalidateQueries({ queryKey: queryKeys.gigs(userId) });
         
-        // Invalidate dashboard (totals, net profit, set-aside, quick stats)
+        // Invalidate all dashboard queries (with any date range)
         queryClient.invalidateQueries({ queryKey: ['dashboard', userId] });
         
         // Invalidate exports (Schedule C, tax exports, reports)
@@ -187,6 +187,9 @@ export function useUpdateGig() {
         
         // Invalidate any YTD tax data that depends on gigs
         queryClient.invalidateQueries({ queryKey: ['ytd-tax-data'] });
+        
+        // Force refetch to ensure dashboard updates immediately
+        await queryClient.refetchQueries({ queryKey: queryKeys.gigs(userId) });
       }
     },
   });
