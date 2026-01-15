@@ -171,7 +171,14 @@ export function useDashboardData(
     const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
     const totalMiles = mileage.reduce((sum, m) => sum + m.miles, 0);
     const totalMileageDeduction = calculateMileageDeduction(totalMiles);
-    const totalDeductions = totalExpenses + totalMileageDeduction;
+    
+    // Include subcontractor payments in deductions
+    const totalSubcontractorPayments = gigs.reduce((sum, gig) => {
+      const payments = gig.subcontractor_payments || [];
+      return sum + payments.reduce((paymentSum, p) => paymentSum + (p.amount || 0), 0);
+    }, 0);
+    
+    const totalDeductions = totalExpenses + totalMileageDeduction + totalSubcontractorPayments;
 
     const netProfit = totalIncome - totalDeductions;
 
