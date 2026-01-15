@@ -221,19 +221,10 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     
     try {
       const newPaidStatus = !gig.paid;
-      const updates: any = {
+      await updateGig.mutateAsync({
         id: gig.id,
         paid: newPaidStatus,
-      };
-      
-      // Set paid_date when marking as paid, clear when marking unpaid
-      if (newPaidStatus) {
-        updates.paid_date = new Date().toISOString().split('T')[0];
-      } else {
-        updates.paid_date = null;
-      }
-      
-      await updateGig.mutateAsync(updates);
+      });
       
       // Success feedback (optional toast could be added here)
     } catch (error: any) {
