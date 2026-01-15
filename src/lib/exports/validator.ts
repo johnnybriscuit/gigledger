@@ -4,6 +4,7 @@
  */
 
 import type { GigExportRow, ExpenseExportRow, MileageExportRow } from './schemas';
+import { getGigDisplayName } from '../gigDisplayName';
 
 export type ValidationIssue = {
   type: 'error' | 'warning';
@@ -86,45 +87,49 @@ export function validateExportData(
   for (const gig of gigs) {
     // BLOCKING: Negative amounts
     if (gig.gross_amount < 0) {
+      const displayName = getGigDisplayName({ title: gig.title, location: null, payer: gig.payer_name ? { name: gig.payer_name } : null });
       errors.push({
         type: 'error',
         category: 'gig',
         id: gig.gig_id,
         field: 'gross_amount',
-        message: `Gig "${gig.title}" has negative gross amount: $${gig.gross_amount}`,
+        message: `Gig "${displayName}" has negative gross amount: $${gig.gross_amount}`,
       });
     }
 
     // BLOCKING: Invalid date
     if (!isValidDate(gig.date)) {
+      const displayName = getGigDisplayName({ title: gig.title, location: null, payer: gig.payer_name ? { name: gig.payer_name } : null });
       errors.push({
         type: 'error',
         category: 'gig',
         id: gig.gig_id,
         field: 'date',
-        message: `Gig "${gig.title}" has invalid date: ${gig.date}`,
+        message: `Gig "${displayName}" has invalid date: ${gig.date}`,
       });
     }
 
     // WARNING: Missing payer name
     if (!gig.payer_name || gig.payer_name.trim() === '') {
+      const displayName = getGigDisplayName({ title: gig.title, location: null, payer: null });
       warnings.push({
         type: 'warning',
         category: 'gig',
         id: gig.gig_id,
         field: 'payer_name',
-        message: `Gig "${gig.title}" is missing payer name. This may be needed for 1099 reconciliation.`,
+        message: `Gig "${displayName}" is missing payer name. This may be needed for 1099 reconciliation.`,
       });
     }
 
     // WARNING: Missing EIN/SSN for paid gigs
     if (gig.paid && (!gig.payer_ein_or_ssn || gig.payer_ein_or_ssn.trim() === '')) {
+      const displayName = getGigDisplayName({ title: gig.title, location: null, payer: gig.payer_name ? { name: gig.payer_name } : null });
       warnings.push({
         type: 'warning',
         category: 'gig',
         id: gig.gig_id,
         field: 'payer_ein_or_ssn',
-        message: `Paid gig "${gig.title}" is missing payer EIN/SSN. This is needed for 1099 reconciliation.`,
+        message: `Paid gig "${displayName}" is missing payer EIN/SSN. This is needed for 1099 reconciliation.`,
       });
     }
   }

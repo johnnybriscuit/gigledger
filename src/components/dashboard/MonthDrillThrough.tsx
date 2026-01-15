@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemeColors, chartColors } from '../../lib/charts/colors';
 import { useGigs } from '../../hooks/useGigs';
+import { getGigDisplayName } from '../../lib/gigDisplayName';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useMileage } from '../../hooks/useMileage';
 
@@ -107,7 +108,7 @@ export function MonthDrillThrough({ month, onGigClick, onExpenseClick }: MonthDr
               onPress={() => onGigClick?.(gig.id)}
             >
               <View style={styles.recordMain}>
-                <Text style={[styles.recordTitle, { color: colors.text }]}>{gig.title}</Text>
+                <Text style={[styles.recordTitle, { color: colors.text }]}>{getGigDisplayName(gig)}</Text>
                 <Text style={[styles.recordSubtitle, { color: colors.textMuted }]}>
                   {gig.payer?.name} • {formatDate(gig.date)}
                 </Text>

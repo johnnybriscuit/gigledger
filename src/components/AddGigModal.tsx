@@ -266,7 +266,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     if (editingGig) {
       setPayerId(editingGig.payer_id);
       setDate(editingGig.date);
-      setTitle(editingGig.title);
+      setTitle(editingGig.title || '');
       setLocation(editingGig.location || '');
       setCity(editingGig.city || '');
       // Prefer state_code if available, fallback to state (for old gigs)
@@ -434,7 +434,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       const formData: any = {
         payer_id: payerId,
         date,
-        title,
+        title: title || undefined,
         location: location || undefined,
         city: city || undefined,
         state: state || undefined,
@@ -738,7 +738,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             </View>
 
             <View style={[styles.inputGroup, { zIndex: 0 }]}>
-              <Text style={styles.label}>Title *</Text>
+              <Text style={styles.label}>Title</Text>
               <TextInput
                 style={[styles.input, fieldErrors.title && styles.inputError]}
                 value={title}
@@ -748,7 +748,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     setFieldErrors({ ...fieldErrors, title: undefined });
                   }
                 }}
-                placeholder="e.g., Friday Night Show"
+                placeholder="e.g., Friday Night Show (optional)"
                 placeholderTextColor="#9ca3af"
               />
               {fieldErrors.title && (

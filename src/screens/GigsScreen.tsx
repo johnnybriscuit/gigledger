@@ -17,6 +17,7 @@ import { SkeletonGigCard } from '../components/SkeletonCard';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
+import { getGigDisplayName } from '../lib/gigDisplayName';
 
 // Gig card: shows a single gig in the Gigs list
 // Emphasizes take-home pay and tax set-aside
@@ -56,7 +57,7 @@ function GigCard({
       <View style={styles.cardContent}>
         {/* LEFT: Gig identity */}
         <View style={styles.gigInfo}>
-          <H3>{item.title}</H3>
+          <H3>{getGigDisplayName(item)}</H3>
           <Text muted>{item.payer?.name || 'Unknown Payer'}</Text>
           <Text subtle>{formatDate(item.date)}</Text>
           {item.location && (
@@ -146,17 +147,17 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   
   const { isFreePlan, hasReachedGigLimit, maxGigs, gigsRemaining } = planLimits;
 
-  const handleDelete = (id: string, title: string) => {
+  const handleDelete = (id: string, displayName: string) => {
     if (Platform.OS === 'web') {
       // Use window.confirm on web
-      if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
+      if (window.confirm(`Are you sure you want to delete "${displayName}"?`)) {
         deleteGig.mutate(id);
       }
     } else {
       // Use Alert.alert on native
       Alert.alert(
         'Delete Gig',
-        `Are you sure you want to delete "${title}"?`,
+        `Are you sure you want to delete "${displayName}"?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -319,7 +320,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
             <GigCard
               item={item}
               onEdit={() => handleEdit(item)}
-              onDelete={() => handleDelete(item.id, item.title)}
+              onDelete={() => handleDelete(item.id, getGigDisplayName(item))}
               formatDate={formatDate}
               formatCurrency={formatCurrency}
             />

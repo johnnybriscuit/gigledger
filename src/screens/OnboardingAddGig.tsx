@@ -107,12 +107,6 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
       return;
     }
 
-    if (!title.trim()) {
-      console.log('🔴 [OnboardingAddGig] Validation failed: No title');
-      Alert.alert('Title Required', 'Please enter a gig title');
-      return;
-    }
-
     if (!grossAmount || parseFloat(grossAmount) <= 0) {
       console.log('🔴 [OnboardingAddGig] Validation failed: Invalid amount');
       Alert.alert('Amount Required', 'Please enter a valid amount');
@@ -125,7 +119,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
       const gigData = {
         payer_id: payerId,
         date,
-        title: title.trim(),
+        title: title.trim() || undefined,
         state_code: stateCode || undefined,
         country_code: 'US',
         gross_amount: parseFloat(grossAmount),
@@ -247,10 +241,10 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Gig Title *</Text>
+            <Text style={styles.label}>Gig Title</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g., Friday Night Show"
+              placeholder="e.g., Friday Night Show (optional)"
               value={title}
               onChangeText={setTitle}
               editable={!createGig.isPending}

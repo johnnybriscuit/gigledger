@@ -142,7 +142,7 @@ export type Database = {
           state_code: string | null
           taxes_withheld: boolean | null
           tips: number
-          title: string
+          title: string | null
           updated_at: string
           user_id: string
         }
@@ -168,7 +168,7 @@ export type Database = {
           state_code?: string | null
           taxes_withheld?: boolean | null
           tips?: number
-          title: string
+          title?: string | null
           updated_at?: string
           user_id: string
         }

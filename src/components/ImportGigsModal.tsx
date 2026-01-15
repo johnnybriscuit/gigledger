@@ -10,7 +10,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { usePayers } from '../hooks/usePayers';
-import { useCreateGig } from '../hooks/useGigs';
+import { useCreateGig, type GigWithPayer } from '../hooks/useGigs';
+import { useSubscription } from '../hooks/useSubscription';
+import { getGigDisplayName } from '../lib/gigDisplayName';
 import { parseGigsCSV, generateGigsTemplate } from '../utils/csvImport';
 import { supabase } from '../lib/supabase';
 import { getPlanAndUsage, canCreateGigBatch } from '../lib/planLimits';
@@ -99,7 +101,7 @@ export function ImportGigsModal({ visible, onClose, onUpgradeNeeded }: ImportGig
             }
             break; // Stop importing
           }
-          importErrors.push(`Failed to import "${gig.title}": ${error.message}`);
+          importErrors.push(`Failed to import "${getGigDisplayName(gig)}": ${error.message}`);
         }
       }
 
