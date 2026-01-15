@@ -56,7 +56,8 @@ export function useGigs() {
           *,
           payer:payers(id, name, payer_type),
           expenses(id, category, description, amount, notes),
-          mileage(id, miles, notes)
+          mileage(id, miles, notes),
+          subcontractor_payments:gig_subcontractor_payments(id, subcontractor_id, amount, note)
         `)
         .eq('user_id', userId)
         .order('date', { ascending: false });
