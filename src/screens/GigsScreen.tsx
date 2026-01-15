@@ -25,12 +25,14 @@ function GigCard({
   item, 
   onEdit, 
   onDelete,
+  onRepeat,
   formatDate,
   formatCurrency 
 }: { 
   item: GigWithPayer; 
   onEdit: () => void;
   onDelete: () => void;
+  onRepeat: () => void;
   formatDate: (date: string) => string;
   formatCurrency: (amount: number) => string;
 }) {
@@ -110,13 +112,19 @@ function GigCard({
         </View>
       </View>
 
-      {/* Edit/Delete actions */}
+      {/* Edit/Delete/Repeat actions */}
       <View style={styles.cardActions}>
         <TouchableOpacity 
           style={styles.actionButton}
           onPress={onEdit}
         >
           <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={onRepeat}
+        >
+          <Text semibold style={{ color: colors.brand.DEFAULT }}>Repeat</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.actionButton}
@@ -137,6 +145,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [editingGig, setEditingGig] = useState<GigWithPayer | null>(null);
+  const [duplicatingGig, setDuplicatingGig] = useState<GigWithPayer | null>(null);
   
   const { data: gigs, isLoading, error } = useGigs();
   const deleteGig = useDeleteGig();
@@ -172,12 +181,20 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
 
   const handleEdit = (gig: GigWithPayer) => {
     setEditingGig(gig);
+    setDuplicatingGig(null);
+    setModalVisible(true);
+  };
+
+  const handleRepeat = (gig: GigWithPayer) => {
+    setDuplicatingGig(gig);
+    setEditingGig(null);
     setModalVisible(true);
   };
 
   const handleCloseModal = () => {
     setModalVisible(false);
     setEditingGig(null);
+    setDuplicatingGig(null);
   };
 
   const handleAddGigClick = () => {
@@ -320,6 +337,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
             <GigCard
               item={item}
               onEdit={() => handleEdit(item)}
+              onRepeat={() => handleRepeat(item)}
               onDelete={() => handleDelete(item.id, getGigDisplayName(item))}
               formatDate={formatDate}
               formatCurrency={formatCurrency}
@@ -332,6 +350,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         visible={modalVisible}
         onClose={handleCloseModal}
         editingGig={editingGig}
+        duplicatingGig={duplicatingGig}
       />
       
       <ImportGigsModal

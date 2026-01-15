@@ -41,6 +41,7 @@ interface AddGigModalProps {
   onClose: () => void;
   onNavigateToSubscription?: () => void;
   editingGig?: GigWithPayer | null;
+  duplicatingGig?: GigWithPayer | null;
 }
 
 const PAYMENT_METHODS = ['Direct Deposit', 'Cash', 'Venmo', 'CashApp', 'Check', 'Other'] as const;
@@ -87,7 +88,7 @@ const COUNTRIES = [
   { code: 'NZ', name: 'New Zealand' },
 ];
 
-export function AddGigModal({ visible, onClose, onNavigateToSubscription, editingGig }: AddGigModalProps) {
+export function AddGigModal({ visible, onClose, onNavigateToSubscription, editingGig, duplicatingGig }: AddGigModalProps) {
   const [payerId, setPayerId] = useState('');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
@@ -117,6 +118,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   const [notes, setNotes] = useState('');
   const [inlineExpenses, setInlineExpenses] = useState<InlineExpense[]>([]);
   const [inlineMileage, setInlineMileage] = useState<InlineMileage | null>(null);
+  const [copyExpenses, setCopyExpenses] = useState(false);
   const [showAddPayerModal, setShowAddPayerModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showEditPayerModal, setShowEditPayerModal] = useState(false);
@@ -262,6 +264,74 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     }
   }, [taxProfile, ytdData, grossAmount, tips, perDiem, otherIncome, fees, totalExpenses, mileageDeduction]);
 
+  // Handle duplicating gig (separate from editing)
+  useEffect(() => {
+    if (duplicatingGig) {
+      setPayerId(duplicatingGig.payer_id);
+      setDate(toUtcDateString(new Date())); // Default to today for duplicates
+      setTitle(duplicatingGig.title || '');
+      setLocation(duplicatingGig.location || '');
+      setCity(duplicatingGig.city || '');
+      const stateValue = (duplicatingGig as any).state_code || duplicatingGig.state || '';
+      setState(stateValue);
+      const countryValue = (duplicatingGig as any).country_code || duplicatingGig.country || 'US';
+      setCountry(countryValue);
+      setGrossAmount(duplicatingGig.gross_amount.toString());
+      setTips(duplicatingGig.tips.toString());
+      setFees(duplicatingGig.fees.toString());
+      setPerDiem(duplicatingGig.per_diem?.toString() || '0');
+      setOtherIncome(duplicatingGig.other_income?.toString() || '0');
+      setPaymentMethod(duplicatingGig.payment_method || '');
+      setInvoiceLink('');
+      setPaid(false); // Reset paid status for duplicates
+      setTaxesWithheld(false);
+      setNotes(duplicatingGig.notes || '');
+      
+      // Load gig-related expenses (for preview, won't be copied unless toggle is ON)
+      const loadGigExpenses = async () => {
+        const { data: expenses, error } = await supabase
+          .from('expenses')
+          .select('*')
+          .eq('gig_id', duplicatingGig.id)
+          .order('created_at', { ascending: true });
+        
+        if (!error && expenses && expenses.length > 0) {
+          // Store expenses but don't set them yet (user must toggle)
+          const expensesData: InlineExpense[] = expenses.map((exp: any) => ({
+            id: `temp-${Math.random()}`, // Temporary ID for new expenses
+            category: exp.category,
+            description: exp.description,
+            amount: exp.amount.toString(),
+            note: exp.notes || '',
+          }));
+          // Store in state for conditional copying
+          if (copyExpenses) {
+            setInlineExpenses(expensesData);
+          }
+        }
+      };
+      
+      // Load gig-related mileage
+      const loadGigMileage = async () => {
+        const { data: mileage, error } = await supabase
+          .from('mileage')
+          .select('*')
+          .eq('gig_id', duplicatingGig.id)
+          .single();
+        
+        if (!error && mileage) {
+          setInlineMileage({
+            miles: mileage.miles.toString(),
+            note: mileage.notes || '',
+          });
+        }
+      };
+      
+      loadGigExpenses();
+      loadGigMileage();
+    }
+  }, [duplicatingGig, visible, copyExpenses]);
+
   useEffect(() => {
     if (editingGig) {
       setPayerId(editingGig.payer_id);
@@ -324,7 +394,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       
       loadGigExpenses();
       loadGigMileage();
-    } else {
+    } else if (!duplicatingGig) {
       resetForm();
     }
   }, [editingGig, visible]);
@@ -349,6 +419,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     setNotes('');
     setInlineExpenses([]);
     setInlineMileage(null);
+    setCopyExpenses(false);
   };
 
   // Date picker handler
@@ -562,7 +633,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editingGig ? 'Edit Gig' : 'Add New Gig'}
+              {editingGig ? 'Edit Gig' : duplicatingGig ? 'Repeat Gig (Draft)' : 'Add New Gig'}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
@@ -984,6 +1055,24 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 textAlignVertical="top"
               />
             </View>
+
+            {/* Copy Expenses Toggle (only shown when duplicating) */}
+            {duplicatingGig && (
+              <View style={styles.inputGroup}>
+                <View style={styles.toggleRow}>
+                  <View style={styles.toggleLabel}>
+                    <Text style={styles.label}>Copy gig-specific expenses?</Text>
+                    <Text style={styles.helperText}>Expenses from the original gig (e.g., subcontractor payouts)</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.toggle, copyExpenses && styles.toggleActive]}
+                    onPress={() => setCopyExpenses(!copyExpenses)}
+                  >
+                    <View style={[styles.toggleThumb, copyExpenses && styles.toggleThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {/* Inline Expenses */}
             <InlineExpensesList 
@@ -2002,5 +2091,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#111827',
+  },
+  // Toggle styles
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  toggleLabel: {
+    flex: 1,
+    marginRight: 16,
+  },
+  toggle: {
+    width: 51,
+    height: 31,
+    borderRadius: 16,
+    backgroundColor: '#d1d5db',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleActive: {
+    backgroundColor: '#3b82f6',
+  },
+  toggleThumb: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: {
+    transform: [{ translateX: 20 }],
   },
 });
