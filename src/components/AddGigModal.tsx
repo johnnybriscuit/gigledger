@@ -803,25 +803,6 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Title (Optional)</Text>
-              <TextInput
-                style={[styles.input, fieldErrors.title && styles.inputError]}
-                value={title}
-                onChangeText={(text) => {
-                  setTitle(text);
-                  if (fieldErrors.title && text.trim()) {
-                    setFieldErrors({ ...fieldErrors, title: undefined });
-                  }
-                }}
-                placeholder="e.g., Friday Night Show"
-                placeholderTextColor="#9ca3af"
-              />
-              {fieldErrors.title && (
-                <Text style={styles.errorText}>⚠️ {fieldErrors.title}</Text>
-              )}
-            </View>
-
             <View style={styles.row}>
               <View style={[styles.inputGroup, styles.flex1]}>
                 <TouchableOpacity
@@ -846,6 +827,25 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   <Text style={styles.checkboxLabel}>Taxes Withheld?</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Title (Optional)</Text>
+              <TextInput
+                style={[styles.input, fieldErrors.title && styles.inputError]}
+                value={title}
+                onChangeText={(text) => {
+                  setTitle(text);
+                  if (fieldErrors.title && text.trim()) {
+                    setFieldErrors({ ...fieldErrors, title: undefined });
+                  }
+                }}
+                placeholder="e.g., Friday Night Show"
+                placeholderTextColor="#9ca3af"
+              />
+              {fieldErrors.title && (
+                <Text style={styles.errorText}>⚠️ {fieldErrors.title}</Text>
+              )}
             </View>
             </View>
 
@@ -1411,7 +1411,7 @@ const styles = StyleSheet.create({
   },
   quickAddSection: {
     marginBottom: 24,
-    paddingBottom: 24,
+    paddingBottom: 36,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
@@ -1428,7 +1428,7 @@ const styles = StyleSheet.create({
   },
   scrollHint: {
     fontSize: 11,
-    color: '#9ca3af',
+    color: '#6b7280',
     marginBottom: 16,
   },
   inputGroup: {
