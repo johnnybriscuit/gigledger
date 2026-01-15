@@ -590,6 +590,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       } : undefined;
 
       // Prepare subcontractor payments data (used for both create and edit)
+      console.log('inlineSubcontractorPayments state:', inlineSubcontractorPayments);
       const subcontractorPaymentsData = inlineSubcontractorPayments
         .filter(payment => payment.subcontractor_id && payment.amount)
         .map(payment => ({
@@ -597,9 +598,14 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
           amount: parseFloat(payment.amount) || 0,
           note: payment.note,
         }));
+      console.log('Prepared subcontractorPaymentsData:', subcontractorPaymentsData);
 
       if (editingGig) {
         // Update gig with inline items
+        console.log('Calling updateGigWithLines with:', {
+          gigId: editingGig.id,
+          subcontractorPayments: subcontractorPaymentsData,
+        });
         await updateGigWithLines({
           gigId: editingGig.id,
           gig: validated,
