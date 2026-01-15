@@ -180,9 +180,10 @@ export function useDashboardData(
     
     const totalDeductions = totalExpenses + totalMileageDeduction + totalSubcontractorPayments;
 
-    const netProfit = totalIncome - totalDeductions;
+    // Net profit before taxes (for tax calculation)
+    const netBeforeTax = totalIncome - totalDeductions;
 
-    return { netProfit, totalIncome, totalDeductions };
+    return { netProfit: netBeforeTax, totalIncome, totalDeductions };
   }, [isReadyForTotals, allGigs, allExpenses, allMileage, dateRange, customStart, customEnd]);
 
   // Calculate taxes using new tax engine (must be called at top level)
@@ -355,7 +356,7 @@ export function useDashboardData(
       totalGrossIncome: totalGross + totalTips + totalPerDiem,
       isReady: isReadyForTotals,
       totals: isReadyForTotals ? {
-        net: netProfit,
+        net: netProfit - totalTaxes, // True net profit after taxes
         taxes: totalTaxes,
         effectiveTaxRate,
       } : null, // NULL when not ready - forces skeleton rendering
