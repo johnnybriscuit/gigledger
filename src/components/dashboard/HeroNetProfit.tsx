@@ -111,7 +111,7 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
         onPress={() => setShowTaxBreakdown(!showTaxBreakdown)}
       >
         <Text style={[styles.setAsideText, { color: chartColors.amber }]}>
-          💰 Set Aside: {formatCurrency(currentData.totals.taxes)} • {currentData.totals.effectiveTaxRate.toFixed(1)}% of net
+          💰 Set Aside: {formatCurrency(currentData.totals.taxes)} • {currentData.totals.effectiveTaxRate.toFixed(1)}% estimated total
         </Text>
       </TouchableOpacity>
 
@@ -120,7 +120,24 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
         <View style={[styles.breakdown, { backgroundColor: colors.chartBg, borderColor: colors.border }]}>
           <Text style={[styles.breakdownTitle, { color: colors.text }]}>Tax Breakdown</Text>
           <View style={styles.breakdownRow}>
-            <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Self-Employment (15.3%)</Text>
+            <View style={styles.breakdownLabelContainer}>
+              <View style={styles.breakdownLabelRow}>
+                <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Self-Employment (15.3%)</Text>
+                <TouchableOpacity
+                  style={styles.infoIcon}
+                  onPress={() => {
+                    if (Platform.OS === 'web') {
+                      alert('Why 15.3% vs ~14.1%?\n\nSelf-employment tax is 15.3%, but it applies to 92.35% of net earnings. That\'s why it appears as ~14.1% of net.');
+                    }
+                  }}
+                >
+                  <Text style={styles.infoIconText}>ⓘ</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.breakdownSubLabel, { color: colors.textMuted }]}>
+                Applies to 92.35% of net earnings (~{((taxBreakdown.seTax / currentData.totals.net) * 100).toFixed(1)}% of net)
+              </Text>
+            </View>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
               {formatCurrency(taxBreakdown.seTax)}
             </Text>
@@ -298,8 +315,35 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 6,
   },
+  breakdownLabelContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  breakdownLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   breakdownLabel: {
     fontSize: 13,
+  },
+  breakdownSubLabel: {
+    fontSize: 11,
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  infoIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(107, 114, 128, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoIconText: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontWeight: '600',
   },
   breakdownValue: {
     fontSize: 13,
