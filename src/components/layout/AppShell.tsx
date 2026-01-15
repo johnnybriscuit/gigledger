@@ -13,7 +13,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'payers', label: 'Payers', icon: '👥' },
+  { id: 'payers', label: 'Contacts', icon: '👥' },
   { id: 'gigs', label: 'Gigs', icon: '🎵' },
   { id: 'expenses', label: 'Expenses', icon: '💰' },
   { id: 'mileage', label: 'Mileage', icon: '🚗' },
