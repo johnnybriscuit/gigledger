@@ -403,8 +403,29 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         }
       };
       
+      // Load gig-related subcontractor payments
+      const loadGigSubcontractorPayments = async () => {
+        const { data: payments, error } = await supabase
+          .from('gig_subcontractor_payments')
+          .select('*')
+          .eq('gig_id', editingGig.id)
+          .order('created_at', { ascending: true });
+        
+        if (!error && payments) {
+          // Convert payments to InlineSubcontractorPayment format
+          const inlinePaymentsData = payments.map((payment: any) => ({
+            id: payment.id,
+            subcontractor_id: payment.subcontractor_id,
+            amount: payment.amount.toString(),
+            note: payment.note || '',
+          }));
+          setInlineSubcontractorPayments(inlinePaymentsData);
+        }
+      };
+      
       loadGigExpenses();
       loadGigMileage();
+      loadGigSubcontractorPayments();
     } else if (!duplicatingGig) {
       resetForm();
     }
