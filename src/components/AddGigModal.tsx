@@ -700,6 +700,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             <View style={styles.quickAddSection}>
               <Text style={styles.sectionTitle}>Quick Add</Text>
               <Text style={styles.sectionDescription}>Required fields to get started</Text>
+              <Text style={styles.scrollHint}>↓ Scroll down for optional details (venue, tips/fees, subs, mileage)</Text>
               
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Payer *</Text>
@@ -1423,6 +1424,11 @@ const styles = StyleSheet.create({
   sectionDescription: {
     fontSize: 13,
     color: '#6b7280',
+    marginBottom: 16,
+  },
+  scrollHint: {
+    fontSize: 11,
+    color: '#9ca3af',
     marginBottom: 16,
   },
   inputGroup: {
