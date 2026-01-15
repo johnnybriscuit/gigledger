@@ -828,29 +828,28 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 </TouchableOpacity>
               </View>
             </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Title (Optional)</Text>
-              <TextInput
-                style={[styles.input, fieldErrors.title && styles.inputError]}
-                value={title}
-                onChangeText={(text) => {
-                  setTitle(text);
-                  if (fieldErrors.title && text.trim()) {
-                    setFieldErrors({ ...fieldErrors, title: undefined });
-                  }
-                }}
-                placeholder="e.g., Friday Night Show"
-                placeholderTextColor="#9ca3af"
-              />
-              {fieldErrors.title && (
-                <Text style={styles.errorText}>⚠️ {fieldErrors.title}</Text>
-              )}
-            </View>
             </View>
 
             {/* ACCORDION: DETAILS */}
-            <Accordion title="Details" description="Venue, location, and other details">
+            <Accordion title="Details" description="Title, venue, location, and other details">
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Title (Optional)</Text>
+                <TextInput
+                  style={[styles.input, fieldErrors.title && styles.inputError]}
+                  value={title}
+                  onChangeText={(text) => {
+                    setTitle(text);
+                    if (fieldErrors.title && text.trim()) {
+                      setFieldErrors({ ...fieldErrors, title: undefined });
+                    }
+                  }}
+                  placeholder="e.g., Friday Night Show"
+                  placeholderTextColor="#9ca3af"
+                />
+                {fieldErrors.title && (
+                  <Text style={styles.errorText}>⚠️ {fieldErrors.title}</Text>
+                )}
+              </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Venue</Text>
                 <VenuePlacesInput
