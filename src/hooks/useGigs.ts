@@ -170,8 +170,23 @@ export function useUpdateGig() {
     onSuccess: async () => {
       const userId = getCachedUserId();
       if (userId) {
+        // Invalidate gigs list
         queryClient.invalidateQueries({ queryKey: queryKeys.gigs(userId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
+        
+        // Invalidate dashboard (totals, net profit, set-aside, quick stats)
+        queryClient.invalidateQueries({ queryKey: ['dashboard', userId] });
+        
+        // Invalidate exports (Schedule C, tax exports, reports)
+        queryClient.invalidateQueries({ queryKey: ['exports', userId] });
+        
+        // Invalidate invoices (if paid status affects invoice generation)
+        queryClient.invalidateQueries({ queryKey: queryKeys.invoices(userId) });
+        
+        // Invalidate map stats (if they depend on gig data)
+        queryClient.invalidateQueries({ queryKey: ['map-stats', userId] });
+        
+        // Invalidate any YTD tax data that depends on gigs
+        queryClient.invalidateQueries({ queryKey: ['ytd-tax-data'] });
       }
     },
   });

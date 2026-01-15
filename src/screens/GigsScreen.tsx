@@ -8,7 +8,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { useGigs, useDeleteGig, type GigWithPayer } from '../hooks/useGigs';
+import { useGigs, useDeleteGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs';
 import { AddGigModal } from '../components/AddGigModal';
 import { ImportGigsModal } from '../components/ImportGigsModal';
 import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
@@ -26,6 +26,8 @@ function GigCard({
   onEdit, 
   onDelete,
   onRepeat,
+  onTogglePaid,
+  togglingGigId,
   formatDate,
   formatCurrency 
 }: { 
@@ -33,6 +35,8 @@ function GigCard({
   onEdit: () => void;
   onDelete: () => void;
   onRepeat: () => void;
+  onTogglePaid: (gig: GigWithPayer) => void;
+  togglingGigId: string | null;
   formatDate: (date: string) => string;
   formatCurrency: (amount: number) => string;
 }) {
@@ -67,13 +71,23 @@ function GigCard({
           {item.location && (
             <Text muted style={styles.location}>📍 {item.location}</Text>
           )}
-          <Badge 
-            variant={item.paid ? 'success' : 'warning'} 
-            size="sm"
-            style={styles.statusBadge}
+          <TouchableOpacity
+            onPress={() => onTogglePaid(item)}
+            disabled={togglingGigId === item.id}
+            style={[
+              styles.statusBadgeWrapper,
+              Platform.OS === 'web' && { cursor: togglingGigId === item.id ? 'wait' : 'pointer' } as any,
+            ]}
+            activeOpacity={0.7}
           >
-            {item.paid ? '✓ Paid' : '⏳ Unpaid'}
-          </Badge>
+            <Badge 
+              variant={item.paid ? 'success' : 'warning'} 
+              size="sm"
+              style={styles.statusBadge}
+            >
+              {togglingGigId === item.id ? '⏳ Saving...' : item.paid ? '✓ Paid' : '⏳ Unpaid'}
+            </Badge>
+          </TouchableOpacity>
         </View>
 
         {/* RIGHT: Money summary */}
@@ -149,9 +163,11 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [editingGig, setEditingGig] = useState<GigWithPayer | null>(null);
   const [duplicatingGig, setDuplicatingGig] = useState<GigWithPayer | null>(null);
+  const [togglingGigId, setTogglingGigId] = useState<string | null>(null);
   
   const { data: gigs, isLoading, error } = useGigs();
   const deleteGig = useDeleteGig();
+  const updateGig = useUpdateGig();
 
   // Use unified plan limits hook (reads from subscriptions table, same as SubscriptionScreen)
   const gigCount = gigs?.length || 0;
@@ -198,6 +214,38 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     setModalVisible(false);
     setEditingGig(null);
     setDuplicatingGig(null);
+  };
+
+  const handleTogglePaid = async (gig: GigWithPayer) => {
+    setTogglingGigId(gig.id);
+    
+    try {
+      const newPaidStatus = !gig.paid;
+      const updates: any = {
+        id: gig.id,
+        paid: newPaidStatus,
+      };
+      
+      // Set paid_date when marking as paid, clear when marking unpaid
+      if (newPaidStatus) {
+        updates.paid_date = new Date().toISOString().split('T')[0];
+      } else {
+        updates.paid_date = null;
+      }
+      
+      await updateGig.mutateAsync(updates);
+      
+      // Success feedback (optional toast could be added here)
+    } catch (error: any) {
+      // Error feedback
+      if (Platform.OS === 'web') {
+        window.alert("Couldn't update payment status. Try again.");
+      } else {
+        Alert.alert('Error', "Couldn't update payment status. Try again.");
+      }
+    } finally {
+      setTogglingGigId(null);
+    }
   };
 
   const handleAddGigClick = () => {
@@ -342,6 +390,8 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
               onEdit={() => handleEdit(item)}
               onRepeat={() => handleRepeat(item)}
               onDelete={() => handleDelete(item.id, getGigDisplayName(item))}
+              onTogglePaid={handleTogglePaid}
+              togglingGigId={togglingGigId}
               formatDate={formatDate}
               formatCurrency={formatCurrency}
             />
@@ -489,8 +539,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: parseInt(spacing[2]),
     paddingVertical: parseInt(spacing[1]),
   },
-  statusBadge: {
+  statusBadgeWrapper: {
     alignSelf: 'flex-start',
     marginTop: parseInt(spacing[2]),
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
   },
 });
