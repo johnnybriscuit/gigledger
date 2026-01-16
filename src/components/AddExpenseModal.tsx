@@ -59,6 +59,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [businessUsePercent, setBusinessUsePercent] = useState(100);
+  const [mealsDeductiblePercent, setMealsDeductiblePercent] = useState<50 | 100>(50);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -77,6 +78,12 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
       setVendor(editingExpense.vendor || '');
       setNotes(editingExpense.notes || '');
       setBusinessUsePercent(editingExpense.business_use_percent || 100);
+      // Convert DB value (0-1) to UI value (50 or 100)
+      if (editingExpense.meals_percent_allowed !== null && editingExpense.meals_percent_allowed !== undefined) {
+        setMealsDeductiblePercent(editingExpense.meals_percent_allowed >= 1 ? 100 : 50);
+      } else {
+        setMealsDeductiblePercent(50);
+      }
     } else {
       resetForm();
     }
@@ -91,6 +98,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
     setNotes('');
     setReceiptFile(null);
     setBusinessUsePercent(100);
+    setMealsDeductiblePercent(50);
   };
 
   const handleFileSelect = () => {
@@ -127,7 +135,10 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
         business_use_percent: CATEGORIES_WITH_BUSINESS_USE.includes(category) 
           ? businessUsePercent 
           : undefined,
-        meals_percent_allowed: category === 'Meals & Entertainment' ? 50 : undefined,
+        // Normalize to 0-1 range for DB (0.5 = 50%, 1.0 = 100%)
+        meals_percent_allowed: category === 'Meals & Entertainment' 
+          ? mealsDeductiblePercent / 100 
+          : undefined,
       };
 
       const validated = expenseSchema.parse(formData);
@@ -167,8 +178,16 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
           window.alert(`Validation Error: ${error.errors[0].message}`);
         }
       } else {
-        if (Platform.OS === 'web') {
-          window.alert(`Error: ${error.message || 'Failed to save expense'}`);
+        // User-friendly error for constraint violations
+        const errorMessage = error.message || '';
+        if (errorMessage.includes('meals_percent') || errorMessage.includes('constraint')) {
+          if (Platform.OS === 'web') {
+            window.alert('Meals expenses must be marked 50% or 100% deductible.');
+          }
+        } else {
+          if (Platform.OS === 'web') {
+            window.alert(`Error: ${error.message || 'Failed to save expense'}`);
+          }
         }
       }
     } finally {
@@ -235,7 +254,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
 
             </View>
 
-            {/* Section 2: Deductibility Hint + Business Use */}
+            {/* Section 2: Deductibility Hint + Business Use + Meals Deductible */}
             <View style={styles.hintSection}>
               <DeductibilityHint category={category} />
               
@@ -247,6 +266,39 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
                     onChange={setBusinessUsePercent}
                     amount={parseFloat(amount) || 0}
                   />
+                </View>
+              )}
+
+              {category === 'Meals & Entertainment' && (
+                <View style={styles.mealsDeductibleContainer}>
+                  <Text style={styles.label}>Meals Deductible %</Text>
+                  <Text style={styles.helperText}>Most meals are 50% deductible. Select 100% only for specific exceptions (e.g., office snacks, team meals).</Text>
+                  <View style={styles.mealsToggleContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.mealsToggleButton,
+                        mealsDeductiblePercent === 50 && styles.mealsToggleButtonActive,
+                      ]}
+                      onPress={() => setMealsDeductiblePercent(50)}
+                    >
+                      <Text style={[
+                        styles.mealsToggleText,
+                        mealsDeductiblePercent === 50 && styles.mealsToggleTextActive,
+                      ]}>50%</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.mealsToggleButton,
+                        mealsDeductiblePercent === 100 && styles.mealsToggleButtonActive,
+                      ]}
+                      onPress={() => setMealsDeductiblePercent(100)}
+                    >
+                      <Text style={[
+                        styles.mealsToggleText,
+                        mealsDeductiblePercent === 100 && styles.mealsToggleTextActive,
+                      ]}>100%</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
@@ -702,5 +754,38 @@ const styles = StyleSheet.create({
   },
   column: {
     flexDirection: 'column',
+  },
+  mealsDeductibleContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  mealsToggleContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  mealsToggleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  mealsToggleButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  mealsToggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  mealsToggleTextActive: {
+    color: '#fff',
   },
 });

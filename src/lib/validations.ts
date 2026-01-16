@@ -45,7 +45,7 @@ export const expenseSchema = z.object({
   notes: z.string().optional(),
   receipt_path: z.string().optional(),
   business_use_percent: z.number().min(0).max(100).optional(),
-  meals_percent_allowed: z.number().min(0).max(100).optional(),
+  meals_percent_allowed: z.number().min(0).max(1).optional(),
 });
 
 export type ExpenseFormData = z.infer<typeof expenseSchema>;
