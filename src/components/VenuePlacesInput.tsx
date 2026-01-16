@@ -37,6 +37,8 @@ export function VenuePlacesInput({
   locationBias,
 }: VenuePlacesInputProps) {
   const [internalValue, setInternalValue] = useState(value);
+  const isTypingRef = React.useRef(false);
+  const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Get API key from environment
   const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey || 
@@ -57,6 +59,12 @@ export function VenuePlacesInput({
       return;
     }
     
+    // Mark as not typing since this is a selection
+    isTypingRef.current = false;
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
     // Update internal value
     setInternalValue(description);
     
@@ -71,16 +79,39 @@ export function VenuePlacesInput({
   };
 
   const handleTextChange = (text: string) => {
+    // Mark as actively typing
+    isTypingRef.current = true;
+    
+    // Clear any existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set timeout to mark typing as finished after 1 second of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+    }, 1000);
+    
     setInternalValue(text);
     onChange(text);
   };
 
-  // Sync external value changes
+  // Sync external value changes ONLY when not actively typing
+  // This prevents the input from resetting while user is typing
   React.useEffect(() => {
-    if (value !== internalValue) {
+    if (!isTypingRef.current && value !== internalValue) {
       setInternalValue(value);
     }
   }, [value]);
+
+  // Cleanup
+  React.useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Map types to Google Places API types
   const getPlaceTypes = () => {
