@@ -19,6 +19,60 @@ UPDATE subcontractors
 SET normalized_name = lower(trim(name))
 WHERE normalized_name IS NULL;
 
+-- Handle existing duplicates in payers
+-- Step 1: Update gigs to point to the keeper payer (highest ID for each duplicate set)
+UPDATE gigs g
+SET payer_id = (
+  SELECT p2.id
+  FROM payers p2
+  WHERE p2.user_id = (SELECT user_id FROM payers WHERE id = g.payer_id)
+    AND p2.normalized_name = (SELECT normalized_name FROM payers WHERE id = g.payer_id)
+  ORDER BY p2.id DESC
+  LIMIT 1
+)
+WHERE EXISTS (
+  SELECT 1
+  FROM payers p1, payers p2
+  WHERE p1.id = g.payer_id
+    AND p1.user_id = p2.user_id
+    AND p1.normalized_name = p2.normalized_name
+    AND p1.id < p2.id
+);
+
+-- Step 2: Delete duplicate payers (keep the one with highest ID)
+DELETE FROM payers p1
+USING payers p2
+WHERE p1.user_id = p2.user_id
+  AND p1.normalized_name = p2.normalized_name
+  AND p1.id < p2.id;
+
+-- Handle existing duplicates in subcontractors
+-- Step 1: Update gig_subcontractor_payments to point to the keeper subcontractor
+UPDATE gig_subcontractor_payments gsp
+SET subcontractor_id = (
+  SELECT s2.id
+  FROM subcontractors s2
+  WHERE s2.user_id = (SELECT user_id FROM subcontractors WHERE id = gsp.subcontractor_id)
+    AND s2.normalized_name = (SELECT normalized_name FROM subcontractors WHERE id = gsp.subcontractor_id)
+  ORDER BY s2.id DESC
+  LIMIT 1
+)
+WHERE EXISTS (
+  SELECT 1
+  FROM subcontractors s1, subcontractors s2
+  WHERE s1.id = gsp.subcontractor_id
+    AND s1.user_id = s2.user_id
+    AND s1.normalized_name = s2.normalized_name
+    AND s1.id < s2.id
+);
+
+-- Step 2: Delete duplicate subcontractors (keep the one with highest ID)
+DELETE FROM subcontractors s1
+USING subcontractors s2
+WHERE s1.user_id = s2.user_id
+  AND s1.normalized_name = s2.normalized_name
+  AND s1.id < s2.id;
+
 -- Make normalized_name NOT NULL after backfill
 ALTER TABLE payers
 ALTER COLUMN normalized_name SET NOT NULL;
