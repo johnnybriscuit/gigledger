@@ -6,7 +6,8 @@ export const payerSchema = z.object({
   contact_email: z.string().email('Invalid email').optional().or(z.literal('')),
   notes: z.string().optional(),
   expect_1099: z.boolean().default(false),
-  tax_id: z.string().optional().or(z.literal('')),
+  tax_id_type: z.enum(['ssn', 'ein']).optional(),
+  tax_id_last4: z.string().length(4, 'Must be exactly 4 digits').regex(/^\d{4}$/, 'Must be 4 digits').optional(),
 });
 
 export type PayerFormData = z.infer<typeof payerSchema>;

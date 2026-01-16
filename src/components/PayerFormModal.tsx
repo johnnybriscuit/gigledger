@@ -26,7 +26,8 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
   const [contactEmail, setContactEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [expect1099, setExpect1099] = useState(false);
-  const [taxId, setTaxId] = useState('');
+  const [taxIdType, setTaxIdType] = useState<string>('');
+  const [taxIdInput, setTaxIdInput] = useState('');
 
   const createPayer = useCreatePayer();
   const updatePayer = useUpdatePayer();
@@ -38,7 +39,13 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
       setContactEmail(editingPayer.contact_email || '');
       setNotes(editingPayer.notes || '');
       setExpect1099(editingPayer.expect_1099 || false);
-      setTaxId(editingPayer.tax_id || '');
+      setTaxIdType(editingPayer.tax_id_type || '');
+      // Show masked value if last4 exists
+      if (editingPayer.tax_id_last4) {
+        setTaxIdInput(`••••••${editingPayer.tax_id_last4}`);
+      } else {
+        setTaxIdInput('');
+      }
     } else {
       resetForm();
     }
@@ -50,12 +57,23 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
     setContactEmail('');
     setNotes('');
     setExpect1099(false);
-    setTaxId('');
+    setTaxIdType('');
+    setTaxIdInput('');
   };
 
   const handleSubmit = async () => {
     if (!name.trim()) {
       Alert.alert('Error', 'Please enter a payer name');
+      return;
+    }
+
+    // Extract last 4 digits from tax ID input
+    const digitsOnly = taxIdInput.replace(/[^0-9]/g, '');
+    const last4 = digitsOnly.slice(-4);
+    
+    // Validate if tax ID type is selected but no valid last 4
+    if (taxIdType && last4.length < 4) {
+      Alert.alert('Error', 'Please enter at least the last 4 digits of the tax ID');
       return;
     }
 
@@ -68,7 +86,8 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
           contact_email: contactEmail || undefined,
           notes: notes || undefined,
           expect_1099: expect1099,
-          tax_id: taxId || undefined,
+          tax_id_type: taxIdType || undefined,
+          tax_id_last4: (taxIdType && last4.length === 4) ? last4 : undefined,
         });
         Alert.alert('Success', 'Payer updated successfully');
       } else {
@@ -78,7 +97,8 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
           contact_email: contactEmail || undefined,
           notes: notes || undefined,
           expect_1099: expect1099,
-          tax_id: taxId || undefined,
+          tax_id_type: taxIdType || undefined,
+          tax_id_last4: (taxIdType && last4.length === 4) ? last4 : undefined,
         });
         
         // Call onSuccess with the new payer ID
@@ -163,18 +183,66 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>EIN or SSN (Optional)</Text>
-              <Text style={styles.helperText}>Required for 1099 reconciliation</Text>
-              <TextInput
-                style={styles.input}
-                value={taxId}
-                onChangeText={setTaxId}
-                placeholder="XX-XXXXXXX or XXX-XX-XXXX"
-                placeholderTextColor="#9ca3af"
-                keyboardType="default"
-                autoCapitalize="none"
-              />
+              <Text style={styles.label}>Tax ID Type (Optional)</Text>
+              <Text style={styles.helperText}>For 1099 reconciliation</Text>
+              <View style={styles.taxIdTypeButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.taxIdTypeButton,
+                    taxIdType === 'ssn' && styles.taxIdTypeButtonActive,
+                  ]}
+                  onPress={() => setTaxIdType('ssn')}
+                >
+                  <Text style={[
+                    styles.taxIdTypeButtonText,
+                    taxIdType === 'ssn' && styles.taxIdTypeButtonTextActive,
+                  ]}>SSN</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.taxIdTypeButton,
+                    taxIdType === 'ein' && styles.taxIdTypeButtonActive,
+                  ]}
+                  onPress={() => setTaxIdType('ein')}
+                >
+                  <Text style={[
+                    styles.taxIdTypeButtonText,
+                    taxIdType === 'ein' && styles.taxIdTypeButtonTextActive,
+                  ]}>EIN</Text>
+                </TouchableOpacity>
+                {taxIdType && (
+                  <TouchableOpacity
+                    style={styles.clearTaxIdButton}
+                    onPress={() => {
+                      setTaxIdType('');
+                      setTaxIdInput('');
+                    }}
+                  >
+                    <Text style={styles.clearTaxIdText}>Clear</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
+
+            {taxIdType && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{taxIdType.toUpperCase()}</Text>
+                <Text style={styles.helperText}>
+                  {editingPayer?.tax_id_last4 
+                    ? 'We only store the last 4 digits. Enter full ID to replace.'
+                    : 'Enter full ID - we\'ll only store the last 4 digits for security'}
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  value={taxIdInput}
+                  onChangeText={setTaxIdInput}
+                  placeholder={taxIdType === 'ssn' ? 'XXX-XX-XXXX' : 'XX-XXXXXXX'}
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="number-pad"
+                  autoCapitalize="none"
+                />
+              </View>
+            )}
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Contact Email</Text>
@@ -387,5 +455,44 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: -4,
     marginBottom: 4,
+  },
+  taxIdTypeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  taxIdTypeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#fff',
+  },
+  taxIdTypeButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  taxIdTypeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  taxIdTypeButtonTextActive: {
+    color: '#fff',
+  },
+  clearTaxIdButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    backgroundColor: '#fff',
+  },
+  clearTaxIdText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ef4444',
   },
 });

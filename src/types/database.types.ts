@@ -549,6 +549,8 @@ export type Database = {
           notes: string | null
           payer_type: Database["public"]["Enums"]["payer_type"]
           tax_id: string | null
+          tax_id_type: string | null
+          tax_id_last4: string | null
           updated_at: string
           user_id: string
         }
@@ -562,6 +564,8 @@ export type Database = {
           notes?: string | null
           payer_type: Database["public"]["Enums"]["payer_type"]
           tax_id?: string | null
+          tax_id_type?: string | null
+          tax_id_last4?: string | null
           updated_at?: string
           user_id: string
         }
@@ -575,6 +579,8 @@ export type Database = {
           notes?: string | null
           payer_type?: Database["public"]["Enums"]["payer_type"]
           tax_id?: string | null
+          tax_id_type?: string | null
+          tax_id_last4?: string | null
           updated_at?: string
           user_id?: string
         }
