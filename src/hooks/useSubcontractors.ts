@@ -40,12 +40,20 @@ export function useCreateSubcontractor() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Use upsert to prevent duplicates based on normalized_name
+      // If a subcontractor with same normalized name exists, update it instead
       const { data, error } = await supabase
         .from('subcontractors')
-        .insert({
-          ...subcontractor,
-          user_id: user.id,
-        })
+        .upsert(
+          {
+            ...subcontractor,
+            user_id: user.id,
+          },
+          {
+            onConflict: 'user_id,normalized_name',
+            ignoreDuplicates: false // Update existing record
+          }
+        )
         .select()
         .single();
 

@@ -42,9 +42,17 @@ export function useCreatePayer() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Use upsert to prevent duplicates based on normalized_name
+      // If a payer with same normalized name exists, update it instead
       const { data, error } = await supabase
         .from('payers')
-        .insert({ ...payer, user_id: user.id })
+        .upsert(
+          { ...payer, user_id: user.id },
+          { 
+            onConflict: 'user_id,normalized_name',
+            ignoreDuplicates: false // Update existing record
+          }
+        )
         .select()
         .single();
 

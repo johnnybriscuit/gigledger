@@ -545,6 +545,7 @@ export type Database = {
           expect_1099: boolean | null
           id: string
           name: string
+          normalized_name: string
           notes: string | null
           payer_type: Database["public"]["Enums"]["payer_type"]
           tax_id: string | null
@@ -557,6 +558,7 @@ export type Database = {
           expect_1099?: boolean | null
           id?: string
           name: string
+          normalized_name?: string
           notes?: string | null
           payer_type: Database["public"]["Enums"]["payer_type"]
           tax_id?: string | null
@@ -569,6 +571,7 @@ export type Database = {
           expect_1099?: boolean | null
           id?: string
           name?: string
+          normalized_name?: string
           notes?: string | null
           payer_type?: Database["public"]["Enums"]["payer_type"]
           tax_id?: string | null
@@ -762,6 +765,7 @@ export type Database = {
           id: string
           user_id: string
           name: string
+          normalized_name: string
           role: string | null
           email: string | null
           phone: string | null
@@ -775,6 +779,7 @@ export type Database = {
           id?: string
           user_id: string
           name: string
+          normalized_name?: string
           role?: string | null
           email?: string | null
           phone?: string | null
@@ -788,6 +793,7 @@ export type Database = {
           id?: string
           user_id?: string
           name?: string
+          normalized_name?: string
           role?: string | null
           email?: string | null
           phone?: string | null
