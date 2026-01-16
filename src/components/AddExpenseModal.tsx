@@ -385,14 +385,14 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
               onPress={handleSubmit}
               disabled={uploading || createExpense.isPending || updateExpense.isPending}
             >
-              <Text style={styles.submitButtonText}>
+              <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
                 {uploading
                   ? 'Uploading...'
                   : createExpense.isPending || updateExpense.isPending
                   ? 'Saving...'
                   : editingExpense
-                  ? 'Update Expense'
-                  : 'Add Expense'}
+                  ? 'Update'
+                  : 'Add'}
               </Text>
             </TouchableOpacity>
           </ScrollView>

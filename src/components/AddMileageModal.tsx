@@ -203,12 +203,12 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               onPress={handleSubmit}
               disabled={createMileage.isPending || updateMileage.isPending}
             >
-              <Text style={styles.submitButtonText}>
+              <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
                 {createMileage.isPending || updateMileage.isPending
                   ? 'Saving...'
                   : editingMileage
-                  ? 'Update Trip'
-                  : 'Add Trip'}
+                  ? 'Update'
+                  : 'Add'}
               </Text>
             </TouchableOpacity>
           </ScrollView>

@@ -14,6 +14,7 @@ import { useCreateGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs'
 import { usePayers, type Payer } from '../hooks/usePayers';
 import { useProfile } from '../hooks/useProfile';
 import { useSubscription } from '../hooks/useSubscription';
+import { useResponsiveButtonText, BUTTON_TEXT } from '../hooks/useResponsiveButtonText';
 import { getResolvedPlan } from '../lib/businessStructure';
 import { gigSchema, type GigFormData } from '../lib/validations';
 import { PayerFormModal } from './PayerFormModal';
@@ -281,10 +282,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       setTitle(duplicatingGig.title || '');
       setLocation(duplicatingGig.location || '');
       setCity(duplicatingGig.city || '');
-      const stateValue = (duplicatingGig as any).state_code || duplicatingGig.state || '';
-      setState(stateValue);
-      const countryValue = (duplicatingGig as any).country_code || duplicatingGig.country || 'US';
-      setCountry(countryValue);
+      setState(duplicatingGig.state || '');
+      setCountry(duplicatingGig.country || 'US');
       setGrossAmount(duplicatingGig.gross_amount.toString());
       setTips(duplicatingGig.tips.toString());
       setFees(duplicatingGig.fees.toString());
@@ -352,11 +351,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       setTitle(editingGig.title || '');
       setLocation(editingGig.location || '');
       setCity(editingGig.city || '');
-      // Prefer state_code if available, fallback to state (for old gigs)
-      const stateValue = (editingGig as any).state_code || editingGig.state || '';
-      setState(stateValue);
-      const countryValue = (editingGig as any).country_code || editingGig.country || 'US';
-      setCountry(countryValue);
+      setState(editingGig.state || '');
+      setCountry(editingGig.country || 'US');
       setGrossAmount(editingGig.gross_amount.toString());
       setTips(editingGig.tips.toString());
       setFees(editingGig.fees.toString());
@@ -1143,12 +1139,12 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               onPress={handleSubmit}
               disabled={createGig.isPending || updateGig.isPending}
             >
-              <Text style={styles.submitButtonText}>
+              <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
                 {createGig.isPending || updateGig.isPending
                   ? 'Saving...'
                   : editingGig
-                  ? 'Update Gig'
-                  : 'Add Gig'}
+                  ? 'Update'
+                  : 'Save'}
               </Text>
             </TouchableOpacity>
           </View>

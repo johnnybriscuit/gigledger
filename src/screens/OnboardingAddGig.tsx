@@ -15,6 +15,7 @@ import { useCreateGig } from '../hooks/useGigs';
 import { supabase } from '../lib/supabase';
 import { useTaxEstimate } from '../hooks/useTaxEstimate';
 import { useQueryClient } from '@tanstack/react-query';
+import { useResponsiveButtonText, BUTTON_TEXT } from '../hooks/useResponsiveButtonText';
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
@@ -44,6 +45,7 @@ interface OnboardingAddGigProps {
 }
 
 export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: OnboardingAddGigProps) {
+  const buttonText = useResponsiveButtonText(BUTTON_TEXT.SAVE_GIG_DASHBOARD);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date>(new Date());
@@ -356,7 +358,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
           {createGig.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.completeButtonText}>Save gig & go to your dashboard</Text>
+            <Text style={styles.completeButtonText} numberOfLines={1} ellipsizeMode="tail">{buttonText}</Text>
           )}
         </TouchableOpacity>
       </View>

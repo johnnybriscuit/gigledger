@@ -276,12 +276,12 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
               onPress={handleSubmit}
               disabled={createPayer.isPending || updatePayer.isPending}
             >
-              <Text style={styles.submitButtonText}>
+              <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
                 {createPayer.isPending || updatePayer.isPending
                   ? 'Saving...'
                   : editingPayer
-                  ? 'Update Payer'
-                  : 'Add Payer'}
+                  ? 'Update'
+                  : 'Add'}
               </Text>
             </TouchableOpacity>
           </ScrollView>

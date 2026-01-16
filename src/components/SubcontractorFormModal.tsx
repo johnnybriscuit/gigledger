@@ -266,8 +266,8 @@ export function SubcontractorFormModal({
               onPress={handleSubmit}
               disabled={createSubcontractor.isPending || updateSubcontractor.isPending}
             >
-              <Text style={styles.submitButtonText}>
-                {editingSubcontractor ? 'Update' : 'Add'} Subcontractor
+              <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
+                {editingSubcontractor ? 'Update' : 'Add'}
               </Text>
             </TouchableOpacity>
           </View>

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useCreatePayer } from '../hooks/usePayers';
+import { useResponsiveButtonText, BUTTON_TEXT } from '../hooks/useResponsiveButtonText';
 
 const PAYER_TYPES = [
   { value: 'Individual', label: 'Individual' },
@@ -27,6 +28,7 @@ interface OnboardingAddPayerProps {
 }
 
 export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPayerProps) {
+  const buttonText = useResponsiveButtonText(BUTTON_TEXT.SAVE_PAYER_CONTINUE);
   const [name, setName] = useState('');
   const [type, setType] = useState<string>('Individual'); // Store the value, not the object
   const createPayer = useCreatePayer();
@@ -118,7 +120,7 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
           {createPayer.isPending ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.continueButtonText}>Save payer & continue</Text>
+            <Text style={styles.continueButtonText} numberOfLines={1} ellipsizeMode="tail">{buttonText}</Text>
           )}
         </TouchableOpacity>
       </View>
