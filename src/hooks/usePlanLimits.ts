@@ -18,12 +18,12 @@ import { useState, useEffect } from 'react';
 import type { SubscriptionTier, SubscriptionStatus } from './useSubscription';
 
 // Plan limits configuration
-// Free plan: 20 gigs, 20 expenses
+// Free plan: 10 gigs per month, 10 expenses per month (new monthly limits)
 // Paid plans (monthly/yearly): No practical limit (set to 10,000 as safety cap)
 export const PLAN_LIMITS = {
   free: {
-    maxGigs: 20,
-    maxExpenses: 20,
+    maxGigs: 10,
+    maxExpenses: 10,
   },
   paid: {
     maxGigs: 10000,
