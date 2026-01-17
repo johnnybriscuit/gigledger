@@ -143,41 +143,53 @@ export function ExportsScreen() {
   }, [gigs.data, expenses.data, mileage.data]);
 
   const handleDownloadCSVs = async () => {
-    // Check export limit
-    const userId = await getSharedUserId();
-    if (!userId) {
-      Alert.alert('Error', 'User not authenticated');
-      return;
-    }
-    
-    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
-    
-    if (!limitCheck.allowed) {
-      Alert.alert(
-        '⚠️ Monthly Limit Reached',
-        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
-        [
-          { text: 'OK', style: 'cancel' },
-        ]
+    try {
+      console.log('CSV export clicked');
+      
+      // Check export limit
+      const userId = await getSharedUserId();
+      console.log('User ID:', userId);
+      
+      if (!userId) {
+        Alert.alert('Error', 'User not authenticated');
+        return;
+      }
+      
+      console.log('Checking export limit...');
+      const limitCheck = await checkAndIncrementLimit(userId, 'exports');
+      console.log('Limit check result:', limitCheck);
+      
+      if (!limitCheck.allowed) {
+        Alert.alert(
+          '⚠️ Monthly Limit Reached',
+          limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+          [
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+        return;
+      }
+
+      if (!gigs.data || !expenses.data || !mileage.data || !payers.data || !scheduleC.data) {
+        Alert.alert('Error', 'Data not loaded yet. Please wait.');
+        return;
+      }
+
+      console.log('Starting CSV download...');
+      downloadAllCSVs(
+        gigs.data,
+        expenses.data,
+        mileage.data,
+        payers.data,
+        scheduleC.data,
+        taxYear
       );
-      return;
+
+      Alert.alert('Success', 'CSV files are being downloaded. Check your downloads folder.');
+    } catch (error) {
+      console.error('Error in handleDownloadCSVs:', error);
+      Alert.alert('Error', 'Failed to export. Please try again.');
     }
-
-    if (!gigs.data || !expenses.data || !mileage.data || !payers.data || !scheduleC.data) {
-      Alert.alert('Error', 'Data not loaded yet. Please wait.');
-      return;
-    }
-
-    downloadAllCSVs(
-      gigs.data,
-      expenses.data,
-      mileage.data,
-      payers.data,
-      scheduleC.data,
-      taxYear
-    );
-
-    Alert.alert('Success', 'CSV files are being downloaded. Check your downloads folder.');
   };
 
   const handleDownloadJSON = async () => {
