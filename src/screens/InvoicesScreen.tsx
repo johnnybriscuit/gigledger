@@ -189,7 +189,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
             <View style={styles.headerActions}>
               {!entitlements.isPro && entitlements.remaining.invoicesRemaining !== null && (
                 <Text style={styles.remainingText}>
-                  Free: {entitlements.remaining.invoicesRemaining} invoice{entitlements.remaining.invoicesRemaining !== 1 ? 's' : ''} remaining
+                  Free: {entitlements.remaining.invoicesRemaining} of 3 invoices this month • Resets on the 1st
                 </Text>
               )}
               <TouchableOpacity

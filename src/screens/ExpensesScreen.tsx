@@ -253,7 +253,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
                 <View style={styles.usageIndicator}>
                   <View style={styles.usageHeader}>
                     <Text style={styles.usageText}>
-                      You've used {expenseCount} of {maxExpenses} expenses on the free plan
+                      You've used {expenseCount} of 10 expenses this month • Resets on the 1st
                     </Text>
                     <TouchableOpacity onPress={() => onNavigateToSubscription?.()}>
                       <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
@@ -263,7 +263,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
                     <View 
                       style={[
                         styles.progressFill, 
-                        { width: `${Math.min((expenseCount / maxExpenses) * 100, 100)}%` }
+                        { width: `${Math.min((expenseCount / 10) * 100, 100)}%` }
                       ]} 
                     />
                   </View>

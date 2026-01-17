@@ -358,7 +358,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
               <View style={styles.usageIndicator}>
                 <View style={styles.usageHeader}>
                   <Text style={styles.usageText}>
-                    You've used {gigCount} of {maxGigs} gigs on the free plan
+                    You've used {gigCount} of 10 gigs this month • Resets on the 1st
                   </Text>
                   <TouchableOpacity onPress={handleUpgradeClick}>
                     <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
@@ -368,7 +368,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
                   <View 
                     style={[
                       styles.progressFill, 
-                      { width: `${Math.min((gigCount / maxGigs) * 100, 100)}%` }
+                      { width: `${Math.min((gigCount / 10) * 100, 100)}%` }
                     ]} 
                   />
                 </View>
