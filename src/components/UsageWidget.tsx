@@ -44,10 +44,11 @@ function UsageMeter({ label, used, limit, unlimited }: UsageMeterProps) {
 
 export function UsageWidget() {
   const { userId } = useUser();
-  const { data: usage, isLoading } = useUsageLimits(userId);
+  const { data: usage, isLoading, error } = useUsageLimits(userId || undefined);
   const navigation = useNavigation();
   
-  if (isLoading || !usage || usage.isPro) return null;
+  // Don't show widget if no userId, loading, error, no data, or user is Pro
+  if (!userId || isLoading || error || !usage || usage.isPro) return null;
   
   const { limits, resetDate, isLegacyFree } = usage;
   

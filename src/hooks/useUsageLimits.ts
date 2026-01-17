@@ -36,6 +36,7 @@ export function useUsageLimits(userId?: string) {
         .single();
       
       if (error) throw error;
+      if (!profile) throw new Error('Profile not found');
       
       const isPro = profile.plan === PLAN_NAMES.PRO_MONTHLY || 
                     profile.plan === PLAN_NAMES.PRO_ANNUAL;
