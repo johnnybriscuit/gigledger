@@ -9,6 +9,8 @@ import { useEntitlements } from '../hooks/useEntitlements';
 import { supabase } from '../lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { InvoiceFormData, PAYMENT_TERM_PRESETS, calculateDueDate, PaymentMethodDetail, PAYMENT_METHODS } from '../types/invoice';
+import { checkAndIncrementLimit } from '../utils/limitChecks';
+import { getSharedUserId } from '../lib/sharedAuth';
 
 interface InvoiceFormProps {
   invoiceId?: string;
@@ -164,15 +166,6 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel, onNavigateToAccoun
       return;
     }
 
-    // Check invoice limit for new invoices (not edits)
-    if (!invoiceId && !entitlements.can.createInvoice) {
-      Alert.alert(
-        "You've reached the Free plan invoice limit",
-        "Free includes up to 3 invoices. Upgrade to Pro for unlimited invoices (plus exports and unlimited tracking). Cancel anytime."
-      );
-      return;
-    }
-
     try {
       setSaving(true);
 
@@ -180,6 +173,25 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel, onNavigateToAccoun
         await updateInvoice(invoiceId, formData);
         Alert.alert('Success', 'Invoice updated successfully');
       } else {
+        // Check limit before creating new invoice
+        const userId = await getSharedUserId();
+        if (!userId) {
+          throw new Error('User not authenticated');
+        }
+        
+        const limitCheck = await checkAndIncrementLimit(userId, 'invoices');
+        
+        if (!limitCheck.allowed) {
+          Alert.alert(
+            '⚠️ Monthly Limit Reached',
+            limitCheck.message + '\n\nUpgrade to Pro for unlimited invoices!',
+            [
+              { text: 'OK', style: 'cancel' },
+            ]
+          );
+          return;
+        }
+        
         const invoiceNumber = await getNextInvoiceNumber();
         await createInvoice(formData, invoiceNumber);
         Alert.alert('Success', 'Invoice created successfully');

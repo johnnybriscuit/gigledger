@@ -15,6 +15,8 @@ import { downloadAllCSVs, downloadJSONBackup } from '../lib/csvExport';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { canExport } from '../config/plans';
+import { checkAndIncrementLimit } from '../utils/limitChecks';
+import { getSharedUserId } from '../lib/sharedAuth';
 import { UpgradeModal } from '../components/UpgradeModal';
 import {
   validateExportData,
@@ -140,9 +142,24 @@ export function ExportsScreen() {
     }
   }, [gigs.data, expenses.data, mileage.data]);
 
-  const handleDownloadCSVs = () => {
-    if (!canExport(userPlan)) {
-      setShowUpgradeModal(true);
+  const handleDownloadCSVs = async () => {
+    // Check export limit
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+    
+    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
+    
+    if (!limitCheck.allowed) {
+      Alert.alert(
+        '⚠️ Monthly Limit Reached',
+        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+        [
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
       return;
     }
 
@@ -163,9 +180,24 @@ export function ExportsScreen() {
     Alert.alert('Success', 'CSV files are being downloaded. Check your downloads folder.');
   };
 
-  const handleDownloadJSON = () => {
-    if (!canExport(userPlan)) {
-      setShowUpgradeModal(true);
+  const handleDownloadJSON = async () => {
+    // Check export limit
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+    
+    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
+    
+    if (!limitCheck.allowed) {
+      Alert.alert(
+        '⚠️ Monthly Limit Reached',
+        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+        [
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
       return;
     }
 
@@ -187,8 +219,23 @@ export function ExportsScreen() {
   };
 
   const handleDownloadExcel = async () => {
-    if (!canExport(userPlan)) {
-      setShowUpgradeModal(true);
+    // Check export limit
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+    
+    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
+    
+    if (!limitCheck.allowed) {
+      Alert.alert(
+        '⚠️ Monthly Limit Reached',
+        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+        [
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
       return;
     }
 
@@ -291,8 +338,23 @@ export function ExportsScreen() {
   };
 
   const handleDownloadPDF = async () => {
-    if (!canExport(userPlan)) {
-      setShowUpgradeModal(true);
+    // Check export limit
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+    
+    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
+    
+    if (!limitCheck.allowed) {
+      Alert.alert(
+        '⚠️ Monthly Limit Reached',
+        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+        [
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
       return;
     }
 
@@ -409,8 +471,23 @@ export function ExportsScreen() {
   };
 
   const handleDownloadTXF = async () => {
-    if (!canExport(userPlan)) {
-      setShowUpgradeModal(true);
+    // Check export limit
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+    
+    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
+    
+    if (!limitCheck.allowed) {
+      Alert.alert(
+        '⚠️ Monthly Limit Reached',
+        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+        [
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
       return;
     }
 

@@ -18,6 +18,8 @@ import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { DeductibilityHint } from './DeductibilityHint';
 import { BusinessUseSlider } from './BusinessUseSlider';
+import { checkAndIncrementLimit } from '../utils/limitChecks';
+import { getSharedUserId } from '../lib/sharedAuth';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -153,6 +155,25 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
         });
         expenseId = result.id;
       } else {
+        // Check limit before creating new expense
+        const userId = await getSharedUserId();
+        if (!userId) {
+          throw new Error('User not authenticated');
+        }
+        
+        const limitCheck = await checkAndIncrementLimit(userId, 'expenses');
+        
+        if (!limitCheck.allowed) {
+          Alert.alert(
+            '⚠️ Monthly Limit Reached',
+            limitCheck.message + '\n\nUpgrade to Pro for unlimited expenses!',
+            [
+              { text: 'OK', style: 'cancel' },
+            ]
+          );
+          return;
+        }
+        
         const result = await createExpense.mutateAsync(validated);
         expenseId = result.id;
       }

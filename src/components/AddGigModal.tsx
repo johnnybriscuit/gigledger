@@ -40,6 +40,7 @@ import { Accordion } from './ui/Accordion';
 import { UpgradeModal } from './UpgradeModal';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
+import { checkAndIncrementLimit } from '../utils/limitChecks';
 
 interface AddGigModalProps {
   visible: boolean;
@@ -619,6 +620,34 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         queryClient.invalidateQueries({ queryKey: ['gig-subcontractor-payments'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       } else {
+        // Check limit before creating new gig
+        const userId = await getSharedUserId();
+        if (!userId) {
+          throw new Error('User not authenticated');
+        }
+        
+        const limitCheck = await checkAndIncrementLimit(userId, 'gigs');
+        
+        if (!limitCheck.allowed) {
+          Alert.alert(
+            '⚠️ Monthly Limit Reached',
+            limitCheck.message + '\n\nUpgrade to Pro for unlimited gigs!',
+            [
+              { text: 'Maybe Later', style: 'cancel' },
+              { 
+                text: 'Upgrade to Pro', 
+                onPress: () => {
+                  onClose();
+                  if (onNavigateToSubscription) {
+                    onNavigateToSubscription();
+                  }
+                }
+              },
+            ]
+          );
+          return;
+        }
+        
         // Create gig with inline items
         console.log('Creating gig with data:', {
           gig: validated,

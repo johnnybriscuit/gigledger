@@ -23,6 +23,7 @@ import { SkeletonDashboardCard } from '../SkeletonCard';
 import { perf } from '../../lib/performance';
 import { spacing } from '../../styles/theme';
 import { useEffect } from 'react';
+import { UsageWidget } from '../UsageWidget';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -105,6 +106,9 @@ export function EnhancedDashboard({
           }
         }}
       >
+        {/* Usage Widget - Shows for free tier users */}
+        <UsageWidget />
+
         {/* Hero Row: Net Profit + Quick Stats */}
         <View style={[styles.heroRow, isDesktop && styles.heroRowDesktop]}>
           <View style={[styles.heroCard, isDesktop && styles.heroCardDesktop]}>
