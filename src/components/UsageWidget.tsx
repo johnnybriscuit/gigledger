@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform, Linking } from 'react-native';
 import { useUser } from '../contexts/UserContext';
 import { useUsageLimits } from '../hooks/useUsageLimits';
 import { Text } from '../ui';
 import { colors, spacingNum, radiusNum, typography } from '../styles/theme';
-import { useNavigation } from '@react-navigation/native';
 
 interface UsageMeterProps {
   label: string;
@@ -45,7 +44,6 @@ function UsageMeter({ label, used, limit, unlimited }: UsageMeterProps) {
 export function UsageWidget() {
   const { userId } = useUser();
   const { data: usage, isLoading, error } = useUsageLimits(userId || undefined);
-  const navigation = useNavigation();
   
   // Don't show widget if no userId, loading, error, no data, or user is Pro
   if (!userId || isLoading || error || !usage || usage.isPro) return null;
@@ -54,9 +52,12 @@ export function UsageWidget() {
   
   const handleUpgradePress = () => {
     if (Platform.OS === 'web') {
-      (navigation as any).setActiveTab?.('subscription');
-    } else {
-      (navigation as any).navigate?.('Subscription');
+      // On web, navigate to subscription page using window location
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('tab', 'subscription');
+      window.history.pushState({}, '', currentUrl.toString());
+      // Dispatch a custom event to notify the app of tab change
+      window.dispatchEvent(new CustomEvent('tabChange', { detail: 'subscription' }));
     }
   };
   

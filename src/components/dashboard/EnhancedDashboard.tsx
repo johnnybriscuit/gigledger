@@ -106,8 +106,8 @@ export function EnhancedDashboard({
           }
         }}
       >
-        {/* Usage Widget - Shows for free tier users */}
-        <UsageWidget />
+        {/* Usage Widget - Temporarily disabled due to navigation context issues */}
+        {/* <UsageWidget /> */}
 
         {/* Hero Row: Net Profit + Quick Stats */}
         <View style={[styles.heroRow, isDesktop && styles.heroRowDesktop]}>
