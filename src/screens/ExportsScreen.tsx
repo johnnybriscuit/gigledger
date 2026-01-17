@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
 } from 'react-native';
 import { H1, H2, H3, Text, Button, Card, Badge } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
@@ -160,13 +161,18 @@ export function ExportsScreen() {
       console.log('Limit check result:', limitCheck);
       
       if (!limitCheck.allowed) {
-        Alert.alert(
-          '⚠️ Monthly Limit Reached',
-          limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
-          [
-            { text: 'OK', style: 'cancel' },
-          ]
-        );
+        if (Platform.OS === 'web') {
+          // Use window.alert for web to ensure it shows
+          window.alert(`⚠️ Monthly Limit Reached\n\n${limitCheck.message}\n\nUpgrade to Pro for unlimited exports!`);
+        } else {
+          Alert.alert(
+            '⚠️ Monthly Limit Reached',
+            limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+            [
+              { text: 'OK', style: 'cancel' },
+            ]
+          );
+        }
         return;
       }
 
