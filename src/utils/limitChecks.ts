@@ -11,15 +11,26 @@ export async function checkAndIncrementLimit(
   limitType: LimitType
 ): Promise<LimitCheckResult> {
   
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('plan, legacy_free_plan, gigs_used_this_month, expenses_used_this_month, invoices_used_this_month, exports_used_this_month, usage_period_start')
-    .eq('id', userId)
-    .single();
-  
-  if (error || !profile) {
-    return { allowed: false, message: 'Profile not found' };
-  }
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('plan, legacy_free_plan, gigs_used_this_month, expenses_used_this_month, invoices_used_this_month, exports_used_this_month, usage_period_start')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching profile for limit check:', error);
+      // If columns don't exist yet, allow the action (graceful degradation)
+      if (error.message?.includes('column') || error.code === '42703') {
+        console.warn('Monthly limit columns not found - allowing action');
+        return { allowed: true };
+      }
+      return { allowed: false, message: 'Profile not found' };
+    }
+    
+    if (!profile) {
+      return { allowed: false, message: 'Profile not found' };
+    }
   
   if (profile.plan === PLAN_NAMES.PRO_MONTHLY || profile.plan === PLAN_NAMES.PRO_ANNUAL) {
     return { allowed: true };
@@ -81,6 +92,12 @@ export async function checkAndIncrementLimit(
   }
   
   return { allowed: true };
+  
+  } catch (error) {
+    console.error('Unexpected error in checkAndIncrementLimit:', error);
+    // Allow action on unexpected errors (graceful degradation)
+    return { allowed: true };
+  }
 }
 
 export async function checkLimit(
