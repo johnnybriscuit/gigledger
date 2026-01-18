@@ -250,6 +250,12 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const handleUpgradeClick = () => {
     if (onNavigateToSubscription) {
       onNavigateToSubscription();
+    } else if (Platform.OS === 'web') {
+      // Direct web navigation to subscription page
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('tab', 'subscription');
+      window.history.pushState({}, '', currentUrl.toString());
+      window.dispatchEvent(new CustomEvent('tabChange', { detail: 'subscription' }));
     }
   };
 
