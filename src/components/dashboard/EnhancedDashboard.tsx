@@ -131,8 +131,7 @@ export function EnhancedDashboard({
                 gigsCount={data.gigsCount}
                 totalGrossIncome={data.totalGrossIncome}
                 totalExpenses={data.expenseBreakdown.reduce((sum, e) => sum + e.amount, 0)}
-                netProfit={data.totals.net}
-                totalTaxes={data.totals.taxes}
+                estimatedTaxRate={data.totals.effectiveTaxRate}
               />
             )}
           </View>

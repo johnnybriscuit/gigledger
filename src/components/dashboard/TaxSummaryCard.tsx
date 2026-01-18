@@ -1,6 +1,6 @@
 /**
  * Tax Summary Card for Dashboard
- * Shows YTD effective tax rate and recommended set-aside
+ * Shows YTD estimated tax rate and recommended set-aside
  */
 
 import React, { useState } from 'react';
@@ -66,14 +66,14 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
 
       {hasIncome ? (
         <>
-          {/* Effective Tax Rate */}
+          {/* Estimated Tax Rate */}
           <View style={styles.mainMetric}>
-            <Text style={styles.label}>YTD Effective Tax Rate</Text>
+            <Text style={styles.label}>YTD Estimated Tax Rate</Text>
             <Text style={styles.bigNumber}>
               {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)}
             </Text>
             <Text style={styles.subtitle}>
-              {formatTaxAmount(dashboardData.totals.taxes)} set aside on {formatTaxAmount(dashboardData.totals.net)} net profit
+              {formatTaxAmount(dashboardData.totals.taxes)} set aside on net income (before taxes)
             </Text>
           </View>
 
@@ -115,7 +115,7 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
               activeOpacity={0.7}
             >
               <Text style={styles.recommendationText}>
-                💡 Set aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} of each gig for taxes
+                💡 Set aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} of net income for taxes
               </Text>
               <Text style={styles.expandIcon}>
                 {showExplanation ? '▼' : '▶'}
@@ -127,7 +127,7 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
                 <Text style={styles.explanationTitle}>How is this calculated?</Text>
                 
                 <Text style={styles.explanationText}>
-                  Your effective tax rate is based on your year-to-date income and your tax profile settings.
+                  Your estimated tax rate is based on your year-to-date income and your tax profile settings. Net income = income after expenses, before taxes.
                 </Text>
                 
                 <View style={styles.explanationSection}>
@@ -151,7 +151,7 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
                 <View style={styles.explanationSection}>
                   <Text style={styles.explanationSubtitle}>💰 Why set aside this amount?</Text>
                   <Text style={styles.explanationText}>
-                    As a self-employed musician, taxes aren't automatically withheld from your gigs. Setting aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} ensures you'll have enough saved when quarterly estimated taxes are due.
+                    As a self-employed musician, taxes aren't automatically withheld from your gigs. Setting aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} of net income ensures you'll have enough saved when quarterly estimated taxes are due.
                   </Text>
                 </View>
                 

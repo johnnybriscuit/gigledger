@@ -1,6 +1,6 @@
 /**
  * Quick Stats card - 2x2 grid of key metrics
- * Shows: Gigs Logged, Avg per Gig, Expenses, Effective Tax Rate
+ * Shows: Gigs Logged, Avg per Gig, Expenses, Estimated Tax Rate
  */
 
 import React from 'react';
@@ -10,22 +10,17 @@ interface QuickStatsProps {
   gigsCount: number;
   totalGrossIncome: number;
   totalExpenses: number;
-  netProfit: number;
-  totalTaxes: number;
+  estimatedTaxRate: number; // Already calculated as totalTaxes / netBeforeTax
 }
 
 export function QuickStats({
   gigsCount,
   totalGrossIncome,
   totalExpenses,
-  netProfit,
-  totalTaxes,
+  estimatedTaxRate,
 }: QuickStatsProps) {
   // Calculate average per gig
   const avgPerGig = gigsCount > 0 ? totalGrossIncome / gigsCount : 0;
-
-  // Calculate effective tax rate
-  const effectiveTaxRate = netProfit > 0 ? (totalTaxes / netProfit) * 100 : 0;
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -71,11 +66,11 @@ export function QuickStats({
             <Text style={styles.value}>{formatCurrency(totalExpenses)}</Text>
           </View>
 
-          {/* Effective Tax Rate */}
+          {/* Estimated Tax Rate */}
           <View style={[styles.stat, styles.statRight, styles.statBottom]}>
-            <Text style={styles.label}>Effective Tax Rate</Text>
+            <Text style={styles.label}>Estimated Tax Rate</Text>
             <Text style={styles.value}>
-              {netProfit > 0 ? formatPercent(effectiveTaxRate) : '—'}
+              {estimatedTaxRate > 0 ? formatPercent(estimatedTaxRate) : '—'}
             </Text>
           </View>
         </View>
