@@ -157,6 +157,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         amount: parseFloat(amount) || 0,
         vendor: vendor || undefined,
         notes: notes || undefined,
+        gig_id: gigId || undefined,
         business_use_percent: CATEGORIES_WITH_BUSINESS_USE.includes(category) 
           ? businessUsePercent 
           : undefined,

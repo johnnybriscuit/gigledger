@@ -44,6 +44,7 @@ export const expenseSchema = z.object({
   amount: z.number().min(0, 'Must be 0 or greater'),
   vendor: z.string().optional(),
   notes: z.string().optional(),
+  gig_id: z.string().optional(),
   receipt_path: z.string().optional(),
   business_use_percent: z.number().min(0).max(100).optional(),
   meals_percent_allowed: z.number().min(0).max(1).optional(),
