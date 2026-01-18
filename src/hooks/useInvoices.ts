@@ -1,25 +1,25 @@
 import { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Invoice, InvoiceFormData, InvoiceLineItem, InvoiceStatus } from '../types/invoice';
+import { getCachedUserId } from '../lib/sharedAuth';
 
 export function useInvoices() {
   const queryClient = useQueryClient();
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchInvoices();
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    loadUser();
   }, []);
 
-  const fetchInvoices = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+  const { data: invoices = [], isLoading: loading, error } = useQuery({
+    queryKey: ['invoices', userId],
+    queryFn: async () => {
+      if (!userId) throw new Error('Not authenticated');
 
       const { data: invoicesData, error: fetchError } = await supabase
         .from('invoices' as any)
@@ -28,7 +28,7 @@ export function useInvoices() {
           line_items:invoice_line_items(*),
           payments:invoice_payments(*)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -42,13 +42,16 @@ export function useInvoices() {
         };
       });
 
-      setInvoices(invoicesWithCalculations);
-    } catch (err) {
-      console.error('Error fetching invoices:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch invoices');
-    } finally {
-      setLoading(false);
-    }
+      return invoicesWithCalculations as Invoice[];
+    },
+    enabled: !!userId,
+    staleTime: 30000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: (previousData) => previousData,
+  });
+
+  const fetchInvoices = async () => {
+    queryClient.invalidateQueries({ queryKey: ['invoices', userId] });
   };
 
   const createInvoice = async (formData: InvoiceFormData, invoiceNumber: string) => {
@@ -190,9 +193,6 @@ export function useInvoices() {
       if (!user) throw new Error('Not authenticated');
       console.log('✓ User authenticated:', user.id);
 
-      // Optimistic update: Remove from UI immediately
-      setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
-
       console.log('Deleting invoice with params:', { id: invoiceId, user_id: user.id });
       const { data, error: deleteError } = await supabase
         .from('invoices' as any)
@@ -205,13 +205,12 @@ export function useInvoices() {
 
       if (deleteError) {
         console.error('❌ Delete error:', deleteError);
-        // Rollback optimistic update on error
-        await fetchInvoices();
         throw deleteError;
       }
 
       console.log('✓ Invoice deleted successfully');
-      // No need to refetch - optimistic update already applied
+      // Invalidate query to refetch invoices
+      await fetchInvoices();
     } catch (err) {
       console.error('❌ Error deleting invoice:', err);
       throw err;
