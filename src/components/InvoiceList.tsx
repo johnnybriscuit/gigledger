@@ -71,7 +71,7 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
 
   const metrics = useMemo(() => {
     const unpaidInvoices = invoices.filter(inv => 
-      inv.status !== 'paid' && inv.status !== 'cancelled' && inv.status !== 'draft'
+      inv.status !== 'paid' && inv.status !== 'cancelled'
     );
     const totalOutstanding = unpaidInvoices.reduce((sum, inv) => sum + (inv.balance_due || inv.total_amount), 0);
     
