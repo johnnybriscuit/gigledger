@@ -8,6 +8,7 @@ import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { SendInvoiceModal } from '../components/SendInvoiceModal';
 import { DuplicateInvoiceModal } from '../components/DuplicateInvoiceModal';
 import { PaywallModal } from '../components/PaywallModal';
+import { UsageLimitBanner } from '../components/UsageLimitBanner';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { useInvoices } from '../hooks/useInvoices';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
@@ -207,11 +208,6 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Invoices</Text>
             <View style={styles.headerActions}>
-              {!entitlements.isPro && entitlements.remaining.invoicesRemaining !== null && (
-                <Text style={styles.remainingText}>
-                  Free: {entitlements.remaining.invoicesRemaining} of 3 invoices this month • Resets on the 1st
-                </Text>
-              )}
               <TouchableOpacity
                 style={styles.createHeaderButton}
                 onPress={handleCreateNew}
@@ -226,6 +222,23 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
               </TouchableOpacity>
             </View>
           </View>
+          
+          {/* Usage Banner - only show for Free plan users */}
+          {!entitlements.isPro && entitlements.usage.invoicesCreatedCount !== undefined && (
+            <View style={styles.bannerContainer}>
+              <UsageLimitBanner
+                label="invoices"
+                usedCount={entitlements.usage.invoicesCreatedCount}
+                limitCount={3}
+                onUpgradePress={() => {
+                  if (onNavigateToSubscription) {
+                    onNavigateToSubscription();
+                  }
+                }}
+              />
+            </View>
+          )}
+          
           <InvoiceList
             onSelectInvoice={handleSelectInvoice}
             onCreateNew={handleCreateNew}
@@ -448,6 +461,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     marginRight: 12,
+  },
+  bannerContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   actionBar: {
     flexDirection: 'row',
