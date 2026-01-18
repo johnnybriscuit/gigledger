@@ -371,7 +371,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
             <Text style={styles.headerTitle}>Invoice Settings</Text>
             <View style={{ width: 60 }} />
           </View>
-          <InvoiceSettings />
+          <InvoiceSettings onSuccess={() => setViewMode('list')} />
         </>
       )}
     </View>

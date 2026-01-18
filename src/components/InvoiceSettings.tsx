@@ -3,7 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert,
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { PaymentMethodDetail, PAYMENT_METHODS, COLOR_SCHEMES, FONT_STYLES, LAYOUT_STYLES, CURRENCIES } from '../types/invoice';
 
-export function InvoiceSettings() {
+interface InvoiceSettingsProps {
+  onSuccess?: () => void;
+}
+
+export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
   const { settings, loading, createSettings, updateSettings } = useInvoiceSettings();
   const [formData, setFormData] = useState({
     business_name: '',
@@ -46,7 +50,7 @@ export function InvoiceSettings() {
 
   const handleSave = async () => {
     if (!formData.business_name || !formData.email) {
-      Alert.alert('Error', 'Business name and email are required');
+      window.alert('Error\n\nBusiness name and email are required');
       return;
     }
 
@@ -60,13 +64,18 @@ export function InvoiceSettings() {
 
       if (settings) {
         await updateSettings(settingsData);
-        Alert.alert('Success', 'Invoice settings updated successfully');
+        window.alert('Success\n\nInvoice settings updated successfully');
       } else {
         await createSettings(settingsData);
-        Alert.alert('Success', 'Invoice settings created successfully');
+        window.alert('Success\n\nInvoice settings created successfully');
+      }
+      
+      // Navigate back to invoices list after successful save
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to save invoice settings');
+      window.alert('Error\n\nFailed to save invoice settings');
       console.error(error);
     } finally {
       setSaving(false);
