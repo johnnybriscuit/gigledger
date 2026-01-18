@@ -230,6 +230,22 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
             onSelectInvoice={handleSelectInvoice}
             onCreateNew={handleCreateNew}
           />
+          
+          {/* Paywall Modal - shown at list level */}
+          {showPaywallModal && (
+            <PaywallModal
+              visible={showPaywallModal}
+              reason={paywallReason}
+              onClose={() => setShowPaywallModal(false)}
+              onUpgrade={() => {
+                setShowPaywallModal(false);
+                if (onNavigateToSubscription) {
+                  onNavigateToSubscription();
+                }
+              }}
+              remainingCount={paywallReason === 'invoice_limit' ? entitlements.remaining.invoicesRemaining ?? undefined : undefined}
+            />
+          )}
         </>
       )}
 
