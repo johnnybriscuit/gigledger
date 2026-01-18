@@ -60,23 +60,21 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     
     try {
       if (!settings) {
-        Alert.alert(
-          'Setup Required',
-          'Please set up your business information before creating invoices.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Setup Now', onPress: () => setViewMode('settings') }
-          ]
+        console.log('🔵 Settings not loaded, prompting user to set up');
+        // Use window.confirm for web compatibility
+        const shouldSetup = window.confirm(
+          'Setup Required\n\nPlease set up your business information before creating invoices.\n\nWould you like to set up now?'
         );
+        if (shouldSetup) {
+          setViewMode('settings');
+        }
         return;
       }
       
       // If still loading entitlements, show feedback
       if (entitlements.isLoading) {
-        Alert.alert(
-          'Loading...',
-          'Checking your plan limits. Please try again in a moment.'
-        );
+        console.log('🔵 Entitlements still loading');
+        window.alert('Loading...\n\nChecking your plan limits. Please try again in a moment.');
         return;
       }
       
@@ -93,11 +91,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       setViewMode('create');
     } catch (error) {
       console.error('🔴 Error in handleCreateNew:', error);
-      Alert.alert(
-        'Error',
-        'Couldn\'t start a new invoice. Please try again.',
-        [{ text: 'OK' }]
-      );
+      window.alert('Error\n\nCouldn\'t start a new invoice. Please try again.');
     }
   };
 
