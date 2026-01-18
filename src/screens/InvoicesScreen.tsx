@@ -52,27 +52,53 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   };
 
   const handleCreateNew = () => {
-    if (!settings) {
+    console.log('🔵 Create Invoice clicked');
+    console.log('🔵 Settings:', !!settings);
+    console.log('🔵 Entitlements:', entitlements);
+    console.log('🔵 Can create invoice:', entitlements.can.createInvoice);
+    console.log('🔵 Is loading:', entitlements.isLoading);
+    
+    try {
+      if (!settings) {
+        Alert.alert(
+          'Setup Required',
+          'Please set up your business information before creating invoices.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Setup Now', onPress: () => setViewMode('settings') }
+          ]
+        );
+        return;
+      }
+      
+      // If still loading entitlements, show feedback
+      if (entitlements.isLoading) {
+        Alert.alert(
+          'Loading...',
+          'Checking your plan limits. Please try again in a moment.'
+        );
+        return;
+      }
+      
+      // Check invoice limit
+      if (!entitlements.can.createInvoice) {
+        console.log('🔵 Invoice limit reached, showing paywall');
+        setPaywallReason('invoice_limit');
+        setShowPaywallModal(true);
+        return;
+      }
+      
+      console.log('🔵 Opening invoice create form');
+      setSelectedInvoice(null);
+      setViewMode('create');
+    } catch (error) {
+      console.error('🔴 Error in handleCreateNew:', error);
       Alert.alert(
-        'Setup Required',
-        'Please set up your business information before creating invoices.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Setup Now', onPress: () => setViewMode('settings') }
-        ]
+        'Error',
+        'Couldn\'t start a new invoice. Please try again.',
+        [{ text: 'OK' }]
       );
-      return;
     }
-    
-    // Check invoice limit
-    if (!entitlements.can.createInvoice) {
-      setPaywallReason('invoice_limit');
-      setShowPaywallModal(true);
-      return;
-    }
-    
-    setSelectedInvoice(null);
-    setViewMode('create');
   };
 
   const handleEdit = () => {

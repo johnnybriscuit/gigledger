@@ -76,19 +76,24 @@ export function useEntitlements(): Entitlements {
   }, []);
 
   // Fetch profile (for plan) and usage counts in parallel
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: userId ? ['entitlements', userId] : ['entitlements-loading'],
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated');
 
-      // Fetch profile for plan
+      console.log('🔵 [useEntitlements] Fetching entitlements for user:', userId);
+
+      // Fetch profile for plan (without invoices_created_count to avoid 406 if column doesn't exist)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('plan, invoices_created_count')
+        .select('plan')
         .eq('id', userId)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('🔴 [useEntitlements] Profile fetch error:', profileError);
+        throw profileError;
+      }
 
       // Count gigs
       const { count: gigsCount, error: gigsError } = await supabase
@@ -96,7 +101,10 @@ export function useEntitlements(): Entitlements {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
 
-      if (gigsError) throw gigsError;
+      if (gigsError) {
+        console.error('🔴 [useEntitlements] Gigs count error:', gigsError);
+        throw gigsError;
+      }
 
       // Count expenses
       const { count: expensesCount, error: expensesError } = await supabase
@@ -104,19 +112,47 @@ export function useEntitlements(): Entitlements {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
 
-      if (expensesError) throw expensesError;
+      if (expensesError) {
+        console.error('🔴 [useEntitlements] Expenses count error:', expensesError);
+        throw expensesError;
+      }
+
+      // Count invoices directly (more reliable than using a counter column)
+      const { count: invoicesCount, error: invoicesError } = await supabase
+        .from('invoices')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      if (invoicesError) {
+        console.error('🔴 [useEntitlements] Invoices count error:', invoicesError);
+        throw invoicesError;
+      }
+
+      console.log('🔵 [useEntitlements] Fetched successfully:', {
+        plan: profile?.plan,
+        gigsCount,
+        expensesCount,
+        invoicesCreatedCount: invoicesCount,
+      });
 
       return {
         plan: (profile?.plan || 'free') as UserPlan,
         gigsCount: gigsCount ?? 0,
         expensesCount: expensesCount ?? 0,
-        invoicesCreatedCount: profile?.invoices_created_count ?? 0,
+        invoicesCreatedCount: invoicesCount ?? 0,
       };
     },
     enabled: !!userId,
     staleTime: 30000, // 30 seconds - balance freshness with performance
     refetchOnWindowFocus: true,
+    retry: 2, // Retry failed requests twice
+    retryDelay: 1000, // Wait 1 second between retries
   });
+
+  // Log errors
+  if (error) {
+    console.error('🔴 [useEntitlements] Query error:', error);
+  }
 
   // Default values while loading
   const plan: UserPlan = data?.plan || 'free';
