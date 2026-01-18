@@ -108,7 +108,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       case 'gigs':
         return <GigsScreen onNavigateToSubscription={() => setActiveTab('subscription')} />;
       case 'expenses':
-        return <ExpensesScreen />;
+        return <ExpensesScreen onNavigateToSubscription={() => setActiveTab('subscription')} />;
       case 'mileage':
         return <MileageScreen />;
       case 'invoices':
