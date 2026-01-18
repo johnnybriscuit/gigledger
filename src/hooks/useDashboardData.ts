@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useRef } from 'react';
 import { useGigs } from './useGigs';
 import { useExpenses } from './useExpenses';
 import { useMileage, calculateMileageDeduction } from './useMileage';
@@ -128,6 +128,13 @@ export function useDashboardData(
   // Get userId for profile query
   const [userId, setUserId] = useState<string | null>(null);
   
+  // Store previous totals to prevent flash during refetch
+  const previousTotalsRef = useRef<{
+    net: number;
+    taxes: number;
+    effectiveTaxRate: number;
+  } | null>(null);
+  
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserId(user?.id || null);
@@ -142,6 +149,10 @@ export function useDashboardData(
 
   // CRITICAL: Readiness gate - ALL data must be loaded before calculating totals
   // This prevents "income-only" flash when expenses load late
+  // Use isFetching to distinguish between initial load and refetch
+  const isInitialLoad = (gigsLoading || expensesLoading || taxProfileLoading) && 
+                        (!allGigs || !allExpenses || !taxProfile);
+  
   const isReadyForTotals = 
     gigsSuccess && 
     expensesSuccess && 
@@ -346,6 +357,22 @@ export function useDashboardData(
       payerBreakdown = sortedPayers;
     }
 
+    // Calculate current totals
+    const currentTotals = isReadyForTotals ? {
+      net: netProfit - totalTaxes, // True net profit after taxes
+      taxes: totalTaxes,
+      effectiveTaxRate,
+    } : null;
+    
+    // Store current totals in ref if they exist
+    if (currentTotals) {
+      previousTotalsRef.current = currentTotals;
+    }
+    
+    // Use current totals if ready, otherwise use previous totals during refetch
+    // Only return null if we're on initial load (no previous data)
+    const totalsToReturn = currentTotals || (isInitialLoad ? null : previousTotalsRef.current);
+    
     return {
       monthly,
       cumulativeNet,
@@ -355,11 +382,7 @@ export function useDashboardData(
       gigsCount: gigs.length,
       totalGrossIncome: totalGross + totalTips + totalPerDiem,
       isReady: isReadyForTotals,
-      totals: isReadyForTotals ? {
-        net: netProfit - totalTaxes, // True net profit after taxes
-        taxes: totalTaxes,
-        effectiveTaxRate,
-      } : null, // NULL when not ready - forces skeleton rendering
+      totals: totalsToReturn,
       taxBreakdown: isReadyForTotals ? {
         federal: taxResult?.federal || 0,
         state: taxResult?.state || 0,
@@ -367,7 +390,7 @@ export function useDashboardData(
         seTax: taxResult?.seTax || 0,
       } : null, // NULL when not ready
     };
-  }, [isReadyForTotals, allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, netProfit, totalTaxes, effectiveTaxRate, taxResult]);
+  }, [isReadyForTotals, isInitialLoad, allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, netProfit, totalTaxes, effectiveTaxRate, taxResult]);
 
   // Debug logging
   useEffect(() => {

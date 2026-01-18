@@ -101,6 +101,7 @@ export function useTaxProfile() {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+    placeholderData: (previousData) => previousData, // Keep previous data while refetching
   });
 
   // Return loading state that accounts for userId initialization
