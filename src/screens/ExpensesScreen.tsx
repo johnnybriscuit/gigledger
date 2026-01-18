@@ -29,6 +29,18 @@ interface ExpensesScreenProps {
 }
 
 export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps = {}) {
+  
+  const handleNavigateToSubscription = () => {
+    if (onNavigateToSubscription) {
+      onNavigateToSubscription();
+    } else if (Platform.OS === 'web') {
+      // Direct web navigation to subscription page
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('tab', 'subscription');
+      window.history.pushState({}, '', currentUrl.toString());
+      window.dispatchEvent(new CustomEvent('tabChange', { detail: 'subscription' }));
+    }
+  };
   const [activeTab, setActiveTab] = useState<'all' | 'recurring'>('all');
   const [modalVisible, setModalVisible] = useState(false);
   const [recurringModalVisible, setRecurringModalVisible] = useState(false);
@@ -167,7 +179,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
           <Button
             variant="success"
             size="sm"
-            onPress={() => onNavigateToSubscription?.()}
+            onPress={handleNavigateToSubscription}
           >
             ⭐ Upgrade to add more
           </Button>
@@ -255,7 +267,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
                     <Text style={styles.usageText}>
                       You've used {expenseCount} of 10 expenses this month • Resets on the 1st
                     </Text>
-                    <TouchableOpacity onPress={() => onNavigateToSubscription?.()}>
+                    <TouchableOpacity onPress={handleNavigateToSubscription}>
                       <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
                     </TouchableOpacity>
                   </View>
