@@ -11,6 +11,7 @@ import {
 import { useGigs, useDeleteGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs';
 import { AddGigModal } from '../components/AddGigModal';
 import { ImportGigsModal } from '../components/ImportGigsModal';
+import { PaywallModal } from '../components/PaywallModal';
 import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { SkeletonGigCard } from '../components/SkeletonCard';
@@ -161,6 +162,7 @@ interface GigsScreenProps {
 export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [editingGig, setEditingGig] = useState<GigWithPayer | null>(null);
   const [duplicatingGig, setDuplicatingGig] = useState<GigWithPayer | null>(null);
   const [togglingGigId, setTogglingGigId] = useState<string | null>(null);
@@ -241,7 +243,8 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
 
   const handleAddGigClick = () => {
     if (hasReachedGigLimit) {
-      // Don't open modal if at free plan limit
+      // Show paywall modal instead of silently failing
+      setShowPaywallModal(true);
       return;
     }
     setModalVisible(true);
@@ -407,6 +410,19 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         visible={importModalVisible}
         onClose={() => setImportModalVisible(false)}
       />
+      
+      {/* Paywall Modal - shown when user hits gig limit */}
+      {showPaywallModal && (
+        <PaywallModal
+          visible={showPaywallModal}
+          reason="gig_limit"
+          onClose={() => setShowPaywallModal(false)}
+          onUpgrade={() => {
+            setShowPaywallModal(false);
+            handleUpgradeClick();
+          }}
+        />
+      )}
     </View>
   );
 }

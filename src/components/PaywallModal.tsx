@@ -29,12 +29,12 @@ const PAYWALL_CONTENT: Record<PaywallReason, { title: string; body: string }> = 
     body: "Upgrade to Pro to export your data to TurboTax, CPAs, and other formats. Plus get unlimited invoices and tracking. Cancel anytime.",
   },
   gig_limit: {
-    title: "You've reached the Free plan gig limit",
-    body: "Free includes up to 20 gigs. Upgrade to Pro for unlimited gigs, expenses, invoices, and exports. Cancel anytime.",
+    title: "You've reached your gig limit",
+    body: "You've logged 10 gigs this month on the Free plan. To log more gigs, you can either wait until the 1st of next month when your limit resets, or upgrade to GigLedger Pro for unlimited gigs.",
   },
   expense_limit: {
-    title: "You've reached the Free plan expense limit",
-    body: "Free includes up to 20 expenses. Upgrade to Pro for unlimited expenses, gigs, invoices, and exports. Cancel anytime.",
+    title: "You've reached your expense limit",
+    body: "You've logged 10 expenses this month on the Free plan. To log more expenses, you can either wait until the 1st of next month when your limit resets, or upgrade to GigLedger Pro for unlimited expenses.",
   },
 };
 

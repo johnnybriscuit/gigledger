@@ -11,6 +11,7 @@ import {
 import { useExpenses, useDeleteExpense } from '../hooks/useExpenses';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { RecurringExpenseModal } from '../components/RecurringExpenseModal';
+import { PaywallModal } from '../components/PaywallModal';
 import {
   useRecurringExpenses,
   useActiveRecurringExpenses,
@@ -44,6 +45,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
   const [activeTab, setActiveTab] = useState<'all' | 'recurring'>('all');
   const [modalVisible, setModalVisible] = useState(false);
   const [recurringModalVisible, setRecurringModalVisible] = useState(false);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | undefined>(undefined);
   
@@ -190,7 +192,8 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
             onPress={() => {
               if (activeTab === 'all') {
                 if (hasReachedExpenseLimit) {
-                  // Don't open modal if at limit
+                  // Show paywall modal instead of silently failing
+                  setShowPaywallModal(true);
                   return;
                 }
                 setModalVisible(true);
@@ -425,6 +428,19 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
         onClose={handleCloseRecurringModal}
         editingExpense={editingRecurring}
       />
+      
+      {/* Paywall Modal - shown when user hits expense limit */}
+      {showPaywallModal && (
+        <PaywallModal
+          visible={showPaywallModal}
+          reason="expense_limit"
+          onClose={() => setShowPaywallModal(false)}
+          onUpgrade={() => {
+            setShowPaywallModal(false);
+            handleNavigateToSubscription();
+          }}
+        />
+      )}
     </View>
   );
 }
