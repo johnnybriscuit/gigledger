@@ -1,41 +1,45 @@
 import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { InvoiceSettings } from '../types/invoice';
 
 export function useInvoiceSettings() {
-  const [settings, setSettings] = useState<InvoiceSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSettings();
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    loadUser();
   }, []);
 
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+  const { data: settings = null, isLoading: loading, error } = useQuery({
+    queryKey: ['invoice_settings', userId],
+    queryFn: async () => {
+      if (!userId) throw new Error('Not authenticated');
 
       const { data, error: fetchError } = await supabase
         .from('invoice_settings')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
         throw fetchError;
       }
 
-      setSettings(data as any);
-    } catch (err) {
-      console.error('Error fetching invoice settings:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch settings');
-    } finally {
-      setLoading(false);
-    }
+      return data as InvoiceSettings | null;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes - settings don't change often
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    placeholderData: (previousData) => previousData,
+  });
+
+  const fetchSettings = async () => {
+    queryClient.invalidateQueries({ queryKey: ['invoice_settings', userId] });
   };
 
   const createSettings = async (settingsData: Partial<InvoiceSettings>) => {
@@ -54,7 +58,8 @@ export function useInvoiceSettings() {
 
       if (insertError) throw insertError;
 
-      setSettings(data as any);
+      // Invalidate query to refetch settings
+      await fetchSettings();
       return data;
     } catch (err) {
       console.error('Error creating invoice settings:', err);
@@ -76,7 +81,8 @@ export function useInvoiceSettings() {
 
       if (updateError) throw updateError;
 
-      setSettings(data as any);
+      // Invalidate query to refetch settings
+      await fetchSettings();
       return data;
     } catch (err) {
       console.error('Error updating invoice settings:', err);
@@ -100,10 +106,8 @@ export function useInvoiceSettings() {
         .update({ next_invoice_number: settings.next_invoice_number + 1 })
         .eq('user_id', user.id);
 
-      setSettings({
-        ...settings,
-        next_invoice_number: settings.next_invoice_number + 1
-      });
+      // Invalidate query to refetch settings
+      await fetchSettings();
 
       return invoiceNumber;
     } catch (err) {
