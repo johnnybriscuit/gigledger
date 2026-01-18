@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Invoice, InvoiceFormData, InvoiceLineItem, InvoiceStatus } from '../types/invoice';
 
 export function useInvoices() {
+  const queryClient = useQueryClient();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +108,10 @@ export function useInvoices() {
       if (lineItemsError) throw lineItemsError;
 
       await fetchInvoices();
+      
+      // Invalidate entitlements cache to update invoice count
+      queryClient.invalidateQueries({ queryKey: ['entitlements'] });
+      
       return invoice;
     } catch (err) {
       console.error('Error creating invoice:', err);
