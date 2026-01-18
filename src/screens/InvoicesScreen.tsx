@@ -27,7 +27,7 @@ interface InvoicesScreenProps {
 
 export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }: InvoicesScreenProps = {}) {
   const { settings, loading: settingsLoading } = useInvoiceSettings();
-  const { updateInvoiceStatus, deleteInvoice, deletePayment } = useInvoices();
+  const { invoices, loading: invoicesLoading, updateInvoiceStatus, deleteInvoice, deletePayment } = useInvoices();
   const entitlements = useEntitlements();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -247,6 +247,8 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
           )}
           
           <InvoiceList
+            invoices={invoices}
+            loading={invoicesLoading}
             onSelectInvoice={handleSelectInvoice}
             onCreateNew={handleCreateNew}
           />

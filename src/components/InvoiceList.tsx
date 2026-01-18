@@ -1,15 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, TextInput, useWindowDimensions, Platform } from 'react-native';
-import { useInvoices } from '../hooks/useInvoices';
 import { Invoice, InvoiceStatus, getStatusColor, getStatusLabel, formatCurrency } from '../types/invoice';
 
 interface InvoiceListProps {
+  invoices: Invoice[];
+  loading: boolean;
   onSelectInvoice?: (invoice: Invoice) => void;
   onCreateNew?: () => void;
 }
 
-export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) {
-  const { invoices, loading } = useInvoices();
+export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }: InvoiceListProps) {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'due_date'>('date');
@@ -126,8 +126,37 @@ export function InvoiceList({ onSelectInvoice, onCreateNew }: InvoiceListProps) 
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+      <View style={styles.container}>
+        {/* Loading skeleton */}
+        <View style={styles.metricsRow}>
+          <View style={[styles.metricCard, styles.skeletonCard]}>
+            <View style={[styles.skeletonText, { width: 100, height: 14 }]} />
+            <View style={[styles.skeletonText, { width: 80, height: 24, marginTop: 8 }]} />
+          </View>
+          <View style={[styles.metricCard, styles.skeletonCard]}>
+            <View style={[styles.skeletonText, { width: 80, height: 14 }]} />
+            <View style={[styles.skeletonText, { width: 70, height: 24, marginTop: 8 }]} />
+          </View>
+          <View style={[styles.metricCard, styles.skeletonCard]}>
+            <View style={[styles.skeletonText, { width: 90, height: 14 }]} />
+            <View style={[styles.skeletonText, { width: 75, height: 24, marginTop: 8 }]} />
+          </View>
+        </View>
+        
+        {/* Skeleton invoice cards */}
+        {[1, 2, 3].map((i) => (
+          <View key={i} style={[styles.invoiceCard, styles.skeletonCard]}>
+            <View style={styles.invoiceCardHeader}>
+              <View style={[styles.skeletonText, { width: 120, height: 18 }]} />
+              <View style={[styles.skeletonText, { width: 60, height: 24, borderRadius: 12 }]} />
+            </View>
+            <View style={[styles.skeletonText, { width: 150, height: 14, marginTop: 8 }]} />
+            <View style={styles.invoiceCardFooter}>
+              <View style={[styles.skeletonText, { width: 80, height: 14 }]} />
+              <View style={[styles.skeletonText, { width: 90, height: 20 }]} />
+            </View>
+          </View>
+        ))}
       </View>
     );
   }
@@ -659,5 +688,41 @@ const styles = StyleSheet.create({
   },
   reminderBold: {
     fontWeight: '600',
+  },
+  // Skeleton loading styles
+  skeletonCard: {
+    opacity: 0.6,
+  },
+  skeletonText: {
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  invoiceCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  invoiceCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
   },
 });
