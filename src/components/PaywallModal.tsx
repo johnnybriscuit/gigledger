@@ -21,8 +21,8 @@ interface PaywallModalProps {
 
 const PAYWALL_CONTENT: Record<PaywallReason, { title: string; body: string }> = {
   invoice_limit: {
-    title: "You've reached the Free plan invoice limit",
-    body: "Free includes up to 3 invoices. Upgrade to Pro for unlimited invoices (plus exports and unlimited tracking). Cancel anytime.",
+    title: "You've reached your invoice limit",
+    body: "You've created 3 invoices this month on the Free plan. To create more invoices, you can either wait until the 1st of next month when your limit resets, or upgrade to GigLedger Pro for unlimited invoices.",
   },
   export_limit: {
     title: "Exports are a Pro feature",
