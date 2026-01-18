@@ -63,6 +63,8 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   const [uploading, setUploading] = useState(false);
   const [businessUsePercent, setBusinessUsePercent] = useState(100);
   const [mealsDeductiblePercent, setMealsDeductiblePercent] = useState<50 | 100>(50);
+  const [gigId, setGigId] = useState<string | null>(null);
+  const [attachToSameGig, setAttachToSameGig] = useState(false);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -102,8 +104,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
       } else {
         setMealsDeductiblePercent(50);
       }
-      // Do NOT copy receipt
+      // SAFETY: Do NOT copy receipt
       setReceiptFile(null);
+      // SAFETY: Do NOT auto-link to gig (default to null, user can toggle on if desired)
+      setGigId(null);
+      setAttachToSameGig(false);
     } else {
       resetForm();
     }

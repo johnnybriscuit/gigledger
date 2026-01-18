@@ -67,6 +67,7 @@ export function useCreateExpense() {
       if (userId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.expenses(userId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
+        queryClient.invalidateQueries({ queryKey: ['entitlements', userId] });
       }
     },
   });
@@ -95,6 +96,7 @@ export function useUpdateExpense() {
       if (userId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.expenses(userId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
+        queryClient.invalidateQueries({ queryKey: ['entitlements', userId] });
       }
     },
   });
@@ -120,6 +122,7 @@ export function useDeleteExpense() {
       if (userId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.expenses(userId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
+        queryClient.invalidateQueries({ queryKey: ['entitlements', userId] });
       }
     },
   });

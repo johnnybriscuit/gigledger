@@ -79,7 +79,10 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
         });
       }
     } else if (duplicatingInvoice) {
-      // Prefill from duplicating invoice with today's date and calculated due date
+      // SAFETY: Prefill from duplicating invoice with strict safe defaults
+      // - New invoice_date = TODAY
+      // - New due_date = calculated from original delta
+      // - DO NOT copy: invoice_number (generated fresh), status (defaults to draft), payment metadata
       const today = new Date().toISOString().split('T')[0];
       
       // Calculate due date delta from original invoice
@@ -94,24 +97,31 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
       }
       
       setFormData({
+        // Bill-to information (safe to copy)
         client_id: duplicatingInvoice.client_id,
         client_name: duplicatingInvoice.client_name,
         client_email: duplicatingInvoice.client_email,
         client_company: duplicatingInvoice.client_company,
         client_address: duplicatingInvoice.client_address,
+        // Dates (TODAY + calculated due date)
         invoice_date: today,
         due_date: newDueDate,
+        // Terms and settings (safe to copy)
         payment_terms: duplicatingInvoice.payment_terms,
         notes: duplicatingInvoice.notes,
         private_notes: duplicatingInvoice.private_notes,
         tax_rate: duplicatingInvoice.tax_rate,
         discount_amount: duplicatingInvoice.discount_amount,
         accepted_payment_methods: duplicatingInvoice.accepted_payment_methods,
+        // Line items (safe to copy)
         line_items: duplicatingInvoice.line_items?.map(item => ({
           description: item.description,
           quantity: item.quantity,
           rate: item.rate
         })) || [{ description: '', quantity: 1, rate: 0 }]
+        // SAFETY: invoice_number NOT copied (will be generated fresh during create)
+        // SAFETY: status NOT copied (will default to 'draft' during create)
+        // SAFETY: sent/paid/payment metadata NOT copied (not in formData)
       });
     }
   }, [invoiceId, duplicatingInvoice, invoices]);
