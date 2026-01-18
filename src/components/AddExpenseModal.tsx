@@ -25,6 +25,7 @@ interface AddExpenseModalProps {
   visible: boolean;
   onClose: () => void;
   editingExpense?: any;
+  duplicatingExpense?: any;
 }
 
 const EXPENSE_CATEGORIES = [
@@ -47,7 +48,7 @@ const CATEGORIES_WITH_BUSINESS_USE = [
   'Rent/Studio',
 ];
 
-export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpenseModalProps) {
+export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingExpense }: AddExpenseModalProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   
@@ -86,10 +87,27 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
       } else {
         setMealsDeductiblePercent(50);
       }
+    } else if (duplicatingExpense) {
+      // Prefill from duplicating expense but set date to today and clear receipt
+      setDate(toUtcDateString(new Date()));
+      setCategory(duplicatingExpense.category);
+      setDescription(duplicatingExpense.description);
+      setAmount(duplicatingExpense.amount.toString());
+      setVendor(duplicatingExpense.vendor || '');
+      setNotes(duplicatingExpense.notes || '');
+      setBusinessUsePercent(duplicatingExpense.business_use_percent || 100);
+      // Convert DB value (0-1) to UI value (50 or 100)
+      if (duplicatingExpense.meals_percent_allowed !== null && duplicatingExpense.meals_percent_allowed !== undefined) {
+        setMealsDeductiblePercent(duplicatingExpense.meals_percent_allowed >= 1 ? 100 : 50);
+      } else {
+        setMealsDeductiblePercent(50);
+      }
+      // Do NOT copy receipt
+      setReceiptFile(null);
     } else {
       resetForm();
     }
-  }, [editingExpense, visible]);
+  }, [editingExpense, duplicatingExpense, visible]);
 
   const resetForm = () => {
     setDate(toUtcDateString(new Date()));
@@ -227,7 +245,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense }: AddExpense
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editingExpense ? 'Edit Expense' : 'Add New Expense'}
+              {editingExpense ? 'Edit Expense' : duplicatingExpense ? 'Repeat Expense (Draft)' : 'Add New Expense'}
             </Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>

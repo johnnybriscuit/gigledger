@@ -47,6 +47,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
   const [recurringModalVisible, setRecurringModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [duplicatingExpense, setDuplicatingExpense] = useState<any>(null);
   const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | undefined>(undefined);
   
   const { data: expenses, isLoading, error } = useExpenses();
@@ -79,12 +80,20 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
 
   const handleEdit = (expense: any) => {
     setEditingExpense(expense);
+    setDuplicatingExpense(null);
+    setModalVisible(true);
+  };
+
+  const handleRepeat = (expense: any) => {
+    setDuplicatingExpense(expense);
+    setEditingExpense(null);
     setModalVisible(true);
   };
 
   const handleCloseModal = () => {
     setModalVisible(false);
     setEditingExpense(null);
+    setDuplicatingExpense(null);
   };
 
   const handleEditRecurring = (recurring: RecurringExpense) => {
@@ -321,6 +330,12 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
                   <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
+                  onPress={() => handleRepeat(item)}
+                  style={styles.actionButton}
+                >
+                  <Text semibold style={{ color: colors.brand.DEFAULT }}>Repeat</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   onPress={() => handleDelete(item.id, item.description)}
                   style={styles.actionButton}
                 >
@@ -421,6 +436,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
         visible={modalVisible}
         onClose={handleCloseModal}
         editingExpense={editingExpense}
+        duplicatingExpense={duplicatingExpense}
       />
 
       <RecurringExpenseModal

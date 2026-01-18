@@ -14,12 +14,13 @@ import { getSharedUserId } from '../lib/sharedAuth';
 
 interface InvoiceFormProps {
   invoiceId?: string;
+  duplicatingInvoice?: any;
   onSuccess?: () => void;
   onCancel?: () => void;
   onNavigateToAccount?: () => void;
 }
 
-export function InvoiceForm({ invoiceId, onSuccess, onCancel, onNavigateToAccount }: InvoiceFormProps) {
+export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel, onNavigateToAccount }: InvoiceFormProps) {
   const { createInvoice, updateInvoice, invoices } = useInvoices();
   const { settings, getNextInvoiceNumber } = useInvoiceSettings();
   const { payers } = usePayers();
@@ -77,8 +78,43 @@ export function InvoiceForm({ invoiceId, onSuccess, onCancel, onNavigateToAccoun
           })) || [{ description: '', quantity: 1, rate: 0 }]
         });
       }
+    } else if (duplicatingInvoice) {
+      // Prefill from duplicating invoice with today's date and calculated due date
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Calculate due date delta from original invoice
+      let newDueDate = calculateDueDate(today, formData.payment_terms || 'Net 30');
+      if (duplicatingInvoice.invoice_date && duplicatingInvoice.due_date) {
+        const originalInvoiceDate = new Date(duplicatingInvoice.invoice_date);
+        const originalDueDate = new Date(duplicatingInvoice.due_date);
+        const deltaDays = Math.round((originalDueDate.getTime() - originalInvoiceDate.getTime()) / (1000 * 60 * 60 * 24));
+        const newDueDateObj = new Date(today);
+        newDueDateObj.setDate(newDueDateObj.getDate() + deltaDays);
+        newDueDate = newDueDateObj.toISOString().split('T')[0];
+      }
+      
+      setFormData({
+        client_id: duplicatingInvoice.client_id,
+        client_name: duplicatingInvoice.client_name,
+        client_email: duplicatingInvoice.client_email,
+        client_company: duplicatingInvoice.client_company,
+        client_address: duplicatingInvoice.client_address,
+        invoice_date: today,
+        due_date: newDueDate,
+        payment_terms: duplicatingInvoice.payment_terms,
+        notes: duplicatingInvoice.notes,
+        private_notes: duplicatingInvoice.private_notes,
+        tax_rate: duplicatingInvoice.tax_rate,
+        discount_amount: duplicatingInvoice.discount_amount,
+        accepted_payment_methods: duplicatingInvoice.accepted_payment_methods,
+        line_items: duplicatingInvoice.line_items?.map(item => ({
+          description: item.description,
+          quantity: item.quantity,
+          rate: item.rate
+        })) || [{ description: '', quantity: 1, rate: 0 }]
+      });
     }
-  }, [invoiceId, invoices]);
+  }, [invoiceId, duplicatingInvoice, invoices]);
 
   const addLineItem = () => {
     setFormData({

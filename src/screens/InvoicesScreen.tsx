@@ -31,6 +31,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   const entitlements = useEntitlements();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [duplicatingInvoice, setDuplicatingInvoice] = useState<Invoice | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -161,6 +162,12 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     Alert.alert('Success', 'Invoice sent successfully');
   };
 
+  const handleRepeat = () => {
+    // Open invoice form in duplicate mode (like Repeat Gig)
+    setDuplicatingInvoice(selectedInvoice);
+    setViewMode('create');
+  };
+
   const handleDuplicate = () => {
     setShowDuplicateModal(true);
   };
@@ -265,16 +272,25 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       {viewMode === 'create' && (
         <>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => setViewMode('list')}>
+            <TouchableOpacity onPress={() => {
+              setViewMode('list');
+              setDuplicatingInvoice(null);
+            }}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Create Invoice</Text>
+            <Text style={styles.headerTitle}>
+              {duplicatingInvoice ? 'Repeat Invoice (Draft)' : 'Create Invoice'}
+            </Text>
             <View style={{ width: 60 }} />
           </View>
           <InvoiceForm
             onSuccess={handleFormSuccess}
-            onCancel={() => setViewMode('list')}
+            onCancel={() => {
+              setViewMode('list');
+              setDuplicatingInvoice(null);
+            }}
             onNavigateToAccount={onNavigateToAccount}
+            duplicatingInvoice={duplicatingInvoice}
           />
         </>
       )}
@@ -332,8 +348,8 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={styles.actionButton} onPress={handleDuplicate}>
-              <Text style={styles.actionButtonText}>📋 Duplicate</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={handleRepeat}>
+              <Text style={styles.actionButtonText}>🔁 Repeat</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={handleDelete}>
