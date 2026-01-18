@@ -8,9 +8,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryKeys';
-import { useState, useEffect } from 'react';
 import { isPro } from '../config/plans';
 import type { UserPlan } from '../config/plans';
+import { useUserId } from './useCurrentUser';
 
 export interface EntitlementsLimits {
   gigsMax: number | null;      // null = unlimited
@@ -64,16 +64,7 @@ const PRO_LIMITS: EntitlementsLimits = {
  * This is the single source of truth for all plan enforcement
  */
 export function useEntitlements(): Entitlements {
-  const [userId, setUserId] = useState<string | null>(null);
-  
-  // Get userId from auth
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user?.id) {
-        setUserId(user.id);
-      }
-    });
-  }, []);
+  const userId = useUserId();
 
   // Fetch profile (for plan) and usage counts in parallel
   const { data, isLoading, error } = useQuery({

@@ -13,10 +13,9 @@ import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { useInvoices } from '../hooks/useInvoices';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
 import { useEntitlements } from '../hooks/useEntitlements';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
-import { supabase } from '../lib/supabase';
-import { useQuery } from '@tanstack/react-query';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
@@ -38,14 +37,8 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [paywallReason, setPaywallReason] = useState<'invoice_limit' | 'export_limit'>('invoice_limit');
 
-  // Fetch user and payment method details for invoice export
-  const { data: user } = useQuery({
-    queryKey: ['user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-  });
+  // Fetch user and payment method details for invoice export (using shared cached user)
+  const { data: user } = useCurrentUser();
   const { data: paymentMethods = [] } = usePaymentMethodDetails(user?.id);
 
   const handleSelectInvoice = (invoice: Invoice) => {

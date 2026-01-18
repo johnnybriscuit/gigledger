@@ -1,20 +1,12 @@
-import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Invoice, InvoiceFormData, InvoiceLineItem, InvoiceStatus } from '../types/invoice';
 import { getCachedUserId } from '../lib/sharedAuth';
+import { useUserId } from './useCurrentUser';
 
 export function useInvoices() {
   const queryClient = useQueryClient();
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id || null);
-    };
-    loadUser();
-  }, []);
+  const userId = useUserId();
 
   const { data: invoices = [], isLoading: loading, error } = useQuery({
     queryKey: ['invoices', userId],
