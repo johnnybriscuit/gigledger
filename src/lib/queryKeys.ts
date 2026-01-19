@@ -58,6 +58,13 @@ export const queryKeys = {
   // Invoices
   invoices: (userId: string) => ['invoices', userId] as const,
   invoice: (userId: string, invoiceId: string) => ['invoices', userId, invoiceId] as const,
+  
+  // Saved routes (for mileage)
+  savedRoutes: (userId: string) => ['saved-routes', userId] as const,
+  savedRoute: (userId: string, routeId: string) => ['saved-routes', userId, routeId] as const,
+  
+  // Location history (for autocomplete)
+  locationHistory: (userId: string) => ['location-history', userId] as const,
 } as const;
 
 /**
