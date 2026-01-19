@@ -58,7 +58,7 @@ export function useInvoices() {
     staleTime: 60000, // 60 seconds - invoices don't change that frequently
     gcTime: 10 * 60 * 1000, // 10 minutes
     placeholderData: (previousData) => previousData,
-    refetchOnMount: 'always', // Always fetch on mount for fresh data
+    // refetchOnMount defaults to true, which respects staleTime
     refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
