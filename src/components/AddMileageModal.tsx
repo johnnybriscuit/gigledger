@@ -8,12 +8,15 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useCreateMileage, useUpdateMileage, calculateMileageDeduction, IRS_MILEAGE_RATE } from '../hooks/useMileage';
 import { mileageSchema, type MileageFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { AddressAutocomplete } from './AddressAutocomplete';
+import { calculateDistance } from '../utils/distanceCalculation';
+import { useCreateSavedRoute } from '../hooks/useSavedRoutes';
 
 interface AddMileageModalProps {
   visible: boolean;
@@ -29,9 +32,15 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const [endLocation, setEndLocation] = useState('');
   const [miles, setMiles] = useState('');
   const [notes, setNotes] = useState('');
+  const [isRoundTrip, setIsRoundTrip] = useState(false);
+  const [shouldSaveRoute, setShouldSaveRoute] = useState(false);
+  const [routeName, setRouteName] = useState('');
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [isAutoCalculated, setIsAutoCalculated] = useState(false);
 
   const createMileage = useCreateMileage();
   const updateMileage = useUpdateMileage();
+  const createSavedRoute = useCreateSavedRoute();
 
   useEffect(() => {
     if (editingMileage) {
@@ -53,6 +62,10 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     setEndLocation('');
     setMiles('');
     setNotes('');
+    setIsRoundTrip(false);
+    setShouldSaveRoute(false);
+    setRouteName('');
+    setIsAutoCalculated(false);
   };
 
   // Date picker handler
@@ -64,6 +77,58 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     const milesNum = parseFloat(miles) || 0;
     return calculateMileageDeduction(milesNum);
   };
+
+  // Auto-calculate distance from locations
+  const handleCalculateDistance = async () => {
+    if (!startLocation || !endLocation) {
+      if (Platform.OS === 'web') {
+        window.alert('Please enter both start and end locations');
+      }
+      return;
+    }
+
+    setIsCalculating(true);
+    try {
+      const distance = await calculateDistance(startLocation, endLocation);
+      if (distance !== null) {
+        const finalMiles = isRoundTrip ? distance * 2 : distance;
+        setMiles(finalMiles.toString());
+        setIsAutoCalculated(true);
+      } else {
+        if (Platform.OS === 'web') {
+          window.alert('Could not calculate distance. Please enter miles manually.');
+        }
+      }
+    } catch (error) {
+      console.error('Distance calculation error:', error);
+      if (Platform.OS === 'web') {
+        window.alert('Error calculating distance. Please enter miles manually.');
+      }
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  // Update miles when round trip toggle changes
+  useEffect(() => {
+    if (isAutoCalculated && miles) {
+      const currentMiles = parseFloat(miles);
+      if (isRoundTrip) {
+        setMiles((currentMiles * 2).toString());
+      } else {
+        setMiles((currentMiles / 2).toString());
+      }
+    }
+  }, [isRoundTrip]);
+
+  // Auto-generate route name from locations
+  useEffect(() => {
+    if (shouldSaveRoute && startLocation && endLocation) {
+      const fromCity = startLocation.split(',')[0].trim();
+      const toCity = endLocation.split(',')[0].trim();
+      setRouteName(`${fromCity} → ${toCity}`);
+    }
+  }, [shouldSaveRoute, startLocation, endLocation]);
 
   const handleSubmit = async () => {
     try {
@@ -85,6 +150,23 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
         });
       } else {
         await createMileage.mutateAsync(validated);
+
+        // Save route if requested
+        if (shouldSaveRoute && routeName && startLocation && endLocation) {
+          try {
+            await createSavedRoute.mutateAsync({
+              name: routeName,
+              from_location: startLocation,
+              to_location: endLocation,
+              distance_miles: parseFloat(miles) || 0,
+              default_purpose: purpose,
+              is_favorite: false,
+            });
+          } catch (error) {
+            console.error('Failed to save route:', error);
+            // Don't block the main flow if route save fails
+          }
+        }
       }
 
       resetForm();
@@ -163,15 +245,50 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
             />
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Miles *</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>Miles *</Text>
+                <TouchableOpacity
+                  style={styles.calculateButton}
+                  onPress={handleCalculateDistance}
+                  disabled={isCalculating || !startLocation || !endLocation}
+                >
+                  {isCalculating ? (
+                    <ActivityIndicator size="small" color="#3b82f6" />
+                  ) : (
+                    <Text style={styles.calculateButtonText}>🔄 Calculate</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
               <TextInput
                 style={styles.input}
                 value={miles}
-                onChangeText={setMiles}
+                onChangeText={(text) => {
+                  setMiles(text);
+                  setIsAutoCalculated(false);
+                }}
                 placeholder="0"
                 placeholderTextColor="#9ca3af"
                 keyboardType="decimal-pad"
               />
+              {isAutoCalculated && (
+                <Text style={styles.autoCalculatedHint}>
+                  ✓ Auto-calculated
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.checkboxGroup}>
+              <TouchableOpacity
+                style={styles.checkbox}
+                onPress={() => setIsRoundTrip(!isRoundTrip)}
+              >
+                <View style={[styles.checkboxBox, isRoundTrip && styles.checkboxBoxChecked]}>
+                  {isRoundTrip && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  Round trip (doubles the miles)
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.deductionCard}>
@@ -197,6 +314,36 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 textAlignVertical="top"
               />
             </View>
+
+            {!editingMileage && (
+              <View style={styles.saveRouteSection}>
+                <View style={styles.checkboxGroup}>
+                  <TouchableOpacity
+                    style={styles.checkbox}
+                    onPress={() => setShouldSaveRoute(!shouldSaveRoute)}
+                  >
+                    <View style={[styles.checkboxBox, shouldSaveRoute && styles.checkboxBoxChecked]}>
+                      {shouldSaveRoute && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                    <Text style={styles.checkboxLabel}>
+                      Save this route for quick access later
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                {shouldSaveRoute && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Route Name</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={routeName}
+                      onChangeText={setRouteName}
+                      placeholder="e.g., Home → Office"
+                      placeholderTextColor="#9ca3af"
+                    />
+                  </View>
+                )}
+              </View>
+            )}
 
             <TouchableOpacity 
               style={styles.submitButton} 
@@ -345,5 +492,64 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  calculateButton: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  calculateButtonText: {
+    color: '#3b82f6',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  autoCalculatedHint: {
+    fontSize: 12,
+    color: '#10b981',
+    marginTop: 4,
+  },
+  checkboxGroup: {
+    marginBottom: 16,
+  },
+  checkbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxBoxChecked: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  checkboxLabel: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1,
+  },
+  saveRouteSection: {
+    marginTop: 8,
+    marginBottom: 12,
   },
 });
