@@ -9,9 +9,8 @@ import { SendInvoiceModal } from '../components/SendInvoiceModal';
 import { DuplicateInvoiceModal } from '../components/DuplicateInvoiceModal';
 import { PaywallModal } from '../components/PaywallModal';
 import { UsageLimitBanner } from '../components/UsageLimitBanner';
-import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
+import { useInvoicesDataAggregated } from '../hooks/useInvoicesDataAggregated';
 import { useInvoices } from '../hooks/useInvoices';
-import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
 import { useEntitlements } from '../hooks/useEntitlements';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { Invoice } from '../types/invoice';
@@ -25,9 +24,20 @@ interface InvoicesScreenProps {
 }
 
 export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }: InvoicesScreenProps = {}) {
-  const { settings, loading: settingsLoading } = useInvoiceSettings();
+  // Use aggregated hook to fetch all data in parallel
+  const { data: aggregatedData, isLoading: aggregatedLoading } = useInvoicesDataAggregated();
+  
+  // Extract data from aggregated response
+  const settings = aggregatedData?.settings;
+  const settingsLoading = aggregatedLoading;
+  const paymentMethods = aggregatedData?.paymentMethods || [];
+  
+  // Still need useInvoices for mutations (updateInvoiceStatus, deleteInvoice, deletePayment)
   const { invoices, loading: invoicesLoading, updateInvoiceStatus, deleteInvoice, deletePayment } = useInvoices();
+  
+  // Use entitlements hook for complex entitlements logic (will use cached subscription data)
   const entitlements = useEntitlements();
+  
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [duplicatingInvoice, setDuplicatingInvoice] = useState<Invoice | null>(null);
@@ -37,9 +47,8 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [paywallReason, setPaywallReason] = useState<'invoice_limit' | 'export_limit'>('invoice_limit');
 
-  // Fetch user and payment method details for invoice export (using shared cached user)
+  // Get user from shared cache
   const { data: user } = useCurrentUser();
-  const { data: paymentMethods = [] } = usePaymentMethodDetails(user?.id);
 
   const handleSelectInvoice = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
