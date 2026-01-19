@@ -253,10 +253,12 @@ function AppContent() {
     return (
       <>
         <StatusBar style="dark" />
-        <BusinessStructuresScreen 
-          onNavigateBack={() => setCurrentRoute('dashboard')} 
-          onNavigateToSubscription={() => setCurrentRoute('dashboard')}
-        />
+        <UserProvider>
+          <BusinessStructuresScreen 
+            onNavigateBack={() => setCurrentRoute('dashboard')} 
+            onNavigateToSubscription={() => setCurrentRoute('dashboard')}
+          />
+        </UserProvider>
       </>
     );
   }
