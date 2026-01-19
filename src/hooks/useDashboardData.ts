@@ -1,10 +1,7 @@
 import { useMemo, useEffect, useState, useRef } from 'react';
-import { useGigs } from './useGigs';
-import { useExpenses } from './useExpenses';
-import { useMileage, calculateMileageDeduction } from './useMileage';
+import { calculateMileageDeduction } from './useMileage';
 import { useTaxCalculation } from './useTaxCalculation';
-import { useTaxProfile } from './useTaxProfile';
-import { useProfile } from './useProfile';
+import { useDashboardDataAggregated } from './useDashboardDataAggregated';
 import { supabase } from '../lib/supabase';
 import { debugTotals } from '../lib/debugTotals';
 
@@ -125,9 +122,6 @@ export function useDashboardData(
   customStart?: Date,
   customEnd?: Date
 ): DashboardData {
-  // Get userId for profile query
-  const [userId, setUserId] = useState<string | null>(null);
-  
   // Store previous totals to prevent flash during refetch
   const previousTotalsRef = useRef<{
     net: number;
@@ -135,31 +129,24 @@ export function useDashboardData(
     effectiveTaxRate: number;
   } | null>(null);
   
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id || null);
-    });
-  }, []);
-
-  const { data: allGigs, isLoading: gigsLoading, isSuccess: gigsSuccess } = useGigs();
-  const { data: allExpenses, isLoading: expensesLoading, isSuccess: expensesSuccess } = useExpenses();
-  const { data: allMileage } = useMileage();
-  const { data: taxProfile, isLoading: taxProfileLoading, isSuccess: taxProfileSuccess } = useTaxProfile();
-  const { data: profile, isSuccess: profileSuccess } = useProfile(userId || undefined);
+  // Use aggregated hook to fetch all data in parallel
+  const { data: aggregatedData, isLoading, isSuccess } = useDashboardDataAggregated();
+  
+  // Extract data from aggregated response
+  const allGigs = aggregatedData?.gigs || [];
+  const allExpenses = aggregatedData?.expenses || [];
+  const allMileage = aggregatedData?.mileage || [];
+  const taxProfile = aggregatedData?.taxProfile;
+  const profile = aggregatedData?.profile;
 
   // CRITICAL: Readiness gate - ALL data must be loaded before calculating totals
-  // This prevents "income-only" flash when expenses load late
-  // Use isFetching to distinguish between initial load and refetch
-  const isInitialLoad = (gigsLoading || expensesLoading || taxProfileLoading) && 
-                        (!allGigs || !allExpenses || !taxProfile);
+  const isInitialLoad = isLoading && !aggregatedData;
   
   const isReadyForTotals = 
-    gigsSuccess && 
-    expensesSuccess && 
-    taxProfileSuccess && 
-    (profileSuccess || !userId) && // Profile not required if userId not yet loaded
+    isSuccess && 
+    !!aggregatedData &&
     !!allGigs &&
-    !!allExpenses; // Ensure arrays exist, not just success status
+    !!allExpenses;
 
   // Calculate net profit first to get tax estimate
   // ONLY calculate if ready - prevents income-only flash
@@ -407,15 +394,15 @@ export function useDashboardData(
       debugTotals.log('useDashboardData', {
         userId,
         range: dateRange,
-        gigsStatus: gigsLoading ? 'loading' : gigsSuccess ? 'success' : 'error',
+        gigsStatus: isLoading ? 'loading' : isSuccess ? 'success' : 'error',
         gigsCount: gigs.length,
         gigsDateRange: gigs.length > 0 ? {
           min: gigs[0]?.date || '',
           max: gigs[gigs.length - 1]?.date || '',
         } : undefined,
-        expensesStatus: expensesLoading ? 'loading' : expensesSuccess ? 'success' : 'error',
+        expensesStatus: isLoading ? 'loading' : isSuccess ? 'success' : 'error',
         expensesCount: expenses.length,
-        taxProfileStatus: taxProfileLoading ? 'loading' : taxProfileSuccess ? 'success' : !taxProfile ? 'missing' : 'error',
+        taxProfileStatus: isLoading ? 'loading' : isSuccess ? 'success' : !taxProfile ? 'missing' : 'error',
         taxProfileFields: taxProfile ? {
           filingStatus: taxProfile.filingStatus,
           state: taxProfile.state || undefined,
@@ -430,11 +417,10 @@ export function useDashboardData(
           setAsideRate: data.totals ? data.totals.effectiveTaxRate / 100 : 0,
         },
         notes: !isReadyForTotals ? '⚠️ NOT READY - SHOWING NULL/SKELETON' : 
-               (!gigsSuccess || !expensesSuccess || !taxProfileSuccess) ? 'CALCULATED WITH INCOMPLETE DATA' : 
-               'READY - All data loaded',
+               'READY - All data loaded (aggregated hook)',
       });
     });
-  }, [data, dateRange, customStart, customEnd, allGigs, allExpenses, gigsLoading, gigsSuccess, expensesLoading, expensesSuccess, taxProfileLoading, taxProfileSuccess, taxProfile, profile, totalIncome, totalDeductions]);
+  }, [data, dateRange, customStart, customEnd, allGigs, allExpenses, isLoading, isSuccess, taxProfile, profile, totalIncome, totalDeductions]);
 
   return data;
 }

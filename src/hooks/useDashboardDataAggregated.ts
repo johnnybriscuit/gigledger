@@ -39,10 +39,14 @@ export function useDashboardDataAggregated() {
 
       // Execute all queries in parallel
       const [gigsResult, expensesResult, mileageResult, taxProfileResult, profileResult] = await Promise.all([
-        // Gigs - fetch all fields for now (can optimize later)
+        // Gigs - include payer and subcontractor_payments relationships
         supabase
           .from('gigs')
-          .select('*')
+          .select(`
+            *,
+            payer:payers(id, name),
+            subcontractor_payments:gig_subcontractor_payments(id, subcontractor_id, amount, note)
+          `)
           .eq('user_id', userId)
           .order('date', { ascending: false }),
         
