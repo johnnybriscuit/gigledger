@@ -2,8 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
-import { useState, useEffect } from 'react';
-import { getSharedUserId, getCachedUserId } from '../lib/sharedAuth';
+import { getCachedUserId } from '../lib/sharedAuth';
+import { useUserId } from './useCurrentUser';
 
 type Mileage = Database['public']['Tables']['mileage']['Row'];
 type MileageInsert = Database['public']['Tables']['mileage']['Insert'];
@@ -13,11 +13,7 @@ type MileageUpdate = Database['public']['Tables']['mileage']['Update'];
 export const IRS_MILEAGE_RATE = 0.67;
 
 export function useMileage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  
-  useEffect(() => {
-    getSharedUserId().then(setUserId);
-  }, []);
+  const userId = useUserId();
   
   return useQuery({
     queryKey: userId ? queryKeys.mileage(userId) : ['mileage-loading'],
