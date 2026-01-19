@@ -120,12 +120,13 @@ export function useEntitlements(): Entitlements {
       };
     },
     enabled: !!userId,
-    staleTime: 30000, // 30 seconds - balance freshness with performance
-    gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache
+    staleTime: 60000, // 60 seconds - entitlements don't change frequently
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
     placeholderData: (previousData) => previousData, // Prevent UI flash during refetch
-    refetchOnWindowFocus: true,
-    retry: 2, // Retry failed requests twice
-    retryDelay: 1000, // Wait 1 second between retries
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch if we have fresh cached data
+    retry: 1, // Reduce retries for faster failure
+    retryDelay: 500, // Faster retry
   });
 
   // Log errors

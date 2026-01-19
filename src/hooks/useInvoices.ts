@@ -16,9 +16,27 @@ export function useInvoices() {
       const { data: invoicesData, error: fetchError } = await supabase
         .from('invoices' as any)
         .select(`
-          *,
-          line_items:invoice_line_items(*),
-          payments:invoice_payments(*)
+          id,
+          invoice_number,
+          client_id,
+          client_name,
+          client_email,
+          client_company,
+          client_address,
+          invoice_date,
+          due_date,
+          status,
+          total_amount,
+          tax_rate,
+          discount_amount,
+          notes,
+          private_notes,
+          payment_terms,
+          accepted_payment_methods,
+          created_at,
+          updated_at,
+          line_items:invoice_line_items(id, description, quantity, rate),
+          payments:invoice_payments(id, amount, payment_date, payment_method)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
@@ -37,9 +55,11 @@ export function useInvoices() {
       return invoicesWithCalculations as Invoice[];
     },
     enabled: !!userId,
-    staleTime: 30000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 60000, // 60 seconds - invoices don't change that frequently
+    gcTime: 10 * 60 * 1000, // 10 minutes
     placeholderData: (previousData) => previousData,
+    refetchOnMount: false, // Don't refetch if we have fresh cached data
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const fetchInvoices = async () => {

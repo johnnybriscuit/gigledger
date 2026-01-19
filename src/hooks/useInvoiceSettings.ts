@@ -25,9 +25,11 @@ export function useInvoiceSettings() {
       return data as InvoiceSettings | null;
     },
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes - settings don't change often
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes - settings rarely change
+    gcTime: 30 * 60 * 1000, // 30 minutes
     placeholderData: (previousData) => previousData,
+    refetchOnMount: false, // Don't refetch if we have fresh cached data
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const fetchSettings = async () => {
