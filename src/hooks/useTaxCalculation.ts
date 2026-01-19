@@ -59,6 +59,11 @@ export function useTaxCalculation(
     let error: Error | null = null;
     let hasProfile = false;
 
+    // Return null if still loading to prevent errors
+    if (taxProfileLoading || !userId) {
+      return { taxResult: null, error: null, hasProfile: false };
+    }
+
     try {
       // If no profile exists, use defaults with null state
       if (!taxProfile || !taxProfile.state) {
@@ -134,7 +139,7 @@ export function useTaxCalculation(
     }
 
     return { taxResult, error, hasProfile };
-  }, [netProfit, grossIncome, taxProfile, businessStructure, eligibility]);
+  }, [netProfit, grossIncome, taxProfile, businessStructure, eligibility, taxProfileLoading, userId]);
 
   return {
     taxResult: result.taxResult,
