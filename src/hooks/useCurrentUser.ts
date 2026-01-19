@@ -1,27 +1,63 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
+// Global cache for user to prevent multiple auth calls
+let cachedUser: User | null | undefined = undefined;
+let userPromise: Promise<User | null> | null = null;
+
 /**
- * Shared hook for getting current user
- * Caches user data to prevent redundant auth calls across components
+ * Get current user with global caching to prevent duplicate auth calls
+ * This is synchronous after first load to prevent blocking other queries
+ */
+async function getCurrentUser(): Promise<User | null> {
+  // Return cached user if available
+  if (cachedUser !== undefined) {
+    return cachedUser;
+  }
+
+  // If already fetching, return the same promise
+  if (userPromise) {
+    return userPromise;
+  }
+
+  // Fetch user and cache result
+  userPromise = supabase.auth.getUser().then(({ data: { user } }) => {
+    cachedUser = user;
+    userPromise = null;
+    return user;
+  });
+
+  return userPromise;
+}
+
+/**
+ * Hook to get current user
+ * Uses global cache to prevent redundant auth calls
  */
 export function useCurrentUser() {
-  return useQuery({
-    queryKey: ['current_user'],
-    queryFn: async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) throw error;
-      return user;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes - user doesn't change often
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    retry: 1,
-  });
+  const [user, setUser] = useState<User | null>(cachedUser ?? null);
+  const [isLoading, setIsLoading] = useState(cachedUser === undefined);
+
+  useEffect(() => {
+    if (cachedUser !== undefined) {
+      setUser(cachedUser);
+      setIsLoading(false);
+      return;
+    }
+
+    getCurrentUser().then((u) => {
+      setUser(u);
+      setIsLoading(false);
+    });
+  }, []);
+
+  return { data: user, isLoading };
 }
 
 /**
  * Get just the user ID (most common use case)
+ * Returns null while loading to allow queries to be enabled/disabled properly
  */
 export function useUserId(): string | null {
   const { data: user } = useCurrentUser();
