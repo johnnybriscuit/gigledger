@@ -124,7 +124,7 @@ export function useEntitlements(): Entitlements {
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
     placeholderData: (previousData) => previousData, // Prevent UI flash during refetch
     refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnMount: false, // Don't refetch if we have fresh cached data
+    refetchOnMount: 'always', // Always fetch on mount for fresh data
     retry: 1, // Reduce retries for faster failure
     retryDelay: 500, // Faster retry
   });
