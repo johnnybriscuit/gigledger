@@ -19,9 +19,10 @@ interface AddressPlacesInputProps {
   placeholder?: string;
   value: string;
   onChange: (text: string) => void;
-  onSelect: (item: { description: string; place_id: string }) => void;
+  onSelect: (item: { description: string; place_id: string; name?: string; formatted_address?: string }) => void;
   disabled?: boolean;
   error?: string;
+  helperText?: string;
 }
 
 export function AddressPlacesInput({
@@ -32,8 +33,10 @@ export function AddressPlacesInput({
   onSelect,
   disabled = false,
   error,
+  helperText,
 }: AddressPlacesInputProps) {
   const [internalValue, setInternalValue] = useState(value);
+  const [hasSelected, setHasSelected] = useState(false);
   const isTypingRef = React.useRef(false);
   const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -42,19 +45,26 @@ export function AddressPlacesInput({
                  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const handlePlaceSelect = (place: any) => {
-    console.log('[AddressPlacesInput] Place selected:', place.structuredFormat?.mainText?.text);
+    console.log('[AddressPlacesInput] Place selected:', place);
     
-    // Extract description from the place object
-    // The library returns place.text.text (full address)
-    const description = place.text?.text || 
-                       place.structuredFormat?.mainText?.text || 
-                       place.description || 
-                       '';
+    // Extract place details
+    const placeName = place.structuredFormat?.mainText?.text || '';
+    const formattedAddress = place.text?.text || place.description || '';
+    const placeId = place.placeId || '';
     
-    if (!description) {
-      console.error('[AddressPlacesInput] Could not extract description from place object:', place);
-      return;
+    // Determine if this is an establishment (venue) or just an address
+    const isEstablishment = place.types?.includes('establishment') || 
+                           place.types?.includes('point_of_interest');
+    
+    // Format display value:
+    // - For establishments: "Venue Name — Full Address"
+    // - For addresses: "Full Address"
+    let displayValue = formattedAddress;
+    if (isEstablishment && placeName && placeName !== formattedAddress) {
+      displayValue = `${placeName} — ${formattedAddress}`;
     }
+    
+    console.log('[AddressPlacesInput] Display value:', displayValue);
     
     // Mark as not typing since this is a selection
     isTypingRef.current = false;
@@ -62,16 +72,21 @@ export function AddressPlacesInput({
       clearTimeout(typingTimeoutRef.current);
     }
     
+    // Mark that user has selected from suggestions
+    setHasSelected(true);
+    
     // Update internal value
-    setInternalValue(description);
+    setInternalValue(displayValue);
     
     // Call parent onChange
-    onChange(description);
+    onChange(displayValue);
     
-    // Call parent onSelect
+    // Call parent onSelect with enhanced data
     onSelect({
-      description: description,
-      place_id: place.placeId,
+      description: displayValue,
+      place_id: placeId,
+      name: placeName,
+      formatted_address: formattedAddress,
     });
   };
 
@@ -88,6 +103,9 @@ export function AddressPlacesInput({
     typingTimeoutRef.current = setTimeout(() => {
       isTypingRef.current = false;
     }, 1000);
+    
+    // Reset selection state when user types
+    setHasSelected(false);
     
     setInternalValue(text);
     onChange(text);
@@ -124,7 +142,7 @@ export function AddressPlacesInput({
         fetchDetails={false}
         debounceDelay={300}
         minCharsToFetch={2}
-        types={['geocode']}
+        types={['establishment', 'geocode']}
         style={{
           ...placesStyles,
           input: [
@@ -143,6 +161,9 @@ export function AddressPlacesInput({
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {!error && helperText && !hasSelected && internalValue ? (
+        <Text style={styles.helperText}>{helperText}</Text>
+      ) : null}
     </View>
   );
 }
@@ -233,5 +254,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.error.DEFAULT,
     marginTop: 8,
+  },
+  helperText: {
+    fontSize: 12,
+    color: colors.text.muted,
+    marginTop: 4,
+    fontStyle: 'italic' as any,
   },
 });

@@ -37,6 +37,9 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const [routeName, setRouteName] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
   const [isAutoCalculated, setIsAutoCalculated] = useState(false);
+  const [startPlaceId, setStartPlaceId] = useState<string | null>(null);
+  const [endPlaceId, setEndPlaceId] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState('');
 
   const createMileage = useCreateMileage();
   const updateMileage = useUpdateMileage();
@@ -67,6 +70,9 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     setShouldSaveRoute(false);
     setRouteName('');
     setIsAutoCalculated(false);
+    setStartPlaceId(null);
+    setEndPlaceId(null);
+    setLocationError('');
   };
 
   // Date picker handler
@@ -81,12 +87,20 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
 
   // Auto-calculate distance from locations
   const handleCalculateDistance = async () => {
+    // Validate that both locations are entered
     if (!startLocation || !endLocation) {
-      if (Platform.OS === 'web') {
-        window.alert('Please enter both start and end locations');
-      }
+      setLocationError('Please enter both start and end locations');
       return;
     }
+
+    // Validate that user selected from suggestions (has place IDs)
+    if (!startPlaceId || !endPlaceId) {
+      setLocationError('Please select a suggestion from the list for accurate mileage');
+      return;
+    }
+
+    // Clear any previous errors
+    setLocationError('');
 
     setIsCalculating(true);
     try {
@@ -96,15 +110,11 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
         setMiles(finalMiles.toString());
         setIsAutoCalculated(true);
       } else {
-        if (Platform.OS === 'web') {
-          window.alert('Could not calculate distance. Please enter miles manually.');
-        }
+        setLocationError('Could not calculate distance. Please enter miles manually.');
       }
     } catch (error) {
       console.error('Distance calculation error:', error);
-      if (Platform.OS === 'web') {
-        window.alert('Error calculating distance. Please enter miles manually.');
-      }
+      setLocationError('Error calculating distance. Please enter miles manually.');
     } finally {
       setIsCalculating(false);
     }
@@ -277,18 +287,38 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
 
             <AddressPlacesInput
               label="Start Location *"
-              placeholder="e.g., 123 Main St, Nashville, TN"
+              placeholder="e.g., Ryman Auditorium or 123 Main St"
               value={startLocation}
-              onChange={setStartLocation}
-              onSelect={(item) => setStartLocation(item.description)}
+              onChange={(text) => {
+                setStartLocation(text);
+                setStartPlaceId(null); // Reset place ID when typing
+                setLocationError(''); // Clear errors
+              }}
+              onSelect={(item) => {
+                setStartLocation(item.description);
+                setStartPlaceId(item.place_id);
+                setLocationError(''); // Clear errors on selection
+              }}
+              helperText="Choose a suggestion for the most accurate mileage"
+              error={locationError && !startPlaceId ? locationError : undefined}
             />
 
             <AddressPlacesInput
               label="End Location *"
-              placeholder="e.g., 500 Broadway, Nashville, TN"
+              placeholder="e.g., The Ryman or 500 Broadway"
               value={endLocation}
-              onChange={setEndLocation}
-              onSelect={(item) => setEndLocation(item.description)}
+              onChange={(text) => {
+                setEndLocation(text);
+                setEndPlaceId(null); // Reset place ID when typing
+                setLocationError(''); // Clear errors
+              }}
+              onSelect={(item) => {
+                setEndLocation(item.description);
+                setEndPlaceId(item.place_id);
+                setLocationError(''); // Clear errors on selection
+              }}
+              helperText="Choose a suggestion for the most accurate mileage"
+              error={locationError && !endPlaceId ? locationError : undefined}
             />
 
             <View style={styles.inputGroup}>
