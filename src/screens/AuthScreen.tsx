@@ -144,12 +144,32 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
     setEmailError('');
 
     try {
+      // Ensure we have a CSRF token before proceeding
+      let tokenToUse = csrfToken;
+      if (!tokenToUse) {
+        console.log('[Auth] No CSRF token found, fetching now...');
+        try {
+          const tokenResponse = await fetch('/api/csrf-token', {
+            credentials: 'include',
+          });
+          const tokenData = await tokenResponse.json();
+          tokenToUse = tokenData.csrfToken;
+          setCsrfToken(tokenToUse);
+          console.debug('[Auth] CSRF token fetched:', tokenToUse?.substring(0, 16) + '...');
+        } catch (error) {
+          console.error('[Auth] Failed to fetch CSRF token:', error);
+          setEmailError('Security check failed. Please refresh the page and try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
       // Call our rate-limited API endpoint
       const response = await fetch('/api/auth/send-magic-link', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken || '',
+          'x-csrf-token': tokenToUse || '',
         },
         credentials: 'include', // Ensure cookies are sent
         body: JSON.stringify({
