@@ -12,7 +12,6 @@ import { AddMileageModal } from '../components/AddMileageModal';
 import { H1, H3, Text, Button, Card, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
-import { useFavoriteRoutes } from '../hooks/useSavedRoutes';
 import { toUtcDateString } from '../lib/date';
 
 export function MileageScreen() {
@@ -22,7 +21,6 @@ export function MileageScreen() {
   const { data: mileage, isLoading, error } = useMileage();
   const deleteMileage = useDeleteMileage();
   const createMileage = useCreateMileage();
-  const { data: favoriteRoutes = [] } = useFavoriteRoutes();
 
   const handleDelete = async (id: string, purpose: string) => {
     const confirmed = Platform.OS === 'web'
@@ -55,22 +53,6 @@ export function MileageScreen() {
   };
 
   const formatCurrency = formatCurrencyUtil;
-
-  const handleQuickAddRoute = async (route: any) => {
-    try {
-      await createMileage.mutateAsync({
-        date: toUtcDateString(new Date()),
-        purpose: route.default_purpose || `Drive: ${route.name}`,
-        start_location: route.start_location,
-        end_location: route.end_location,
-        miles: route.distance_miles,
-      });
-    } catch (error: any) {
-      if (Platform.OS === 'web') {
-        window.alert(`Error: ${error.message || 'Failed to add trip'}`);
-      }
-    }
-  };
 
   const handleDuplicateTrip = async (trip: any) => {
     if (createMileage.isPending) return; // Prevent duplicate clicks
@@ -132,60 +114,6 @@ export function MileageScreen() {
         </Button>
       </View>
 
-      {favoriteRoutes.length > 0 && (
-        <View style={styles.widgetSection}>
-          <H3 style={styles.widgetTitle}>⭐ Favorite Routes</H3>
-          <Text muted style={styles.widgetSubtitle}>Quick add from your most used routes</Text>
-          {favoriteRoutes.slice(0, 3).map((route) => (
-            <Card key={route.id} variant="elevated" style={styles.routeWidget}>
-              <View style={styles.routeWidgetContent}>
-                <View style={styles.routeWidgetInfo}>
-                  <Text semibold>{route.name}</Text>
-                  <Text muted style={styles.routeWidgetDetails}>
-                    {route.distance_miles} miles • ${calculateMileageDeduction(route.distance_miles).toFixed(2)} deduction
-                  </Text>
-                  <Text subtle style={styles.routeWidgetUsage}>
-                    Used {route.use_count} times
-                  </Text>
-                </View>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onPress={() => handleQuickAddRoute(route)}
-                  disabled={createMileage.isPending}
-                >
-                  Quick Add
-                </Button>
-              </View>
-            </Card>
-          ))}
-        </View>
-      )}
-
-      {mileage && mileage.length > 0 && (
-        <View style={styles.widgetSection}>
-          <H3 style={styles.widgetTitle}>🔁 Recent Trips</H3>
-          <Text muted style={styles.widgetSubtitle}>Click to duplicate with today's date</Text>
-          <View style={styles.recentTripsContainer}>
-            {mileage.slice(0, 3).map((trip) => (
-              <TouchableOpacity
-                key={trip.id}
-                style={styles.recentTripCard}
-                onPress={() => handleDuplicateTrip(trip)}
-                disabled={createMileage.isPending}
-              >
-                <Text subtle style={styles.recentTripDate}>{formatDate(trip.date)}</Text>
-                <Text semibold numberOfLines={1}>{trip.purpose}</Text>
-                <Text muted style={styles.recentTripRoute} numberOfLines={1}>
-                  {trip.start_location.split(',')[0]} → {trip.end_location.split(',')[0]}
-                </Text>
-                <Text style={styles.recentTripMiles}>{trip.miles} mi • {formatCurrency(calculateMileageDeduction(trip.miles))}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
-
       {mileage && mileage.length === 0 ? (
         <EmptyState
           title="No mileage tracked yet"
@@ -227,6 +155,13 @@ export function MileageScreen() {
                 )}
 
                 <View style={styles.cardActions}>
+                  <TouchableOpacity
+                    onPress={() => handleDuplicateTrip(item)}
+                    style={styles.actionButton}
+                    disabled={createMileage.isPending}
+                  >
+                    <Text semibold style={{ color: colors.success.DEFAULT }}>🔁 Duplicate</Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleEdit(item)}
                     style={styles.actionButton}
