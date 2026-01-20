@@ -43,7 +43,7 @@ export function useGigs() {
   
   console.log('[useGigs] userId:', userId, 'enabled:', !!userId);
   
-  return useQuery({
+  const result = useQuery({
     queryKey: userId ? queryKeys.gigs(userId) : ['gigs-loading'],
     queryFn: async () => {
       console.log('[useGigs] queryFn called, userId:', userId);
@@ -66,10 +66,12 @@ export function useGigs() {
       return data as GigWithPayer[];
     },
     enabled: !!userId,
-    staleTime: 60 * 1000, // 60 seconds - data stays fresh
-    gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache
-    initialData: undefined, // Explicitly set initial data
+    staleTime: 0, // Always refetch
+    gcTime: 0, // Don't cache
   });
+  
+  console.log('[useGigs] Returning data:', result.data?.length, 'isLoading:', result.isLoading);
+  return result;
 }
 
 export function useCreateGig() {
