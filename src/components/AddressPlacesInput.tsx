@@ -124,7 +124,7 @@ export function AddressPlacesInput({
         fetchDetails={false}
         debounceDelay={300}
         minCharsToFetch={2}
-        types={['geocode']}
+        types={['address']}
         style={{
           ...placesStyles,
           input: [
