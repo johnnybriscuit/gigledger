@@ -188,6 +188,7 @@ export function AddressAutocomplete({
   const handleFocus = () => {
     console.log('[AddressAutocomplete] Input focus, predictions:', predictions.length, 'isOpen:', isOpen);
 
+    // Clear any pending blur timeout immediately
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
@@ -197,8 +198,8 @@ export function AddressAutocomplete({
     setIsFocused(true);
     isFocusedRef.current = true;
 
-    // Only reopen if dropdown is currently closed AND we have predictions
-    // This prevents focus/blur loops when Modal opens
+    // Only open if we have predictions and dropdown is closed
+    // Don't re-open if already open to prevent flicker
     if (predictions.length > 0 && !isOpen) {
       console.log('[AddressAutocomplete] Opening dropdown on focus');
       measure();
@@ -208,7 +209,7 @@ export function AddressAutocomplete({
 
   // Delayed blur
   const handleBlur = () => {
-    console.log('[AddressAutocomplete] Input blur - scheduling close in 150ms');
+    console.log('[AddressAutocomplete] Input blur - scheduling close in 300ms');
 
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
@@ -220,7 +221,7 @@ export function AddressAutocomplete({
       isFocusedRef.current = false;
       setIsOpen(false);
       setHighlightedIndex(-1);
-    }, 150);
+    }, 300);
   };
 
   // Keyboard navigation
