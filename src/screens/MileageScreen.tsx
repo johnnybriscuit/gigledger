@@ -61,8 +61,8 @@ export function MileageScreen() {
       await createMileage.mutateAsync({
         date: toUtcDateString(new Date()),
         purpose: route.default_purpose || `Drive: ${route.name}`,
-        start_location: route.from_location,
-        end_location: route.to_location,
+        start_location: route.start_location,
+        end_location: route.end_location,
         miles: route.distance_miles,
       });
     } catch (error: any) {

@@ -135,8 +135,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const handleSelectSavedRoute = (routeId: string) => {
     const route = savedRoutes.find(r => r.id === routeId);
     if (route) {
-      setStartLocation(route.from_location);
-      setEndLocation(route.to_location);
+      setStartLocation(route.start_location);
+      setEndLocation(route.end_location);
       setMiles(route.distance_miles.toString());
       if (route.default_purpose) {
         setPurpose(route.default_purpose);
@@ -171,8 +171,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
           try {
             await createSavedRoute.mutateAsync({
               name: routeName,
-              from_location: startLocation,
-              to_location: endLocation,
+              start_location: startLocation,
+              end_location: endLocation,
               distance_miles: parseFloat(miles) || 0,
               default_purpose: purpose,
               is_favorite: false,

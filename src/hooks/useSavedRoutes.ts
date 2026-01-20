@@ -12,8 +12,8 @@ export interface SavedRoute {
   id: string;
   user_id: string;
   name: string;
-  from_location: string;
-  to_location: string;
+  start_location: string;
+  end_location: string;
   distance_miles: number;
   default_purpose?: string;
   is_favorite: boolean;
@@ -25,8 +25,8 @@ export interface SavedRoute {
 
 export interface CreateSavedRouteInput {
   name: string;
-  from_location: string;
-  to_location: string;
+  start_location: string;
+  end_location: string;
   distance_miles: number;
   default_purpose?: string;
   is_favorite?: boolean;
