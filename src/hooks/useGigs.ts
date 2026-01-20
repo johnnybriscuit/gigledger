@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
@@ -40,8 +41,17 @@ export interface GigWithPayer extends Gig {
 
 export function useGigs() {
   const userId = useUserId();
+  const queryClient = useQueryClient();
   
   console.log('[useGigs] userId:', userId, 'enabled:', !!userId);
+  
+  // Force invalidate cache on mount to ensure fresh data
+  React.useEffect(() => {
+    if (userId) {
+      console.log('[useGigs] Invalidating cache for userId:', userId);
+      queryClient.invalidateQueries({ queryKey: queryKeys.gigs(userId) });
+    }
+  }, [userId, queryClient]);
   
   const result = useQuery({
     queryKey: userId ? queryKeys.gigs(userId) : ['gigs-loading'],
@@ -68,6 +78,7 @@ export function useGigs() {
     enabled: !!userId,
     staleTime: 0, // Always refetch
     gcTime: 0, // Don't cache
+    refetchOnMount: 'always', // Always refetch when component mounts
   });
   
   console.log('[useGigs] Returning data:', result.data?.length, 'isLoading:', result.isLoading);
