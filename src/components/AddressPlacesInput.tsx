@@ -27,6 +27,7 @@ interface AddressPlacesInputProps {
     lat?: number;
     lng?: number;
   }) => void;
+  onCoordsFailed?: () => void; // Callback when coordinates fail to resolve
   disabled?: boolean;
   error?: string;
   helperText?: string;
@@ -38,6 +39,7 @@ export function AddressPlacesInput({
   value,
   onChange,
   onSelect,
+  onCoordsFailed,
   disabled = false,
   error,
   helperText,
@@ -46,6 +48,7 @@ export function AddressPlacesInput({
   const [hasSelected, setHasSelected] = useState(false);
   const isTypingRef = React.useRef(false);
   const typingTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const isDev = __DEV__ || process.env.NODE_ENV === 'development';
 
   // Get API key from environment
   const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey || 
@@ -100,14 +103,27 @@ export function AddressPlacesInput({
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.error(`[AddressPlacesInput] Failed to fetch coordinates for placeId=${placeId}, status=${response.status}`, errorData);
+          if (isDev) {
+            console.warn('[Places] coords FAILED', { place_id: placeId, error: `HTTP ${response.status}` });
+          }
+          onCoordsFailed?.();
           return;
         }
         
         const data = await response.json();
         
-        if (data.location?.lat && data.location?.lng) {
-          console.log(`[AddressPlacesInput] Selected placeId=${placeId} resolved coords=(${data.location.lat},${data.location.lng}) using server proxy`);
+        // Guard: Ensure coordinates are present and valid
+        if (data.location?.lat && data.location?.lng && 
+            typeof data.location.lat === 'number' && 
+            typeof data.location.lng === 'number') {
+          
+          if (isDev) {
+            console.debug('[Places] coords resolved', { 
+              place_id: placeId, 
+              lat: data.location.lat, 
+              lng: data.location.lng 
+            });
+          }
           
           // Call onSelect again with coordinates
           onSelect({
@@ -119,10 +135,24 @@ export function AddressPlacesInput({
             lng: data.location.lng,
           });
         } else {
-          console.error(`[AddressPlacesInput] Invalid response from server for placeId=${placeId}`, data);
+          // Coordinates missing or invalid
+          if (isDev) {
+            console.warn('[Places] coords FAILED', { 
+              place_id: placeId, 
+              error: 'Missing or invalid lat/lng in response',
+              data 
+            });
+          }
+          onCoordsFailed?.();
         }
       } catch (error) {
-        console.error(`[AddressPlacesInput] Error fetching coordinates for placeId=${placeId}:`, error);
+        if (isDev) {
+          console.warn('[Places] coords FAILED', { 
+            place_id: placeId, 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          });
+        }
+        onCoordsFailed?.();
       }
     }
   };

@@ -43,6 +43,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const [endCoords, setEndCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [selectionError, setSelectionError] = useState(''); // For "please select a suggestion"
   const [coordsError, setCoordsError] = useState(''); // For coordinate fetching issues
+  const [startCoordsError, setStartCoordsError] = useState(''); // For start location coord issues
+  const [endCoordsError, setEndCoordsError] = useState(''); // For end location coord issues
 
   const createMileage = useCreateMileage();
   const updateMileage = useUpdateMileage();
@@ -79,6 +81,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     setEndCoords(null);
     setSelectionError('');
     setCoordsError('');
+    setStartCoordsError('');
+    setEndCoordsError('');
   };
 
   // Date picker handler
@@ -120,15 +124,14 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
 
     // Check if coordinates are available
     if (!startCoords || !endCoords) {
-      const missing = [];
-      if (!startCoords) missing.push('start location');
-      if (!endCoords) missing.push('end location');
-      setCoordsError(`Couldn't fetch coordinates for ${missing.join(' and ')}. Please try selecting again.`);
+      setCoordsError('To calculate miles, please select valid start and end locations from the dropdown.');
       return;
     }
 
     // Clear all errors
     setCoordsError('');
+    setStartCoordsError('');
+    setEndCoordsError('');
 
     setIsCalculating(true);
     try {
@@ -145,11 +148,11 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
         setMiles(finalMiles.toFixed(1));
         setIsAutoCalculated(true);
       } else {
-        setCoordsError('Could not calculate distance. Please enter miles manually.');
+        setCoordsError('Couldn\'t calculate miles right now — please try again.');
       }
     } catch (error) {
       console.error('Distance calculation error:', error);
-      setCoordsError('Error calculating distance. Please enter miles manually.');
+      setCoordsError('Couldn\'t calculate miles right now — please try again.');
     } finally {
       setIsCalculating(false);
     }
@@ -350,19 +353,23 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 setStartCoords(null); // Reset coordinates when typing
                 setSelectionError(''); // Clear errors
                 setCoordsError('');
+                setStartCoordsError('');
               }}
               onSelect={(item) => {
                 setStartLocation(item.description);
                 setStartPlaceId(item.place_id); // Mark as valid selection immediately
                 if (item.lat && item.lng) {
                   setStartCoords({ lat: item.lat, lng: item.lng });
-                  console.log('[AddMileageModal] Start coords set:', { lat: item.lat, lng: item.lng });
+                  setStartCoordsError(''); // Clear error when coords received
                 }
                 setSelectionError(''); // Clear selection errors
                 setCoordsError(''); // Clear coord errors
               }}
+              onCoordsFailed={() => {
+                setStartCoordsError('Couldn\'t fetch coordinates — please re-select from the dropdown.');
+              }}
               helperText="Choose a suggestion for the most accurate mileage"
-              error={selectionError && !startPlaceId ? selectionError : undefined}
+              error={selectionError && !startPlaceId ? selectionError : startCoordsError || undefined}
             />
 
             <AddressPlacesInput
@@ -375,19 +382,23 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 setEndCoords(null); // Reset coordinates when typing
                 setSelectionError(''); // Clear errors
                 setCoordsError('');
+                setEndCoordsError('');
               }}
               onSelect={(item) => {
                 setEndLocation(item.description);
                 setEndPlaceId(item.place_id); // Mark as valid selection immediately
                 if (item.lat && item.lng) {
                   setEndCoords({ lat: item.lat, lng: item.lng });
-                  console.log('[AddMileageModal] End coords set:', { lat: item.lat, lng: item.lng });
+                  setEndCoordsError(''); // Clear error when coords received
                 }
                 setSelectionError(''); // Clear selection errors
                 setCoordsError(''); // Clear coord errors
               }}
+              onCoordsFailed={() => {
+                setEndCoordsError('Couldn\'t fetch coordinates — please re-select from the dropdown.');
+              }}
               helperText="Choose a suggestion for the most accurate mileage"
-              error={selectionError && !endPlaceId ? selectionError : undefined}
+              error={selectionError && !endPlaceId ? selectionError : endCoordsError || undefined}
             />
 
             <View style={styles.inputGroup}>
