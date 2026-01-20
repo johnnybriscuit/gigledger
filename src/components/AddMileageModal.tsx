@@ -39,6 +39,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const [isAutoCalculated, setIsAutoCalculated] = useState(false);
   const [startPlaceId, setStartPlaceId] = useState<string | null>(null);
   const [endPlaceId, setEndPlaceId] = useState<string | null>(null);
+  const [startCoords, setStartCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [endCoords, setEndCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState('');
 
   const createMileage = useCreateMileage();
@@ -72,6 +74,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     setIsAutoCalculated(false);
     setStartPlaceId(null);
     setEndPlaceId(null);
+    setStartCoords(null);
+    setEndCoords(null);
     setLocationError('');
   };
 
@@ -93,9 +97,9 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
       return;
     }
 
-    // Validate that user selected from suggestions (has place IDs)
-    if (!startPlaceId || !endPlaceId) {
-      setLocationError('Please select a suggestion from the list for accurate mileage');
+    // Validate that user selected from suggestions (has coordinates)
+    if (!startCoords || !endCoords) {
+      setLocationError('Please select a suggestion from the dropdown for both locations');
       return;
     }
 
@@ -104,10 +108,17 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
 
     setIsCalculating(true);
     try {
-      const distance = await calculateDistance(startLocation, endLocation);
+      // Calculate distance using coordinates directly (no geocoding needed)
+      const distance = calculateDistanceFromCoords(
+        startCoords.lat,
+        startCoords.lng,
+        endCoords.lat,
+        endCoords.lng
+      );
+      
       if (distance !== null) {
         const finalMiles = isRoundTrip ? distance * 2 : distance;
-        setMiles(finalMiles.toString());
+        setMiles(finalMiles.toFixed(1));
         setIsAutoCalculated(true);
       } else {
         setLocationError('Could not calculate distance. Please enter miles manually.');
@@ -118,6 +129,26 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     } finally {
       setIsCalculating(false);
     }
+  };
+
+  // Helper function to calculate distance from coordinates using Haversine formula
+  const calculateDistanceFromCoords = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number => {
+    const R = 3958.8; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   };
 
   // Update miles when round trip toggle changes
@@ -292,15 +323,20 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               onChange={(text) => {
                 setStartLocation(text);
                 setStartPlaceId(null); // Reset place ID when typing
+                setStartCoords(null); // Reset coordinates when typing
                 setLocationError(''); // Clear errors
               }}
               onSelect={(item) => {
                 setStartLocation(item.description);
                 setStartPlaceId(item.place_id);
+                if (item.lat && item.lng) {
+                  setStartCoords({ lat: item.lat, lng: item.lng });
+                  console.log('[AddMileageModal] Start coords set:', { lat: item.lat, lng: item.lng });
+                }
                 setLocationError(''); // Clear errors on selection
               }}
               helperText="Choose a suggestion for the most accurate mileage"
-              error={locationError && !startPlaceId ? locationError : undefined}
+              error={locationError && !startCoords ? locationError : undefined}
             />
 
             <AddressPlacesInput
@@ -310,15 +346,20 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               onChange={(text) => {
                 setEndLocation(text);
                 setEndPlaceId(null); // Reset place ID when typing
+                setEndCoords(null); // Reset coordinates when typing
                 setLocationError(''); // Clear errors
               }}
               onSelect={(item) => {
                 setEndLocation(item.description);
                 setEndPlaceId(item.place_id);
+                if (item.lat && item.lng) {
+                  setEndCoords({ lat: item.lat, lng: item.lng });
+                  console.log('[AddMileageModal] End coords set:', { lat: item.lat, lng: item.lng });
+                }
                 setLocationError(''); // Clear errors on selection
               }}
               helperText="Choose a suggestion for the most accurate mileage"
-              error={locationError && !endPlaceId ? locationError : undefined}
+              error={locationError && !endCoords ? locationError : undefined}
             />
 
             <View style={styles.inputGroup}>

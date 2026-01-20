@@ -19,7 +19,14 @@ interface AddressPlacesInputProps {
   placeholder?: string;
   value: string;
   onChange: (text: string) => void;
-  onSelect: (item: { description: string; place_id: string; name?: string; formatted_address?: string }) => void;
+  onSelect: (item: { 
+    description: string; 
+    place_id: string; 
+    name?: string; 
+    formatted_address?: string;
+    lat?: number;
+    lng?: number;
+  }) => void;
   disabled?: boolean;
   error?: string;
   helperText?: string;
@@ -44,7 +51,7 @@ export function AddressPlacesInput({
   const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey || 
                  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  const handlePlaceSelect = (place: any) => {
+  const handlePlaceSelect = async (place: any) => {
     console.log('[AddressPlacesInput] Place selected:', place);
     
     // Extract place details
@@ -81,12 +88,37 @@ export function AddressPlacesInput({
     // Call parent onChange
     onChange(displayValue);
     
-    // Call parent onSelect with enhanced data
+    // Fetch coordinates using place_id
+    let lat: number | undefined;
+    let lng: number | undefined;
+    
+    if (placeId && apiKey) {
+      try {
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?place_id=${placeId}&key=${apiKey}`
+        );
+        const data = await response.json();
+        
+        if (data.status === 'OK' && data.results?.[0]?.geometry?.location) {
+          lat = data.results[0].geometry.location.lat;
+          lng = data.results[0].geometry.location.lng;
+          console.log('[AddressPlacesInput] Fetched coordinates:', { lat, lng });
+        } else {
+          console.warn('[AddressPlacesInput] Failed to fetch coordinates:', data.status);
+        }
+      } catch (error) {
+        console.error('[AddressPlacesInput] Error fetching coordinates:', error);
+      }
+    }
+    
+    // Call parent onSelect with enhanced data including coordinates
     onSelect({
       description: displayValue,
       place_id: placeId,
       name: placeName,
       formatted_address: formattedAddress,
+      lat,
+      lng,
     });
   };
 
