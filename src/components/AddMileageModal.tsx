@@ -16,7 +16,7 @@ import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { calculateDistance } from '../utils/distanceCalculation';
-import { useCreateSavedRoute } from '../hooks/useSavedRoutes';
+import { useCreateSavedRoute, useSavedRoutes } from '../hooks/useSavedRoutes';
 
 interface AddMileageModalProps {
   visible: boolean;
@@ -41,6 +41,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const createMileage = useCreateMileage();
   const updateMileage = useUpdateMileage();
   const createSavedRoute = useCreateSavedRoute();
+  const { data: savedRoutes = [] } = useSavedRoutes();
 
   useEffect(() => {
     if (editingMileage) {
@@ -130,6 +131,20 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     }
   }, [shouldSaveRoute, startLocation, endLocation]);
 
+  // Handle saved route selection
+  const handleSelectSavedRoute = (routeId: string) => {
+    const route = savedRoutes.find(r => r.id === routeId);
+    if (route) {
+      setStartLocation(route.from_location);
+      setEndLocation(route.to_location);
+      setMiles(route.distance_miles.toString());
+      if (route.default_purpose) {
+        setPurpose(route.default_purpose);
+      }
+      setIsAutoCalculated(true);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const formData: MileageFormData = {
@@ -206,6 +221,36 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
           </View>
 
           <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+            {!editingMileage && savedRoutes.length > 0 && (
+              <View style={styles.quickSelectSection}>
+                <Text style={styles.quickSelectTitle}>🚀 Quick Select</Text>
+                <Text style={styles.quickSelectSubtitle}>
+                  Choose a saved route to auto-fill the form
+                </Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.routeCardsContainer}
+                >
+                  {savedRoutes.slice(0, 5).map((route) => (
+                    <TouchableOpacity
+                      key={route.id}
+                      style={styles.routeCard}
+                      onPress={() => handleSelectSavedRoute(route.id)}
+                    >
+                      <Text style={styles.routeCardName}>{route.name}</Text>
+                      <Text style={styles.routeCardDetails}>
+                        {route.distance_miles} mi • Used {route.use_count}x
+                      </Text>
+                      {route.is_favorite && (
+                        <Text style={styles.favoriteIcon}>⭐</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Date *</Text>
               <TouchableOpacity
@@ -551,5 +596,52 @@ const styles = StyleSheet.create({
   saveRouteSection: {
     marginTop: 8,
     marginBottom: 12,
+  },
+  quickSelectSection: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  quickSelectTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  quickSelectSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 12,
+  },
+  routeCardsContainer: {
+    marginTop: 4,
+  },
+  routeCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginRight: 12,
+    minWidth: 140,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  routeCardName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  routeCardDetails: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  favoriteIcon: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    fontSize: 14,
   },
 });
