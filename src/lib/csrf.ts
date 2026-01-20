@@ -20,8 +20,12 @@ export function generateCsrfToken(): string {
  * Set CSRF token cookie (call on GET requests to / or /auth)
  */
 export function setCsrfCookie(res: VercelResponse, token: string): void {
+  // Use Secure flag in production (HTTPS), skip in development (HTTP)
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  const secureFlag = isProduction ? '; Secure' : '';
+  
   res.setHeader('Set-Cookie', [
-    `${CSRF_TOKEN_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600`,
+    `${CSRF_TOKEN_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=3600${secureFlag}`,
   ]);
 }
 
