@@ -22,33 +22,49 @@ CREATE TABLE IF NOT EXISTS saved_routes (
 );
 
 -- Index for fast user lookups
-CREATE INDEX idx_saved_routes_user_id ON saved_routes(user_id);
+CREATE INDEX IF NOT EXISTS idx_saved_routes_user_id ON saved_routes(user_id);
 
 -- Index for favorite routes (most commonly accessed)
-CREATE INDEX idx_saved_routes_favorites ON saved_routes(user_id, is_favorite) WHERE is_favorite = true;
+CREATE INDEX IF NOT EXISTS idx_saved_routes_favorites ON saved_routes(user_id, is_favorite) WHERE is_favorite = true;
 
 -- Index for most used routes
-CREATE INDEX idx_saved_routes_usage ON saved_routes(user_id, use_count DESC);
+CREATE INDEX IF NOT EXISTS idx_saved_routes_usage ON saved_routes(user_id, use_count DESC);
 
 -- RLS policies for saved_routes
 ALTER TABLE saved_routes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own saved routes"
-  ON saved_routes FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'saved_routes' AND policyname = 'Users can view their own saved routes') THEN
+    CREATE POLICY "Users can view their own saved routes"
+      ON saved_routes FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Users can insert their own saved routes"
-  ON saved_routes FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'saved_routes' AND policyname = 'Users can insert their own saved routes') THEN
+    CREATE POLICY "Users can insert their own saved routes"
+      ON saved_routes FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Users can update their own saved routes"
-  ON saved_routes FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'saved_routes' AND policyname = 'Users can update their own saved routes') THEN
+    CREATE POLICY "Users can update their own saved routes"
+      ON saved_routes FOR UPDATE
+      USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Users can delete their own saved routes"
-  ON saved_routes FOR DELETE
-  USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'saved_routes' AND policyname = 'Users can delete their own saved routes') THEN
+    CREATE POLICY "Users can delete their own saved routes"
+      ON saved_routes FOR DELETE
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- ============================================================================
 -- TABLE: location_history
@@ -66,33 +82,49 @@ CREATE TABLE IF NOT EXISTS location_history (
 );
 
 -- Index for fast user lookups
-CREATE INDEX idx_location_history_user_id ON location_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_location_history_user_id ON location_history(user_id);
 
 -- Index for most used locations (for autocomplete)
-CREATE INDEX idx_location_history_usage ON location_history(user_id, use_count DESC);
+CREATE INDEX IF NOT EXISTS idx_location_history_usage ON location_history(user_id, use_count DESC);
 
 -- Index for recent locations
-CREATE INDEX idx_location_history_recent ON location_history(user_id, last_used_at DESC);
+CREATE INDEX IF NOT EXISTS idx_location_history_recent ON location_history(user_id, last_used_at DESC);
 
 -- RLS policies for location_history
 ALTER TABLE location_history ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own location history"
-  ON location_history FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'location_history' AND policyname = 'Users can view their own location history') THEN
+    CREATE POLICY "Users can view their own location history"
+      ON location_history FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Users can insert their own location history"
-  ON location_history FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'location_history' AND policyname = 'Users can insert their own location history') THEN
+    CREATE POLICY "Users can insert their own location history"
+      ON location_history FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Users can update their own location history"
-  ON location_history FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'location_history' AND policyname = 'Users can update their own location history') THEN
+    CREATE POLICY "Users can update their own location history"
+      ON location_history FOR UPDATE
+      USING (auth.uid() = user_id)
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Users can delete their own location history"
-  ON location_history FOR DELETE
-  USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'location_history' AND policyname = 'Users can delete their own location history') THEN
+    CREATE POLICY "Users can delete their own location history"
+      ON location_history FOR DELETE
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- ============================================================================
 -- ALTER TABLE: mileage
