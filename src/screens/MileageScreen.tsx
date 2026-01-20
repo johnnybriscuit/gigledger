@@ -73,6 +73,8 @@ export function MileageScreen() {
   };
 
   const handleDuplicateTrip = async (trip: any) => {
+    if (createMileage.isPending) return; // Prevent duplicate clicks
+    
     try {
       await createMileage.mutateAsync({
         date: toUtcDateString(new Date()),
@@ -172,6 +174,7 @@ export function MileageScreen() {
                 onPress={() => handleDuplicateTrip(trip)}
                 disabled={createMileage.isPending}
               >
+                <Text subtle style={styles.recentTripDate}>{formatDate(trip.date)}</Text>
                 <Text semibold numberOfLines={1}>{trip.purpose}</Text>
                 <Text muted style={styles.recentTripRoute} numberOfLines={1}>
                   {trip.start_location.split(',')[0]} → {trip.end_location.split(',')[0]}
@@ -377,5 +380,9 @@ const styles = StyleSheet.create({
     fontSize: parseInt(typography.fontSize.subtle.size),
     fontWeight: typography.fontWeight.semibold,
     color: colors.brand.DEFAULT,
+  },
+  recentTripDate: {
+    fontSize: 11,
+    marginBottom: parseInt(spacing[1]),
   },
 });
