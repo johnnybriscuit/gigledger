@@ -51,7 +51,7 @@ export function AddressPlacesInput({
   const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey || 
                  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  const handlePlaceSelect = (place: any) => {
+  const handlePlaceSelect = async (place: any) => {
     // Extract place details
     const placeName = place.structuredFormat?.mainText?.text || place.name || '';
     const formattedAddress = place.text?.text || place.formattedAddress || place.description || '';
@@ -93,36 +93,37 @@ export function AddressPlacesInput({
       formatted_address: formattedAddress,
     });
     
-    // Fetch coordinates using Google Maps JS SDK PlacesService (browser-safe, no CORS)
-    if (placeId && Platform.OS === 'web' && typeof window !== 'undefined' && (window as any).google?.maps?.places) {
-      const service = new (window as any).google.maps.places.PlacesService(document.createElement('div'));
-      service.getDetails(
-        {
-          placeId: placeId,
-          fields: ['geometry', 'formatted_address', 'name'],
-        },
-        (placeResult: any, status: any) => {
-          if (status === 'OK' && placeResult?.geometry?.location) {
-            const lat = placeResult.geometry.location.lat();
-            const lng = placeResult.geometry.location.lng();
-            console.log(`[AddressPlacesInput] Selected placeId=${placeId} resolved coords=(${lat},${lng}) using JS PlacesService`);
-            
-            // Call onSelect again with coordinates
-            onSelect({
-              description: displayValue,
-              place_id: placeId,
-              name: placeName,
-              formatted_address: formattedAddress,
-              lat,
-              lng,
-            });
-          } else {
-            console.error(`[AddressPlacesInput] Failed to fetch coordinates for placeId=${placeId}, status=${status}`);
-          }
+    // Fetch coordinates using server-side endpoint (no CORS issues)
+    if (placeId && Platform.OS === 'web') {
+      try {
+        const response = await fetch(`/api/place-details?placeId=${encodeURIComponent(placeId)}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error(`[AddressPlacesInput] Failed to fetch coordinates for placeId=${placeId}, status=${response.status}`, errorData);
+          return;
         }
-      );
-    } else {
-      console.warn('[AddressPlacesInput] Google Maps JS SDK not available, coordinates will not be fetched');
+        
+        const data = await response.json();
+        
+        if (data.lat && data.lng) {
+          console.log(`[AddressPlacesInput] Selected placeId=${placeId} resolved coords=(${data.lat},${data.lng}) using server proxy`);
+          
+          // Call onSelect again with coordinates
+          onSelect({
+            description: displayValue,
+            place_id: placeId,
+            name: placeName,
+            formatted_address: formattedAddress,
+            lat: data.lat,
+            lng: data.lng,
+          });
+        } else {
+          console.error(`[AddressPlacesInput] Invalid response from server for placeId=${placeId}`, data);
+        }
+      } catch (error) {
+        console.error(`[AddressPlacesInput] Error fetching coordinates for placeId=${placeId}:`, error);
+      }
     }
   };
 
@@ -175,7 +176,7 @@ export function AddressPlacesInput({
         onPlaceSelect={handlePlaceSelect}
         placeHolderText={placeholder || 'Search for an address...'}
         editable={!disabled}
-        fetchDetails={true}
+        fetchDetails={false}
         debounceDelay={300}
         minCharsToFetch={2}
         types={['establishment', 'geocode']}
