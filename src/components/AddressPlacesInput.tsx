@@ -93,10 +93,10 @@ export function AddressPlacesInput({
       formatted_address: formattedAddress,
     });
     
-    // Fetch coordinates using server-side endpoint (no CORS issues)
+    // Fetch coordinates using existing server-side endpoint (no CORS issues)
     if (placeId && Platform.OS === 'web') {
       try {
-        const response = await fetch(`/api/place-details?placeId=${encodeURIComponent(placeId)}`);
+        const response = await fetch(`/api/places/details?place_id=${encodeURIComponent(placeId)}`);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -106,8 +106,8 @@ export function AddressPlacesInput({
         
         const data = await response.json();
         
-        if (data.lat && data.lng) {
-          console.log(`[AddressPlacesInput] Selected placeId=${placeId} resolved coords=(${data.lat},${data.lng}) using server proxy`);
+        if (data.location?.lat && data.location?.lng) {
+          console.log(`[AddressPlacesInput] Selected placeId=${placeId} resolved coords=(${data.location.lat},${data.location.lng}) using server proxy`);
           
           // Call onSelect again with coordinates
           onSelect({
@@ -115,8 +115,8 @@ export function AddressPlacesInput({
             place_id: placeId,
             name: placeName,
             formatted_address: formattedAddress,
-            lat: data.lat,
-            lng: data.lng,
+            lat: data.location.lat,
+            lng: data.location.lng,
           });
         } else {
           console.error(`[AddressPlacesInput] Invalid response from server for placeId=${placeId}`, data);
