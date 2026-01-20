@@ -51,13 +51,24 @@ export function AddressPlacesInput({
   const apiKey = Constants.expoConfig?.extra?.googleMapsApiKey || 
                  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  const handlePlaceSelect = async (place: any) => {
+  const handlePlaceSelect = (place: any) => {
     console.log('[AddressPlacesInput] Place selected:', place);
     
     // Extract place details
-    const placeName = place.structuredFormat?.mainText?.text || '';
-    const formattedAddress = place.text?.text || place.description || '';
+    const placeName = place.structuredFormat?.mainText?.text || place.name || '';
+    const formattedAddress = place.text?.text || place.formattedAddress || place.description || '';
     const placeId = place.placeId || '';
+    
+    // Extract coordinates from place details (when fetchDetails is enabled)
+    let lat: number | undefined;
+    let lng: number | undefined;
+    
+    if (place.geometry?.location) {
+      // Coordinates from fetchDetails
+      lat = place.geometry.location.lat;
+      lng = place.geometry.location.lng;
+      console.log('[AddressPlacesInput] Got coordinates from place details:', { lat, lng });
+    }
     
     // Determine if this is an establishment (venue) or just an address
     const isEstablishment = place.types?.includes('establishment') || 
@@ -71,7 +82,7 @@ export function AddressPlacesInput({
       displayValue = `${placeName} — ${formattedAddress}`;
     }
     
-    console.log('[AddressPlacesInput] Display value:', displayValue);
+    console.log('[AddressPlacesInput] Display value:', displayValue, 'Coords:', { lat, lng });
     
     // Mark as not typing since this is a selection
     isTypingRef.current = false;
@@ -87,29 +98,6 @@ export function AddressPlacesInput({
     
     // Call parent onChange
     onChange(displayValue);
-    
-    // Fetch coordinates using place_id
-    let lat: number | undefined;
-    let lng: number | undefined;
-    
-    if (placeId && apiKey) {
-      try {
-        const response = await fetch(
-          `https://maps.googleapis.com/maps/api/geocode/json?place_id=${placeId}&key=${apiKey}`
-        );
-        const data = await response.json();
-        
-        if (data.status === 'OK' && data.results?.[0]?.geometry?.location) {
-          lat = data.results[0].geometry.location.lat;
-          lng = data.results[0].geometry.location.lng;
-          console.log('[AddressPlacesInput] Fetched coordinates:', { lat, lng });
-        } else {
-          console.warn('[AddressPlacesInput] Failed to fetch coordinates:', data.status);
-        }
-      } catch (error) {
-        console.error('[AddressPlacesInput] Error fetching coordinates:', error);
-      }
-    }
     
     // Call parent onSelect with enhanced data including coordinates
     onSelect({
@@ -171,7 +159,7 @@ export function AddressPlacesInput({
         onPlaceSelect={handlePlaceSelect}
         placeHolderText={placeholder || 'Search for an address...'}
         editable={!disabled}
-        fetchDetails={false}
+        fetchDetails={true}
         debounceDelay={300}
         minCharsToFetch={2}
         types={['establishment', 'geocode']}

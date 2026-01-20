@@ -98,8 +98,18 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     }
 
     // Validate that user selected from suggestions (has coordinates)
-    if (!startCoords || !endCoords) {
+    if (!startCoords && !endCoords) {
       setLocationError('Please select a suggestion from the dropdown for both locations');
+      return;
+    }
+    
+    if (!startCoords) {
+      setLocationError('Please select a suggestion for the start location');
+      return;
+    }
+    
+    if (!endCoords) {
+      setLocationError('Please select a suggestion for the end location');
       return;
     }
 
@@ -116,7 +126,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
         endCoords.lng
       );
       
-      if (distance !== null) {
+      if (distance !== null && distance > 0) {
         const finalMiles = isRoundTrip ? distance * 2 : distance;
         setMiles(finalMiles.toFixed(1));
         setIsAutoCalculated(true);
