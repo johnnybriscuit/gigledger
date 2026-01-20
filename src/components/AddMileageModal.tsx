@@ -277,7 +277,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
 
             <AddressPlacesInput
               label="Start Location *"
-              placeholder="e.g., Cincinnati, OH"
+              placeholder="e.g., 123 Main St, Nashville, TN"
               value={startLocation}
               onChange={setStartLocation}
               onSelect={(item) => setStartLocation(item.description)}
@@ -285,7 +285,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
 
             <AddressPlacesInput
               label="End Location *"
-              placeholder="e.g., Columbus, OH"
+              placeholder="e.g., 500 Broadway, Nashville, TN"
               value={endLocation}
               onChange={setEndLocation}
               onSelect={(item) => setEndLocation(item.description)}
