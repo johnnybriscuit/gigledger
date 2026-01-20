@@ -14,7 +14,7 @@ import { useCreateMileage, useUpdateMileage, calculateMileageDeduction, IRS_MILE
 import { mileageSchema, type MileageFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
-import { AddressAutocomplete } from './AddressAutocomplete';
+import { AddressPlacesInput } from './AddressPlacesInput';
 import { calculateDistance } from '../utils/distanceCalculation';
 import { useCreateSavedRoute, useSavedRoutes } from '../hooks/useSavedRoutes';
 
@@ -275,18 +275,20 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               />
             </View>
 
-            <AddressAutocomplete
+            <AddressPlacesInput
               label="Start Location *"
               placeholder="e.g., Cincinnati, OH"
               value={startLocation}
               onChange={setStartLocation}
+              onSelect={(item) => setStartLocation(item.description)}
             />
 
-            <AddressAutocomplete
+            <AddressPlacesInput
               label="End Location *"
               placeholder="e.g., Columbus, OH"
               value={endLocation}
               onChange={setEndLocation}
+              onSelect={(item) => setEndLocation(item.description)}
             />
 
             <View style={styles.inputGroup}>
