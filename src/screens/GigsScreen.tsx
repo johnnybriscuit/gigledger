@@ -168,6 +168,9 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const [togglingGigId, setTogglingGigId] = useState<string | null>(null);
   
   const { data: gigs, isLoading, error } = useGigs();
+  
+  // Debug logging
+  console.log('[GigsScreen] Gigs data:', gigs?.length, 'isLoading:', isLoading, 'error:', error);
   const deleteGig = useDeleteGig();
   const updateGig = useUpdateGig();
 
