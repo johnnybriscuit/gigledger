@@ -41,9 +41,12 @@ export interface GigWithPayer extends Gig {
 export function useGigs() {
   const userId = useUserId();
   
+  console.log('[useGigs] userId:', userId, 'enabled:', !!userId);
+  
   return useQuery({
     queryKey: userId ? queryKeys.gigs(userId) : ['gigs-loading'],
     queryFn: async () => {
+      console.log('[useGigs] queryFn called, userId:', userId);
       if (!userId) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -58,6 +61,7 @@ export function useGigs() {
         .eq('user_id', userId)
         .order('date', { ascending: false });
 
+      console.log('[useGigs] Query result:', data?.length, 'gigs, error:', error);
       if (error) throw error;
       return data as GigWithPayer[];
     },
