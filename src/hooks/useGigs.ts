@@ -68,7 +68,7 @@ export function useGigs() {
     enabled: !!userId,
     staleTime: 60 * 1000, // 60 seconds - data stays fresh
     gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache
-    placeholderData: (previousData) => previousData, // Keep previous data while refetching
+    initialData: undefined, // Explicitly set initial data
   });
 }
 
