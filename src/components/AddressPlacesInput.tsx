@@ -52,23 +52,10 @@ export function AddressPlacesInput({
                  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const handlePlaceSelect = (place: any) => {
-    console.log('[AddressPlacesInput] Place selected:', place);
-    
     // Extract place details
     const placeName = place.structuredFormat?.mainText?.text || place.name || '';
     const formattedAddress = place.text?.text || place.formattedAddress || place.description || '';
     const placeId = place.placeId || '';
-    
-    // Extract coordinates from place details (when fetchDetails is enabled)
-    let lat: number | undefined;
-    let lng: number | undefined;
-    
-    if (place.geometry?.location) {
-      // Coordinates from fetchDetails
-      lat = place.geometry.location.lat;
-      lng = place.geometry.location.lng;
-      console.log('[AddressPlacesInput] Got coordinates from place details:', { lat, lng });
-    }
     
     // Determine if this is an establishment (venue) or just an address
     const isEstablishment = place.types?.includes('establishment') || 
@@ -81,8 +68,6 @@ export function AddressPlacesInput({
     if (isEstablishment && placeName && placeName !== formattedAddress) {
       displayValue = `${placeName} — ${formattedAddress}`;
     }
-    
-    console.log('[AddressPlacesInput] Display value:', displayValue, 'Coords:', { lat, lng });
     
     // Mark as not typing since this is a selection
     isTypingRef.current = false;
@@ -99,15 +84,46 @@ export function AddressPlacesInput({
     // Call parent onChange
     onChange(displayValue);
     
-    // Call parent onSelect with enhanced data including coordinates
+    // Immediately call onSelect with placeId (field is now valid)
+    // Coordinates will be fetched asynchronously
     onSelect({
       description: displayValue,
       place_id: placeId,
       name: placeName,
       formatted_address: formattedAddress,
-      lat,
-      lng,
     });
+    
+    // Fetch coordinates using Google Maps JS SDK PlacesService (browser-safe, no CORS)
+    if (placeId && Platform.OS === 'web' && typeof window !== 'undefined' && (window as any).google?.maps?.places) {
+      const service = new (window as any).google.maps.places.PlacesService(document.createElement('div'));
+      service.getDetails(
+        {
+          placeId: placeId,
+          fields: ['geometry', 'formatted_address', 'name'],
+        },
+        (placeResult: any, status: any) => {
+          if (status === 'OK' && placeResult?.geometry?.location) {
+            const lat = placeResult.geometry.location.lat();
+            const lng = placeResult.geometry.location.lng();
+            console.log(`[AddressPlacesInput] Selected placeId=${placeId} resolved coords=(${lat},${lng}) using JS PlacesService`);
+            
+            // Call onSelect again with coordinates
+            onSelect({
+              description: displayValue,
+              place_id: placeId,
+              name: placeName,
+              formatted_address: formattedAddress,
+              lat,
+              lng,
+            });
+          } else {
+            console.error(`[AddressPlacesInput] Failed to fetch coordinates for placeId=${placeId}, status=${status}`);
+          }
+        }
+      );
+    } else {
+      console.warn('[AddressPlacesInput] Google Maps JS SDK not available, coordinates will not be fetched');
+    }
   };
 
   const handleTextChange = (text: string) => {

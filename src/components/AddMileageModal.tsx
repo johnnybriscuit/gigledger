@@ -41,7 +41,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const [endPlaceId, setEndPlaceId] = useState<string | null>(null);
   const [startCoords, setStartCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [endCoords, setEndCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationError, setLocationError] = useState('');
+  const [selectionError, setSelectionError] = useState(''); // For "please select a suggestion"
+  const [coordsError, setCoordsError] = useState(''); // For coordinate fetching issues
 
   const createMileage = useCreateMileage();
   const updateMileage = useUpdateMileage();
@@ -76,7 +77,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     setEndPlaceId(null);
     setStartCoords(null);
     setEndCoords(null);
-    setLocationError('');
+    setSelectionError('');
+    setCoordsError('');
   };
 
   // Date picker handler
@@ -93,28 +95,40 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const handleCalculateDistance = async () => {
     // Validate that both locations are entered
     if (!startLocation || !endLocation) {
-      setLocationError('Please enter both start and end locations');
+      setSelectionError('Please enter both start and end locations');
       return;
     }
 
-    // Validate that user selected from suggestions (has coordinates)
-    if (!startCoords && !endCoords) {
-      setLocationError('Please select a suggestion from the dropdown for both locations');
+    // Validate that user selected from suggestions (has placeId)
+    if (!startPlaceId && !endPlaceId) {
+      setSelectionError('Please select a suggestion from the dropdown for both locations');
       return;
     }
     
-    if (!startCoords) {
-      setLocationError('Please select a suggestion for the start location');
+    if (!startPlaceId) {
+      setSelectionError('Please select a suggestion for the start location');
       return;
     }
     
-    if (!endCoords) {
-      setLocationError('Please select a suggestion for the end location');
+    if (!endPlaceId) {
+      setSelectionError('Please select a suggestion for the end location');
       return;
     }
 
-    // Clear any previous errors
-    setLocationError('');
+    // Clear selection errors (user has selected valid suggestions)
+    setSelectionError('');
+
+    // Check if coordinates are available
+    if (!startCoords || !endCoords) {
+      const missing = [];
+      if (!startCoords) missing.push('start location');
+      if (!endCoords) missing.push('end location');
+      setCoordsError(`Couldn't fetch coordinates for ${missing.join(' and ')}. Please try selecting again.`);
+      return;
+    }
+
+    // Clear all errors
+    setCoordsError('');
 
     setIsCalculating(true);
     try {
@@ -131,11 +145,11 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
         setMiles(finalMiles.toFixed(1));
         setIsAutoCalculated(true);
       } else {
-        setLocationError('Could not calculate distance. Please enter miles manually.');
+        setCoordsError('Could not calculate distance. Please enter miles manually.');
       }
     } catch (error) {
       console.error('Distance calculation error:', error);
-      setLocationError('Error calculating distance. Please enter miles manually.');
+      setCoordsError('Error calculating distance. Please enter miles manually.');
     } finally {
       setIsCalculating(false);
     }
@@ -334,19 +348,21 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 setStartLocation(text);
                 setStartPlaceId(null); // Reset place ID when typing
                 setStartCoords(null); // Reset coordinates when typing
-                setLocationError(''); // Clear errors
+                setSelectionError(''); // Clear errors
+                setCoordsError('');
               }}
               onSelect={(item) => {
                 setStartLocation(item.description);
-                setStartPlaceId(item.place_id);
+                setStartPlaceId(item.place_id); // Mark as valid selection immediately
                 if (item.lat && item.lng) {
                   setStartCoords({ lat: item.lat, lng: item.lng });
                   console.log('[AddMileageModal] Start coords set:', { lat: item.lat, lng: item.lng });
                 }
-                setLocationError(''); // Clear errors on selection
+                setSelectionError(''); // Clear selection errors
+                setCoordsError(''); // Clear coord errors
               }}
               helperText="Choose a suggestion for the most accurate mileage"
-              error={locationError && !startCoords ? locationError : undefined}
+              error={selectionError && !startPlaceId ? selectionError : undefined}
             />
 
             <AddressPlacesInput
@@ -357,19 +373,21 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 setEndLocation(text);
                 setEndPlaceId(null); // Reset place ID when typing
                 setEndCoords(null); // Reset coordinates when typing
-                setLocationError(''); // Clear errors
+                setSelectionError(''); // Clear errors
+                setCoordsError('');
               }}
               onSelect={(item) => {
                 setEndLocation(item.description);
-                setEndPlaceId(item.place_id);
+                setEndPlaceId(item.place_id); // Mark as valid selection immediately
                 if (item.lat && item.lng) {
                   setEndCoords({ lat: item.lat, lng: item.lng });
                   console.log('[AddMileageModal] End coords set:', { lat: item.lat, lng: item.lng });
                 }
-                setLocationError(''); // Clear errors on selection
+                setSelectionError(''); // Clear selection errors
+                setCoordsError(''); // Clear coord errors
               }}
               helperText="Choose a suggestion for the most accurate mileage"
-              error={locationError && !endCoords ? locationError : undefined}
+              error={selectionError && !endPlaceId ? selectionError : undefined}
             />
 
             <View style={styles.inputGroup}>
@@ -398,6 +416,9 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 placeholderTextColor="#9ca3af"
                 keyboardType="decimal-pad"
               />
+              {coordsError && (
+                <Text style={styles.errorText}>{coordsError}</Text>
+              )}
               {isAutoCalculated && (
                 <Text style={styles.autoCalculatedHint}>
                   ✓ Auto-calculated
@@ -726,5 +747,10 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     fontSize: 14,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#ef4444',
+    marginTop: 6,
   },
 });
