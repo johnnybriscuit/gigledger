@@ -332,6 +332,7 @@ function AppContent() {
           onNavigateToTerms={() => setCurrentRoute('terms')}
           onNavigateToPrivacy={() => setCurrentRoute('privacy')}
           onNavigateToForgotPassword={() => setCurrentRoute('forgot-password')}
+          onNavigateToHome={() => setCurrentRoute('landing')}
         />
       </>
     );

@@ -11,12 +11,13 @@ interface AuthScreenProps {
   onNavigateToTerms?: () => void;
   onNavigateToPrivacy?: () => void;
   onNavigateToForgotPassword?: () => void;
+  onNavigateToHome?: () => void;
 }
 
 type AuthMode = 'signin' | 'signup';
 type AuthMethod = 'magic' | 'password';
 
-export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateToForgotPassword }: AuthScreenProps) {
+export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateToForgotPassword, onNavigateToHome }: AuthScreenProps) {
   // Mode: Sign In or Create Account
   const [mode, setMode] = useState<AuthMode>('signin');
   
@@ -471,6 +472,20 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.authCard}>
+        {/* Back to Home Button */}
+        {onNavigateToHome && (
+          <TouchableOpacity
+            style={styles.backToHomeButton}
+            onPress={onNavigateToHome}
+            activeOpacity={0.7}
+            accessibilityRole="link"
+            accessibilityLabel="Back to Home"
+            accessibilityHint="Return to the GigLedger homepage"
+          >
+            <Text style={styles.backToHomeText}>← Back to Home</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Header */}
         <View style={styles.authHeader}>
           <Text style={styles.authTitle}>GigLedger</Text>
@@ -727,6 +742,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  backToHomeButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  backToHomeText: {
+    fontSize: 15,
+    color: '#4F46E5',
+    fontWeight: '500',
   },
   authHeader: {
     alignItems: 'center',
