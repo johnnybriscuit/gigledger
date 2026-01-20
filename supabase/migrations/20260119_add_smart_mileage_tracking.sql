@@ -160,17 +160,17 @@ CREATE INDEX IF NOT EXISTS idx_mileage_saved_route ON mileage(saved_route_id) WH
 CREATE OR REPLACE FUNCTION update_location_history()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Update or insert from_location
+  -- Update or insert start_location
   INSERT INTO location_history (user_id, location, use_count, last_used_at)
-  VALUES (NEW.user_id, NEW.from_location, 1, NOW())
+  VALUES (NEW.user_id, NEW.start_location, 1, NOW())
   ON CONFLICT (user_id, location) 
   DO UPDATE SET 
     use_count = location_history.use_count + 1,
     last_used_at = NOW();
 
-  -- Update or insert to_location
+  -- Update or insert end_location
   INSERT INTO location_history (user_id, location, use_count, last_used_at)
-  VALUES (NEW.user_id, NEW.to_location, 1, NOW())
+  VALUES (NEW.user_id, NEW.end_location, 1, NOW())
   ON CONFLICT (user_id, location) 
   DO UPDATE SET 
     use_count = location_history.use_count + 1,
