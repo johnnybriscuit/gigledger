@@ -69,6 +69,10 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       const justCompletedOnboarding = sessionStorage.getItem('onboarding_just_completed');
       const shouldShowTour = sessionStorage.getItem('show_dashboard_tour');
       
+      // Also check URL query params for tour=true
+      const urlParams = new URLSearchParams(window.location.search);
+      const tourParam = urlParams.get('tour') === 'true';
+      
       if (justCompletedOnboarding === 'true') {
         setShowOnboardingToast(true);
         setActiveTab('dashboard'); // Ensure we're on dashboard after onboarding
@@ -77,11 +81,15 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         localStorage.removeItem('activeTab');
       }
       
-      if (shouldShowTour === 'true') {
+      if (shouldShowTour === 'true' || tourParam) {
         // Delay tour slightly to ensure DOM is ready
         setTimeout(() => {
           setShowTour(true);
           sessionStorage.removeItem('show_dashboard_tour');
+          // Clean up URL if tour param was used
+          if (tourParam) {
+            window.history.replaceState({}, '', '/dashboard');
+          }
         }, 500);
       }
     }

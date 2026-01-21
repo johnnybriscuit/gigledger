@@ -78,7 +78,10 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: Her
   const sparklineData = currentData.cumulativeNet.slice(-12);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.cardBg }]}>
+    <View 
+      style={[styles.container, { backgroundColor: colors.cardBg }]}
+      {...(Platform.OS === 'web' ? { className: 'dashboard-summary' } : {})}
+    >
       {/* Main Net Profit */}
       <View style={styles.header}>
         <Text style={[styles.label, { color: colors.textMuted }]}>Net Profit {dateRange.toUpperCase()}</Text>
