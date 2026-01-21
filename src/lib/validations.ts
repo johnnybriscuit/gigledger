@@ -15,7 +15,7 @@ export type PayerFormData = z.infer<typeof payerSchema>;
 export const gigSchema = z.object({
   payer_id: z.string().uuid('Please select a payer'),
   date: z.string().min(1, 'Date is required'),
-  title: z.string().optional(),
+  title: z.string().min(1, 'Title is required'),
   location: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),

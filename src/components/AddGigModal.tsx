@@ -503,14 +503,18 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     return `${parts.join(' + ').replace(' + Fees', ' − Fees')} = $${total.toFixed(2)}`;
   };
 
+  const generateDefaultTitle = () => {
+    const payer = payers?.find(p => p.id === payerId);
+    const payerName = payer?.name || 'Gig';
+    const gigDate = date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    return gigDate ? `${payerName} - ${gigDate}` : payerName;
+  };
+
   const validateForm = () => {
     const errors: typeof fieldErrors = {};
     
     if (!payerId) {
       errors.payerId = 'Please select a payer';
-    }
-    if (!title.trim()) {
-      errors.title = 'Show title is required';
     }
     if (!date) {
       errors.date = 'Date is required';
@@ -538,7 +542,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       const formData: any = {
         payer_id: payerId,
         date,
-        title: title || undefined,
+        title: title.trim() || generateDefaultTitle(),
         location: location || undefined,
         city: city || undefined,
         state: state || undefined,
@@ -828,6 +832,17 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               </View>
             </View>
 
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Title *</Text>
+              <TextInput
+                style={styles.input}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="e.g., Friday Night Show (auto-generated if left empty)"
+                placeholderTextColor="#9ca3af"
+              />
+            </View>
+
             <View style={styles.row}>
               <View style={[styles.inputGroup, styles.flex1]}>
                 <TouchableOpacity
@@ -856,25 +871,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             </View>
 
             {/* ACCORDION: DETAILS */}
-            <Accordion title="Details" description="Title, venue, location, and other details">
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Title (Optional)</Text>
-                <TextInput
-                  style={[styles.input, fieldErrors.title && styles.inputError]}
-                  value={title}
-                  onChangeText={(text) => {
-                    setTitle(text);
-                    if (fieldErrors.title && text.trim()) {
-                      setFieldErrors({ ...fieldErrors, title: undefined });
-                    }
-                  }}
-                  placeholder="e.g., Friday Night Show"
-                  placeholderTextColor="#9ca3af"
-                />
-                {fieldErrors.title && (
-                  <Text style={styles.errorText}>⚠️ {fieldErrors.title}</Text>
-                )}
-              </View>
+            <Accordion title="Details" description="Venue, location, and other details">
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Venue</Text>
                 <VenuePlacesInput
