@@ -24,6 +24,7 @@ import { H1, Text, Button } from '../ui';
 import { colors, spacing, typography, radius } from '../styles/theme';
 import { AppShell } from '../components/layout/AppShell';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { DashboardTour } from '../components/DashboardTour';
 
 type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
 
@@ -60,11 +61,14 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   const [showAddGigModal, setShowAddGigModal] = useState(false);
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showOnboardingToast, setShowOnboardingToast] = useState(false);
+  const [showTour, setShowTour] = useState(false);
 
-  // Check if we should show onboarding completion toast and set tab to dashboard
+  // Check if we should show onboarding completion toast and tour
   useEffect(() => {
     if (Platform.OS === 'web') {
       const justCompletedOnboarding = sessionStorage.getItem('onboarding_just_completed');
+      const shouldShowTour = sessionStorage.getItem('show_dashboard_tour');
+      
       if (justCompletedOnboarding === 'true') {
         setShowOnboardingToast(true);
         setActiveTab('dashboard'); // Ensure we're on dashboard after onboarding
@@ -72,8 +76,38 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         // Clear the saved tab so we start fresh on dashboard
         localStorage.removeItem('activeTab');
       }
+      
+      if (shouldShowTour === 'true') {
+        // Delay tour slightly to ensure DOM is ready
+        setTimeout(() => {
+          setShowTour(true);
+          sessionStorage.removeItem('show_dashboard_tour');
+        }, 500);
+      }
     }
   }, []);
+
+  const handleTourComplete = async () => {
+    setShowTour(false);
+    
+    // Mark tour as completed in user settings
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('user_settings')
+          .upsert({
+            user_id: user.id,
+            dashboard_tour_completed: true,
+            tour_completed_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id',
+          });
+      }
+    } catch (error) {
+      console.error('Error marking tour as completed:', error);
+    }
+  };
 
   // Save active tab to localStorage when it changes
   useEffect(() => {
@@ -257,6 +291,13 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         visible={showOnboardingToast}
         onHide={() => setShowOnboardingToast(false)}
       />
+
+      {Platform.OS === 'web' && (
+        <DashboardTour
+          show={showTour}
+          onComplete={handleTourComplete}
+        />
+      )}
     </AppShell>
   );
 }

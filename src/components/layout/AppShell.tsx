@@ -123,6 +123,7 @@ export function AppShell({
               onNavigate(item.id);
               if (isMobile) setMobileMenuOpen(false);
             }}
+            {...(Platform.OS === 'web' ? { 'data-nav-id': item.id } : {})}
           >
             {item.icon && <Text style={styles.navIcon}>{item.icon}</Text>}
             <Text
