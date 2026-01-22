@@ -45,28 +45,28 @@ Navigate to **Products**:
 3. Go to **Settings** → **Environment Variables**
 
 ### Step 2: Add Each Variable
-Add these 4 variables one by one:
+Add these 4 variables one by one (note the `_PROD` suffix to distinguish from test/sandbox variables):
 
 #### Variable 1: Secret Key
-- **Name**: `STRIPE_SECRET_KEY`
+- **Name**: `STRIPE_SECRET_KEY_PROD`
 - **Value**: `sk_live_...` (paste your live secret key)
 - **Environment**: ✅ Production only (uncheck Preview and Development)
 - Click **Save**
 
 #### Variable 2: Webhook Secret
-- **Name**: `STRIPE_WEBHOOK_SECRET`
+- **Name**: `STRIPE_WEBHOOK_SECRET_PROD`
 - **Value**: `whsec_...` (paste your webhook signing secret)
 - **Environment**: ✅ Production only
 - Click **Save**
 
 #### Variable 3: Monthly Price ID
-- **Name**: `EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID`
+- **Name**: `EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID_PROD`
 - **Value**: `price_...` (paste your live monthly price ID)
 - **Environment**: ✅ Production only
 - Click **Save**
 
 #### Variable 4: Yearly Price ID
-- **Name**: `EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID`
+- **Name**: `EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID_PROD`
 - **Value**: `price_...` (paste your live yearly price ID)
 - **Environment**: ✅ Production only
 - Click **Save**
@@ -90,10 +90,11 @@ Create or edit `.env.local` (this file is gitignored):
 
 ```bash
 # Stripe Production Keys (for local testing)
-STRIPE_SECRET_KEY=sk_live_your_key_here
-STRIPE_WEBHOOK_SECRET=whsec_your_secret_here
-EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID=price_your_monthly_id
-EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID=price_your_yearly_id
+# Note: _PROD suffix distinguishes from test/sandbox variables
+STRIPE_SECRET_KEY_PROD=sk_live_your_key_here
+STRIPE_WEBHOOK_SECRET_PROD=whsec_your_secret_here
+EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID_PROD=price_your_monthly_id
+EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID_PROD=price_your_yearly_id
 ```
 
 ### Step 2: Never Commit This File
@@ -147,7 +148,7 @@ The following files were updated to remove hardcoded test keys:
 
 ### "Stripe Price IDs not configured" Error
 **Cause**: Environment variables not set in Vercel
-**Fix**: Follow "How to Add Keys to Vercel" section above
+**Fix**: Follow "How to Add Keys to Vercel" section above. Make sure to use the `_PROD` suffix for all variable names.
 
 ### Webhook Not Firing
 **Cause**: Webhook endpoint not configured in Stripe
@@ -161,7 +162,7 @@ The following files were updated to remove hardcoded test keys:
 **Cause**: Webhook secret mismatch
 **Fix**: 
 1. Get the correct webhook signing secret from Stripe
-2. Update `STRIPE_WEBHOOK_SECRET` in Vercel
+2. Update `STRIPE_WEBHOOK_SECRET_PROD` in Vercel
 3. Redeploy
 
 ### "Invalid API Key" Error

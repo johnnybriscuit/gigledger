@@ -7,8 +7,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set');
+// Use STRIPE_SECRET_KEY_PROD for production, fallback to STRIPE_SECRET_KEY for backward compatibility
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY_PROD || process.env.STRIPE_SECRET_KEY;
+
+if (!stripeSecretKey) {
+  throw new Error('STRIPE_SECRET_KEY_PROD or STRIPE_SECRET_KEY is not set');
 }
 
 if (!process.env.SUPABASE_URL) {
@@ -19,7 +22,7 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set');
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(stripeSecretKey);
 
 const supabase = createClient(
   process.env.SUPABASE_URL,

@@ -7,7 +7,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Use STRIPE_SECRET_KEY_PROD for production, fallback to STRIPE_SECRET_KEY for backward compatibility
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY_PROD || process.env.STRIPE_SECRET_KEY;
+const stripe = new Stripe(stripeSecretKey!);
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -35,7 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const sig = req.headers['stripe-signature'] as string;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+  // Use STRIPE_WEBHOOK_SECRET_PROD for production, fallback to STRIPE_WEBHOOK_SECRET for backward compatibility
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET_PROD || process.env.STRIPE_WEBHOOK_SECRET!;
 
   let event: Stripe.Event;
 

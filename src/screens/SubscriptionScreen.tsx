@@ -28,11 +28,18 @@ import { colors, spacing, radius, typography } from '../styles/theme';
 
 // Get Stripe Price IDs from environment variables
 // IMPORTANT: These must be set in Vercel environment variables for production
-const STRIPE_MONTHLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID || Constants.expoConfig?.extra?.stripeMonthlyPriceId;
-const STRIPE_YEARLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID || Constants.expoConfig?.extra?.stripeYearlyPriceId;
+// Use _PROD suffix for production, fallback to non-suffixed for backward compatibility
+const STRIPE_MONTHLY_PRICE_ID = 
+  process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID_PROD || 
+  process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID || 
+  Constants.expoConfig?.extra?.stripeMonthlyPriceId;
+const STRIPE_YEARLY_PRICE_ID = 
+  process.env.EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID_PROD || 
+  process.env.EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID || 
+  Constants.expoConfig?.extra?.stripeYearlyPriceId;
 
 if (!STRIPE_MONTHLY_PRICE_ID || !STRIPE_YEARLY_PRICE_ID) {
-  console.error('❌ Stripe Price IDs not configured. Set EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID and EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID environment variables.');
+  console.error('❌ Stripe Price IDs not configured. Set EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID_PROD and EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID_PROD environment variables.');
 }
 
 const MONTHLY_PRICE = 7.99;
