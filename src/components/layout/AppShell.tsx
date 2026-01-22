@@ -112,14 +112,8 @@ export function AppShell({
 
       {/* Navigation */}
       <ScrollView style={styles.navContainer} showsVerticalScrollIndicator={false}>
-        {NAV_ITEMS.map((item) => (
-          <View
-            key={item.id}
-            {...(Platform.OS === 'web' ? { 
-              'data-nav-id': item.id,
-              className: `nav-item nav-${item.id}`
-            } : {})}
-          >
+        {NAV_ITEMS.map((item) => {
+          const navContent = (
             <TouchableOpacity
               style={[
                 styles.navItem,
@@ -140,8 +134,22 @@ export function AppShell({
                 {item.label}
               </Text>
             </TouchableOpacity>
-          </View>
-        ))}
+          );
+
+          if (Platform.OS === 'web') {
+            return (
+              <div
+                key={item.id}
+                data-nav-id={item.id}
+                className={`nav-item nav-${item.id}`}
+              >
+                {navContent}
+              </div>
+            );
+          }
+
+          return <View key={item.id}>{navContent}</View>;
+        })}
       </ScrollView>
 
       {/* Mobile: Account + Sign Out at bottom of drawer */}
