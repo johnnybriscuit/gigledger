@@ -234,15 +234,17 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       stepIndex 
     });
 
-    // Handle tour completion - check lifecycle complete or status finished/skipped
-    if (
-      lifecycle === 'complete' ||
+    // Handle tour completion - only close on final step or explicit close/skip actions
+    const isLastStep = index === steps.length - 1;
+    const shouldClose = 
       status === STATUS.FINISHED || 
       status === STATUS.SKIPPED ||
-      action === ACTIONS.CLOSE ||
-      action === ACTIONS.SKIP
-    ) {
-      console.log('✅ Tour completed:', { status, action, lifecycle });
+      action === ACTIONS.SKIP ||
+      action === 'close' ||
+      (lifecycle === 'complete' && isLastStep);
+    
+    if (shouldClose) {
+      console.log('✅ Tour completed:', { status, action, lifecycle, index, isLastStep });
       setStepIndex(0);
       setIsReady(false);
       onComplete();
