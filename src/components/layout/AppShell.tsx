@@ -113,31 +113,34 @@ export function AppShell({
       {/* Navigation */}
       <ScrollView style={styles.navContainer} showsVerticalScrollIndicator={false}>
         {NAV_ITEMS.map((item) => (
-          <TouchableOpacity
+          <View
             key={item.id}
-            style={[
-              styles.navItem,
-              activeRoute === item.id && styles.navItemActive,
-            ]}
-            onPress={() => {
-              onNavigate(item.id);
-              if (isMobile) setMobileMenuOpen(false);
-            }}
             {...(Platform.OS === 'web' ? { 
               'data-nav-id': item.id,
               className: `nav-item nav-${item.id}`
             } : {})}
           >
-            {item.icon && <Text style={styles.navIcon}>{item.icon}</Text>}
-            <Text
+            <TouchableOpacity
               style={[
-                styles.navLabel,
-                activeRoute === item.id && styles.navLabelActive,
+                styles.navItem,
+                activeRoute === item.id && styles.navItemActive,
               ]}
+              onPress={() => {
+                onNavigate(item.id);
+                if (isMobile) setMobileMenuOpen(false);
+              }}
             >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
+              {item.icon && <Text style={styles.navIcon}>{item.icon}</Text>}
+              <Text
+                style={[
+                  styles.navLabel,
+                  activeRoute === item.id && styles.navLabelActive,
+                ]}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          </View>
         ))}
       </ScrollView>
 

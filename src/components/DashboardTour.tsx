@@ -10,6 +10,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
   const [stepIndex, setStepIndex] = useState(0);
   const [isReady, setIsReady] = useState(false);
 
+  // Wait for DOM elements to be ready
   useEffect(() => {
     if (show) {
       const checkElements = () => {
@@ -25,7 +26,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
         }
       };
       
-      setTimeout(checkElements, 500);
+      setTimeout(checkElements, 500); // Initial delay to let page render
     } else {
       setIsReady(false);
       setStepIndex(0);
@@ -38,19 +39,27 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       content: (
         <div>
           <h2 style={{ marginBottom: '12px', fontSize: '20px' }}>🎉 Welcome to GigLedger!</h2>
-          <p style={{ marginBottom: '8px', lineHeight: '1.6' }}>Let's take a quick tour so you know where everything is.</p>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>This will take about 60 seconds.</p>
+          <p style={{ marginBottom: '8px', lineHeight: '1.6' }}>
+            Let's take a quick tour so you know where everything is.
+          </p>
+          <p style={{ fontSize: '14px', color: '#6b7280' }}>
+            This will take about 60 seconds.
+          </p>
         </div>
       ),
       placement: 'center',
       disableBeacon: true,
+      hideFooter: false,
+      spotlightClicks: false,
     },
     {
       target: '.nav-dashboard',
       content: (
         <div>
           <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>📊 Dashboard</h3>
-          <p style={{ lineHeight: '1.6' }}>Your financial command center. See your income, expenses, and tax estimates at a glance.</p>
+          <p style={{ lineHeight: '1.6' }}>
+            Your financial command center. See your income, expenses, and tax estimates at a glance.
+          </p>
         </div>
       ),
       placement: 'right',
@@ -62,7 +71,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       content: (
         <div>
           <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>📇 Contacts</h3>
-          <p style={{ lineHeight: '1.6' }}>Manage clients, venues, and platforms. Link them to gigs for easy tracking.</p>
+          <p style={{ lineHeight: '1.6' }}>
+            Manage clients, venues, and platforms. Link them to gigs for easy tracking.
+          </p>
         </div>
       ),
       placement: 'right',
@@ -74,7 +85,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       content: (
         <div>
           <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>🎸 Gigs</h3>
-          <p style={{ lineHeight: '1.6' }}>Track all your performances and projects. This is where you log your income.</p>
+          <p style={{ lineHeight: '1.6' }}>
+            Track all your performances and projects. This is where you log your income.
+          </p>
         </div>
       ),
       placement: 'right',
@@ -86,7 +99,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       content: (
         <div>
           <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>💰 Expenses</h3>
-          <p style={{ lineHeight: '1.6' }}>Log business expenses to maximize your tax deductions.</p>
+          <p style={{ lineHeight: '1.6' }}>
+            Log business expenses to maximize your tax deductions.
+          </p>
         </div>
       ),
       placement: 'right',
@@ -98,8 +113,15 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       content: (
         <div>
           <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>🚗 Mileage</h3>
-          <p style={{ lineHeight: '1.6', marginBottom: '12px' }}>Track drives to gigs. At $0.67/mile, this adds up to significant tax savings!</p>
-          <div style={{ backgroundColor: '#fef3c7', padding: '10px', borderRadius: '6px', fontSize: '14px' }}>
+          <p style={{ lineHeight: '1.6', marginBottom: '12px' }}>
+            Track drives to gigs. At $0.67/mile, this adds up to significant tax savings!
+          </p>
+          <div style={{ 
+            backgroundColor: '#fef3c7', 
+            padding: '10px', 
+            borderRadius: '6px',
+            fontSize: '14px'
+          }}>
             💡 <strong>Tip:</strong> Add your home address in Account Settings for automatic tracking!
           </div>
         </div>
@@ -113,7 +135,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       content: (
         <div>
           <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>📄 Invoices</h3>
-          <p style={{ lineHeight: '1.6' }}>Create and send professional invoices to clients.</p>
+          <p style={{ lineHeight: '1.6' }}>
+            Create and send professional invoices to clients.
+          </p>
         </div>
       ),
       placement: 'right',
@@ -125,7 +149,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       content: (
         <div>
           <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>📊 Exports</h3>
-          <p style={{ lineHeight: '1.6' }}>Download reports for your accountant or tax software.</p>
+          <p style={{ lineHeight: '1.6' }}>
+            Download reports for your accountant or tax software.
+          </p>
         </div>
       ),
       placement: 'right',
@@ -137,10 +163,18 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       content: (
         <div>
           <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>⚙️ Account Settings</h3>
-          <div style={{ backgroundColor: '#dbeafe', padding: '12px', borderRadius: '6px', marginBottom: '10px', fontWeight: '600' }}>
+          <div style={{ 
+            backgroundColor: '#dbeafe', 
+            padding: '12px', 
+            borderRadius: '6px',
+            marginBottom: '10px',
+            fontWeight: '600'
+          }}>
             ⭐ Important: Add your home address here!
           </div>
-          <p style={{ lineHeight: '1.6', fontSize: '14px' }}>This enables automatic mileage calculation when you add gigs.</p>
+          <p style={{ lineHeight: '1.6', fontSize: '14px' }}>
+            This enables automatic mileage calculation when you add gigs.
+          </p>
         </div>
       ),
       placement: 'right',
@@ -155,13 +189,30 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
             <div style={{ fontSize: '48px', marginBottom: '8px' }}>✅</div>
             <h2 style={{ margin: '0 0 4px 0', fontSize: '22px' }}>You're Ready to Go!</h2>
           </div>
-          <p style={{ fontWeight: '600', marginBottom: '12px', fontSize: '16px' }}>Recommended next steps:</p>
-          <ol style={{ margin: '0 0 20px 0', paddingLeft: '24px', lineHeight: '2', fontSize: '15px' }}>
+          
+          <p style={{ fontWeight: '600', marginBottom: '12px', fontSize: '16px' }}>
+            Recommended next steps:
+          </p>
+          
+          <ol style={{ 
+            margin: '0 0 20px 0',
+            paddingLeft: '24px',
+            lineHeight: '2',
+            fontSize: '15px'
+          }}>
             <li>Go to <strong>Account Settings</strong> and add your home address</li>
             <li>Add your first <strong>contact</strong> (client, venue, or platform)</li>
             <li>Log your first <strong>gig</strong></li>
           </ol>
-          <div style={{ backgroundColor: '#f3f4f6', padding: '14px', borderRadius: '8px', fontSize: '13px', color: '#4b5563', lineHeight: '1.5' }}>
+          
+          <div style={{ 
+            backgroundColor: '#f3f4f6', 
+            padding: '14px', 
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#4b5563',
+            lineHeight: '1.5'
+          }}>
             💡 You can replay this tour anytime from <strong>Account → Help</strong>
           </div>
         </div>
@@ -174,8 +225,16 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, action, index, type, lifecycle } = data;
 
-    console.log('🎯 Tour event:', { status, action, index, type, lifecycle, stepIndex });
+    console.log('🎯 Tour event:', { 
+      status, 
+      action, 
+      index, 
+      type, 
+      lifecycle,
+      stepIndex 
+    });
 
+    // Handle step progression
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
       
@@ -186,19 +245,23 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       }
     }
 
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+    // Handle tour completion
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as STATUS)) {
       console.log('✅ Tour completed:', status);
       setStepIndex(0);
       setIsReady(false);
       onComplete();
     }
 
+    // Handle errors
     if (type === EVENTS.TARGET_NOT_FOUND) {
       console.warn('⚠️ Target not found for step:', index);
+      // Try to continue anyway
       setStepIndex(index + 1);
     }
   };
 
+  // Don't render until elements are ready
   if (!isReady) {
     console.log('⏳ Tour waiting for elements...');
     return null;
@@ -218,6 +281,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       scrollToFirstStep
       scrollOffset={100}
       callback={handleJoyrideCallback}
+      floaterProps={{
+        disableAnimation: false,
+      }}
       styles={{
         options: {
           primaryColor: '#10b981',
@@ -226,6 +292,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
           arrowColor: '#ffffff',
           overlayColor: 'rgba(0, 0, 0, 0.65)',
           zIndex: 10000,
+          width: undefined,
         },
         tooltip: {
           borderRadius: 12,
