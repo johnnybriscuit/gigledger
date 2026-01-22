@@ -104,15 +104,19 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   console.log('Processing subscription update:', subscription.id);
   const customerId = subscription.customer as string;
   const priceId = subscription.items.data[0]?.price.id;
+  // Use _PROD suffix for production price IDs, fallback to non-suffixed for backward compatibility
+  const monthlyPriceId = process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID_PROD || process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID;
+  const yearlyPriceId = process.env.EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID_PROD || process.env.EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID;
+  
   console.log('Price ID:', priceId);
-  console.log('Expected monthly:', process.env.STRIPE_MONTHLY_PRICE_ID);
-  console.log('Expected yearly:', process.env.STRIPE_YEARLY_PRICE_ID);
+  console.log('Expected monthly:', monthlyPriceId);
+  console.log('Expected yearly:', yearlyPriceId);
 
   // Determine tier based on price ID
   let tier: 'free' | 'monthly' | 'yearly' = 'free';
-  if (priceId === process.env.STRIPE_MONTHLY_PRICE_ID) {
+  if (priceId === monthlyPriceId) {
     tier = 'monthly';
-  } else if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) {
+  } else if (priceId === yearlyPriceId) {
     tier = 'yearly';
   }
   console.log('Determined tier:', tier);
@@ -128,9 +132,9 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 
   // Determine plan for profiles table
   let plan: 'free' | 'pro_monthly' | 'pro_yearly' = 'free';
-  if (priceId === process.env.STRIPE_MONTHLY_PRICE_ID) {
+  if (priceId === monthlyPriceId) {
     plan = 'pro_monthly';
-  } else if (priceId === process.env.STRIPE_YEARLY_PRICE_ID) {
+  } else if (priceId === yearlyPriceId) {
     plan = 'pro_yearly';
   }
 
