@@ -8,9 +8,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "extra": {
-      "googleMapsApiKey": "AIzaSyBNJRJ7kKDS1bGHaKmbpQf9D9nFc51wZqw",
-      "stripeMonthlyPriceId": "price_1SovHN1zc5DHhlVtA1IoLeI4",
-      "stripeYearlyPriceId": "price_1SovI51zc5DHhlVtHVloGoGs"
+      "googleMapsApiKey": "AIzaSyBNJRJ7kKDS1bGHaKmbpQf9D9nFc51wZqw"
     },
     "splash": {
       "image": "./assets/splash-icon.png",
