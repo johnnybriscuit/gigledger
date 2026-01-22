@@ -234,6 +234,20 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       stepIndex 
     });
 
+    // Handle tour completion first - any close action or skip
+    if (
+      status === STATUS.FINISHED || 
+      status === STATUS.SKIPPED ||
+      action === ACTIONS.CLOSE ||
+      action === ACTIONS.SKIP
+    ) {
+      console.log('✅ Tour completed:', status, action);
+      setStepIndex(0);
+      setIsReady(false);
+      onComplete();
+      return; // Exit early to prevent further processing
+    }
+
     // Handle step progression
     if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
       const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
@@ -245,22 +259,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       }
     }
 
-    // Handle tour completion - check for CLOSE action on last step or status changes
-    if (
-      status === STATUS.FINISHED || 
-      status === STATUS.SKIPPED ||
-      (action === ACTIONS.CLOSE && index === steps.length - 1)
-    ) {
-      console.log('✅ Tour completed:', status, action);
-      setStepIndex(0);
-      setIsReady(false);
-      onComplete();
-    }
-
     // Handle errors
     if (type === EVENTS.TARGET_NOT_FOUND) {
       console.warn('⚠️ Target not found for step:', index);
-      // Try to continue anyway
       setStepIndex(index + 1);
     }
   };
