@@ -245,9 +245,13 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       }
     }
 
-    // Handle tour completion
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as STATUS)) {
-      console.log('✅ Tour completed:', status);
+    // Handle tour completion - check for CLOSE action on last step or status changes
+    if (
+      status === STATUS.FINISHED || 
+      status === STATUS.SKIPPED ||
+      (action === ACTIONS.CLOSE && index === steps.length - 1)
+    ) {
+      console.log('✅ Tour completed:', status, action);
       setStepIndex(0);
       setIsReady(false);
       onComplete();
