@@ -15,7 +15,7 @@ const tourSteps: Step[] = [
     disableBeacon: true,
   },
   {
-    target: '[data-nav-id="dashboard"]',
+    target: '.nav-dashboard',
     content: (
       <div style={{ textAlign: 'left' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>📊 Dashboard</h3>
@@ -26,7 +26,7 @@ const tourSteps: Step[] = [
     disableBeacon: true,
   },
   {
-    target: '[data-nav-id="payers"]',
+    target: '.nav-payers',
     content: (
       <div style={{ textAlign: 'left' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>📇 Contacts</h3>
@@ -37,7 +37,7 @@ const tourSteps: Step[] = [
     disableBeacon: true,
   },
   {
-    target: '[data-nav-id="gigs"]',
+    target: '.nav-gigs',
     content: (
       <div style={{ textAlign: 'left' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>🎸 Gigs</h3>
@@ -48,7 +48,7 @@ const tourSteps: Step[] = [
     disableBeacon: true,
   },
   {
-    target: '[data-nav-id="expenses"]',
+    target: '.nav-expenses',
     content: (
       <div style={{ textAlign: 'left' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>💰 Expenses</h3>
@@ -59,7 +59,7 @@ const tourSteps: Step[] = [
     disableBeacon: true,
   },
   {
-    target: '[data-nav-id="mileage"]',
+    target: '.nav-mileage',
     content: (
       <div style={{ textAlign: 'left' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>🚗 Mileage</h3>
@@ -73,7 +73,7 @@ const tourSteps: Step[] = [
     disableBeacon: true,
   },
   {
-    target: '[data-nav-id="invoices"]',
+    target: '.nav-invoices',
     content: (
       <div style={{ textAlign: 'left' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>📄 Invoices</h3>
@@ -84,7 +84,7 @@ const tourSteps: Step[] = [
     disableBeacon: true,
   },
   {
-    target: '[data-nav-id="exports"]',
+    target: '.nav-exports',
     content: (
       <div style={{ textAlign: 'left' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>📊 Exports</h3>
@@ -95,7 +95,7 @@ const tourSteps: Step[] = [
     disableBeacon: true,
   },
   {
-    target: '[data-nav-id="account"]',
+    target: '.nav-account',
     content: (
       <div style={{ textAlign: 'left' }}>
         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>⚙️ Account Settings</h3>
@@ -164,17 +164,26 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
     }
   };
 
-  // Log when tour starts
+  // Log when tour starts and check for all target elements
   React.useEffect(() => {
     if (show) {
       console.log('🚀 Tour starting with', tourSteps.length, 'steps');
-      console.log('🔍 Checking if target elements exist:');
+      console.log('=== TOUR TARGET ELEMENTS CHECK ===');
+      
       tourSteps.forEach((step, index) => {
         if (step.target !== 'body') {
           const element = document.querySelector(step.target as string);
-          console.log(`  Step ${index + 1} (${step.target}):`, element ? '✅ Found' : '❌ Missing');
+          console.log(`Step ${index + 1} (${step.target}):`, element ? '✅ Found' : '❌ Missing');
+          
+          // If missing, try to find what elements do exist
+          if (!element && typeof step.target === 'string' && step.target.startsWith('.nav-')) {
+            const allNavItems = document.querySelectorAll('[class*="nav-"]');
+            console.log('  Available nav elements:', Array.from(allNavItems).map(el => el.className));
+          }
         }
       });
+      
+      console.log('=====================================');
     }
   }, [show]);
 
