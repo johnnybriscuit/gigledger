@@ -54,6 +54,11 @@ export function useGigTaxCalculation(
   });
   
   const businessStructure = profile?.business_structure || 'individual';
+  const eligibilityForProfile = isSCalcEligibleForBusinessStructure(businessStructure, plan);
+  const calcBusinessStructure =
+    eligibilityForProfile.requiresProForSelection && plan !== 'pro'
+      ? 'individual'
+      : businessStructure;
 
   // Get YTD data for tax calculation
   const { data: ytdData, isLoading: ytdLoading } = useQuery<{
@@ -96,7 +101,7 @@ export function useGigTaxCalculation(
     return { taxResult: null, loading: true };
   }
   
-  const eligibility = isSCalcEligibleForBusinessStructure(businessStructure, plan);
+  const eligibility = isSCalcEligibleForBusinessStructure(calcBusinessStructure, plan);
   
   if (!eligibility.usesSelfEmploymentTax) {
     return {
@@ -110,7 +115,7 @@ export function useGigTaxCalculation(
           seTax: 0,
         },
         mode: 'no_se_tax',
-        business_structure: businessStructure,
+        business_structure: calcBusinessStructure,
       },
       loading: false,
     };
