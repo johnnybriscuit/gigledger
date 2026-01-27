@@ -1,16 +1,22 @@
-const { getDefaultConfig } = require('expo/metro-config');
-const path = require('path');
+const path = require("path");
+const { getDefaultConfig } = require("expo/metro-config");
 
 const config = getDefaultConfig(__dirname);
 
-// Force tslib to resolve to CommonJS build to fix interop issues
-// Some bundled code expects tslib as CommonJS default (n.default.__extends)
-config.resolver = {
-  ...config.resolver,
-  extraNodeModules: {
-    ...(config.resolver?.extraNodeModules || {}),
-    tslib: path.resolve(__dirname, 'node_modules/tslib'),
-  },
+const tslibShimPath = path.join(__dirname, "src/shims/tslib-default.cjs");
+
+config.resolver = config.resolver || {};
+const originalResolveRequest = config.resolver.resolveRequest;
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Intercept only these (do NOT intercept tslib/tslib.js)
+  if (moduleName === "tslib" || moduleName === "tslib/tslib.es6.js") {
+    return { filePath: tslibShimPath, type: "sourceFile" };
+  }
+
+  return originalResolveRequest
+    ? originalResolveRequest(context, moduleName, platform)
+    : context.resolveRequest(context, moduleName, platform);
 };
 
 module.exports = config;
