@@ -373,33 +373,61 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
               onNavigateToBusinessStructures={onNavigateToBusinessStructures}
             />
 
-            {/* Payment Methods Section - Read-only shortcut */}
+            {/* Payment Methods Section - Informational summary only */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <H2>Payment Methods</H2>
+                <H2>Invoice Payment Methods</H2>
               </View>
               <Card variant="flat" style={styles.card}>
                 <Text subtle style={styles.sectionDescription}>
-                  Payment methods are managed in Invoices → Settings.
+                  Managed in Invoices → Settings. These appear on your invoices so clients know where to pay.
                 </Text>
 
-                {/* Read-only summary */}
-                {paymentMethods.length > 0 ? (
-                  <View style={styles.paymentMethodsSummary}>
-                    {paymentMethods.map((pm) => (
-                      <View key={pm.method} style={styles.paymentMethodSummaryRow}>
-                        <Text style={styles.paymentMethodSummaryText}>
-                          {pm.enabled ? '✅' : '☐'} {pm.method.charAt(0).toUpperCase() + pm.method.slice(1)}
-                          {pm.enabled && pm.details ? `: ${pm.details}` : ''}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Text subtle style={styles.noPaymentMethodsText}>
-                    No payment methods configured yet.
-                  </Text>
-                )}
+                {/* Read-only summary - grouped by enabled/disabled */}
+                {(() => {
+                  const enabled = paymentMethods.filter(pm => pm.enabled);
+                  const disabled = paymentMethods.filter(pm => !pm.enabled);
+                  const hasAnyMethods = paymentMethods.length > 0;
+
+                  if (!hasAnyMethods) {
+                    return (
+                      <Text subtle style={styles.noPaymentMethodsText}>
+                        No payment methods configured yet.
+                      </Text>
+                    );
+                  }
+
+                  return (
+                    <View style={styles.paymentMethodsSummary}>
+                      {/* Enabled methods */}
+                      {enabled.length > 0 && (
+                        <View style={styles.enabledMethodsSection}>
+                          <Text semibold style={styles.methodsGroupLabel}>Enabled:</Text>
+                          {enabled.map((pm) => {
+                            const methodName = pm.method.charAt(0).toUpperCase() + pm.method.slice(1);
+                            const displayText = pm.details ? `${methodName} — ${pm.details}` : methodName;
+                            return (
+                              <View key={pm.method} style={styles.enabledMethodRow}>
+                                <Text style={styles.enabledMethodText}>
+                                  ✅ {displayText}
+                                </Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      )}
+
+                      {/* Disabled methods - muted inline text */}
+                      {disabled.length > 0 && (
+                        <View style={styles.disabledMethodsSection}>
+                          <Text subtle style={styles.disabledMethodsText}>
+                            Not enabled: {disabled.map(pm => pm.method.charAt(0).toUpperCase() + pm.method.slice(1)).join(', ')}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })()}
 
                 <Button
                   variant="primary"
@@ -787,15 +815,33 @@ const styles = StyleSheet.create({
     color: colors.warning.DEFAULT,
   },
   paymentMethodsSummary: {
-    marginTop: parseInt(spacing[3]),
+    marginTop: parseInt(spacing[2]),
     marginBottom: parseInt(spacing[4]),
   },
-  paymentMethodSummaryRow: {
-    paddingVertical: parseInt(spacing[2]),
+  enabledMethodsSection: {
+    marginBottom: parseInt(spacing[3]),
   },
-  paymentMethodSummaryText: {
+  methodsGroupLabel: {
+    fontSize: 14,
+    marginBottom: parseInt(spacing[2]),
+    color: colors.text.DEFAULT,
+  },
+  enabledMethodRow: {
+    paddingVertical: parseInt(spacing[1]),
+    paddingLeft: parseInt(spacing[2]),
+  },
+  enabledMethodText: {
     fontSize: 14,
     color: colors.text.DEFAULT,
+    lineHeight: 20,
+  },
+  disabledMethodsSection: {
+    marginTop: parseInt(spacing[2]),
+  },
+  disabledMethodsText: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    lineHeight: 20,
   },
   noPaymentMethodsText: {
     marginTop: parseInt(spacing[2]),
@@ -804,6 +850,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   goToInvoiceSettingsButton: {
-    marginTop: parseInt(spacing[2]),
+    marginTop: parseInt(spacing[4]),
   },
 });
