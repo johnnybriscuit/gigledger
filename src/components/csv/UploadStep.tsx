@@ -65,9 +65,6 @@ export function UploadStep({ onNext, onCancel }: UploadStepProps) {
 
   return (
     <View style={styles.container}>
-      <H2>Import gigs from CSV</H2>
-      <Text style={styles.subtitle}>Bring in gigs from a spreadsheet — you'll preview everything before it's saved.</Text>
-      
       <View style={styles.minimumBox}>
         <Text style={styles.minimumText}>Minimum required columns: Date, Payer, Gross/Amount. Any column order is fine.</Text>
       </View>
@@ -135,7 +132,7 @@ export function UploadStep({ onNext, onCancel }: UploadStepProps) {
           style={styles.accordionHeader}
           onPress={() => setIsFormatsExpanded(!isFormatsExpanded)}
         >
-          <Text style={styles.accordionTitle}>Supported formats (click to expand)</Text>
+          <Text style={styles.accordionTitle}>Supported formats</Text>
           <Text style={styles.accordionIcon}>{isFormatsExpanded ? '▼' : '▶'}</Text>
         </TouchableOpacity>
         
@@ -200,11 +197,6 @@ export function UploadStep({ onNext, onCancel }: UploadStepProps) {
 const styles = StyleSheet.create({
   container: {
     gap: parseInt(spacing[4]),
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginTop: -parseInt(spacing[2]),
   },
   minimumBox: {
     backgroundColor: '#f0f9ff',
