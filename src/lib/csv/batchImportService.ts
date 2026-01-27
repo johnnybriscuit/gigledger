@@ -153,6 +153,9 @@ async function importGigRow(
     notes = notes ? `${notes}\n[Combined from rows: ${row.combinedFromRows.join(', ')}]` : `[Combined from rows: ${row.combinedFromRows.join(', ')}]`;
   }
 
+  // Convert taxes_withheld to boolean (schema only supports boolean)
+  const taxesWithheld = row.taxesWithheld ? (row.taxesWithheld > 0 ? true : false) : false;
+
   // Insert gig (user_id is handled by RLS/trigger)
   const { data, error } = await supabase
     .from('gigs')
@@ -170,6 +173,7 @@ async function importGigRow(
       other_income: row.otherIncome || 0,
       payment_method: row.paymentMethod || null,
       paid: row.paid || false,
+      taxes_withheld: taxesWithheld,
       notes: notes || null,
       import_batch_id: batchId,
     })
