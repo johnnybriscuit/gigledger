@@ -16,7 +16,9 @@ export function generateExcelFromPackage(pkg: TaxExportPackage): Uint8Array {
     'Description': item.lineDescription,
     'Raw Amount': item.rawSignedAmount,
     'Amount for Entry': item.amountForEntry,
-    'Notes': item.notes || '',
+    'Notes': item.scheduleCRefNumber === 302 
+      ? "See 'Other Expenses Breakdown' sheet for itemized detail"
+      : (item.notes || ''),
   }));
   const scheduleCSheet = XLSX.utils.json_to_sheet(scheduleCData);
   XLSX.utils.book_append_sheet(workbook, scheduleCSheet, 'Schedule C Summary');
@@ -106,6 +108,17 @@ export function generateExcelFromPackage(pkg: TaxExportPackage): Uint8Array {
   }));
   const mileageSheet = XLSX.utils.json_to_sheet(mileageData);
   XLSX.utils.book_append_sheet(workbook, mileageSheet, 'Mileage');
+
+  // Sheet 7: Other Expenses Breakdown
+  const otherExpensesData = pkg.scheduleC.otherExpensesBreakdown.map((item) => ({
+    'Ref #': 302,
+    'Category': item.name,
+    'Raw Amount': -item.amount,
+    'Amount for Entry': Math.abs(item.amount),
+    'Notes': 'Supporting detail for Line 302 - enter ONLY the 302 total from Schedule C Summary',
+  }));
+  const otherExpensesSheet = XLSX.utils.json_to_sheet(otherExpensesData);
+  XLSX.utils.book_append_sheet(workbook, otherExpensesSheet, 'Other Expenses Breakdown');
 
   // Generate binary Excel file
   const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
