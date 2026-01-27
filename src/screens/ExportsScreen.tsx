@@ -58,7 +58,7 @@ export function ExportsScreen() {
   const [selectedSoftware, setSelectedSoftware] = useState<TaxSoftware | null>(null);
   const [showLegacySection, setShowLegacySection] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-  const [showTaxPrepChecklist, setShowTaxPrepChecklist] = useState(true);
+  const [showTaxPrepChecklist, setShowTaxPrepChecklist] = useState(false);
   const [expandedGuidance, setExpandedGuidance] = useState<string | null>(null);
   const [taxExportError, setTaxExportError] = useState<string | null>(null);
 
