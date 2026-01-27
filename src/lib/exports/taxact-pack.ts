@@ -12,53 +12,47 @@ export async function generateTaxActPackZip(input: {
 
   const zip = new JSZip();
 
+  // Add Schedule C Summary CSV (with amount_for_entry for manual entry)
   const scheduleSummaryRows = buildScheduleCSummaryRows(pkg);
   zip.file(`ScheduleC_Summary_${taxYear}.csv`, stringifyCsv(scheduleSummaryRows));
 
-  zip.file(`Expense_Detail_${taxYear}.csv`, stringifyCsv(buildExpenseDetailRows(pkg)));
+  // Add Payer Summary CSV (for 1099 reconciliation)
+  const payerSummaryRows = buildPayerSummaryRows(pkg);
+  zip.file(`Payer_Summary_${taxYear}.csv`, stringifyCsv(payerSummaryRows));
+
+  // Add Mileage Summary CSV (TaxAct-friendly summary)
+  const mileageSummaryRows = buildMileageSummaryRows(pkg);
+  zip.file(`Mileage_Summary_${taxYear}.csv`, stringifyCsv(mileageSummaryRows));
+
+  // Add Income Detail CSV (with payer info)
   zip.file(`Income_Detail_${taxYear}.csv`, stringifyCsv(buildIncomeDetailRows(pkg)));
+
+  // Add Expense Detail CSV (with asset review flags)
+  zip.file(`Expense_Detail_${taxYear}.csv`, stringifyCsv(buildExpenseDetailRows(pkg)));
+
+  // Add Mileage Detail CSV
   zip.file(`Mileage_${taxYear}.csv`, stringifyCsv(buildMileageRows(pkg)));
 
+  // Add PDF Summary
   const pdfBytes = await generateScheduleCSummaryPdf({ pkg, appVersion });
   zip.file(`PDF_Summary_${taxYear}.pdf`, pdfBytes);
 
-  zip.file(`README_Tax_Filing_${taxYear}.txt`, buildReadmeText(pkg));
+  // Add README
+  zip.file(`README_TaxAct_${taxYear}.txt`, buildReadmeText(pkg));
 
   const bytes = await zip.generateAsync({ type: 'uint8array' });
   return { filename: `gigledger_taxact_pack_${taxYear}.zip`, bytes };
 }
 
 function buildScheduleCSummaryRows(pkg: TaxExportPackage) {
-  const rows: Array<Record<string, string | number>> = [];
-
-  const add = (label: string, ref: number, amount: number, notes: string) => {
-    rows.push({
-      schedule_c_label: label,
-      schedule_c_ref_number: ref,
-      amount,
-      notes,
-    });
-  };
-
-  add('Gross receipts', 293, pkg.scheduleC.grossReceipts, 'Cash basis. Money received only.');
-  add('Returns and allowances', 296, -Math.abs(pkg.scheduleC.returnsAllowances), 'Negative amount.');
-  add('Cost of goods sold', 295, -Math.abs(pkg.scheduleC.cogs), 'Negative amount.');
-
-  for (const [key, value] of Object.entries(pkg.scheduleC.expenseTotalsByScheduleCRefNumber)) {
-    const ref = Number(key);
-    if (ref === 293 || ref === 296 || ref === 295 || ref === 303 || ref === 302) continue;
-    add(`Expense (N${ref})`, ref, -Math.abs(value || 0), 'Negative amount.');
-  }
-
-  for (const item of pkg.scheduleC.otherExpensesBreakdown) {
-    add(item.name, 302, -Math.abs(item.amount), 'Other expense line item. Negative amount.');
-  }
-
-  if (pkg.scheduleC.otherIncome) {
-    add('Other business income', 303, Math.abs(pkg.scheduleC.otherIncome), 'Positive amount.');
-  }
-
-  return rows;
+  return pkg.scheduleCLineItems.map((item) => ({
+    schedule_c_ref_number: item.scheduleCRefNumber,
+    schedule_c_line_name: item.scheduleCLineName,
+    line_description: item.lineDescription,
+    raw_signed_amount: item.rawSignedAmount,
+    amount_for_entry: item.amountForEntry,
+    notes: item.notes || '',
+  }));
 }
 
 function buildExpenseDetailRows(pkg: TaxExportPackage) {
@@ -75,6 +69,8 @@ function buildExpenseDetailRows(pkg: TaxExportPackage) {
     receipt_url: r.receiptUrl || '',
     notes: r.notes || '',
     related_gig_id: r.relatedGigId || '',
+    potential_asset_review: r.potentialAssetReview,
+    potential_asset_reason: r.potentialAssetReason || '',
   }));
 }
 
@@ -86,6 +82,7 @@ function buildIncomeDetailRows(pkg: TaxExportPackage) {
     payer_id: r.payerId || '',
     payer_name: r.payerName || '',
     payer_email: r.payerEmail || '',
+    payer_phone: r.payerPhone || '',
     description: r.description,
     amount: r.amount,
     fees: r.fees,
@@ -93,6 +90,34 @@ function buildIncomeDetailRows(pkg: TaxExportPackage) {
     related_invoice_id: r.relatedInvoiceId || '',
     related_gig_id: r.relatedGigId || '',
   }));
+}
+
+function buildPayerSummaryRows(pkg: TaxExportPackage) {
+  return pkg.payerSummaryRows.map((r) => ({
+    payer_id: r.payerId || '',
+    payer_name: r.payerName || '',
+    payer_email: r.payerEmail || '',
+    payer_phone: r.payerPhone || '',
+    payments_count: r.paymentsCount,
+    gross_amount: r.grossAmount,
+    fees_total: r.feesTotal,
+    net_amount: r.netAmount,
+    first_payment_date: r.firstPaymentDate,
+    last_payment_date: r.lastPaymentDate,
+    notes: r.notes || '',
+  }));
+}
+
+function buildMileageSummaryRows(pkg: TaxExportPackage) {
+  return [{
+    tax_year: pkg.mileageSummary.taxYear,
+    total_business_miles: pkg.mileageSummary.totalBusinessMiles,
+    standard_rate_used: pkg.mileageSummary.standardRateUsed,
+    mileage_deduction_amount: pkg.mileageSummary.mileageDeductionAmount,
+    entries_count: pkg.mileageSummary.entriesCount,
+    is_estimate_any: pkg.mileageSummary.isEstimateAny,
+    notes: pkg.mileageSummary.notes,
+  }];
 }
 
 function buildMileageRows(pkg: TaxExportPackage) {
@@ -115,27 +140,92 @@ function buildReadmeText(pkg: TaxExportPackage): string {
   const warnings = pkg.scheduleC.warnings;
 
   return [
-    `GigLedger Tax Prep Pack (${year})`,
+    `GigLedger TaxAct Tax Prep Pack (${year})`,
     '',
     `Date range: ${pkg.metadata.dateStart} to ${pkg.metadata.dateEnd}`,
     `Basis: cash`,
     `Currency: USD`,
     `Rounding: 2 decimals (amounts include cents; some tax software may round)`,
     '',
-    'This export is organized for tax preparation and sharing with a tax professional. Please review all imported or entered values for accuracy.',
+    'CONTENTS',
+    '--------',
+    `1. ScheduleC_Summary_${year}.csv - Line-by-line Schedule C totals (expenses shown as POSITIVE)`,
+    `2. Payer_Summary_${year}.csv - Payer totals for 1099 reconciliation`,
+    `3. Mileage_Summary_${year}.csv - Mileage totals for easy entry`,
+    `4. Income_Detail_${year}.csv - Detailed income transactions with payer info`,
+    `5. Expense_Detail_${year}.csv - Detailed expenses with asset review flags`,
+    `6. Mileage_${year}.csv - Mileage log with standard deduction calculations`,
+    `7. PDF_Summary_${year}.pdf - Visual summary for verification`,
+    '8. This README file',
     '',
-    'TurboTax Desktop / H&R Block Desktop TXF import (desktop-only):',
-    '1) Open your tax software (desktop app)',
-    '2) Use the import menu (commonly: File > Import...)',
-    '3) Select the TXF file downloaded from GigLedger',
-    '4) Review the imported Schedule C lines',
+    'HOW TO USE WITH TAXACT',
+    '-----------------------',
+    `Step 1: Open ScheduleC_Summary_${year}.csv`,
+    '   - This file contains your Schedule C line items with IRS reference numbers (N-codes)',
+    '   - Use the "amount_for_entry" column - expenses are shown as POSITIVE numbers',
     '',
-    'TaxAct (manual entry):',
-    `- Use ScheduleC_Summary_${year}.csv to populate Schedule C worksheet fields.`,
-    `- Use the detail CSVs (Income/Expense/Mileage) as supporting documentation.`,
+    'Step 2: Log into TaxAct and navigate to Business Income (Schedule C)',
+    '   - TaxAct will guide you through Schedule C entry',
+    '   - Use the summary CSV to enter totals for each line',
     '',
-    warnings.length ? 'Notes:' : '',
+    'Step 3: IMPORTANT - Enter expenses as POSITIVE totals',
+    `   - Gross receipts (N293): $${pkg.scheduleC.grossReceipts.toFixed(2)}`,
+    '   - For each expense line, enter the "amount_for_entry" value as a POSITIVE number',
+    '   - TaxAct expects positive expense amounts (it will subtract them automatically)',
+    `   - Example: If amount_for_entry shows 2101.00 for rent, enter 2101.00 (not -2101.00)`,
+    '',
+    'Step 4: Use Mileage_Summary for vehicle expenses',
+    `   - Total business miles: ${pkg.mileageSummary.totalBusinessMiles.toFixed(2)}`,
+    `   - Standard rate: $${pkg.mileageSummary.standardRateUsed.toFixed(3)}/mile`,
+    `   - Total deduction: $${pkg.mileageSummary.mileageDeductionAmount.toFixed(2)}`,
+    '',
+    'Step 5: Keep detail CSVs for your records',
+    '   - Income_Detail has payer info for 1099 reconciliation (see Payer_Summary)',
+    '   - Expense_Detail flags large purchases for asset/depreciation review',
+    '   - Mileage detail log provides trip-by-trip backup',
+    '   - Share these with your CPA if needed',
+    '',
+    'Step 6: Verify your totals',
+    '   - Compare TaxAct\'s final Schedule C with the PDF summary',
+    `   - Net profit should match: $${pkg.scheduleC.netProfit.toFixed(2)}`,
+    '',
+    'IMPORTANT DISCLAIMERS',
+    '---------------------',
+    '✓ This export uses CASH BASIS accounting (income when received, expenses when paid)',
+    '✓ All amounts are in USD',
+    '✓ Meals expenses are calculated at 50% deductible (IRS standard)',
+    `✓ Mileage uses IRS standard rates for ${year}`,
+    '✓ Expenses flagged for "potential_asset_review" may require depreciation treatment',
+    '✓ This is NOT tax advice - verify all totals and consult a tax professional',
+    '',
+    `SCHEDULE C SUMMARY (${year})`,
+    '-------------------------------',
+    `Gross Receipts:           $${pkg.scheduleC.grossReceipts.toFixed(2)}`,
+    `Returns & Allowances:     $${pkg.scheduleC.returnsAllowances.toFixed(2)}`,
+    `Cost of Goods Sold:       $${pkg.scheduleC.cogs.toFixed(2)}`,
+    `Other Income:             $${pkg.scheduleC.otherIncome.toFixed(2)}`,
+    `Total Expenses:           $${Object.values(pkg.scheduleC.expenseTotalsByScheduleCRefNumber).reduce((sum, v) => sum + (v || 0), 0).toFixed(2)}`,
+    `NET PROFIT:               $${pkg.scheduleC.netProfit.toFixed(2)}`,
+    '',
+    'DATA QUALITY NOTES',
+    '------------------',
+    `✓ Cash basis: ${pkg.metadata.basis}`,
+    `✓ Currency: ${pkg.metadata.currency}`,
+    `✓ Rounding: ${pkg.metadata.rounding.precision} decimal places`,
+    `✓ Income transactions: ${pkg.incomeRows.length}`,
+    `✓ Expense transactions: ${pkg.expenseRows.length}`,
+    `✓ Mileage entries: ${pkg.mileageRows.length}`,
+    `✓ Payers tracked: ${pkg.payerSummaryRows.length}`,
+    '',
+    warnings.length ? 'NOTES:' : '',
     ...warnings.map(w => `- ${w}`),
     '',
+    'SUPPORT',
+    '-------',
+    'If you have questions about these exports, contact support@gigledger.com',
+    'For tax filing questions, consult a licensed tax professional.',
+    '',
+    'Generated by GigLedger - Self-Employed Income & Tax Tracking',
+    'https://gigledger.com',
   ].join('\n');
 }

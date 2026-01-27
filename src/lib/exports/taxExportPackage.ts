@@ -70,6 +70,7 @@ export interface IncomeRow {
   payerId?: string | null;
   payerName?: string | null;
   payerEmail?: string | null;
+  payerPhone?: string | null;
   description: string;
   amount: number;
   fees: number;
@@ -93,6 +94,8 @@ export interface ExpenseRow {
   receiptUrl?: string | null;
   notes?: string | null;
   relatedGigId?: string | null;
+  potentialAssetReview: boolean;
+  potentialAssetReason?: string | null;
 }
 
 export interface MileageRow {
@@ -137,13 +140,49 @@ export interface ReceiptsManifestItem {
   kind: 'expense';
 }
 
+export interface PayerSummaryRow {
+  payerId: string | null;
+  payerName: string | null;
+  payerEmail: string | null;
+  payerPhone: string | null;
+  paymentsCount: number;
+  grossAmount: number;
+  feesTotal: number;
+  netAmount: number;
+  firstPaymentDate: string;
+  lastPaymentDate: string;
+  notes: string | null;
+}
+
+export interface MileageSummary {
+  taxYear: number;
+  totalBusinessMiles: number;
+  standardRateUsed: number;
+  mileageDeductionAmount: number;
+  entriesCount: number;
+  isEstimateAny: boolean;
+  notes: string;
+}
+
+export interface ScheduleCLineItem {
+  scheduleCRefNumber: ScheduleCRefNumber;
+  scheduleCLineName: string;
+  lineDescription: string;
+  rawSignedAmount: number;
+  amountForEntry: number;
+  notes: string | null;
+}
+
 export interface TaxExportPackage {
   metadata: TaxExportMetadata;
   scheduleC: ScheduleCSection;
+  scheduleCLineItems: ScheduleCLineItem[];
   incomeRows: IncomeRow[];
   expenseRows: ExpenseRow[];
   mileageRows: MileageRow[];
   invoiceRows: InvoiceRow[];
   subcontractorPayoutRows: SubcontractorPayoutRow[];
   receiptsManifest: ReceiptsManifestItem[];
+  payerSummaryRows: PayerSummaryRow[];
+  mileageSummary: MileageSummary;
 }

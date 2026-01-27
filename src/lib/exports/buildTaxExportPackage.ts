@@ -10,10 +10,14 @@ import type {
   SubcontractorPayoutRow,
   ReceiptsManifestItem,
   ScheduleCRefNumber,
+  PayerSummaryRow,
+  MileageSummary,
+  ScheduleCLineItem,
 } from './taxExportPackage';
 import { mapCategoryToScheduleCRef } from './scheduleCRefMapping';
 import { getStandardMileageRate } from './mileageRates';
 import { roundCents } from './rounding';
+import { getScheduleCLineName } from './scheduleCLineNames';
 
 type GigRow = Database['public']['Tables']['gigs']['Row'];
 type ExpenseDbRow = Database['public']['Tables']['expenses']['Row'];
@@ -99,19 +103,22 @@ export function buildTaxExportPackageFromData(input: {
     const payer = payerById.get(gig.payer_id);
     const payerName = payer?.name || null;
     const payerEmail = payer?.contact_email || null;
+    const payerPhone = null; // Phone not in payers table yet
 
-    // Build description from gig details
+    // Build description from gig details (avoid placeholder "Gig")
     let description = 'Income';
     if (gig.title) {
       description = gig.title;
-    } else if (gig.location || gig.city) {
-      const parts = ['Gig'];
-      if (gig.location) parts.push(gig.location);
-      if (gig.city) parts.push(gig.city);
-      description = parts.join(' — ');
-    } else {
-      description = 'Gig';
+    } else if (gig.location) {
+      description = gig.location;
+    } else if (gig.notes) {
+      // Use first 50 chars of notes if available
+      description = gig.notes.substring(0, 50).trim();
+      if (gig.notes.length > 50) description += '...';
+    } else if (gig.city) {
+      description = `Income — ${gig.city}`;
     }
+    // Fallback is "Income" (not "Gig")
 
     incomeRows.push({
       id: gig.id,
@@ -120,6 +127,7 @@ export function buildTaxExportPackageFromData(input: {
       payerId: gig.payer_id,
       payerName,
       payerEmail,
+      payerPhone,
       description,
       amount: roundCents(gross),
       fees: roundCents(fees),
@@ -136,7 +144,10 @@ export function buildTaxExportPackageFromData(input: {
       id: payment.id,
       source: 'invoice_payment',
       receivedDate: payment.payment_date,
+      payerId: null, // Invoice payments don't have payer_id
       payerName: payment.invoice?.client_name || null,
+      payerEmail: null,
+      payerPhone: null,
       description: payment.invoice?.invoice_number ? `Invoice Payment ${payment.invoice.invoice_number}` : 'Invoice Payment',
       amount: roundCents(payment.amount),
       fees: 0,
@@ -154,6 +165,23 @@ export function buildTaxExportPackageFromData(input: {
     const deductiblePct = mapping.deductiblePercent;
     const deductibleAmount = roundCents((exp.amount || 0) * deductiblePct);
 
+    // Determine if this expense should be flagged for asset review
+    const expenseAmount = exp.amount || 0;
+    const category = exp.category || 'Other';
+    let potentialAssetReview = false;
+    let potentialAssetReason: string | null = null;
+
+    // Flag equipment/gear for depreciation review
+    if (category.toLowerCase().includes('equipment') || category.toLowerCase().includes('gear')) {
+      potentialAssetReview = true;
+      potentialAssetReason = 'Equipment/Gear category — review for depreciation/Section 179';
+    }
+    // Flag large purchases for capitalization review
+    else if (expenseAmount >= 2500) {
+      potentialAssetReview = true;
+      potentialAssetReason = 'Amount >= $2500 — review capitalization threshold';
+    }
+
     expenseRows.push({
       id: exp.id,
       date: exp.date,
@@ -168,6 +196,8 @@ export function buildTaxExportPackageFromData(input: {
       receiptUrl: exp.receipt_url,
       notes: exp.notes,
       relatedGigId: exp.gig_id,
+      potentialAssetReview,
+      potentialAssetReason,
     });
 
     if (exp.receipt_url) {
@@ -272,6 +302,153 @@ export function buildTaxExportPackageFromData(input: {
   const expensesTotal = roundCents(sumScheduleCMap(expenseTotalsByScheduleCRefNumber));
   const netProfit = roundCents(grossReceipts - returnsAllowances - cogs - expensesTotal + otherIncome);
 
+  // Derive payer summary rows for CPA reconciliation
+  const payerSummaryMap = new Map<string, {
+    payerId: string | null;
+    payerName: string | null;
+    payerEmail: string | null;
+    payerPhone: string | null;
+    paymentsCount: number;
+    grossAmount: number;
+    feesTotal: number;
+    netAmount: number;
+    dates: string[];
+  }>();
+
+  for (const row of incomeRows) {
+    if (row.source !== 'gig') continue; // Only gigs have payers
+    
+    const key = row.payerId || 'UNKNOWN';
+    const existing = payerSummaryMap.get(key);
+    
+    if (existing) {
+      existing.paymentsCount++;
+      existing.grossAmount = roundCents(existing.grossAmount + row.amount);
+      existing.feesTotal = roundCents(existing.feesTotal + row.fees);
+      existing.netAmount = roundCents(existing.netAmount + row.netAmount);
+      existing.dates.push(row.receivedDate);
+    } else {
+      payerSummaryMap.set(key, {
+        payerId: row.payerId || null,
+        payerName: row.payerName || null,
+        payerEmail: row.payerEmail || null,
+        payerPhone: row.payerPhone || null,
+        paymentsCount: 1,
+        grossAmount: row.amount,
+        feesTotal: row.fees,
+        netAmount: row.netAmount,
+        dates: [row.receivedDate],
+      });
+    }
+  }
+
+  const payerSummaryRows: PayerSummaryRow[] = Array.from(payerSummaryMap.values()).map((summary) => {
+    const sortedDates = summary.dates.sort();
+    const missingPayerNote = summary.payerId === null ? 'Payer missing on these transactions' : null;
+    
+    return {
+      payerId: summary.payerId,
+      payerName: summary.payerName,
+      payerEmail: summary.payerEmail,
+      payerPhone: summary.payerPhone,
+      paymentsCount: summary.paymentsCount,
+      grossAmount: summary.grossAmount,
+      feesTotal: summary.feesTotal,
+      netAmount: summary.netAmount,
+      firstPaymentDate: sortedDates[0],
+      lastPaymentDate: sortedDates[sortedDates.length - 1],
+      notes: missingPayerNote,
+    };
+  });
+
+  // Derive mileage summary
+  const totalMiles = roundCents(mileageRows.reduce((sum, r) => sum + r.miles, 0));
+  const hasAnyEstimate = mileageRows.some(r => r.isEstimate);
+  const mileageSummary: MileageSummary = {
+    taxYear: input.taxYear,
+    totalBusinessMiles: totalMiles,
+    standardRateUsed: mileageRate,
+    mileageDeductionAmount: mileageDeductionTotal,
+    entriesCount: mileageRows.length,
+    isEstimateAny: hasAnyEstimate,
+    notes: 'Vehicle info not collected; keep your odometer records. Standard mileage rate applied.',
+  };
+
+  // Build Schedule C line items with manual-entry friendly amounts
+  const scheduleCLineItems: ScheduleCLineItem[] = [];
+
+  // Income lines (positive amounts)
+  scheduleCLineItems.push({
+    scheduleCRefNumber: 293,
+    scheduleCLineName: getScheduleCLineName(293),
+    lineDescription: 'Gross receipts or sales',
+    rawSignedAmount: grossReceipts,
+    amountForEntry: grossReceipts,
+    notes: null,
+  });
+
+  if (returnsAllowances !== 0) {
+    scheduleCLineItems.push({
+      scheduleCRefNumber: 296,
+      scheduleCLineName: getScheduleCLineName(296),
+      lineDescription: 'Returns and allowances',
+      rawSignedAmount: returnsAllowances,
+      amountForEntry: returnsAllowances,
+      notes: null,
+    });
+  }
+
+  if (cogs !== 0) {
+    scheduleCLineItems.push({
+      scheduleCRefNumber: 295,
+      scheduleCLineName: getScheduleCLineName(295),
+      lineDescription: 'Cost of goods sold',
+      rawSignedAmount: cogs,
+      amountForEntry: cogs,
+      notes: null,
+    });
+  }
+
+  if (otherIncome !== 0) {
+    scheduleCLineItems.push({
+      scheduleCRefNumber: 304,
+      scheduleCLineName: getScheduleCLineName(304),
+      lineDescription: 'Other income',
+      rawSignedAmount: otherIncome,
+      amountForEntry: otherIncome,
+      notes: null,
+    });
+  }
+
+  // Expense lines (show as positive for manual entry)
+  for (const [refNum, amount] of Object.entries(expenseTotalsByScheduleCRefNumber)) {
+    const refNumber = parseInt(refNum) as ScheduleCRefNumber;
+    if (amount === 0) continue;
+
+    // For expenses, raw amount is stored as positive internally,
+    // but conceptually it reduces income, so we provide positive amount_for_entry
+    scheduleCLineItems.push({
+      scheduleCRefNumber: refNumber,
+      scheduleCLineName: getScheduleCLineName(refNumber),
+      lineDescription: getScheduleCLineName(refNumber),
+      rawSignedAmount: -amount, // Negative to show it reduces income
+      amountForEntry: Math.abs(amount), // Positive for manual entry
+      notes: refNumber === 302 ? 'See itemized breakdown in Other Expenses' : null,
+    });
+  }
+
+  // Add itemized other expenses as separate line items
+  for (const item of otherExpensesBreakdown) {
+    scheduleCLineItems.push({
+      scheduleCRefNumber: 302,
+      scheduleCLineName: getScheduleCLineName(302),
+      lineDescription: item.name,
+      rawSignedAmount: -item.amount,
+      amountForEntry: Math.abs(item.amount),
+      notes: 'Part of Line 302 (Other expenses)',
+    });
+  }
+
   return {
     metadata: {
       taxYear: input.taxYear,
@@ -294,12 +471,15 @@ export function buildTaxExportPackageFromData(input: {
       netProfit,
       warnings,
     },
+    scheduleCLineItems,
     incomeRows,
     expenseRows,
     mileageRows,
     invoiceRows: invoices,
     subcontractorPayoutRows,
     receiptsManifest,
+    payerSummaryRows,
+    mileageSummary,
   };
 }
 

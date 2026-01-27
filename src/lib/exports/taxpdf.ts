@@ -37,29 +37,18 @@ export async function generateScheduleCSummaryPdf(input: {
 
   y -= 8;
   drawLine('Schedule C totals (verify with your tax professional):', { bold: true });
+  drawLine('NOTE: Expense amounts shown as positive for manual entry.', { bold: false });
+  y -= 4;
 
-  drawLine(`Gross receipts (N293): $${formatCents(pkg.scheduleC.grossReceipts)}`);
-  drawLine(`Returns and allowances (N296): $${formatCents(-Math.abs(pkg.scheduleC.returnsAllowances))}`);
-  drawLine(`Cost of goods sold (N295): $${formatCents(-Math.abs(pkg.scheduleC.cogs))}`);
-
-  const refs = Object.entries(pkg.scheduleC.expenseTotalsByScheduleCRefNumber)
-    .map(([k, v]) => ({ ref: Number(k), amount: v || 0 }))
-    .filter(({ ref }) => ref !== 293 && ref !== 296 && ref !== 295 && ref !== 303 && ref !== 302)
-    .sort((a, b) => a.ref - b.ref);
-
-  for (const r of refs) {
-    drawLine(`Expense (N${r.ref}): $${formatCents(-Math.abs(r.amount))}`);
-  }
-
-  if (pkg.scheduleC.otherExpensesBreakdown.length > 0) {
-    drawLine('Other expenses (N302):', { bold: true });
-    for (const item of pkg.scheduleC.otherExpensesBreakdown) {
-      drawLine(`${item.name}: $${formatCents(-Math.abs(item.amount))}`);
-    }
-  }
-
-  if (pkg.scheduleC.otherIncome !== 0) {
-    drawLine(`Other income (N303): $${formatCents(Math.abs(pkg.scheduleC.otherIncome))}`);
+  // Use scheduleCLineItems with amount_for_entry (positive for expenses)
+  for (const item of pkg.scheduleCLineItems) {
+    const isExpense = item.rawSignedAmount < 0;
+    const displayAmount = item.amountForEntry;
+    const label = isExpense 
+      ? `${item.scheduleCLineName} (N${item.scheduleCRefNumber}) - enter as expense`
+      : `${item.scheduleCLineName} (N${item.scheduleCRefNumber})`;
+    
+    drawLine(`${label}: $${formatCents(displayAmount)}`);
   }
 
   y -= 8;
