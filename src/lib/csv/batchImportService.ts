@@ -46,12 +46,13 @@ export async function createMissingPayers(
       // Use existing payer
       payerIdMap.set(match.csvName, match.existingPayerId);
     } else if (match.action === 'create_new') {
-      // Create new payer
+      // Create new payer with default type
       const { data, error } = await supabase
         .from('payers')
         .insert({
           user_id: userId,
           name: match.csvName,
+          payer_type: 'Venue', // Default type for CSV imports
         })
         .select('id')
         .single();
@@ -151,11 +152,10 @@ async function importGigRow(
     notes = notes ? `${notes}\n[Combined from rows: ${row.combinedFromRows.join(', ')}]` : `[Combined from rows: ${row.combinedFromRows.join(', ')}]`;
   }
 
-  // Insert gig
+  // Insert gig (user_id is handled by RLS/trigger)
   const { data, error } = await supabase
     .from('gigs')
     .insert({
-      user_id: userId,
       payer_id: payerId,
       date: row.date,
       title: row.title || null,
@@ -169,7 +169,6 @@ async function importGigRow(
       other_income: row.otherIncome || 0,
       payment_method: row.paymentMethod || null,
       paid: row.paid || false,
-      taxes_withheld: row.taxesWithheld || 0,
       notes: notes || null,
       import_batch_id: batchId,
     })
@@ -201,11 +200,10 @@ export async function batchImportGigs(
   fileName?: string,
   skipDuplicates: boolean = true
 ): Promise<BatchImportResult> {
-  // Create batch record
+  // Create batch record (user_id handled by RLS)
   const { data: batch, error: batchError } = await supabase
     .from('import_batches')
     .insert({
-      user_id: userId,
       file_name: fileName || 'import.csv',
       total_rows: rows.length,
       combined_rows: rows.some(r => r.isCombined),
@@ -289,12 +287,11 @@ export async function undoImport(batchId: string, userId: string): Promise<{
   deletedGigs: number;
   deletedPayers: number;
 }> {
-  // Get all gigs in this batch
+  // Get all gigs in this batch (RLS filters by user)
   const { data: gigs, error: gigsError } = await supabase
     .from('gigs')
     .select('id, payer_id')
-    .eq('import_batch_id', batchId)
-    .eq('user_id', userId);
+    .eq('import_batch_id', batchId);
 
   if (gigsError) {
     throw new Error(`Failed to fetch gigs for batch: ${gigsError.message}`);
@@ -306,12 +303,11 @@ export async function undoImport(batchId: string, userId: string): Promise<{
 
   const payerIds = [...new Set(gigs.map(g => g.payer_id))];
 
-  // Delete gigs
+  // Delete gigs (RLS filters by user)
   const { error: deleteError } = await supabase
     .from('gigs')
     .delete()
-    .eq('import_batch_id', batchId)
-    .eq('user_id', userId);
+    .eq('import_batch_id', batchId);
 
   if (deleteError) {
     throw new Error(`Failed to delete gigs: ${deleteError.message}`);
@@ -323,16 +319,14 @@ export async function undoImport(batchId: string, userId: string): Promise<{
     const { count, error: countError } = await supabase
       .from('gigs')
       .select('id', { count: 'exact', head: true })
-      .eq('payer_id', payerId)
-      .eq('user_id', userId);
+      .eq('payer_id', payerId);
 
     if (!countError && count === 0) {
-      // Payer has no gigs, safe to delete
+      // Payer has no gigs, safe to delete (RLS filters by user)
       const { error: deletePayerError } = await supabase
         .from('payers')
         .delete()
-        .eq('id', payerId)
-        .eq('user_id', userId);
+        .eq('id', payerId);
 
       if (!deletePayerError) {
         deletedPayersCount++;
@@ -340,12 +334,11 @@ export async function undoImport(batchId: string, userId: string): Promise<{
     }
   }
 
-  // Delete batch record
+  // Delete batch record (RLS filters by user)
   await supabase
     .from('import_batches')
     .delete()
-    .eq('id', batchId)
-    .eq('user_id', userId);
+    .eq('id', batchId);
 
   return {
     deletedGigs: gigs.length,
@@ -356,14 +349,13 @@ export async function undoImport(batchId: string, userId: string): Promise<{
 /**
  * Get last import batch for user
  */
-export async function getLastImportBatch(userId: string) {
+export async function getLastImportBatch() {
   const { data, error } = await supabase
     .from('import_batches')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error || !data) return null;
   return data;
