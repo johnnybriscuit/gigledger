@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, ScrollView } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
 import { H1, H2, Text, Button } from '../../ui';
 import { colors, spacing } from '../../styles/theme';
 import { UploadStep } from './UploadStep';
@@ -13,8 +13,10 @@ import { PayerResolutionStep } from './PayerResolutionStep';
 import { ReviewStep } from './ReviewStep';
 import { ParsedCSVRow, ColumnMapping, NormalizedGigRow } from '../../lib/csv/csvParser';
 import { PayerMatch, CombinedGig } from '../../lib/csv/importHelpers';
+import { batchImportGigs, undoImport, BatchImportResult } from '../../lib/csv/batchImportService';
+import { supabase } from '../../lib/supabase';
 
-export type WizardStep = 'upload' | 'mapping' | 'payers' | 'review';
+export type WizardStep = 'upload' | 'mapping' | 'payers' | 'review' | 'success';
 
 interface CSVImportWizardProps {
   visible: boolean;

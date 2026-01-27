@@ -88,13 +88,13 @@ export function ReviewStep({
           </View>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryLabel}>Valid:</Text>
-            <Text semibold style={[styles.summaryValue, { color: colors.success.DEFAULT }]}>
+            <Text semibold style={styles.summaryValueSuccess}>
               {summary.validRows}
             </Text>
           </View>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryLabel}>Errors:</Text>
-            <Text semibold style={[styles.summaryValue, { color: colors.danger.DEFAULT }]}>
+            <Text semibold style={styles.summaryValueError}>
               {summary.errorRows}
             </Text>
           </View>
@@ -275,6 +275,16 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 18,
     marginTop: parseInt(spacing[1]),
+  },
+  summaryValueSuccess: {
+    fontSize: 18,
+    marginTop: parseInt(spacing[1]),
+    color: colors.success.DEFAULT,
+  },
+  summaryValueError: {
+    fontSize: 18,
+    marginTop: parseInt(spacing[1]),
+    color: colors.danger.DEFAULT,
   },
   toggleBox: {
     backgroundColor: colors.surface.DEFAULT,
