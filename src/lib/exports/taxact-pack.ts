@@ -16,6 +16,10 @@ export async function generateTaxActPackZip(input: {
   const scheduleSummaryRows = buildScheduleCSummaryRows(pkg);
   zip.file(`ScheduleC_Summary_${taxYear}.csv`, stringifyCsv(scheduleSummaryRows));
 
+  // Add Other Expenses Breakdown CSV (supporting detail for Line 302)
+  const otherExpensesRows = buildOtherExpensesBreakdownRows(pkg);
+  zip.file(`Other_Expenses_Breakdown_${taxYear}.csv`, stringifyCsv(otherExpensesRows));
+
   // Add Payer Summary CSV (for 1099 reconciliation)
   const payerSummaryRows = buildPayerSummaryRows(pkg);
   zip.file(`Payer_Summary_${taxYear}.csv`, stringifyCsv(payerSummaryRows));
@@ -126,12 +130,23 @@ function buildMileageRows(pkg: TaxExportPackage) {
     date: r.date,
     origin: r.origin || '',
     destination: r.destination || '',
-    purpose: r.purpose || '',
     miles: r.miles,
     rate: r.rate,
     deduction_amount: r.deductionAmount,
-    is_estimate: r.isEstimate ? 'true' : 'false',
+    purpose: r.purpose || '',
+    is_estimate: r.isEstimate,
     notes: r.notes || '',
+    related_gig_id: r.relatedGigId || '',
+  }));
+}
+
+function buildOtherExpensesBreakdownRows(pkg: TaxExportPackage) {
+  return pkg.scheduleC.otherExpensesBreakdown.map((item) => ({
+    schedule_c_ref_number: 302,
+    category_name: item.name,
+    raw_signed_amount: -item.amount,
+    amount_for_entry: Math.abs(item.amount),
+    notes: 'Supporting detail for Line 302 - enter ONLY the 302 total from ScheduleC_Summary',
   }));
 }
 
@@ -150,13 +165,17 @@ function buildReadmeText(pkg: TaxExportPackage): string {
     'CONTENTS',
     '--------',
     `1. ScheduleC_Summary_${year}.csv - Line-by-line Schedule C totals (expenses shown as POSITIVE)`,
-    `2. Payer_Summary_${year}.csv - Payer totals for 1099 reconciliation`,
-    `3. Mileage_Summary_${year}.csv - Mileage totals for easy entry`,
-    `4. Income_Detail_${year}.csv - Detailed income transactions with payer info`,
-    `5. Expense_Detail_${year}.csv - Detailed expenses with asset review flags`,
-    `6. Mileage_${year}.csv - Mileage log with standard deduction calculations`,
-    `7. PDF_Summary_${year}.pdf - Visual summary for verification`,
-    '8. This README file',
+    `2. Other_Expenses_Breakdown_${year}.csv - Supporting detail for Line 302 (Other expenses)`,
+    `3. Payer_Summary_${year}.csv - Payer totals for 1099 reconciliation`,
+    `4. Mileage_Summary_${year}.csv - Mileage totals for easy entry`,
+    `5. Income_Detail_${year}.csv - Detailed income transactions with payer info`,
+    `6. Expense_Detail_${year}.csv - Detailed expenses with asset review flags`,
+    `7. Mileage_${year}.csv - Mileage log with standard deduction calculations`,
+    `8. PDF_Summary_${year}.pdf - Visual summary for verification`,
+    '9. This README file',
+    '',
+    'IMPORTANT: Other_Expenses_Breakdown is supporting detail for line 302 (Other expenses).',
+    'Enter ONLY the 302 total from ScheduleC_Summary. Do NOT enter the breakdown items separately.',
     '',
     'HOW TO USE WITH TAXACT',
     '-----------------------',

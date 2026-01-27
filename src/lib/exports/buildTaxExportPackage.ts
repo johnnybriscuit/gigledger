@@ -433,21 +433,13 @@ export function buildTaxExportPackageFromData(input: {
       lineDescription: getScheduleCLineName(refNumber),
       rawSignedAmount: -amount, // Negative to show it reduces income
       amountForEntry: Math.abs(amount), // Positive for manual entry
-      notes: refNumber === 302 ? 'See itemized breakdown in Other Expenses' : null,
+      notes: refNumber === 302 ? 'See Other_Expenses_Breakdown CSV for itemized detail' : null,
     });
   }
 
-  // Add itemized other expenses as separate line items
-  for (const item of otherExpensesBreakdown) {
-    scheduleCLineItems.push({
-      scheduleCRefNumber: 302,
-      scheduleCLineName: getScheduleCLineName(302),
-      lineDescription: item.name,
-      rawSignedAmount: -item.amount,
-      amountForEntry: Math.abs(item.amount),
-      notes: 'Part of Line 302 (Other expenses)',
-    });
-  }
+  // NOTE: Itemized other expenses breakdown is kept in scheduleC.otherExpensesBreakdown
+  // It is NOT added to scheduleCLineItems to prevent double-entry confusion
+  // The breakdown is exported separately in Other_Expenses_Breakdown CSV
 
   return {
     metadata: {

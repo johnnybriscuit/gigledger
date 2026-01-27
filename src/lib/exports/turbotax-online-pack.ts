@@ -107,6 +107,16 @@ function buildMileageRows(pkg: TaxExportPackage) {
   }));
 }
 
+function buildOtherExpensesBreakdownRows(pkg: TaxExportPackage) {
+  return pkg.scheduleC.otherExpensesBreakdown.map((item) => ({
+    schedule_c_ref_number: 302,
+    category_name: item.name,
+    raw_signed_amount: -item.amount,
+    amount_for_entry: Math.abs(item.amount),
+    notes: 'Supporting detail for Line 302 - enter ONLY the 302 total from ScheduleC_Summary',
+  }));
+}
+
 function buildReadmeText(pkg: TaxExportPackage): string {
   const { taxYear } = pkg.metadata;
   
@@ -121,13 +131,17 @@ This pack is designed for MANUAL ENTRY into TurboTax Online.
 CONTENTS
 --------
 1. ScheduleC_Summary_${taxYear}.csv - Line-by-line Schedule C totals (expenses shown as POSITIVE)
-2. Payer_Summary_${taxYear}.csv - Payer totals for 1099 reconciliation
-3. Mileage_Summary_${taxYear}.csv - Mileage totals for TurboTax entry
-4. Income_Detail_${taxYear}.csv - Detailed income transactions with payer info
-5. Expense_Detail_${taxYear}.csv - Detailed expenses with asset review flags
-6. Mileage_${taxYear}.csv - Mileage log with standard deduction calculations
-7. PDF_Summary_${taxYear}.pdf - Visual summary for verification
-8. This README file
+2. Other_Expenses_Breakdown_${taxYear}.csv - Supporting detail for Line 302 (Other expenses)
+3. Payer_Summary_${taxYear}.csv - Payer totals for 1099 reconciliation
+4. Mileage_Summary_${taxYear}.csv - Mileage totals for TurboTax entry
+5. Income_Detail_${taxYear}.csv - Detailed income transactions with payer info
+6. Expense_Detail_${taxYear}.csv - Detailed expenses with asset review flags
+7. Mileage_${taxYear}.csv - Mileage log with standard deduction calculations
+8. PDF_Summary_${taxYear}.pdf - Visual summary for verification
+9. This README file
+
+IMPORTANT: Other_Expenses_Breakdown is supporting detail for line 302 (Other expenses).
+Enter ONLY the 302 total from ScheduleC_Summary. Do NOT enter the breakdown items separately.
 
 HOW TO USE WITH TURBOTAX ONLINE
 --------------------------------
@@ -206,6 +220,11 @@ export async function generateTurboTaxOnlinePack(pkg: TaxExportPackage): Promise
   const summaryRows = buildScheduleCSummaryRows(pkg);
   const summaryCsv = stringifyCsv(summaryRows);
   zip.file(`ScheduleC_Summary_${taxYear}.csv`, summaryCsv);
+
+  // Add Other Expenses Breakdown CSV (supporting detail for Line 302)
+  const otherExpensesRows = buildOtherExpensesBreakdownRows(pkg);
+  const otherExpensesCsv = stringifyCsv(otherExpensesRows);
+  zip.file(`Other_Expenses_Breakdown_${taxYear}.csv`, otherExpensesCsv);
 
   // Add Payer Summary CSV (for 1099 reconciliation)
   const payerSummaryRows = buildPayerSummaryRows(pkg);
