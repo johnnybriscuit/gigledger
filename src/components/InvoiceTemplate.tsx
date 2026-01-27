@@ -1,14 +1,22 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Invoice, InvoiceSettings, formatCurrency } from '../types/invoice';
+import { buildInvoiceViewModel } from '../utils/invoiceViewModel';
+import { PaymentMethodDetail } from '../hooks/usePaymentMethodDetails';
 
 interface InvoiceTemplateProps {
   invoice: Invoice;
   settings: InvoiceSettings;
+  paymentMethodDetails?: PaymentMethodDetail[];
   onDeletePayment?: (paymentId: string) => void;
 }
 
-export function InvoiceTemplate({ invoice, settings, onDeletePayment }: InvoiceTemplateProps) {
+export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDeletePayment }: InvoiceTemplateProps) {
+  // Build view model with correct calculations
+  const viewModel = useMemo(
+    () => buildInvoiceViewModel(invoice, paymentMethodDetails),
+    [invoice, paymentMethodDetails]
+  );
   const handleDeletePayment = (paymentId: string, paymentAmount: number) => {
     console.log('Delete payment clicked:', paymentId, paymentAmount);
     
@@ -95,7 +103,7 @@ export function InvoiceTemplate({ invoice, settings, onDeletePayment }: InvoiceT
             <Text style={[styles.lineItemHeaderText, styles.amountColumn]}>Amount</Text>
           </View>
 
-          {invoice.line_items?.map((item, index) => (
+          {viewModel.lineItems.map((item, index) => (
             <View key={item.id} style={[styles.lineItemRow, index % 2 === 1 && styles.lineItemRowAlt]}>
               <Text style={[styles.lineItemText, styles.descriptionColumn]}>{item.description}</Text>
               <Text style={[styles.lineItemText, styles.qtyColumn]}>{item.quantity}</Text>
@@ -108,20 +116,20 @@ export function InvoiceTemplate({ invoice, settings, onDeletePayment }: InvoiceT
         <View style={styles.totalsContainer}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Subtotal:</Text>
-            <Text style={styles.totalValue}>{formatCurrency(invoice.subtotal, invoice.currency)}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(viewModel.subtotal, invoice.currency)}</Text>
           </View>
 
-          {invoice.tax_rate && invoice.tax_amount && (
+          {viewModel.taxAmount > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Tax ({invoice.tax_rate}%):</Text>
-              <Text style={styles.totalValue}>{formatCurrency(invoice.tax_amount, invoice.currency)}</Text>
+              <Text style={styles.totalValue}>{formatCurrency(viewModel.taxAmount, invoice.currency)}</Text>
             </View>
           )}
 
-          {invoice.discount_amount && invoice.discount_amount > 0 && (
+          {viewModel.discountAmount > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Discount:</Text>
-              <Text style={styles.totalValue}>-{formatCurrency(invoice.discount_amount, invoice.currency)}</Text>
+              <Text style={styles.totalValue}>-{formatCurrency(viewModel.discountAmount, invoice.currency)}</Text>
             </View>
           )}
 
@@ -130,7 +138,7 @@ export function InvoiceTemplate({ invoice, settings, onDeletePayment }: InvoiceT
           <View style={styles.totalRow}>
             <Text style={[styles.grandTotalLabel, { color: colors.primary }]}>TOTAL DUE:</Text>
             <Text style={[styles.grandTotalValue, { color: colors.primary }]}>
-              {formatCurrency(invoice.total_amount, invoice.currency)}
+              {formatCurrency(viewModel.totalDue, invoice.currency)}
             </Text>
           </View>
         </View>
@@ -150,12 +158,12 @@ export function InvoiceTemplate({ invoice, settings, onDeletePayment }: InvoiceT
           </View>
         )}
 
-        {invoice.accepted_payment_methods && invoice.accepted_payment_methods.length > 0 && (
+        {viewModel.paymentMethods.length > 0 && (
           <View style={styles.termsSection}>
             <Text style={styles.termsSectionLabel}>Payment Methods Accepted:</Text>
-            {invoice.accepted_payment_methods.map((pm, index) => (
+            {viewModel.paymentMethods.map((pm, index) => (
               <Text key={index} style={styles.termsSectionText}>
-                {pm.method}{pm.details ? `: ${pm.details}` : ''}
+                {pm.displayText}
               </Text>
             ))}
           </View>

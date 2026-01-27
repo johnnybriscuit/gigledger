@@ -364,6 +364,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
           <InvoiceTemplate 
             invoice={selectedInvoice} 
             settings={settings} 
+            paymentMethodDetails={paymentMethods}
             onDeletePayment={handleDeletePayment}
           />
 

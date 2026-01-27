@@ -1,5 +1,6 @@
 import { Invoice, InvoiceSettings, formatCurrency } from '../types/invoice';
 import { PaymentMethodDetail } from '../hooks/usePaymentMethodDetails';
+import { buildInvoiceViewModel } from './invoiceViewModel';
 
 // HTML sanitization helper to prevent injection attacks
 function escapeHtml(text: string): string {
@@ -14,6 +15,9 @@ function escapeHtml(text: string): string {
 }
 
 export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, paymentMethodDetails?: PaymentMethodDetail[]): string {
+  // Build view model with correct calculations
+  const viewModel = buildInvoiceViewModel(invoice, paymentMethodDetails);
+  
   const getColorScheme = () => {
     switch (settings.color_scheme) {
       case 'blue': return { primary: '#2563eb', secondary: '#dbeafe' };
@@ -327,40 +331,40 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, 
         </tr>
       </thead>
       <tbody>
-        ${invoice.line_items?.map(item => `
+        ${viewModel.lineItems.map(item => `
           <tr>
-            <td>${item.description}</td>
+            <td>${escapeHtml(item.description)}</td>
             <td class="center">${item.quantity}</td>
             <td class="right">${formatCurrency(item.rate, invoice.currency)}</td>
             <td class="right">${formatCurrency(item.amount, invoice.currency)}</td>
           </tr>
-        `).join('') || ''}
+        `).join('')}
       </tbody>
     </table>
     
     <div class="totals">
       <div class="total-row">
         <span class="total-label">Subtotal:</span>
-        <span class="total-value">${formatCurrency(invoice.subtotal, invoice.currency)}</span>
+        <span class="total-value">${formatCurrency(viewModel.subtotal, invoice.currency)}</span>
       </div>
       
-      ${invoice.tax_rate && invoice.tax_amount ? `
+      ${viewModel.taxAmount > 0 ? `
         <div class="total-row">
           <span class="total-label">Tax (${invoice.tax_rate}%):</span>
-          <span class="total-value">${formatCurrency(invoice.tax_amount, invoice.currency)}</span>
+          <span class="total-value">${formatCurrency(viewModel.taxAmount, invoice.currency)}</span>
         </div>
       ` : ''}
       
-      ${invoice.discount_amount && invoice.discount_amount > 0 ? `
+      ${viewModel.discountAmount > 0 ? `
         <div class="total-row">
           <span class="total-label">Discount:</span>
-          <span class="total-value">-${formatCurrency(invoice.discount_amount, invoice.currency)}</span>
+          <span class="total-value">-${formatCurrency(viewModel.discountAmount, invoice.currency)}</span>
         </div>
       ` : ''}
       
       <div class="total-row grand-total">
         <span class="grand-total-label">TOTAL DUE:</span>
-        <span class="grand-total-value">${formatCurrency(invoice.total_amount, invoice.currency)}</span>
+        <span class="grand-total-value">${formatCurrency(viewModel.totalDue, invoice.currency)}</span>
       </div>
     </div>
     
@@ -370,17 +374,10 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, 
         <div class="terms-text">${invoice.payment_terms}</div>
       ` : ''}
       
-      ${invoice.accepted_payment_methods && invoice.accepted_payment_methods.length > 0 ? `
+      ${viewModel.paymentMethods.length > 0 ? `
         <div class="terms-label">Payment Methods Accepted:</div>
         <div class="terms-text">
-          ${invoice.accepted_payment_methods.map(pm => {
-            const methodKey = pm.method.toLowerCase().replace(/\s+/g, '');
-            const detail = paymentMethodDetails?.find(pmd => pmd.method === methodKey);
-            const detailText = detail?.enabled && detail?.details?.trim() 
-              ? escapeHtml(detail.details) 
-              : '(details not provided)';
-            return `• ${escapeHtml(pm.method)}: ${detailText}`;
-          }).join('<br>')}
+          ${viewModel.paymentMethods.map(pm => `• ${escapeHtml(pm.displayText)}`).join('<br>')}
         </div>
       ` : ''}
       
