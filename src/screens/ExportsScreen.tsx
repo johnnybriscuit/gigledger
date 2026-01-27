@@ -33,6 +33,11 @@ import { downloadExcel } from '../lib/exports/excel-generator';
 import { openScheduleCPDF } from '../lib/exports/pdf-generator';
 import type { GigExportRow, ExpenseExportRow, MileageExportRow } from '../lib/exports/schemas';
 import { useWithholding } from '../hooks/useWithholding';
+import { useTaxExportPackage } from '../hooks/useTaxExportPackage';
+import { generateTXFv042 } from '../lib/exports/txf-v042-generator';
+import { generateTaxActPackZip } from '../lib/exports/taxact-pack';
+import { downloadTXF as downloadTXFWeb, downloadZip } from '../lib/exports/webDownloadHelpers';
+import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
 
 export function ExportsScreen() {
   const currentYear = new Date().getFullYear();
@@ -45,9 +50,11 @@ export function ExportsScreen() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showValidationDetails, setShowValidationDetails] = useState(false);
   const [showTXFInfo, setShowTXFInfo] = useState(false);
+  const [showTaxActInfo, setShowTaxActInfo] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showTaxPrepChecklist, setShowTaxPrepChecklist] = useState(true);
   const [expandedGuidance, setExpandedGuidance] = useState<string | null>(null);
+  const [taxExportError, setTaxExportError] = useState<string | null>(null);
 
   // Fetch user's plan
   const { data: profile } = useQuery({
@@ -66,6 +73,14 @@ export function ExportsScreen() {
 
   const userPlan = profile?.plan || 'free';
 
+  // Get current user ID for tax export package
+  const { data: currentUserData } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => await supabase.auth.getUser(),
+  });
+
+  const currentUserId = currentUserData?.data?.user?.id || '';
+
   // Build filters
   const filters: ExportFilters = {
     startDate: customDateRange ? startDate : `${taxYear}-01-01`,
@@ -74,8 +89,16 @@ export function ExportsScreen() {
     includeFees,
   };
 
-  // Fetch all export data
+  // Fetch all export data (legacy)
   const { gigs, expenses, mileage, payers, scheduleC, isLoading, isError } = useAllExportData(filters);
+
+  // Fetch canonical tax export package (new)
+  const taxPackage = useTaxExportPackage({
+    userId: currentUserId,
+    taxYear,
+    timezone: 'America/New_York',
+    enabled: !!currentUserId,
+  });
   
   // Calculate net profit for tax estimation (same as dashboard)
   const netProfit = useMemo(() => {
@@ -673,6 +696,122 @@ export function ExportsScreen() {
     }
   };
 
+  const handleDownloadTurboTaxTXF = async () => {
+    setTaxExportError(null);
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    if (!taxPackage.data) {
+      Alert.alert('Error', 'Tax export package not loaded. Please wait or refresh.');
+      return;
+    }
+
+    try {
+      const { filename, content } = generateTXFv042({
+        pkg: taxPackage.data,
+        flavor: 'turbotax',
+        appVersion: '1.0.0',
+      });
+
+      downloadTXFWeb(content, filename);
+
+      Alert.alert(
+        'TurboTax Desktop TXF Export Complete',
+        'Your TXF file has been downloaded. This file can be imported into TurboTax Desktop (NOT TurboTax Online).\n\nThese exports organize your GigLedger data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('TurboTax TXF export error:', error);
+      if (error instanceof TaxExportError && error.code === 'NON_USD_CURRENCY') {
+        setTaxExportError(error.message);
+        Alert.alert('Currency Error', error.message);
+      } else {
+        Alert.alert('Export Error', error.message || 'Failed to generate TurboTax TXF file');
+      }
+    }
+  };
+
+  const handleDownloadHRBlockTXF = async () => {
+    setTaxExportError(null);
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    if (!taxPackage.data) {
+      Alert.alert('Error', 'Tax export package not loaded. Please wait or refresh.');
+      return;
+    }
+
+    try {
+      const { filename, content } = generateTXFv042({
+        pkg: taxPackage.data,
+        flavor: 'hrblock',
+        appVersion: '1.0.0',
+      });
+
+      downloadTXFWeb(content, filename);
+
+      Alert.alert(
+        'H&R Block Desktop TXF Export Complete',
+        'Your TXF file has been downloaded. This file can be imported into H&R Block Desktop.\n\nThese exports organize your GigLedger data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('H&R Block TXF export error:', error);
+      if (error instanceof TaxExportError && error.code === 'NON_USD_CURRENCY') {
+        setTaxExportError(error.message);
+        Alert.alert('Currency Error', error.message);
+      } else {
+        Alert.alert('Export Error', error.message || 'Failed to generate H&R Block TXF file');
+      }
+    }
+  };
+
+  const handleDownloadTaxActPack = async () => {
+    setTaxExportError(null);
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    if (!taxPackage.data) {
+      Alert.alert('Error', 'Tax export package not loaded. Please wait or refresh.');
+      return;
+    }
+
+    try {
+      const { filename, bytes } = await generateTaxActPackZip({
+        pkg: taxPackage.data,
+        appVersion: '1.0.0',
+      });
+
+      downloadZip(bytes, filename);
+
+      Alert.alert(
+        'TaxAct Tax Prep Pack Export Complete',
+        'Your ZIP file has been downloaded with CSVs, PDF summary, and README.\n\nTaxAct export is a Tax Prep Pack (ZIP) designed for easy manual entry and CPA sharing.\n\nThese exports organize your GigLedger data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
+        [
+          { text: 'View Info', onPress: () => setShowTaxActInfo(true) },
+          { text: 'Done' },
+        ]
+      );
+    } catch (error: any) {
+      console.error('TaxAct pack export error:', error);
+      if (error instanceof TaxExportError && error.code === 'NON_USD_CURRENCY') {
+        setTaxExportError(error.message);
+        Alert.alert('Currency Error', error.message);
+      } else {
+        Alert.alert('Export Error', error.message || 'Failed to generate TaxAct pack');
+      }
+    }
+  };
+
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   return (
@@ -951,7 +1090,7 @@ export function ExportsScreen() {
               )}
             </View>
 
-            {/* TXF Export */}
+            {/* TXF Export (Legacy - keeping for now) */}
             <View style={styles.exportCard}>
               <TouchableOpacity
                 style={[
@@ -964,7 +1103,7 @@ export function ExportsScreen() {
                 <Text style={styles.exportButtonIcon}>💼</Text>
                 <View style={styles.exportButtonContent}>
                   <View style={styles.exportButtonHeader}>
-                    <Text style={styles.exportButtonTitle}>Download TXF (TurboTax Desktop ONLY)</Text>
+                    <Text style={styles.exportButtonTitle}>Download TXF (TurboTax Desktop ONLY - Legacy)</Text>
                     <TouchableOpacity 
                       onPress={(e) => {
                         e.stopPropagation();
@@ -981,6 +1120,81 @@ export function ExportsScreen() {
                 </View>
               </TouchableOpacity>
             </View>
+
+            {/* TurboTax Desktop TXF (New Canonical) */}
+            <View style={styles.exportCard}>
+              <TouchableOpacity
+                style={[
+                  styles.exportButton,
+                  (!taxPackage.data || taxPackage.isLoading) && styles.exportButtonDisabled
+                ]}
+                onPress={handleDownloadTurboTaxTXF}
+                disabled={!taxPackage.data || taxPackage.isLoading}
+              >
+                <Text style={styles.exportButtonIcon}>🧾</Text>
+                <View style={styles.exportButtonContent}>
+                  <View style={styles.exportButtonHeader}>
+                    <Text style={styles.exportButtonTitle}>TurboTax Desktop (TXF)</Text>
+                    <Badge variant="success" size="sm">Tax-Ready</Badge>
+                  </View>
+                  <Text style={styles.exportButtonDescription}>
+                    Import directly into TurboTax Desktop (NOT Online). Organized for tax prep.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* H&R Block Desktop TXF (New Canonical) */}
+            <View style={styles.exportCard}>
+              <TouchableOpacity
+                style={[
+                  styles.exportButton,
+                  (!taxPackage.data || taxPackage.isLoading) && styles.exportButtonDisabled
+                ]}
+                onPress={handleDownloadHRBlockTXF}
+                disabled={!taxPackage.data || taxPackage.isLoading}
+              >
+                <Text style={styles.exportButtonIcon}>📋</Text>
+                <View style={styles.exportButtonContent}>
+                  <View style={styles.exportButtonHeader}>
+                    <Text style={styles.exportButtonTitle}>H&R Block Desktop (TXF)</Text>
+                    <Badge variant="success" size="sm">Tax-Ready</Badge>
+                  </View>
+                  <Text style={styles.exportButtonDescription}>
+                    Import directly into H&R Block Desktop. Organized for tax prep.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* TaxAct Tax Prep Pack (ZIP) */}
+            <View style={styles.exportCard}>
+              <TouchableOpacity
+                style={[
+                  styles.exportButton,
+                  (!taxPackage.data || taxPackage.isLoading) && styles.exportButtonDisabled
+                ]}
+                onPress={handleDownloadTaxActPack}
+                disabled={!taxPackage.data || taxPackage.isLoading}
+              >
+                <Text style={styles.exportButtonIcon}>📦</Text>
+                <View style={styles.exportButtonContent}>
+                  <View style={styles.exportButtonHeader}>
+                    <Text style={styles.exportButtonTitle}>TaxAct Tax Prep Pack (ZIP)</Text>
+                    <Badge variant="success" size="sm">Tax-Ready</Badge>
+                  </View>
+                  <Text style={styles.exportButtonDescription}>
+                    CSV files + PDF summary + README. Designed for manual entry and CPA sharing.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {taxExportError && (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorText}>⚠️ {taxExportError}</Text>
+              </View>
+            )}
 
             {/* Excel Export */}
             <View style={styles.exportCard}>
@@ -1172,6 +1386,26 @@ export function ExportsScreen() {
             <TouchableOpacity
               style={styles.modalButton}
               onPress={() => setShowTXFInfo(false)}
+            >
+              <Text style={styles.modalButtonText}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* TaxAct Info Modal */}
+      <Modal visible={showTaxActInfo} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>TaxAct Tax Prep Pack</Text>
+            <ScrollView style={styles.modalScroll}>
+              <Text style={styles.modalText}>
+                {`Your ZIP file contains:\n\n• ScheduleC_Summary_${taxYear}.csv - Main Schedule C totals\n• Expense_Detail_${taxYear}.csv - All expenses with categories\n• Income_Detail_${taxYear}.csv - All income transactions\n• Mileage_${taxYear}.csv - Business mileage log\n• PDF_Summary_${taxYear}.pdf - Professional summary for your CPA\n• README_Tax_Filing_${taxYear}.txt - Instructions and notes\n\nHow to use:\n\n1. Extract the ZIP file\n2. Review the PDF summary for totals\n3. Use the CSV files for manual entry into TaxAct or share with your CPA\n4. Keep the README for reference\n\nImportant: These exports organize your GigLedger data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you're unsure.`}
+              </Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShowTaxActInfo(false)}
             >
               <Text style={styles.modalButtonText}>Got It</Text>
             </TouchableOpacity>
@@ -1710,5 +1944,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  errorBanner: {
+    backgroundColor: colors.danger.muted,
+    padding: parseInt(spacing[4]),
+    marginHorizontal: parseInt(spacing[4]),
+    marginTop: parseInt(spacing[3]),
+    borderRadius: parseInt(radius.md),
+    borderLeftWidth: 4,
+    borderLeftColor: colors.danger.DEFAULT,
+  },
+  errorText: {
+    fontSize: parseInt(typography.fontSize.body.size),
+    color: colors.danger.DEFAULT,
+    fontWeight: typography.fontWeight.semibold,
   },
 });
