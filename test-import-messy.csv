@@ -1,0 +1,7 @@
+Payer,Gross,Date,Title,Tips,Location,State,City,Fees,Payment Method,Paid,Notes
+The Blue Note,$1,250.00,01/15/2026,Friday Night Jazz,150,Blue Note Jazz Club,NY,New York,$125.00,Direct Deposit,Yes,Great crowd
+Viper Room,1500,2026-02-20,Saturday Show,$200.00,The Viper Room,California,Los Angeles,150,Venmo,No,Sold out
+Private Events Inc,$2500,2/28/26,Corporate Gig,300.00,Hilton Ballroom,TX,Dallas,$250,Check,Y,4 hour set
+Blue Note Jazz Club,$1,250.00,01/15/2026,Friday Night Jazz,150,Blue Note Jazz Club,NY,New York,$125.00,Direct Deposit,Yes,DUPLICATE - same as row 1
+New Venue Name,850.50,3/15/2026,Spring Concert,,New Venue,CA,San Francisco,85.50,Cash,true,New payer - should be created
+The Blue Note,500,03/22/2026,Afternoon Set,50,Blue Note Jazz Club,NY,New York,50,dd,1,Same payer different gig
