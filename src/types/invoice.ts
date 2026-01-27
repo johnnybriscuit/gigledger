@@ -229,10 +229,11 @@ export function getStatusLabel(status: InvoiceStatus): string {
   }
 }
 
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
+export function formatCurrency(amount: number | null | undefined, currency: string = 'USD'): string {
   const currencyInfo = CURRENCIES.find(c => c.code === currency);
   const symbol = currencyInfo?.symbol || '$';
-  return `${symbol}${amount.toFixed(2)}`;
+  const safeAmount = amount ?? 0;
+  return `${symbol}${safeAmount.toFixed(2)}`;
 }
 
 export function calculateDueDate(invoiceDate: string, paymentTerms: string): string {
