@@ -6,8 +6,11 @@
  * This shim is aliased to "tslib" in webpack.config.js to intercept all tslib imports
  */
 
-// Import all tslib helpers as named exports
-export {
+// Import tslib directly - will resolve to pdf-lib's tslib dependency
+import * as tslib from 'tslib';
+
+// Re-export all named exports
+export const {
   __extends,
   __assign,
   __rest,
@@ -33,8 +36,7 @@ export {
   __classPrivateFieldGet,
   __classPrivateFieldSet,
   __classPrivateFieldIn,
-} from '../../node_modules/tslib/tslib.es6.js';
+} = tslib;
 
 // Also provide as default export for dependencies expecting default import
-import * as tslib from '../../node_modules/tslib/tslib.es6.js';
 export default tslib;
