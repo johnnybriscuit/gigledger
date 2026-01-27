@@ -1,0 +1,4 @@
+Date,Payer,Title,Venue,City,State,Gross,Tips,Fees,PerDiem,OtherIncome,PaymentMethod,Paid,TaxesWithheld,Notes
+2026-01-15,Blue Note Jazz Club,Friday Night Set,Blue Note,New York,NY,$850.00,$120.00,$85.00,,$50.00,Direct Deposit,Yes,$127.50,Great crowd - packed house
+01/22/2026,The Viper Room,Saturday Headliner,The Viper Room,Los Angeles,CA,1200,150,120,100,,Venmo,Yes,180,Sold out show
+1/27/26,Private Event Co,Corporate Event,Hilton Downtown,Chicago,IL,$2500.00,$300.00,$250.00,$150.00,$100.00,Check,No,,Wedding reception - 4 hour set
