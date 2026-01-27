@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import { useGigs, useDeleteGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs';
 import { AddGigModal } from '../components/AddGigModal';
-import { ImportGigsModal } from '../components/ImportGigsModal';
+import { CSVImportWizard } from '../components/csv/CSVImportWizard';
 import { PaywallModal } from '../components/PaywallModal';
+import { usePayers } from '../hooks/usePayers';
 import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
 import { usePlanLimits } from '../hooks/usePlanLimits';
 import { SkeletonGigCard } from '../components/SkeletonCard';
@@ -168,6 +169,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const [togglingGigId, setTogglingGigId] = useState<string | null>(null);
   
   const { data: gigs, isLoading, error } = useGigs();
+  const { data: payers } = usePayers();
   
   // Debug logging
   console.log('[GigsScreen] Gigs data:', gigs?.length, 'isLoading:', isLoading, 'error:', error);
@@ -409,9 +411,22 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         duplicatingGig={duplicatingGig}
       />
       
-      <ImportGigsModal
+      <CSVImportWizard
         visible={importModalVisible}
         onClose={() => setImportModalVisible(false)}
+        onImportComplete={(count) => {
+          setImportModalVisible(false);
+          // Gigs will refresh automatically via React Query
+        }}
+        existingPayers={payers?.map(p => ({ id: p.id, name: p.name })) || []}
+        existingGigs={gigs?.map(g => ({
+          id: g.id,
+          date: g.date,
+          payer_id: g.payer_id,
+          payer_name: g.payer?.name || '',
+          gross: g.gross_amount,
+          title: g.title,
+        })) || []}
       />
       
       {/* Paywall Modal - shown when user hits gig limit */}
