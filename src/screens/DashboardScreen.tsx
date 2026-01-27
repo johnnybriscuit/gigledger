@@ -163,7 +163,10 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       case 'subscription':
         return <SubscriptionScreen />;
       case 'account':
-        return <AccountScreen onNavigateToBusinessStructures={onNavigateToBusinessStructures} />;
+        return <AccountScreen 
+          onNavigateToBusinessStructures={onNavigateToBusinessStructures}
+          onNavigateToInvoices={() => setActiveTab('invoices')}
+        />;
       default:
         return (
           <EnhancedDashboard

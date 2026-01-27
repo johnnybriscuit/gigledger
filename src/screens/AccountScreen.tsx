@@ -18,7 +18,7 @@ import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { formatRelativeTime } from '../lib/profile';
 import { H1, H2, Text, Button, Card } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
-import { usePaymentMethodDetails, useUpsertPaymentMethodDetail, PaymentMethod } from '../hooks/usePaymentMethodDetails';
+import { usePaymentMethodDetails, PaymentMethod } from '../hooks/usePaymentMethodDetails';
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' },
@@ -77,9 +77,10 @@ const US_STATES = [
 
 interface AccountScreenProps {
   onNavigateToBusinessStructures?: () => void;
+  onNavigateToInvoices?: () => void;
 }
 
-export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenProps = {}) {
+export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvoices }: AccountScreenProps = {}) {
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
@@ -105,19 +106,6 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Payment method states
-  const [paymentMethodDetails, setPaymentMethodDetails] = useState<{
-    venmo: { enabled: boolean; details: string };
-    zelle: { enabled: boolean; details: string };
-    paypal: { enabled: boolean; details: string };
-    cashapp: { enabled: boolean; details: string };
-  }>({
-    venmo: { enabled: false, details: '' },
-    zelle: { enabled: false, details: '' },
-    paypal: { enabled: false, details: '' },
-    cashapp: { enabled: false, details: '' },
-  });
-
   // Fetch user
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -126,6 +114,9 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
       return user;
     },
   });
+
+  // Fetch payment method details (read-only for display)
+  const { data: paymentMethods = [] } = usePaymentMethodDetails(user?.id);
 
   // Fetch user profile with new hook
   const { data: profile, isLoading: profileLoading } = useProfile(user?.id);
@@ -236,65 +227,6 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
     changePasswordMutation.mutate();
   };
 
-  // Fetch payment method details
-  const { data: paymentMethods = [] } = usePaymentMethodDetails(user?.id);
-  const upsertPaymentMethod = useUpsertPaymentMethodDetail(user?.id || '');
-
-  // Track if we've initialized to prevent cursor jumping
-  const initializedRef = useRef(false);
-
-  // Initialize payment method details from fetched data (only once)
-  useEffect(() => {
-    if (paymentMethods.length > 0 && !initializedRef.current) {
-      const newDetails = { ...paymentMethodDetails };
-      paymentMethods.forEach((pm) => {
-        newDetails[pm.method] = { enabled: pm.enabled, details: pm.details };
-      });
-      setPaymentMethodDetails(newDetails);
-      initializedRef.current = true;
-    }
-  }, [paymentMethods]);
-
-  const handlePaymentMethodToggle = async (method: PaymentMethod, enabled: boolean) => {
-    const currentDetails = paymentMethodDetails[method].details;
-    setPaymentMethodDetails((prev) => ({
-      ...prev,
-      [method]: { ...prev[method], enabled },
-    }));
-
-    try {
-      await upsertPaymentMethod.mutateAsync({
-        method,
-        details: currentDetails,
-        enabled,
-      });
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update payment method');
-      // Revert on error
-      setPaymentMethodDetails((prev) => ({
-        ...prev,
-        [method]: { ...prev[method], enabled: !enabled },
-      }));
-    }
-  };
-
-  const handlePaymentMethodDetailsChange = async (method: PaymentMethod, details: string) => {
-    const currentEnabled = paymentMethodDetails[method].enabled;
-    setPaymentMethodDetails((prev) => ({
-      ...prev,
-      [method]: { ...prev[method], details },
-    }));
-
-    try {
-      await upsertPaymentMethod.mutateAsync({
-        method,
-        details,
-        enabled: currentEnabled,
-      });
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update payment method');
-    }
-  };
 
   if (profileLoading) {
     return (
@@ -441,107 +373,47 @@ export function AccountScreen({ onNavigateToBusinessStructures }: AccountScreenP
               onNavigateToBusinessStructures={onNavigateToBusinessStructures}
             />
 
-            {/* Payment Methods Section */}
+            {/* Payment Methods Section - Read-only shortcut */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <H2>Payment Methods</H2>
               </View>
               <Card variant="flat" style={styles.card}>
                 <Text subtle style={styles.sectionDescription}>
-                  Configure payment methods that will appear on your invoices. Enable methods and add details so clients know where to send payment.
+                  Payment methods are managed in Invoices → Settings.
                 </Text>
 
-                {/* Venmo */}
-                <View style={styles.paymentMethodRow}>
-                  <View style={styles.paymentMethodHeader}>
-                    <Text semibold style={styles.paymentMethodLabel}>Venmo</Text>
-                    <Switch
-                      value={paymentMethodDetails.venmo.enabled}
-                      onValueChange={(enabled) => handlePaymentMethodToggle('venmo', enabled)}
-                      trackColor={{ false: colors.border.DEFAULT, true: colors.brand.DEFAULT }}
-                      thumbColor="#fff"
-                    />
+                {/* Read-only summary */}
+                {paymentMethods.length > 0 ? (
+                  <View style={styles.paymentMethodsSummary}>
+                    {paymentMethods.map((pm) => (
+                      <View key={pm.method} style={styles.paymentMethodSummaryRow}>
+                        <Text style={styles.paymentMethodSummaryText}>
+                          {pm.enabled ? '✅' : '☐'} {pm.method.charAt(0).toUpperCase() + pm.method.slice(1)}
+                          {pm.enabled && pm.details ? `: ${pm.details}` : ''}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
-                  <TextInput
-                    style={styles.input}
-                    value={paymentMethodDetails.venmo.details}
-                    onChangeText={(text) => handlePaymentMethodDetailsChange('venmo', text)}
-                    placeholder="@yourhandle"
-                    editable={paymentMethodDetails.venmo.enabled}
-                  />
-                  {paymentMethodDetails.venmo.enabled && !paymentMethodDetails.venmo.details.trim() && (
-                    <Text style={styles.warningText}>⚠️ Add details so clients know where to pay</Text>
-                  )}
-                </View>
+                ) : (
+                  <Text subtle style={styles.noPaymentMethodsText}>
+                    No payment methods configured yet.
+                  </Text>
+                )}
 
-                {/* Zelle */}
-                <View style={styles.paymentMethodRow}>
-                  <View style={styles.paymentMethodHeader}>
-                    <Text semibold style={styles.paymentMethodLabel}>Zelle</Text>
-                    <Switch
-                      value={paymentMethodDetails.zelle.enabled}
-                      onValueChange={(enabled) => handlePaymentMethodToggle('zelle', enabled)}
-                      trackColor={{ false: colors.border.DEFAULT, true: colors.brand.DEFAULT }}
-                      thumbColor="#fff"
-                    />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    value={paymentMethodDetails.zelle.details}
-                    onChangeText={(text) => handlePaymentMethodDetailsChange('zelle', text)}
-                    placeholder="email or phone"
-                    editable={paymentMethodDetails.zelle.enabled}
-                  />
-                  {paymentMethodDetails.zelle.enabled && !paymentMethodDetails.zelle.details.trim() && (
-                    <Text style={styles.warningText}>⚠️ Add details so clients know where to pay</Text>
-                  )}
-                </View>
-
-                {/* PayPal */}
-                <View style={styles.paymentMethodRow}>
-                  <View style={styles.paymentMethodHeader}>
-                    <Text semibold style={styles.paymentMethodLabel}>PayPal</Text>
-                    <Switch
-                      value={paymentMethodDetails.paypal.enabled}
-                      onValueChange={(enabled) => handlePaymentMethodToggle('paypal', enabled)}
-                      trackColor={{ false: colors.border.DEFAULT, true: colors.brand.DEFAULT }}
-                      thumbColor="#fff"
-                    />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    value={paymentMethodDetails.paypal.details}
-                    onChangeText={(text) => handlePaymentMethodDetailsChange('paypal', text)}
-                    placeholder="paypal.me/you or email"
-                    editable={paymentMethodDetails.paypal.enabled}
-                  />
-                  {paymentMethodDetails.paypal.enabled && !paymentMethodDetails.paypal.details.trim() && (
-                    <Text style={styles.warningText}>⚠️ Add details so clients know where to pay</Text>
-                  )}
-                </View>
-
-                {/* Cash App */}
-                <View style={styles.paymentMethodRow}>
-                  <View style={styles.paymentMethodHeader}>
-                    <Text semibold style={styles.paymentMethodLabel}>Cash App</Text>
-                    <Switch
-                      value={paymentMethodDetails.cashapp.enabled}
-                      onValueChange={(enabled) => handlePaymentMethodToggle('cashapp', enabled)}
-                      trackColor={{ false: colors.border.DEFAULT, true: colors.brand.DEFAULT }}
-                      thumbColor="#fff"
-                    />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    value={paymentMethodDetails.cashapp.details}
-                    onChangeText={(text) => handlePaymentMethodDetailsChange('cashapp', text)}
-                    placeholder="$cashtag"
-                    editable={paymentMethodDetails.cashapp.enabled}
-                  />
-                  {paymentMethodDetails.cashapp.enabled && !paymentMethodDetails.cashapp.details.trim() && (
-                    <Text style={styles.warningText}>⚠️ Add details so clients know where to pay</Text>
-                  )}
-                </View>
+                <Button
+                  variant="primary"
+                  onPress={() => {
+                    if (onNavigateToInvoices) {
+                      onNavigateToInvoices();
+                    } else {
+                      Alert.alert('Navigation', 'Please navigate to Invoices → Settings to manage payment methods.');
+                    }
+                  }}
+                  style={styles.goToInvoiceSettingsButton}
+                >
+                  Go to Invoice Settings
+                </Button>
               </Card>
             </View>
           </View>
@@ -913,5 +785,25 @@ const styles = StyleSheet.create({
     marginTop: parseInt(spacing[2]),
     fontSize: 13,
     color: colors.warning.DEFAULT,
+  },
+  paymentMethodsSummary: {
+    marginTop: parseInt(spacing[3]),
+    marginBottom: parseInt(spacing[4]),
+  },
+  paymentMethodSummaryRow: {
+    paddingVertical: parseInt(spacing[2]),
+  },
+  paymentMethodSummaryText: {
+    fontSize: 14,
+    color: colors.text.DEFAULT,
+  },
+  noPaymentMethodsText: {
+    marginTop: parseInt(spacing[2]),
+    marginBottom: parseInt(spacing[4]),
+    fontSize: 14,
+    fontStyle: 'italic',
+  },
+  goToInvoiceSettingsButton: {
+    marginTop: parseInt(spacing[2]),
   },
 });
