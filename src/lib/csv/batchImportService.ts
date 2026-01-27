@@ -36,7 +36,8 @@ export interface BatchImportResult {
  */
 export async function createMissingPayers(
   payerMatches: PayerMatch[],
-  userId: string
+  userId: string,
+  batchId: string
 ): Promise<Map<string, string>> {
   const payerIdMap = new Map<string, string>();
   const newPayersCreated: string[] = [];
@@ -46,13 +47,13 @@ export async function createMissingPayers(
       // Use existing payer
       payerIdMap.set(match.csvName, match.existingPayerId);
     } else if (match.action === 'create_new') {
-      // Create new payer with default type
+      // Create new payer with default type and batch tracking
       const { data, error } = await supabase
         .from('payers')
         .insert({
-          user_id: userId,
           name: match.csvName,
           payer_type: 'Venue', // Default type for CSV imports
+          created_by_import_batch_id: batchId, // Track which batch created this payer
         })
         .select('id')
         .single();
@@ -218,8 +219,8 @@ export async function batchImportGigs(
   const batchId = batch.id;
 
   try {
-    // Step 1: Create missing payers
-    const payerIdMap = await createMissingPayers(payerMatches, userId);
+    // Step 1: Create missing payers (with batch tracking for safe undo)
+    const payerIdMap = await createMissingPayers(payerMatches, userId, batchId);
     const newPayersCreated = Array.from(payerIdMap.values()).filter(id =>
       payerMatches.some(m => m.action === 'create_new' && payerIdMap.get(m.csvName) === id)
     );
@@ -282,6 +283,7 @@ export async function batchImportGigs(
 
 /**
  * Undo last import by batch ID
+ * SAFE: Only deletes payers that were created by this specific import batch
  */
 export async function undoImport(batchId: string, userId: string): Promise<{
   deletedGigs: number;
@@ -290,7 +292,7 @@ export async function undoImport(batchId: string, userId: string): Promise<{
   // Get all gigs in this batch (RLS filters by user)
   const { data: gigs, error: gigsError } = await supabase
     .from('gigs')
-    .select('id, payer_id')
+    .select('id')
     .eq('import_batch_id', batchId);
 
   if (gigsError) {
@@ -300,8 +302,6 @@ export async function undoImport(batchId: string, userId: string): Promise<{
   if (!gigs || gigs.length === 0) {
     return { deletedGigs: 0, deletedPayers: 0 };
   }
-
-  const payerIds = [...new Set(gigs.map(g => g.payer_id))];
 
   // Delete gigs (RLS filters by user)
   const { error: deleteError } = await supabase
@@ -313,23 +313,32 @@ export async function undoImport(batchId: string, userId: string): Promise<{
     throw new Error(`Failed to delete gigs: ${deleteError.message}`);
   }
 
-  // Check which payers now have zero gigs and delete them
+  // SAFE UNDO: Only delete payers that were created by THIS batch AND have no remaining gigs
+  // This prevents deleting pre-existing payers
+  const { data: payersToDelete, error: payersError } = await supabase
+    .from('payers')
+    .select('id')
+    .eq('created_by_import_batch_id', batchId);
+
   let deletedPayersCount = 0;
-  for (const payerId of payerIds) {
-    const { count, error: countError } = await supabase
-      .from('gigs')
-      .select('id', { count: 'exact', head: true })
-      .eq('payer_id', payerId);
+  if (!payersError && payersToDelete) {
+    for (const payer of payersToDelete) {
+      // Double-check this payer has no gigs before deleting
+      const { count, error: countError } = await supabase
+        .from('gigs')
+        .select('id', { count: 'exact', head: true })
+        .eq('payer_id', payer.id);
 
-    if (!countError && count === 0) {
-      // Payer has no gigs, safe to delete (RLS filters by user)
-      const { error: deletePayerError } = await supabase
-        .from('payers')
-        .delete()
-        .eq('id', payerId);
+      if (!countError && count === 0) {
+        // Safe to delete: created by this batch AND has no gigs
+        const { error: deletePayerError } = await supabase
+          .from('payers')
+          .delete()
+          .eq('id', payer.id);
 
-      if (!deletePayerError) {
-        deletedPayersCount++;
+        if (!deletePayerError) {
+          deletedPayersCount++;
+        }
       }
     }
   }
