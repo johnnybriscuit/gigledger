@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { logSecurityEvent } from '../lib/mfa';
 import { validatePassword } from '../lib/passwordValidation';
 import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
+import { getBaseUrl } from '../lib/getBaseUrl';
 
 interface AuthScreenProps {
   onNavigateToTerms?: () => void;
@@ -174,7 +175,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         credentials: 'include', // Ensure cookies are sent
         body: JSON.stringify({
           email,
-          redirectTo: `${SITE_URL}/auth/callback`,
+          redirectTo: `${getBaseUrl()}/auth/callback`,
         }),
       });
 
@@ -351,9 +352,9 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
       // Log OAuth start
       await logSecurityEvent('oauth_google_start', { provider: 'google' });
 
-      // Platform-aware redirect URL
+      // Platform-aware redirect URL (environment-aware for preview/prod/localhost)
       const redirectUrl = Platform.OS === 'web' 
-        ? `${SITE_URL}/auth/callback`
+        ? `${getBaseUrl()}/auth/callback`
         : Linking.createURL('auth/callback');
 
       console.debug('[Auth] Platform:', Platform.OS);
