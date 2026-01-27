@@ -22,6 +22,7 @@ type InvoiceDbRow = Database['public']['Tables']['invoices']['Row'];
 type InvoicePaymentRow = Database['public']['Tables']['invoice_payments']['Row'];
 type SubcontractorPaymentRow = Database['public']['Tables']['gig_subcontractor_payments']['Row'];
 type SubcontractorRow = Database['public']['Tables']['subcontractors']['Row'];
+type PayerRow = Database['public']['Tables']['payers']['Row'];
 
 type BuildTaxExportPackageOptions = {
   userId: string;
@@ -74,11 +75,15 @@ export function buildTaxExportPackageFromData(input: {
   invoices: InvoiceDbRow[];
   invoicePayments: Array<InvoicePaymentRow & { invoice?: Pick<InvoiceDbRow, 'id' | 'invoice_number' | 'client_name' | 'currency'> | null }>;
   subcontractorPayments: Array<SubcontractorPaymentRow & { subcontractor?: Pick<SubcontractorRow, 'id' | 'name'> | null }>;
+  payers: PayerRow[];
 }): TaxExportPackage {
   const createdAt = new Date().toISOString();
   const currency: TaxExportCurrency = 'USD';
 
   input.invoices.forEach(inv => assertUsdCurrency(inv.currency));
+
+  // Create payer lookup map
+  const payerById = new Map<string, PayerRow>(input.payers.map((p) => [p.id, p]));
 
   const incomeRows: IncomeRow[] = [];
 
@@ -90,12 +95,32 @@ export function buildTaxExportPackageFromData(input: {
     const fees = gig.fees || 0;
     const netAmount = gross - fees;
 
+    // Resolve payer information
+    const payer = payerById.get(gig.payer_id);
+    const payerName = payer?.name || null;
+    const payerEmail = payer?.contact_email || null;
+
+    // Build description from gig details
+    let description = 'Income';
+    if (gig.title) {
+      description = gig.title;
+    } else if (gig.location || gig.city) {
+      const parts = ['Gig'];
+      if (gig.location) parts.push(gig.location);
+      if (gig.city) parts.push(gig.city);
+      description = parts.join(' — ');
+    } else {
+      description = 'Gig';
+    }
+
     incomeRows.push({
       id: gig.id,
       source: 'gig',
       receivedDate: gig.date,
-      payerName: null,
-      description: 'Gig',
+      payerId: gig.payer_id,
+      payerName,
+      payerEmail,
+      description,
       amount: roundCents(gross),
       fees: roundCents(fees),
       netAmount: roundCents(netAmount),
@@ -294,7 +319,7 @@ export async function buildTaxExportPackage(options: BuildTaxExportPackageOption
     throw new TaxExportError('NOT_AUTHORIZED', 'Not authorized to export this data.');
   }
 
-  const [gigsRes, expRes, mileageRes, invoicesRes, invoicePaymentsRes, subcontractorPaymentsRes] = await Promise.all([
+  const [gigsRes, expRes, mileageRes, invoicesRes, invoicePaymentsRes, subcontractorPaymentsRes, payersRes] = await Promise.all([
     supabase
       .from('gigs')
       .select('*')
@@ -330,9 +355,13 @@ export async function buildTaxExportPackage(options: BuildTaxExportPackageOption
       .eq('user_id', options.userId)
       .gte('gig.date', dateStart)
       .lte('gig.date', dateEnd),
+    supabase
+      .from('payers')
+      .select('*')
+      .eq('user_id', options.userId),
   ]);
 
-  if (gigsRes.error || expRes.error || mileageRes.error || invoicesRes.error || invoicePaymentsRes.error || subcontractorPaymentsRes.error) {
+  if (gigsRes.error || expRes.error || mileageRes.error || invoicesRes.error || invoicePaymentsRes.error || subcontractorPaymentsRes.error || payersRes.error) {
     throw new TaxExportError('DATA_LOAD_FAILED', 'Failed to load export data. Please try again.');
   }
 
@@ -367,6 +396,7 @@ export async function buildTaxExportPackage(options: BuildTaxExportPackageOption
     });
 
   const subcontractorPayments = (subcontractorPaymentsRes.data || []) as any[];
+  const payers = (payersRes.data || []) as PayerRow[];
 
   return buildTaxExportPackageFromData({
     taxYear: options.taxYear,
@@ -381,5 +411,6 @@ export async function buildTaxExportPackage(options: BuildTaxExportPackageOption
     invoices,
     invoicePayments,
     subcontractorPayments,
+    payers,
   });
 }

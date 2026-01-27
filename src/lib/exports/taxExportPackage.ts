@@ -67,7 +67,9 @@ export interface IncomeRow {
   id: string;
   source: 'gig' | 'invoice_payment';
   receivedDate: string;
+  payerId?: string | null;
   payerName?: string | null;
+  payerEmail?: string | null;
   description: string;
   amount: number;
   fees: number;
