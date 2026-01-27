@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       auth_failures: {
@@ -119,6 +144,51 @@ export type Database = {
           },
         ]
       }
+      gig_subcontractor_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          gig_id: string
+          id: string
+          note: string | null
+          subcontractor_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          gig_id: string
+          id?: string
+          note?: string | null
+          subcontractor_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          gig_id?: string
+          id?: string
+          note?: string | null
+          subcontractor_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_subcontractor_payments_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_subcontractor_payments_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gigs: {
         Row: {
           city: string | null
@@ -129,6 +199,7 @@ export type Database = {
           fees: number
           gross_amount: number
           id: string
+          import_batch_id: string | null
           invoice_link: string | null
           location: string | null
           net_amount: number
@@ -155,6 +226,7 @@ export type Database = {
           fees?: number
           gross_amount?: number
           id?: string
+          import_batch_id?: string | null
           invoice_link?: string | null
           location?: string | null
           net_amount?: number
@@ -181,6 +253,7 @@ export type Database = {
           fees?: number
           gross_amount?: number
           id?: string
+          import_batch_id?: string | null
           invoice_link?: string | null
           location?: string | null
           net_amount?: number
@@ -194,7 +267,7 @@ export type Database = {
           state_code?: string | null
           taxes_withheld?: boolean | null
           tips?: number
-          title?: string
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -207,6 +280,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      import_batches: {
+        Row: {
+          combined_rows: boolean | null
+          created_at: string
+          error_count: number
+          file_name: string | null
+          id: string
+          imported_count: number
+          new_payers_created: number | null
+          skipped_duplicates: number
+          total_fees: number | null
+          total_gross: number | null
+          total_rows: number
+          total_tips: number | null
+          user_id: string
+        }
+        Insert: {
+          combined_rows?: boolean | null
+          created_at?: string
+          error_count?: number
+          file_name?: string | null
+          id?: string
+          imported_count?: number
+          new_payers_created?: number | null
+          skipped_duplicates?: number
+          total_fees?: number | null
+          total_gross?: number | null
+          total_rows?: number
+          total_tips?: number | null
+          user_id: string
+        }
+        Update: {
+          combined_rows?: boolean | null
+          created_at?: string
+          error_count?: number
+          file_name?: string | null
+          id?: string
+          imported_count?: number
+          new_payers_created?: number | null
+          skipped_duplicates?: number
+          total_fees?: number | null
+          total_gross?: number | null
+          total_rows?: number
+          total_tips?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       invoice_line_items: {
         Row: {
@@ -464,6 +585,36 @@ export type Database = {
           },
         ]
       }
+      location_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_used_at: string | null
+          location: string
+          nickname: string | null
+          use_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          location: string
+          nickname?: string | null
+          use_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          location?: string
+          nickname?: string | null
+          use_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       mfa_backup_codes: {
         Row: {
           code_hash: string
@@ -495,9 +646,13 @@ export type Database = {
           end_location: string
           gig_id: string | null
           id: string
+          is_auto_calculated: boolean | null
+          is_round_trip: boolean | null
+          linked_gig_id: string | null
           miles: number
           notes: string | null
           purpose: string
+          saved_route_id: string | null
           start_location: string
           updated_at: string
           user_id: string
@@ -508,9 +663,13 @@ export type Database = {
           end_location: string
           gig_id?: string | null
           id?: string
+          is_auto_calculated?: boolean | null
+          is_round_trip?: boolean | null
+          linked_gig_id?: string | null
           miles: number
           notes?: string | null
           purpose: string
+          saved_route_id?: string | null
           start_location: string
           updated_at?: string
           user_id: string
@@ -521,9 +680,13 @@ export type Database = {
           end_location?: string
           gig_id?: string | null
           id?: string
+          is_auto_calculated?: boolean | null
+          is_round_trip?: boolean | null
+          linked_gig_id?: string | null
           miles?: number
           notes?: string | null
           purpose?: string
+          saved_route_id?: string | null
           start_location?: string
           updated_at?: string
           user_id?: string
@@ -534,6 +697,20 @@ export type Database = {
             columns: ["gig_id"]
             isOneToOne: false
             referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mileage_linked_gig_id_fkey"
+            columns: ["linked_gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mileage_saved_route_id_fkey"
+            columns: ["saved_route_id"]
+            isOneToOne: false
+            referencedRelation: "saved_routes"
             referencedColumns: ["id"]
           },
         ]
@@ -549,8 +726,8 @@ export type Database = {
           notes: string | null
           payer_type: Database["public"]["Enums"]["payer_type"]
           tax_id: string | null
-          tax_id_type: string | null
           tax_id_last4: string | null
+          tax_id_type: string | null
           updated_at: string
           user_id: string
         }
@@ -560,12 +737,12 @@ export type Database = {
           expect_1099?: boolean | null
           id?: string
           name: string
-          normalized_name?: string
+          normalized_name: string
           notes?: string | null
           payer_type: Database["public"]["Enums"]["payer_type"]
           tax_id?: string | null
-          tax_id_type?: string | null
           tax_id_last4?: string | null
+          tax_id_type?: string | null
           updated_at?: string
           user_id: string
         }
@@ -579,9 +756,39 @@ export type Database = {
           notes?: string | null
           payer_type?: Database["public"]["Enums"]["payer_type"]
           tax_id?: string | null
-          tax_id_type?: string | null
           tax_id_last4?: string | null
+          tax_id_type?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_method_details: {
+        Row: {
+          created_at: string | null
+          details: string
+          enabled: boolean
+          id: string
+          method: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          details: string
+          enabled?: boolean
+          id?: string
+          method: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: string
+          enabled?: boolean
+          id?: string
+          method?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -592,54 +799,75 @@ export type Database = {
           business_structure: string
           created_at: string | null
           email: string | null
+          expenses_used_this_month: number | null
+          exports_used_this_month: number | null
           filing_status: string | null
           full_name: string | null
+          gigs_used_this_month: number | null
           home_address: string | null
           home_address_full: string | null
           home_address_lat: number | null
           home_address_lng: number | null
           home_address_place_id: string | null
           id: string
+          invoices_created_count: number
+          invoices_used_this_month: number | null
+          legacy_free_plan: boolean | null
           onboarding_complete: boolean | null
           plan: Database["public"]["Enums"]["user_plan"] | null
           state_code: string | null
           updated_at: string | null
+          usage_period_start: string | null
         }
         Insert: {
           avatar_url?: string | null
           business_structure?: string
           created_at?: string | null
           email?: string | null
+          expenses_used_this_month?: number | null
+          exports_used_this_month?: number | null
           filing_status?: string | null
           full_name?: string | null
+          gigs_used_this_month?: number | null
           home_address?: string | null
           home_address_full?: string | null
           home_address_lat?: number | null
           home_address_lng?: number | null
           home_address_place_id?: string | null
           id: string
+          invoices_created_count?: number
+          invoices_used_this_month?: number | null
+          legacy_free_plan?: boolean | null
           onboarding_complete?: boolean | null
           plan?: Database["public"]["Enums"]["user_plan"] | null
           state_code?: string | null
           updated_at?: string | null
+          usage_period_start?: string | null
         }
         Update: {
           avatar_url?: string | null
           business_structure?: string
           created_at?: string | null
           email?: string | null
+          expenses_used_this_month?: number | null
+          exports_used_this_month?: number | null
           filing_status?: string | null
           full_name?: string | null
+          gigs_used_this_month?: number | null
           home_address?: string | null
           home_address_full?: string | null
           home_address_lat?: number | null
           home_address_lng?: number | null
           home_address_place_id?: string | null
           id?: string
+          invoices_created_count?: number
+          invoices_used_this_month?: number | null
+          legacy_free_plan?: boolean | null
           onboarding_complete?: boolean | null
           plan?: Database["public"]["Enums"]["user_plan"] | null
           state_code?: string | null
           updated_at?: string | null
+          usage_period_start?: string | null
         }
         Relationships: []
       }
@@ -694,6 +922,51 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           vendor?: string | null
+        }
+        Relationships: []
+      }
+      saved_routes: {
+        Row: {
+          created_at: string | null
+          default_purpose: string | null
+          distance_miles: number
+          from_location: string
+          id: string
+          is_favorite: boolean | null
+          last_used_at: string | null
+          name: string
+          to_location: string
+          updated_at: string | null
+          use_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          default_purpose?: string | null
+          distance_miles: number
+          from_location: string
+          id?: string
+          is_favorite?: boolean | null
+          last_used_at?: string | null
+          name: string
+          to_location: string
+          updated_at?: string | null
+          use_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          default_purpose?: string | null
+          distance_miles?: number
+          from_location?: string
+          id?: string
+          is_favorite?: boolean | null
+          last_used_at?: string | null
+          name?: string
+          to_location?: string
+          updated_at?: string | null
+          use_count?: number | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -768,108 +1041,48 @@ export type Database = {
       }
       subcontractors: {
         Row: {
+          address: string | null
+          created_at: string
+          email: string | null
           id: string
-          user_id: string
           name: string
           normalized_name: string
-          role: string | null
-          email: string | null
           phone: string | null
-          address: string | null
-          tax_id_type: string | null
+          role: string | null
           tax_id_last4: string | null
-          created_at: string
+          tax_id_type: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          name: string
-          normalized_name?: string
-          role?: string | null
-          email?: string | null
-          phone?: string | null
           address?: string | null
-          tax_id_type?: string | null
-          tax_id_last4?: string | null
           created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          normalized_name: string
+          phone?: string | null
+          role?: string | null
+          tax_id_last4?: string | null
+          tax_id_type?: string | null
           updated_at?: string
+          user_id: string
         }
         Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
           id?: string
-          user_id?: string
           name?: string
           normalized_name?: string
-          role?: string | null
-          email?: string | null
           phone?: string | null
-          address?: string | null
-          tax_id_type?: string | null
+          role?: string | null
           tax_id_last4?: string | null
-          created_at?: string
+          tax_id_type?: string | null
           updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subcontractors_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      gig_subcontractor_payments: {
-        Row: {
-          id: string
-          user_id: string
-          gig_id: string
-          subcontractor_id: string
-          amount: number
-          note: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          gig_id: string
-          subcontractor_id: string
-          amount: number
-          note?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
           user_id?: string
-          gig_id?: string
-          subcontractor_id?: string
-          amount?: number
-          note?: string | null
-          created_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "gig_subcontractor_payments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gig_subcontractor_payments_gig_id_fkey"
-            columns: ["gig_id"]
-            isOneToOne: false
-            referencedRelation: "gigs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gig_subcontractor_payments_subcontractor_id_fkey"
-            columns: ["subcontractor_id"]
-            isOneToOne: false
-            referencedRelation: "subcontractors"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -961,25 +1174,31 @@ export type Database = {
       user_settings: {
         Row: {
           created_at: string | null
+          dashboard_tour_completed: boolean | null
           id: string
           onboarding_completed: boolean | null
           onboarding_step: string | null
+          tour_completed_at: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          dashboard_tour_completed?: boolean | null
           id?: string
           onboarding_completed?: boolean | null
           onboarding_step?: string | null
+          tour_completed_at?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          dashboard_tour_completed?: boolean | null
           id?: string
           onboarding_completed?: boolean | null
           onboarding_step?: string | null
+          tour_completed_at?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1392,6 +1611,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       expense_category: [

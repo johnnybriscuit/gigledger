@@ -8,6 +8,8 @@ import { H2, Text, Button } from '../../ui';
 import { colors, spacing } from '../../styles/theme';
 import { NormalizedGigRow } from '../../lib/csv/csvParser';
 import { PayerMatch, CombinedGig, combineRows, detectDuplicates, calculateImportSummary } from '../../lib/csv/importHelpers';
+import { batchImportGigs, BatchImportResult } from '../../lib/csv/batchImportService';
+import { supabase } from '../../lib/supabase';
 
 interface ReviewStepProps {
   normalizedRows: NormalizedGigRow[];
@@ -22,7 +24,7 @@ interface ReviewStepProps {
   }>;
   combineEnabled: boolean;
   onCombineToggle: (enabled: boolean) => void;
-  onImport: (rows: CombinedGig[]) => Promise<void>;
+  onImport: (result: BatchImportResult) => Promise<void>;
   onBack: () => void;
   onCancel: () => void;
 }
@@ -55,13 +57,31 @@ export function ReviewStep({
   const handleImport = async () => {
     setIsImporting(true);
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
+      // Filter rows if skipping duplicates
       const rowsToImport = skipDuplicates
         ? finalRows.filter(row => !duplicates.some(d => d.importRows.includes(row.rowIndex)))
         : finalRows;
 
-      await onImport(rowsToImport);
+      // Call batch import service
+      const result = await batchImportGigs(
+        rowsToImport,
+        payerMatches,
+        user.id,
+        'import.csv',
+        skipDuplicates
+      );
+
+      // Pass result to parent
+      await onImport(result);
     } catch (error) {
       console.error('Import failed:', error);
+      alert(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsImporting(false);
     }
   };

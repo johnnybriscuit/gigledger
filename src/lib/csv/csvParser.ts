@@ -470,9 +470,17 @@ export function normalizeRow(
   }
   
   if (mapping.taxesWithheld && row[mapping.taxesWithheld]) {
-    const taxesResult = normalizeAmount(row[mapping.taxesWithheld]);
-    if (taxesResult.value !== null) {
-      normalized.taxesWithheld = taxesResult.value;
+    // Try boolean first (Yes/No, Y/N, true/false, 1/0)
+    const boolValue = normalizeBoolean(row[mapping.taxesWithheld]);
+    if (boolValue !== null) {
+      normalized.taxesWithheld = boolValue ? 1 : 0; // Store as 1/0 for boolean
+    } else {
+      // Try parsing as numeric amount
+      const taxesResult = normalizeAmount(row[mapping.taxesWithheld]);
+      if (taxesResult.value !== null && taxesResult.value > 0) {
+        normalized.taxesWithheld = taxesResult.value;
+        normalized.warnings.push(`Taxes withheld amount $${taxesResult.value.toFixed(2)} detected - storing as boolean true. Note: Current schema only supports boolean, not amount.`);
+      }
     }
   }
   

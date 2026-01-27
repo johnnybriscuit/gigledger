@@ -11,10 +11,10 @@ import { UploadStep } from './UploadStep';
 import { ColumnMappingStep } from './ColumnMappingStep';
 import { PayerResolutionStep } from './PayerResolutionStep';
 import { ReviewStep } from './ReviewStep';
+import { SuccessStep } from './SuccessStep';
 import { ParsedCSVRow, ColumnMapping, NormalizedGigRow } from '../../lib/csv/csvParser';
 import { PayerMatch, CombinedGig } from '../../lib/csv/importHelpers';
-import { batchImportGigs, undoImport, BatchImportResult } from '../../lib/csv/batchImportService';
-import { supabase } from '../../lib/supabase';
+import { BatchImportResult } from '../../lib/csv/batchImportService';
 
 export type WizardStep = 'upload' | 'mapping' | 'payers' | 'review' | 'success';
 
@@ -48,6 +48,7 @@ export function CSVImportWizard({
   const [payerMatches, setPayerMatches] = useState<PayerMatch[]>([]);
   const [finalRows, setFinalRows] = useState<CombinedGig[]>([]);
   const [combineEnabled, setCombineEnabled] = useState(false);
+  const [importResult, setImportResult] = useState<BatchImportResult | null>(null);
 
   const handleReset = () => {
     setCurrentStep('upload');
@@ -58,6 +59,7 @@ export function CSVImportWizard({
     setPayerMatches([]);
     setFinalRows([]);
     setCombineEnabled(false);
+    setImportResult(null);
   };
 
   const handleClose = () => {
@@ -116,16 +118,29 @@ export function CSVImportWizard({
             existingGigs={existingGigs}
             combineEnabled={combineEnabled}
             onCombineToggle={setCombineEnabled}
-            onImport={async (rows) => {
-              // Import logic will be handled by parent component
-              setFinalRows(rows);
-              onImportComplete(rows.length);
-              handleClose();
+            onImport={async (result: BatchImportResult) => {
+              setImportResult(result);
+              setCurrentStep('success');
             }}
             onBack={() => setCurrentStep('payers')}
             onCancel={handleClose}
           />
         );
+
+      case 'success':
+        return importResult ? (
+          <SuccessStep
+            result={importResult}
+            onClose={() => {
+              onImportComplete(importResult.summary.importedCount);
+              handleClose();
+            }}
+            onUndo={() => {
+              Alert.alert('Import Undone', 'The import has been successfully undone.');
+              handleClose();
+            }}
+          />
+        ) : null;
 
       default:
         return null;

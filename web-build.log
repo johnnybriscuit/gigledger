@@ -1,0 +1,24 @@
+env: load .env.local .env
+env: export EXPO_PUBLIC_GOOGLE_MAPS_API_KEY EXPO_PUBLIC_SITE_URL EXPO_PUBLIC_EAS_PROJECT_ID RESEND_API_KEY RESEND_DOMAIN NEXT_PUBLIC_APP_URL EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_DEEP_LINK_SCHEME EXPO_PUBLIC_DEFAULT_MILEAGE_RATE EXPO_PUBLIC_TAX_YEAR EXPO_PUBLIC_FEDERAL_FLAT_RATE_SINGLE EXPO_PUBLIC_FEDERAL_FLAT_RATE_MARRIED EXPO_PUBLIC_FEDERAL_FLAT_RATE_HOH EXPO_PUBLIC_USE_FEDERAL_BRACKETS EXPO_PUBLIC_TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY
+Starting Metro Bundler
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+| [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Web Bundled 1640ms index.ts (2139 modules)
+
+› Assets (1):
+assets/icon.e20a191b51a03c57aec88135d0cebb8e.png (1.09 MB)
+
+› web bundles (1):
+_expo/static/js/web/index-81583756c18bd41a89c6438c72559fb7.js (4.49 MB)
+
+› Files (3):
+favicon.ico (14.5 kB)
+index.html (1.22 kB)
+metadata.json (49 B)
+
+Exported: dist
