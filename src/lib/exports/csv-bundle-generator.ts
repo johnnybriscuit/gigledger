@@ -1,13 +1,15 @@
+import JSZip from 'jszip';
 import type { TaxExportPackage } from './taxExportPackage';
 import { stringifyCsv } from './textCsv';
-import { downloadCSV } from './webDownloadHelpers';
+import { downloadZip } from './webDownloadHelpers';
 
 /**
  * CSV Bundle Generator (from canonical TaxExportPackage)
- * Generates multiple CSV files for CPA sharing
+ * Generates a single ZIP file containing all CSV exports for CPA sharing
  */
 
-export function generateCSVBundle(pkg: TaxExportPackage): void {
+export async function generateCSVBundle(pkg: TaxExportPackage): Promise<void> {
+  const zip = new JSZip();
   const { taxYear } = pkg.metadata;
 
   // Schedule C Summary CSV
@@ -19,7 +21,17 @@ export function generateCSVBundle(pkg: TaxExportPackage): void {
     amount_for_entry: item.amountForEntry,
     notes: item.notes || '',
   }));
-  downloadCSV(stringifyCsv(scheduleCRows), `ScheduleC_Summary_${taxYear}.csv`);
+  zip.file(`ScheduleC_Summary_${taxYear}.csv`, stringifyCsv(scheduleCRows));
+
+  // Other Expenses Breakdown CSV
+  const otherExpensesRows = pkg.scheduleC.otherExpensesBreakdown.map((item) => ({
+    schedule_c_ref_number: 302,
+    category_name: item.name,
+    raw_signed_amount: -item.amount,
+    amount_for_entry: Math.abs(item.amount),
+    notes: 'Supporting detail for Line 302 - enter ONLY the 302 total from ScheduleC_Summary',
+  }));
+  zip.file(`Other_Expenses_Breakdown_${taxYear}.csv`, stringifyCsv(otherExpensesRows));
 
   // Payer Summary CSV
   const payerSummaryRows = pkg.payerSummaryRows.map((r) => ({
@@ -35,7 +47,7 @@ export function generateCSVBundle(pkg: TaxExportPackage): void {
     last_payment_date: r.lastPaymentDate,
     notes: r.notes || '',
   }));
-  downloadCSV(stringifyCsv(payerSummaryRows), `Payer_Summary_${taxYear}.csv`);
+  zip.file(`Payer_Summary_${taxYear}.csv`, stringifyCsv(payerSummaryRows));
 
   // Mileage Summary CSV
   const mileageSummaryRows = [{
@@ -47,7 +59,7 @@ export function generateCSVBundle(pkg: TaxExportPackage): void {
     is_estimate_any: pkg.mileageSummary.isEstimateAny,
     notes: pkg.mileageSummary.notes,
   }];
-  downloadCSV(stringifyCsv(mileageSummaryRows), `Mileage_Summary_${taxYear}.csv`);
+  zip.file(`Mileage_Summary_${taxYear}.csv`, stringifyCsv(mileageSummaryRows));
 
   // Income Detail CSV
   const incomeRows = pkg.incomeRows.map((r) => ({
@@ -65,7 +77,7 @@ export function generateCSVBundle(pkg: TaxExportPackage): void {
     related_invoice_id: r.relatedInvoiceId || '',
     related_gig_id: r.relatedGigId || '',
   }));
-  downloadCSV(stringifyCsv(incomeRows), `Income_Detail_${taxYear}.csv`);
+  zip.file(`Income_Detail_${taxYear}.csv`, stringifyCsv(incomeRows));
 
   // Expense Detail CSV
   const expenseRows = pkg.expenseRows.map((r) => ({
@@ -84,7 +96,7 @@ export function generateCSVBundle(pkg: TaxExportPackage): void {
     potential_asset_review: r.potentialAssetReview,
     potential_asset_reason: r.potentialAssetReason || '',
   }));
-  downloadCSV(stringifyCsv(expenseRows), `Expense_Detail_${taxYear}.csv`);
+  zip.file(`Expense_Detail_${taxYear}.csv`, stringifyCsv(expenseRows));
 
   // Mileage Detail CSV
   const mileageRows = pkg.mileageRows.map((r) => ({
@@ -100,5 +112,9 @@ export function generateCSVBundle(pkg: TaxExportPackage): void {
     notes: r.notes || '',
     related_gig_id: r.relatedGigId || '',
   }));
-  downloadCSV(stringifyCsv(mileageRows), `Mileage_${taxYear}.csv`);
+  zip.file(`Mileage_${taxYear}.csv`, stringifyCsv(mileageRows));
+
+  // Generate and download the ZIP file
+  const zipBytes = await zip.generateAsync({ type: 'uint8array' });
+  downloadZip(zipBytes, `GigLedger_CSV_Bundle_${taxYear}.zip`);
 }

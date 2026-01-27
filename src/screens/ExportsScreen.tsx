@@ -199,11 +199,11 @@ export function ExportsScreen() {
     }
 
     try {
-      generateCSVBundle(taxPackage.data);
-      Alert.alert('Success', 'CSV files are being downloaded. Check your downloads folder.');
+      await generateCSVBundle(taxPackage.data);
+      Alert.alert('CSV Bundle Downloaded', 'Your ZIP file contains 7 CSV files for CPA sharing and tax prep.');
     } catch (error: any) {
       console.error('CSV export error:', error);
-      Alert.alert('Export Error', error.message || 'Failed to generate CSV files');
+      Alert.alert('Export Error', error.message || 'Failed to generate CSV bundle');
     }
   };
 
@@ -933,8 +933,8 @@ export function ExportsScreen() {
             
             <View style={styles.exportGrid}>
               <ExportCard
-                title="CSV Bundle"
-                subtitle="CPA-ready CSV bundle."
+                title="CSV Bundle (ZIP)"
+                subtitle="7 CSVs in a single ZIP file for CPA sharing."
                 icon={<Text style={{ fontSize: 20 }}>📊</Text>}
                 onPress={handleDownloadCSVs}
                 disabled={!validationResult?.isValid}
