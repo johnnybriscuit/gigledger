@@ -25,25 +25,27 @@ export function useOnboarding() {
         .from('user_settings')
         .select('onboarding_completed, onboarding_step')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        // If no settings exist yet, create them
-        if (error.code === 'PGRST116') {
-          const { data: newSettings, error: insertError } = await supabase
-            .from('user_settings')
-            .insert({
-              user_id: user.id,
-              onboarding_completed: false,
-              onboarding_step: 'welcome',
-            })
-            .select('onboarding_completed, onboarding_step')
-            .single();
-
-          if (insertError) throw insertError;
-          return newSettings as OnboardingState;
-        }
         throw error;
+      }
+
+      if (!data) {
+        const { data: newSettings, error: upsertError } = await supabase
+          .from('user_settings')
+          .upsert({
+            user_id: user.id,
+            onboarding_completed: false,
+            onboarding_step: 'welcome',
+          }, {
+            onConflict: 'user_id',
+          })
+          .select('onboarding_completed, onboarding_step')
+          .single();
+
+        if (upsertError) throw upsertError;
+        return newSettings as OnboardingState;
       }
 
       return data as OnboardingState;
