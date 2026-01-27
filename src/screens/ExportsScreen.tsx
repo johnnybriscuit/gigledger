@@ -10,6 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import { H1, H2, H3, Text, Button, Card, Badge } from '../ui';
+import { ExportCard } from '../components/ExportCard';
+import { HowToImportModal, type TaxSoftware } from '../components/HowToImportModal';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { useAllExportData, type ExportFilters } from '../hooks/useExports';
 import { downloadAllCSVs, downloadJSONBackup } from '../lib/csvExport';
@@ -36,6 +38,7 @@ import { useWithholding } from '../hooks/useWithholding';
 import { useTaxExportPackage } from '../hooks/useTaxExportPackage';
 import { generateTXFv042 } from '../lib/exports/txf-v042-generator';
 import { generateTaxActPackZip } from '../lib/exports/taxact-pack';
+import { generateTurboTaxOnlinePack } from '../lib/exports/turbotax-online-pack';
 import { downloadTXF as downloadTXFWeb, downloadZip } from '../lib/exports/webDownloadHelpers';
 import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
 
@@ -51,6 +54,9 @@ export function ExportsScreen() {
   const [showValidationDetails, setShowValidationDetails] = useState(false);
   const [showTXFInfo, setShowTXFInfo] = useState(false);
   const [showTaxActInfo, setShowTaxActInfo] = useState(false);
+  const [showHowToImport, setShowHowToImport] = useState(false);
+  const [selectedSoftware, setSelectedSoftware] = useState<TaxSoftware | null>(null);
+  const [showLegacySection, setShowLegacySection] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showTaxPrepChecklist, setShowTaxPrepChecklist] = useState(true);
   const [expandedGuidance, setExpandedGuidance] = useState<string | null>(null);
@@ -812,6 +818,41 @@ export function ExportsScreen() {
     }
   };
 
+  const handleDownloadTurboTaxOnlinePack = async () => {
+    setTaxExportError(null);
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    if (!taxPackage.data) {
+      Alert.alert('Error', 'Tax export package not loaded. Please wait or refresh.');
+      return;
+    }
+
+    try {
+      const bytes = await generateTurboTaxOnlinePack(taxPackage.data);
+      const filename = `TurboTax_Online_Manual_Entry_Pack_${taxYear}.zip`;
+
+      downloadZip(bytes, filename);
+
+      Alert.alert(
+        'TurboTax Online Manual Entry Pack Downloaded',
+        'Your ZIP file includes Schedule C summary, detail CSVs, PDF, and step-by-step README for manual entry into TurboTax Online.\n\nIMPORTANT: TurboTax Online does NOT support TXF import. Use the included files for manual entry.\n\nOrganized for tax prep. Not tax advice. Verify totals and consult a tax professional if needed.',
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('TurboTax Online pack export error:', error);
+      if (error instanceof TaxExportError && error.code === 'NON_USD_CURRENCY') {
+        setTaxExportError(error.message);
+        Alert.alert('Currency Error', error.message);
+      } else {
+        Alert.alert('Export Error', error.message || 'Failed to generate TurboTax Online pack');
+      }
+    }
+  };
+
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
   return (
@@ -819,7 +860,7 @@ export function ExportsScreen() {
       <View style={styles.header}>
         <H1>Export Center</H1>
         <Text muted>
-          Download tax-ready reports for your CPA
+          Download tax-ready exports for self-filing or CPA sharing
         </Text>
       </View>
 
@@ -1024,352 +1065,165 @@ export function ExportsScreen() {
             </View>
           )}
 
-          {/* Export Buttons */}
+          {/* Tax Software Section */}
           <View style={styles.exportSection}>
-            <H2>Export Options</H2>
-            <Text muted style={styles.sectionSubtitle}>Choose your export format below</Text>
+            <H2>Tax Software</H2>
+            <Text muted style={styles.sectionSubtitle}>Import or manually enter into tax software</Text>
+            
+            <View style={styles.exportGrid}>
 
-            {/* CSV Export */}
-            <View style={styles.exportCard}>
-              <TouchableOpacity
-                style={[
-                  styles.exportButton,
-                  !validationResult?.isValid && styles.exportButtonDisabled
-                ]}
+              <ExportCard
+                title="TurboTax Online Manual Entry Pack"
+                subtitle="Best for TurboTax Online self-filing. Includes Schedule C summary + detail CSVs + PDF + import guide."
+                icon={<Text style={{ fontSize: 20 }}>📦</Text>}
+                badge="recommended"
+                onPress={handleDownloadTurboTaxOnlinePack}
+                onHelpPress={() => {
+                  setSelectedSoftware('turbotax-online');
+                  setShowHowToImport(true);
+                }}
+                loading={taxPackage.isLoading}
+                disabled={!taxPackage.data || taxPackage.isLoading}
+              />
+
+              <ExportCard
+                title="TurboTax Desktop (TXF)"
+                subtitle="Import into TurboTax Desktop (NOT Online)."
+                icon={<Text style={{ fontSize: 20 }}>🧾</Text>}
+                onPress={handleDownloadTurboTaxTXF}
+                onHelpPress={() => {
+                  setSelectedSoftware('turbotax-desktop');
+                  setShowHowToImport(true);
+                }}
+                loading={taxPackage.isLoading}
+                disabled={!taxPackage.data || taxPackage.isLoading}
+              />
+
+              <ExportCard
+                title="H&R Block Desktop (TXF)"
+                subtitle="Import into H&R Block Desktop."
+                icon={<Text style={{ fontSize: 20 }}>📋</Text>}
+                onPress={handleDownloadHRBlockTXF}
+                onHelpPress={() => {
+                  setSelectedSoftware('hrblock-desktop');
+                  setShowHowToImport(true);
+                }}
+                loading={taxPackage.isLoading}
+                disabled={!taxPackage.data || taxPackage.isLoading}
+              />
+
+              <ExportCard
+                title="TaxAct Tax Prep Pack (ZIP)"
+                subtitle="For TaxAct manual entry and CPA sharing."
+                icon={<Text style={{ fontSize: 20 }}>📄</Text>}
+                onPress={handleDownloadTaxActPack}
+                onHelpPress={() => {
+                  setSelectedSoftware('taxact');
+                  setShowHowToImport(true);
+                }}
+                loading={taxPackage.isLoading}
+                disabled={!taxPackage.data || taxPackage.isLoading}
+              />
+            </View>
+          </View>
+
+          {/* CPA Sharing Section */}
+          <View style={styles.exportSection}>
+            <H2>Share with a CPA</H2>
+            <Text muted style={styles.sectionSubtitle}>Professional-ready formats for tax preparers</Text>
+            
+            <View style={styles.exportGrid}>
+              <ExportCard
+                title="CSV Bundle"
+                subtitle="CPA-ready CSV bundle."
+                icon={<Text style={{ fontSize: 20 }}>📊</Text>}
                 onPress={handleDownloadCSVs}
                 disabled={!validationResult?.isValid}
-              >
-                <Text style={styles.exportButtonIcon}>📊</Text>
-                <View style={styles.exportButtonContent}>
-                  <View style={styles.exportButtonHeader}>
-                    <Text style={styles.exportButtonTitle}>Download CSVs</Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setExpandedGuidance(expandedGuidance === 'csv' ? null : 'csv');
-                      }}
-                      style={styles.infoIconButton}
-                    >
-                      <Text style={styles.infoIcon}>ℹ️</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.exportButtonDescription}>
-                    IRS-compliant CSV files — Recommended for CPAs
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              
-              {expandedGuidance === 'csv' && (
-                <View style={styles.guidanceDrawer}>
-                  <Text style={styles.guidanceTitle}>Who this is for:</Text>
-                  <Text style={styles.guidanceText}>
-                    Best if you work with a CPA, accountant, or tax preparer.
-                  </Text>
-                  
-                  <Text style={styles.guidanceTitle}>What to do next:</Text>
-                  <Text style={styles.guidanceText}>
-                    • Download the CSV files{'\n'}
-                    • Email or share them with your CPA{'\n'}
-                    • Your CPA will import or reference these files for Schedule C or business returns
-                  </Text>
-                  
-                  <Text style={styles.guidanceTitle}>What's included:</Text>
-                  <Text style={styles.guidanceText}>
-                    • Income by gig{'\n'}
-                    • Categorized expenses{'\n'}
-                    • Mileage totals{'\n'}
-                    • Net profit summaries
-                  </Text>
-                  
-                  <View style={styles.guidanceReassurance}>
-                    <Text style={styles.guidanceReassuranceText}>
-                      These files are designed to be readable by humans and tax software. Most CPAs prefer this format.
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
+              />
 
-            {/* TXF Export (Legacy - keeping for now) */}
-            <View style={styles.exportCard}>
-              <TouchableOpacity
-                style={[
-                  styles.exportButton,
-                  !validationResult?.isValid && styles.exportButtonDisabled
-                ]}
-                onPress={handleDownloadTXF}
-                disabled={!validationResult?.isValid}
-              >
-                <Text style={styles.exportButtonIcon}>💼</Text>
-                <View style={styles.exportButtonContent}>
-                  <View style={styles.exportButtonHeader}>
-                    <Text style={styles.exportButtonTitle}>Download TXF (TurboTax Desktop ONLY - Legacy)</Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setShowTXFInfo(true);
-                      }}
-                      style={styles.infoIconButton}
-                    >
-                      <Text style={styles.infoIcon}>ℹ️</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.exportButtonDescription}>
-                    This option lets you import your GigLedger data directly into TurboTax Desktop and skip manual entry.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+              <ExportCard
+                title="Excel (.xlsx)"
+                subtitle="One .xlsx file with separate sheets."
+                icon={<Text style={{ fontSize: 20 }}>📘</Text>}
+                onPress={handleDownloadExcel}
+              />
 
-            {/* TurboTax Desktop TXF (New Canonical) */}
-            <View style={styles.exportCard}>
-              <TouchableOpacity
-                style={[
-                  styles.exportButton,
-                  (!taxPackage.data || taxPackage.isLoading) && styles.exportButtonDisabled
-                ]}
-                onPress={handleDownloadTurboTaxTXF}
-                disabled={!taxPackage.data || taxPackage.isLoading}
-              >
-                <Text style={styles.exportButtonIcon}>🧾</Text>
-                <View style={styles.exportButtonContent}>
-                  <View style={styles.exportButtonHeader}>
-                    <Text style={styles.exportButtonTitle}>TurboTax Desktop (TXF)</Text>
-                    <Badge variant="success" size="sm">Tax-Ready</Badge>
-                  </View>
-                  <Text style={styles.exportButtonDescription}>
-                    Import directly into TurboTax Desktop (NOT Online). Organized for tax prep.
-                  </Text>
-                </View>
-              </TouchableOpacity>
+              <ExportCard
+                title="PDF Summary"
+                subtitle="Tax-ready summary for your CPA."
+                icon={<Text style={{ fontSize: 20 }}>📄</Text>}
+                onPress={handleDownloadPDF}
+              />
             </View>
+          </View>
 
-            {/* H&R Block Desktop TXF (New Canonical) */}
-            <View style={styles.exportCard}>
-              <TouchableOpacity
-                style={[
-                  styles.exportButton,
-                  (!taxPackage.data || taxPackage.isLoading) && styles.exportButtonDisabled
-                ]}
-                onPress={handleDownloadHRBlockTXF}
-                disabled={!taxPackage.data || taxPackage.isLoading}
-              >
-                <Text style={styles.exportButtonIcon}>📋</Text>
-                <View style={styles.exportButtonContent}>
-                  <View style={styles.exportButtonHeader}>
-                    <Text style={styles.exportButtonTitle}>H&R Block Desktop (TXF)</Text>
-                    <Badge variant="success" size="sm">Tax-Ready</Badge>
-                  </View>
-                  <Text style={styles.exportButtonDescription}>
-                    Import directly into H&R Block Desktop. Organized for tax prep.
-                  </Text>
-                </View>
-              </TouchableOpacity>
+          {/* Backup Section */}
+          <View style={styles.exportSection}>
+            <H2>Backup</H2>
+            <Text muted style={styles.sectionSubtitle}>Archive your data</Text>
+            
+            <View style={styles.exportGrid}>
+              <ExportCard
+                title="JSON Backup"
+                subtitle="Complete data backup in JSON format."
+                icon={<Text style={{ fontSize: 20 }}>💾</Text>}
+                onPress={handleDownloadJSON}
+              />
             </View>
+          </View>
 
-            {/* TaxAct Tax Prep Pack (ZIP) */}
-            <View style={styles.exportCard}>
-              <TouchableOpacity
-                style={[
-                  styles.exportButton,
-                  (!taxPackage.data || taxPackage.isLoading) && styles.exportButtonDisabled
-                ]}
-                onPress={handleDownloadTaxActPack}
-                disabled={!taxPackage.data || taxPackage.isLoading}
-              >
-                <Text style={styles.exportButtonIcon}>📦</Text>
-                <View style={styles.exportButtonContent}>
-                  <View style={styles.exportButtonHeader}>
-                    <Text style={styles.exportButtonTitle}>TaxAct Tax Prep Pack (ZIP)</Text>
-                    <Badge variant="success" size="sm">Tax-Ready</Badge>
-                  </View>
-                  <Text style={styles.exportButtonDescription}>
-                    CSV files + PDF summary + README. Designed for manual entry and CPA sharing.
-                  </Text>
+          {/* Legacy Section (Collapsed) */}
+          <View style={styles.legacySection}>
+            <TouchableOpacity
+              style={styles.legacyHeader}
+              onPress={() => setShowLegacySection(!showLegacySection)}
+            >
+              <Text style={styles.legacyTitle}>Legacy / Troubleshooting</Text>
+              <Text style={styles.legacyToggle}>{showLegacySection ? '▼' : '▶'}</Text>
+            </TouchableOpacity>
+            
+            {showLegacySection && (
+              <View style={styles.legacyContent}>
+                <Text style={styles.legacyDescription}>
+                  These are older export formats kept for compatibility. Most users should use the options above.
+                </Text>
+                <View style={styles.exportGrid}>
+
+                  <ExportCard
+                    title="TXF (Legacy)"
+                    subtitle="Old TXF format for TurboTax Desktop. Use the newer TXF option above instead."
+                    icon={<Text style={{ fontSize: 20 }}>💼</Text>}
+                    onPress={handleDownloadTXF}
+                    disabled={!validationResult?.isValid}
+                  />
                 </View>
-              </TouchableOpacity>
-            </View>
-
-            {taxExportError && (
-              <View style={styles.errorBanner}>
-                <Text style={styles.errorText}>⚠️ {taxExportError}</Text>
               </View>
             )}
-
-            {/* Excel Export */}
-            <View style={styles.exportCard}>
-              <TouchableOpacity
-                style={styles.exportButton}
-                onPress={handleDownloadExcel}
-              >
-                <Text style={styles.exportButtonIcon}>📘</Text>
-                <View style={styles.exportButtonContent}>
-                  <View style={styles.exportButtonHeader}>
-                    <Text style={styles.exportButtonTitle}>Download Excel (.xlsx)</Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setExpandedGuidance(expandedGuidance === 'excel' ? null : 'excel');
-                      }}
-                      style={styles.infoIconButton}
-                    >
-                      <Text style={styles.infoIcon}>ℹ️</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.exportButtonDescription}>
-                    One .xlsx file with separate sheets
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              
-              {expandedGuidance === 'excel' && (
-                <View style={styles.guidanceDrawer}>
-                  <Text style={styles.guidanceTitle}>Who this is for:</Text>
-                  <Text style={styles.guidanceText}>
-                    Best if you want to review, edit, or share everything in one file.
-                  </Text>
-                  
-                  <Text style={styles.guidanceTitle}>Common use cases:</Text>
-                  <Text style={styles.guidanceText}>
-                    • Reviewing your numbers before filing{'\n'}
-                    • Sharing with a CPA who prefers Excel{'\n'}
-                    • Making notes or adjustments
-                  </Text>
-                  
-                  <Text style={styles.guidanceTitle}>What to do next:</Text>
-                  <Text style={styles.guidanceText}>
-                    • Download the Excel file{'\n'}
-                    • Review each sheet (Income, Expenses, Mileage){'\n'}
-                    • Upload it to tax software or send it to your CPA
-                  </Text>
-                  
-                  <View style={styles.guidanceReassurance}>
-                    <Text style={styles.guidanceReassuranceText}>
-                      This file mirrors the CSV exports, just combined into one workbook.
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            {/* PDF Export */}
-            <View style={styles.exportCard}>
-              <TouchableOpacity
-                style={styles.exportButton}
-                onPress={handleDownloadPDF}
-              >
-                <Text style={styles.exportButtonIcon}>🧾</Text>
-                <View style={styles.exportButtonContent}>
-                  <View style={styles.exportButtonHeader}>
-                    <Text style={styles.exportButtonTitle}>Download PDF Summary</Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setExpandedGuidance(expandedGuidance === 'pdf' ? null : 'pdf');
-                      }}
-                      style={styles.infoIconButton}
-                    >
-                      <Text style={styles.infoIcon}>ℹ️</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.exportButtonDescription}>
-                    Tax-ready summary for your CPA
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              
-              {expandedGuidance === 'pdf' && (
-                <View style={styles.guidanceDrawer}>
-                  <Text style={styles.guidanceTitle}>Who this is for:</Text>
-                  <Text style={styles.guidanceText}>
-                    Best for quick overviews or sharing a clean summary with your CPA.
-                  </Text>
-                  
-                  <Text style={styles.guidanceTitle}>Important clarification:</Text>
-                  <Text style={styles.guidanceText}>
-                    This is a summary, not raw data.
-                  </Text>
-                  
-                  <Text style={styles.guidanceTitle}>What to do next:</Text>
-                  <Text style={styles.guidanceText}>
-                    • Attach this PDF when emailing your CPA{'\n'}
-                    • Use it as a reference while filing online
-                  </Text>
-                  
-                  <View style={styles.guidanceReassurance}>
-                    <Text style={styles.guidanceReassuranceText}>
-                      We recommend pairing this with CSV or Excel exports for full detail.
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            {/* JSON Export */}
-            <View style={styles.exportCard}>
-              <TouchableOpacity
-                style={styles.exportButton}
-                onPress={handleDownloadJSON}
-              >
-                <Text style={styles.exportButtonIcon}>💾</Text>
-                <View style={styles.exportButtonContent}>
-                  <View style={styles.exportButtonHeader}>
-                    <Text style={styles.exportButtonTitle}>Download JSON Backup</Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setExpandedGuidance(expandedGuidance === 'json' ? null : 'json');
-                      }}
-                      style={styles.infoIconButton}
-                    >
-                      <Text style={styles.infoIcon}>ℹ️</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.exportButtonDescription}>
-                    Complete data backup in JSON format
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              
-              {expandedGuidance === 'json' && (
-                <View style={styles.guidanceDrawer}>
-                  <Text style={styles.guidanceTitle}>Who this is for:</Text>
-                  <Text style={styles.guidanceText}>
-                    Advanced users or long-term backups.
-                  </Text>
-                  
-                  <Text style={styles.guidanceTitle}>Purpose:</Text>
-                  <Text style={styles.guidanceText}>
-                    • Full data backup{'\n'}
-                    • Migration or archival
-                  </Text>
-                  
-                  <View style={styles.guidanceReassurance}>
-                    <Text style={styles.guidanceReassuranceText}>
-                      This file is not intended for tax filing or CPA use.
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
           </View>
 
           {/* Finish Line Section */}
           <View style={styles.finishLineSection}>
             <Text style={styles.finishLineIcon}>✅</Text>
             <Text style={styles.finishLineTitle}>
-              Once you've downloaded your exports, you're ready for tax filing.
+              You now have everything you need to share with a CPA or complete manual entry in tax software.
             </Text>
             <Text style={styles.finishLineText}>
-              If you're working with a CPA, sending them the CSVs or Excel file is usually all they need.
-            </Text>
-            <Text style={styles.finishLineText}>
-              If you're filing yourself, follow your tax software's import steps and review carefully before submitting.
+              Please review and verify totals before filing. These exports organize your data for tax preparation but are not tax advice.
             </Text>
             <Text style={styles.finishLineNote}>
-              When in doubt, a tax professional can help answer questions specific to your situation.
+              When in doubt, consult a tax professional for guidance specific to your situation.
             </Text>
           </View>
+
+          {/* How To Import Modal */}
+          <HowToImportModal
+            visible={showHowToImport}
+            software={selectedSoftware}
+            onClose={() => {
+              setShowHowToImport(false);
+              setSelectedSoftware(null);
+            }}
+          />
         </>
       )}
 
@@ -1589,6 +1443,11 @@ const styles = StyleSheet.create({
     marginTop: parseInt(spacing[3]),
     marginHorizontal: parseInt(spacing[4]),
     borderRadius: parseInt(radius.md),
+  },
+  exportGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: parseInt(spacing[3]),
   },
   exportButton: {
     flexDirection: 'row',
@@ -1944,6 +1803,40 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  legacySection: {
+    backgroundColor: colors.surface.DEFAULT,
+    marginTop: parseInt(spacing[3]),
+    marginHorizontal: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.md),
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    overflow: 'hidden',
+  },
+  legacyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: parseInt(spacing[4]),
+    backgroundColor: '#f9fafb',
+  },
+  legacyTitle: {
+    fontSize: parseInt(typography.fontSize.body.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.muted,
+  },
+  legacyToggle: {
+    fontSize: 14,
+    color: colors.text.muted,
+  },
+  legacyContent: {
+    padding: parseInt(spacing[4]),
+  },
+  legacyDescription: {
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.muted,
+    lineHeight: 20,
+    marginBottom: parseInt(spacing[4]),
   },
   errorBanner: {
     backgroundColor: colors.danger.muted,
