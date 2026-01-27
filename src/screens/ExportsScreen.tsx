@@ -14,7 +14,10 @@ import { ExportCard } from '../components/ExportCard';
 import { HowToImportModal, type TaxSoftware } from '../components/HowToImportModal';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { useAllExportData, type ExportFilters } from '../hooks/useExports';
-import { downloadAllCSVs, downloadJSONBackup } from '../lib/csvExport';
+import { generateCSVBundle } from '../lib/exports/csv-bundle-generator';
+import { downloadExcelFromPackage } from '../lib/exports/excel-generator-canonical';
+import { downloadJSONBackup as downloadJSONBackupCanonical } from '../lib/exports/json-backup-generator';
+import { generateScheduleCSummaryPdf } from '../lib/exports/taxpdf';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { canExport } from '../config/plans';
@@ -173,210 +176,94 @@ export function ExportsScreen() {
   }, [gigs.data, expenses.data, mileage.data]);
 
   const handleDownloadCSVs = async () => {
-    try {
-      console.log('CSV export clicked');
-      
-      // Check export limit
-      const userId = await getSharedUserId();
-      console.log('User ID:', userId);
-      
-      if (!userId) {
-        Alert.alert('Error', 'User not authenticated');
-        return;
-      }
-      
-      console.log('Checking export limit...');
-      const limitCheck = await checkAndIncrementLimit(userId, 'exports');
-      console.log('Limit check result:', limitCheck);
-      
-      if (!limitCheck.allowed) {
-        if (Platform.OS === 'web') {
-          // Use window.alert for web to ensure it shows
-          window.alert(`⚠️ Monthly Limit Reached\n\n${limitCheck.message}\n\nUpgrade to Pro for unlimited exports!`);
-        } else {
-          Alert.alert(
-            '⚠️ Monthly Limit Reached',
-            limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
-            [
-              { text: 'OK', style: 'cancel' },
-            ]
-          );
-        }
-        return;
-      }
+    setTaxExportError(null);
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
 
-      if (!gigs.data || !expenses.data || !mileage.data || !payers.data || !scheduleC.data) {
-        Alert.alert('Error', 'Data not loaded yet. Please wait.');
-        return;
-      }
-
-      console.log('Starting CSV download...');
-      downloadAllCSVs(
-        gigs.data,
-        expenses.data,
-        mileage.data,
-        payers.data,
-        scheduleC.data,
-        taxYear
+    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
+    if (!limitCheck.allowed) {
+      Alert.alert(
+        '⚠️ Monthly Limit Reached',
+        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+        [{ text: 'OK', style: 'cancel' }]
       );
+      return;
+    }
 
+    if (!taxPackage.data) {
+      Alert.alert('Error', 'Tax export package not loaded. Please wait or refresh.');
+      return;
+    }
+
+    try {
+      generateCSVBundle(taxPackage.data);
       Alert.alert('Success', 'CSV files are being downloaded. Check your downloads folder.');
-    } catch (error) {
-      console.error('Error in handleDownloadCSVs:', error);
-      Alert.alert('Error', 'Failed to export. Please try again.');
+    } catch (error: any) {
+      console.error('CSV export error:', error);
+      Alert.alert('Export Error', error.message || 'Failed to generate CSV files');
     }
   };
 
   const handleDownloadJSON = async () => {
-    // Check export limit
+    setTaxExportError(null);
     const userId = await getSharedUserId();
     if (!userId) {
       Alert.alert('Error', 'User not authenticated');
       return;
     }
-    
+
     const limitCheck = await checkAndIncrementLimit(userId, 'exports');
-    
     if (!limitCheck.allowed) {
       Alert.alert(
         '⚠️ Monthly Limit Reached',
         limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
-        [
-          { text: 'OK', style: 'cancel' },
-        ]
+        [{ text: 'OK', style: 'cancel' }]
       );
       return;
     }
 
-    if (!gigs.data || !expenses.data || !mileage.data || !payers.data || !scheduleC.data) {
-      Alert.alert('Error', 'Data not loaded yet. Please wait.');
-      return;
-    }
-
-    downloadJSONBackup(
-      gigs.data,
-      expenses.data,
-      mileage.data,
-      payers.data,
-      scheduleC.data,
-      taxYear
-    );
-
-    Alert.alert('Success', 'JSON backup downloaded successfully.');
-  };
-
-  const handleDownloadExcel = async () => {
-    // Check export limit
-    const userId = await getSharedUserId();
-    if (!userId) {
-      Alert.alert('Error', 'User not authenticated');
-      return;
-    }
-    
-    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
-    
-    if (!limitCheck.allowed) {
-      Alert.alert(
-        '⚠️ Monthly Limit Reached',
-        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
-        [
-          { text: 'OK', style: 'cancel' },
-        ]
-      );
-      return;
-    }
-
-    if (!gigs.data || !expenses.data || !mileage.data || !payers.data) {
-      Alert.alert('Error', 'Data not loaded yet. Please wait.');
+    if (!taxPackage.data) {
+      Alert.alert('Error', 'Tax export package not loaded. Please wait or refresh.');
       return;
     }
 
     try {
-      // Calculate Schedule C summary from raw data
-      const grossReceipts = gigs.data.reduce((sum, g) => sum + (g.gross_amount || 0) + (g.tips || 0) + (g.per_diem || 0) + (g.other_income || 0), 0);
-      const fees = gigs.data.reduce((sum, g) => sum + (g.fees || 0), 0);
-      const totalIncome = grossReceipts - fees;
-      
-      // Expenses by category
-      const expensesByCategory: Record<string, number> = {};
-      expenses.data.forEach(e => {
-        const cat = e.category || 'Other';
-        expensesByCategory[cat] = (expensesByCategory[cat] || 0) + e.amount;
-      });
-      
-      // Mileage deduction
-      const mileageDeduction = mileage.data.reduce((sum, m) => sum + (m.deduction_amount || m.miles * 0.67), 0);
-      
-      // Map to Schedule C lines
-      const advertising = expensesByCategory['Marketing'] || 0;
-      const carTruck = mileageDeduction;
-      const supplies = expensesByCategory['Supplies'] || 0;
-      const travel = (expensesByCategory['Travel'] || 0) + (expensesByCategory['Lodging'] || 0);
-      const meals = (expensesByCategory['Meals'] || 0) * 0.5;
-      const officeExpense = expensesByCategory['Software'] || 0;
-      const legalProfessional = expensesByCategory['Fees'] || 0;
-      const otherExpenses = Object.entries(expensesByCategory)
-        .filter(([cat]) => !['Marketing', 'Supplies', 'Travel', 'Lodging', 'Meals', 'Software', 'Fees'].includes(cat))
-        .reduce((sum, [, amount]) => sum + amount, 0);
-      
-      const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
-      const netProfit = totalIncome - totalExpenses;
-      
-      const seTax = taxBreakdown?.selfEmployment || 0;
-      const estimatedIncomeTax = taxBreakdown?.federalIncome || 0;
-      const estimatedStateTax = taxBreakdown?.stateIncome || 0;
-      const totalTax = taxBreakdown?.total || 0;
-      
-      const calculatedScheduleC = {
-        tax_year: taxYear,
-        filing_status: 'single' as const,
-        state_of_residence: 'XX',
-        standard_or_itemized: 'itemized' as const,
-        gross_receipts: grossReceipts - fees,
-        returns_and_allowances: 0,
-        other_income: 0,
-        total_income: totalIncome,
-        advertising,
-        car_truck: carTruck,
-        commissions: 0,
-        contract_labor: 0,
-        depreciation: 0,
-        employee_benefit: 0,
-        insurance_other: 0,
-        interest_mortgage: 0,
-        interest_other: 0,
-        legal_professional: legalProfessional,
-        office_expense: officeExpense,
-        rent_vehicles: 0,
-        rent_other: 0,
-        repairs_maintenance: 0,
-        supplies,
-        taxes_licenses: 0,
-        travel,
-        meals_allowed: meals,
-        utilities: 0,
-        wages: 0,
-        other_expenses_total: otherExpenses,
-        total_expenses: totalExpenses,
-        net_profit: netProfit,
-        se_tax_basis: netProfit * 0.9235,
-        est_se_tax: seTax,
-        est_federal_income_tax: estimatedIncomeTax,
-        est_state_income_tax: estimatedStateTax,
-        est_total_tax: totalTax,
-        set_aside_suggested: totalTax,
-      };
+      downloadJSONBackupCanonical(taxPackage.data);
+      Alert.alert('Success', 'JSON backup downloaded successfully.');
+    } catch (error: any) {
+      console.error('JSON export error:', error);
+      Alert.alert('Export Error', error.message || 'Failed to generate JSON backup');
+    }
+  };
 
-      await downloadExcel({
-        gigs: gigs.data,
-        expenses: expenses.data,
-        mileage: mileage.data,
-        payers: payers.data,
-        scheduleC: calculatedScheduleC,
-        taxYear,
-        taxBreakdown,
-      });
-      
+  const handleDownloadExcel = async () => {
+    setTaxExportError(null);
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
+    if (!limitCheck.allowed) {
+      Alert.alert(
+        '⚠️ Monthly Limit Reached',
+        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+        [{ text: 'OK', style: 'cancel' }]
+      );
+      return;
+    }
+
+    if (!taxPackage.data) {
+      Alert.alert('Error', 'Tax export package not loaded. Please wait or refresh.');
+      return;
+    }
+
+    try {
+      downloadExcelFromPackage(taxPackage.data);
       Alert.alert('Success', 'Excel file has been downloaded!');
     } catch (error: any) {
       console.error('Excel export error:', error);
@@ -385,132 +272,44 @@ export function ExportsScreen() {
   };
 
   const handleDownloadPDF = async () => {
-    // Check export limit
+    setTaxExportError(null);
     const userId = await getSharedUserId();
     if (!userId) {
       Alert.alert('Error', 'User not authenticated');
       return;
     }
-    
+
     const limitCheck = await checkAndIncrementLimit(userId, 'exports');
-    
     if (!limitCheck.allowed) {
       Alert.alert(
         '⚠️ Monthly Limit Reached',
         limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
-        [
-          { text: 'OK', style: 'cancel' },
-        ]
+        [{ text: 'OK', style: 'cancel' }]
       );
       return;
     }
 
-    if (!gigs.data || !expenses.data || !mileage.data) {
-      Alert.alert('Error', 'Data not loaded yet. Please wait.');
+    if (!taxPackage.data) {
+      Alert.alert('Error', 'Tax export package not loaded. Please wait or refresh.');
       return;
     }
 
     try {
-      // Calculate Schedule C summary from raw data
-      const grossReceipts = gigs.data.reduce((sum, g) => sum + (g.gross_amount || 0) + (g.tips || 0) + (g.per_diem || 0) + (g.other_income || 0), 0);
-      const fees = gigs.data.reduce((sum, g) => sum + (g.fees || 0), 0);
-      const totalIncome = grossReceipts - fees;
-      
-      // Expenses by category
-      const expensesByCategory: Record<string, number> = {};
-      expenses.data.forEach(e => {
-        const cat = e.category || 'Other';
-        expensesByCategory[cat] = (expensesByCategory[cat] || 0) + e.amount;
+      const pdfBytes = await generateScheduleCSummaryPdf({
+        pkg: taxPackage.data,
+        appVersion: 'GigLedger v1.0',
       });
-      
-      // Mileage deduction
-      const mileageDeduction = mileage.data.reduce((sum, m) => sum + (m.deduction_amount || m.miles * 0.67), 0);
-      
-      // Map to Schedule C lines
-      const advertising = expensesByCategory['Marketing'] || 0;
-      const carTruck = mileageDeduction;
-      const supplies = expensesByCategory['Supplies'] || 0;
-      const travel = (expensesByCategory['Travel'] || 0) + (expensesByCategory['Lodging'] || 0);
-      const meals = (expensesByCategory['Meals'] || 0) * 0.5;
-      const officeExpense = expensesByCategory['Software'] || 0;
-      const legalProfessional = expensesByCategory['Fees'] || 0;
-      const otherExpenses = Object.entries(expensesByCategory)
-        .filter(([cat]) => !['Marketing', 'Supplies', 'Travel', 'Lodging', 'Meals', 'Software', 'Fees'].includes(cat))
-        .reduce((sum, [, amount]) => sum + amount, 0);
-      
-      const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
-      const netProfit = totalIncome - totalExpenses;
-      
-      // Use tax breakdown from useWithholding hook (same as dashboard)
-      const seTax = taxBreakdown?.selfEmployment || 0;
-      const estimatedIncomeTax = taxBreakdown?.federalIncome || 0;
-      const estimatedStateTax = taxBreakdown?.stateIncome || 0;
-      const totalTax = taxBreakdown?.total || 0;
-      
-      const calculatedScheduleC = {
-        tax_year: taxYear,
-        filing_status: 'single' as const,
-        state_of_residence: 'XX',
-        standard_or_itemized: 'itemized' as const,
-        gross_receipts: grossReceipts - fees,
-        returns_and_allowances: 0,
-        other_income: 0,
-        total_income: totalIncome,
-        advertising,
-        car_truck: carTruck,
-        commissions: 0,
-        contract_labor: 0,
-        depreciation: 0,
-        employee_benefit: 0,
-        insurance_other: 0,
-        interest_mortgage: 0,
-        interest_other: 0,
-        legal_professional: legalProfessional,
-        office_expense: officeExpense,
-        rent_vehicles: 0,
-        rent_other: 0,
-        repairs_maintenance: 0,
-        supplies,
-        taxes_licenses: 0,
-        travel,
-        meals_allowed: meals,
-        utilities: 0,
-        wages: 0,
-        other_expenses_total: otherExpenses,
-        total_expenses: totalExpenses,
-        net_profit: netProfit,
-        se_tax_basis: netProfit * 0.9235,
-        est_se_tax: seTax,
-        est_federal_income_tax: estimatedIncomeTax,
-        est_state_income_tax: estimatedStateTax,
-        est_total_tax: totalTax,
-        set_aside_suggested: totalTax,
-      };
 
-      // Get user profile for taxpayer name
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-      
-      const taxpayerName = profileData?.full_name || undefined;
-      const generatedDate = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-      
-      // Open PDF in new window
-      openScheduleCPDF({
-        scheduleCSummary: calculatedScheduleC,
-        taxYear,
-        taxpayerName,
-        generatedDate,
-      });
+      // Download PDF
+      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ScheduleC_Summary_${taxYear}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      Alert.alert('Success', 'PDF has been downloaded!');
     } catch (error: any) {
       console.error('PDF export error:', error);
       Alert.alert('Export Error', error.message || 'Failed to generate PDF');
