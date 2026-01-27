@@ -2,11 +2,34 @@
  * Step 1: Upload CSV File
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { H2, Text, Button } from '../../ui';
 import { colors, spacing } from '../../styles/theme';
 import { parseCSV, ParsedCSVRow } from '../../lib/csv/csvParser';
+
+// Static template CSV - never truncated or ellipsized
+const TEMPLATE_CSV = `Date,Payer,Title,Venue,City,State,Gross,Tips,Fees,PerDiem,OtherIncome,PaymentMethod,Paid,TaxesWithheld,Notes
+2026-01-15,Blue Note Jazz Club,Friday Night Set,Blue Note,New York,NY,850,120,85,,50,Direct Deposit,Yes,Yes,Great crowd - packed house (withheld approx $127.50)
+01/22/2026,The Viper Room,Saturday Headliner,The Viper Room,Los Angeles,CA,1200,150,120,100,,Venmo,Yes,No,Sold out show
+1/27/26,Private Event Co,Corporate Event,Hilton Downtown,Chicago,IL,2500,300,250,150,100,Check,No,No,Wedding reception - 4 hour set`;
+
+// Dev-mode validation
+if (process.env.NODE_ENV === 'development') {
+  const lines = TEMPLATE_CSV.trim().split('\n');
+  if (TEMPLATE_CSV.includes('...')) {
+    console.error('❌ Template CSV contains ellipses!');
+  }
+  if (lines.length !== 4) {
+    console.error(`❌ Template CSV has ${lines.length} lines, expected 4`);
+  }
+  lines.forEach((line, i) => {
+    const cols = line.split(',');
+    if (cols.length !== 15) {
+      console.error(`❌ Template CSV line ${i + 1} has ${cols.length} columns, expected 15`);
+    }
+  });
+}
 
 interface UploadStepProps {
   onNext: (rows: ParsedCSVRow[], headers: string[]) => void;
@@ -18,6 +41,7 @@ export function UploadStep({ onNext, onCancel }: UploadStepProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{ name: string; rowCount: number } | null>(null);
   const [isFormatsExpanded, setIsFormatsExpanded] = useState(false);
+  const isPickingRef = useRef(false);
 
   const handleFileSelect = async (event: any) => {
     setError(null);
@@ -56,11 +80,14 @@ export function UploadStep({ onNext, onCancel }: UploadStepProps) {
   };
 
   const handleDownloadTemplate = () => {
-    // Download template CSV
+    // Create blob from static template string (never truncated)
+    const blob = new Blob([TEMPLATE_CSV], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = '/templates/gig-import-template.csv';
+    link.href = url;
     link.download = 'gig-import-template.csv';
     link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -87,17 +114,26 @@ export function UploadStep({ onNext, onCancel }: UploadStepProps) {
             style={{ display: 'none' }}
             id="csv-upload"
           />
-          <label htmlFor="csv-upload">
-            <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={() => document.getElementById('csv-upload')?.click()}
-              disabled={isProcessing}
-            >
-              <Text style={styles.uploadButtonText}>
-                {isProcessing ? 'Processing...' : '📤 Upload CSV'}
-              </Text>
-            </TouchableOpacity>
-          </label>
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={() => {
+              if (isPickingRef.current) return;
+              isPickingRef.current = true;
+              try {
+                document.getElementById('csv-upload')?.click();
+              } finally {
+                // Reset after a short delay to allow file picker to open
+                setTimeout(() => {
+                  isPickingRef.current = false;
+                }, 100);
+              }
+            }}
+            disabled={isProcessing}
+          >
+            <Text style={styles.uploadButtonText}>
+              {isProcessing ? 'Processing...' : '📤 Upload CSV'}
+            </Text>
+          </TouchableOpacity>
 
           <Button
             variant="ghost"
