@@ -51,6 +51,7 @@ export async function createMissingPayers(
       const { data, error } = await supabase
         .from('payers')
         .insert({
+          user_id: userId,
           name: match.csvName,
           payer_type: 'Venue', // Default type for CSV imports
           created_by_import_batch_id: batchId, // Track which batch created this payer
