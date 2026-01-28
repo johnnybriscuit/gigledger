@@ -205,10 +205,11 @@ export async function batchImportGigs(
   fileName?: string,
   skipDuplicates: boolean = true
 ): Promise<BatchImportResult> {
-  // Create batch record (user_id handled by RLS)
+  // Create batch record with explicit user_id for RLS policy
   const { data: batch, error: batchError } = await supabase
     .from('import_batches')
     .insert({
+      user_id: userId,
       file_name: fileName || 'import.csv',
       total_rows: rows.length,
       combined_rows: rows.some(r => r.isCombined),
