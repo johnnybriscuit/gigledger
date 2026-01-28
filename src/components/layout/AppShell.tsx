@@ -103,7 +103,7 @@ export function AppShell({
         onPress={() => onNavigate('dashboard')}
       >
         <Image 
-          source={require('../../../assets/icon.png')}
+          source={require('../../../assets/logo-mark-64.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -209,7 +209,7 @@ export function AppShell({
               <Text style={styles.hamburgerIcon}>☰</Text>
             </TouchableOpacity>
             <Image 
-              source={require('../../../assets/icon.png')}
+              source={require('../../../assets/logo-mark-64.png')}
               style={styles.mobileHeaderLogo}
               resizeMode="contain"
             />
@@ -337,15 +337,16 @@ const styles = StyleSheet.create({
     marginBottom: spacingNum[6],
   },
   logo: {
-    width: 36,
-    height: 36,
-    marginRight: spacingNum[3],
+    width: 24,
+    height: 24,
+    marginRight: 10,
   },
   logoText: {
     fontSize: 20,
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.5,
+    lineHeight: 24,
   },
   navContainer: {
     flex: 1,
