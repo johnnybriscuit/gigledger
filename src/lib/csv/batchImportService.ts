@@ -157,10 +157,11 @@ async function importGigRow(
   // Convert taxes_withheld to boolean (schema only supports boolean)
   const taxesWithheld = row.taxesWithheld ? (row.taxesWithheld > 0 ? true : false) : false;
 
-  // Insert gig (user_id is handled by RLS/trigger)
+  // Insert gig with explicit user_id for RLS policy
   const { data, error } = await supabase
     .from('gigs')
     .insert({
+      user_id: userId,
       payer_id: payerId,
       date: row.date,
       title: row.title || null,
