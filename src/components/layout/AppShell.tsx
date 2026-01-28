@@ -107,7 +107,7 @@ export function AppShell({
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.logoText}>GigLedger</Text>
+        <Text style={styles.logoText}>Bozzy</Text>
       </TouchableOpacity>
 
       {/* Navigation */}
@@ -213,7 +213,7 @@ export function AppShell({
               style={styles.mobileHeaderLogo}
               resizeMode="contain"
             />
-            <Text style={styles.mobileTitle}>GigLedger</Text>
+            <Text style={styles.mobileTitle}>Bozzy</Text>
           </View>
           
           {/* Only render sidebar when hamburger is OPEN - as overlay, not in-flow */}

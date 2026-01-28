@@ -1,4 +1,4 @@
-# 💼 GigLedger
+# 💼 Bozzy
 
 > A premium expense tracking and tax management platform for freelancers and gig workers, built with React Native and Supabase.
 
@@ -53,8 +53,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/johnnybriscuit/gigledger.git
-cd gigledger
+git clone https://github.com/johnnybriscuit/bozzy.git
+cd bozzy
 
 # Install dependencies
 npm install
@@ -102,7 +102,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://staging-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-staging-anon-key
 
 # Site URL (Required)
-EXPO_PUBLIC_SITE_URL=https://staging.gigledger.com
+EXPO_PUBLIC_SITE_URL=https://staging.bozzygigs.com
 
 # Optional Features
 EXPO_PUBLIC_ANTIBOT_ENABLED=false
@@ -118,7 +118,7 @@ EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
 
 # Site URL (Required)
-EXPO_PUBLIC_SITE_URL=https://gigledger.com
+EXPO_PUBLIC_SITE_URL=https://bozzygigs.com
 
 # Optional Features
 EXPO_PUBLIC_ANTIBOT_ENABLED=false
@@ -152,7 +152,7 @@ See [SUPABASE_SETUP_CHECKLIST.md](./SUPABASE_SETUP_CHECKLIST.md) for detailed in
 
 3. **Deploy**
    - Vercel will automatically build and deploy
-   - Note your deployment URL (e.g., `https://gigledger.vercel.app`)
+   - Note your deployment URL (e.g., `https://bozzy.vercel.app`)
 
 ### Supabase Configuration
 
@@ -384,7 +384,7 @@ This project is private and proprietary. All rights reserved.
 
 For questions or issues:
 - Check the [documentation](./docs/)
-- Review [existing issues](https://github.com/johnnybriscuit/gigledger/issues)
+- Review [existing issues](https://github.com/johnnybriscuit/bozzy/issues)
 - Create a new issue with detailed information
 
 ## 🗺️ Roadmap

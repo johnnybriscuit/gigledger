@@ -63,7 +63,7 @@ export const ExpenseExportSchema = z.object({
   merchant: z.string().optional().nullable(),
   description: z.string(),
   amount: z.number().positive(), // Must be positive
-  gl_category: z.string(), // GigLedger internal category
+  gl_category: z.string(), // Bozzy internal category
   irs_schedule_c_line: z.string(), // REQUIRED: IRS Schedule C line code
   meals_percent_allowed: z.number().min(0).max(1).default(0.5), // 0.5 = 50%
   linked_gig_id: z.string().uuid().optional().nullable(),
@@ -277,9 +277,9 @@ export const IRS_SCHEDULE_C_LINE_CODES = {
 export type IRSScheduleCLineCode = typeof IRS_SCHEDULE_C_LINE_CODES[keyof typeof IRS_SCHEDULE_C_LINE_CODES];
 
 // ============================================================================
-// GIGLEDGER CATEGORY TO IRS LINE MAPPING
+// BOZZY CATEGORY TO IRS LINE MAPPING
 // ============================================================================
-// Maps GigLedger expense categories to IRS Schedule C line codes
+// Maps Bozzy expense categories to IRS Schedule C line codes
 // Categories: Rent, Travel, Meals, Lodging, Supplies, Marketing, Education, Software, Fees, Equipment, Other
 
 export const CATEGORY_TO_IRS_LINE: Record<string, IRSScheduleCLineCode> = {
@@ -312,7 +312,7 @@ export const CATEGORY_TO_IRS_LINE: Record<string, IRSScheduleCLineCode> = {
 };
 
 /**
- * Get IRS Schedule C line code for a GigLedger category
+ * Get IRS Schedule C line code for a Bozzy category
  */
 export function getIRSLineCode(category: string): IRSScheduleCLineCode {
   return CATEGORY_TO_IRS_LINE[category] || IRS_SCHEDULE_C_LINE_CODES.OTHER;

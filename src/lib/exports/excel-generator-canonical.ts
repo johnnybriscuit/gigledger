@@ -131,7 +131,7 @@ export function downloadExcelFromPackage(pkg: TaxExportPackage): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `GigLedger_Export_${pkg.metadata.taxYear}.xlsx`;
+  link.download = `Bozzy_Export_${pkg.metadata.taxYear}.xlsx`;
   link.click();
   URL.revokeObjectURL(url);
 }

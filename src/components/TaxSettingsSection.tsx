@@ -163,7 +163,7 @@ export function TaxSettingsSection({
     }
     
     if (businessStructure === 'llc_scorp' && !isProPlan) {
-      Alert.alert('Upgrade Required', 'S-Corp mode is only available on GigLedger Pro. Please upgrade your plan to use this business structure.');
+      Alert.alert('Upgrade Required', 'S-Corp mode is only available on Bozzy Pro. Please upgrade your plan to use this business structure.');
       return;
     }
 
@@ -179,7 +179,7 @@ export function TaxSettingsSection({
         
         if (error) {
           if (error.message?.includes('SCORP_REQUIRES_PRO')) {
-            Alert.alert('Upgrade Required', 'S-Corp mode requires GigLedger Pro.');
+            Alert.alert('Upgrade Required', 'S-Corp mode requires Bozzy Pro.');
             return;
           }
           throw error;
@@ -269,28 +269,28 @@ export function TaxSettingsSection({
               {/* Contextual help text based on selected structure */}
               {businessStructure === 'individual' && (
                 <Text style={styles.helpText}>
-                  ℹ️ The default for most freelance musicians. Simple to manage. Self-employment tax applies and GigLedger estimates both income and SE tax.
+                  ℹ️ The default for most freelance musicians. Simple to manage. Self-employment tax applies and Bozzy estimates both income and SE tax.
                 </Text>
               )}
               {businessStructure === 'llc_single_member' && (
                 <Text style={styles.helpText}>
-                  ℹ️ A legal LLC with one owner. Adds liability protection, but taxes usually work the same as an Individual. SE tax still applies; GigLedger treats this like Individual for estimates.
+                  ℹ️ A legal LLC with one owner. Adds liability protection, but taxes usually work the same as an Individual. SE tax still applies; Bozzy treats this like Individual for estimates.
                 </Text>
               )}
               {businessStructure === 'llc_scorp' && (
                 <Text style={styles.infoNote}>
-                  ℹ️ Advanced tax strategy. Often used when profit is high and you run payroll. In GigLedger Pro, we track income/expenses but do not estimate self-employment tax.
+                  ℹ️ Advanced tax strategy. Often used when profit is high and you run payroll. In Bozzy Pro, we track income/expenses but do not estimate self-employment tax.
                 </Text>
               )}
               {businessStructure === 'llc_multi_member' && (
                 <Text style={styles.helpText}>
-                  ℹ️ Typically used for band LLCs or shared businesses. Taxes are handled at the entity level; GigLedger focuses on tracking total income and expenses.
+                  ℹ️ Typically used for band LLCs or shared businesses. Taxes are handled at the entity level; Bozzy focuses on tracking total income and expenses.
                 </Text>
               )}
               
               {!isProPlan && (
                 <Text style={styles.upgradeNote}>
-                  💡 S-Corp mode is available on GigLedger Pro. S-Corp mode removes self-employment tax estimates and is designed for users running payroll through an S-Corp.
+                  💡 S-Corp mode is available on Bozzy Pro. S-Corp mode removes self-employment tax estimates and is designed for users running payroll through an S-Corp.
                 </Text>
               )}
             </>

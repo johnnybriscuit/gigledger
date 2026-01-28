@@ -297,7 +297,7 @@ export function ExportsScreen() {
     try {
       const pdfBytes = await generateScheduleCSummaryPdf({
         pkg: taxPackage.data,
-        appVersion: 'GigLedger v1.0',
+        appVersion: 'Bozzy v1.0',
       });
 
       // Download PDF
@@ -525,7 +525,7 @@ export function ExportsScreen() {
 
       Alert.alert(
         'TurboTax Desktop TXF Export Complete',
-        'Your TXF file has been downloaded. This file can be imported into TurboTax Desktop (NOT TurboTax Online).\n\nThese exports organize your GigLedger data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
+        'Your TXF file has been downloaded. This file can be imported into TurboTax Desktop (NOT TurboTax Online).\n\nThese exports organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
         [{ text: 'OK' }]
       );
     } catch (error: any) {
@@ -563,7 +563,7 @@ export function ExportsScreen() {
 
       Alert.alert(
         'H&R Block Desktop TXF Export Complete',
-        'Your TXF file has been downloaded. This file can be imported into H&R Block Desktop.\n\nThese exports organize your GigLedger data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
+        'Your TXF file has been downloaded. This file can be imported into H&R Block Desktop.\n\nThese exports organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
         [{ text: 'OK' }]
       );
     } catch (error: any) {
@@ -600,7 +600,7 @@ export function ExportsScreen() {
 
       Alert.alert(
         'TaxAct Tax Prep Pack Export Complete',
-        'Your ZIP file has been downloaded with CSVs, PDF summary, and README.\n\nTaxAct export is a Tax Prep Pack (ZIP) designed for easy manual entry and CPA sharing.\n\nThese exports organize your GigLedger data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
+        'Your ZIP file has been downloaded with CSVs, PDF summary, and README.\n\nTaxAct export is a Tax Prep Pack (ZIP) designed for easy manual entry and CPA sharing.\n\nThese exports organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
         [
           { text: 'View Info', onPress: () => setShowTaxActInfo(true) },
           { text: 'Done' },

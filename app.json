@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "gigledger",
-    "slug": "gigledger",
+    "name": "bozzy",
+    "slug": "bozzy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,7 +17,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.gigledger"
+      "bundleIdentifier": "com.anonymous.bozzy"
     },
     "android": {
       "adaptiveIcon": {

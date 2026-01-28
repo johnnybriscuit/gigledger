@@ -22,7 +22,7 @@ interface PaywallModalProps {
 const PAYWALL_CONTENT: Record<PaywallReason, { title: string; body: string }> = {
   invoice_limit: {
     title: "You've reached your invoice limit",
-    body: "You've created 3 invoices this month on the Free plan. To create more invoices, you can either wait until the 1st of next month when your limit resets, or upgrade to GigLedger Pro for unlimited invoices.",
+    body: "You've created 3 invoices this month on the Free plan. To create more invoices, you can either wait until the 1st of next month when your limit resets, or upgrade to Bozzy Pro for unlimited invoices.",
   },
   export_limit: {
     title: "Exports are a Pro feature",
@@ -30,11 +30,11 @@ const PAYWALL_CONTENT: Record<PaywallReason, { title: string; body: string }> = 
   },
   gig_limit: {
     title: "You've reached your gig limit",
-    body: "You've logged 10 gigs this month on the Free plan. To log more gigs, you can either wait until the 1st of next month when your limit resets, or upgrade to GigLedger Pro for unlimited gigs.",
+    body: "You've logged 10 gigs this month on the Free plan. To log more gigs, you can either wait until the 1st of next month when your limit resets, or upgrade to Bozzy Pro for unlimited gigs.",
   },
   expense_limit: {
     title: "You've reached your expense limit",
-    body: "You've logged 10 expenses this month on the Free plan. To log more expenses, you can either wait until the 1st of next month when your limit resets, or upgrade to GigLedger Pro for unlimited expenses.",
+    body: "You've logged 10 expenses this month on the Free plan. To log more expenses, you can either wait until the 1st of next month when your limit resets, or upgrade to Bozzy Pro for unlimited expenses.",
   },
 };
 

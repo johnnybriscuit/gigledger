@@ -1,13 +1,13 @@
 module.exports = {
   expo: {
-    name: 'GigLedger',
-    slug: 'gigledger',
+    name: 'Bozzy',
+    slug: 'bozzy',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     newArchEnabled: true,
-    scheme: 'gigledger',
+    scheme: 'bozzy',
     splash: {
       image: './assets/splash-icon.png',
       resizeMode: 'contain',
@@ -15,7 +15,7 @@ module.exports = {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.gigledger.app',
+      bundleIdentifier: 'com.bozzy.app',
       buildNumber: '1',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -26,7 +26,7 @@ module.exports = {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
-      package: 'com.gigledger.app',
+      package: 'com.bozzy.app',
       versionCode: 1,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,

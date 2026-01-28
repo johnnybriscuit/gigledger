@@ -9,7 +9,7 @@ export function useDocumentTitle(title: string) {
   useEffect(() => {
     if (Platform.OS === 'web') {
       const previousTitle = document.title;
-      document.title = title ? `${title} • GigLedger` : 'GigLedger';
+      document.title = title ? `${title} • Bozzy` : 'Bozzy';
       
       return () => {
         document.title = previousTitle;

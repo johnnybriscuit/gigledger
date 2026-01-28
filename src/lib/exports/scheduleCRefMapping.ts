@@ -43,14 +43,14 @@ export function mapCategoryToScheduleCRef(
   }
 
   if (normalized === 'Equipment/Gear') {
-    return { refNumber: 302, deductiblePercent: 1, otherDescription: 'GigLedger: Equipment/Gear' };
+    return { refNumber: 302, deductiblePercent: 1, otherDescription: 'Bozzy: Equipment/Gear' };
   }
 
   if (normalized === 'Education/Training') {
-    return { refNumber: 302, deductiblePercent: 1, otherDescription: 'GigLedger: Education/Training' };
+    return { refNumber: 302, deductiblePercent: 1, otherDescription: 'Bozzy: Education/Training' };
   }
 
-  return { refNumber: 302, deductiblePercent: 1, otherDescription: `GigLedger: ${category || 'Other'}` };
+  return { refNumber: 302, deductiblePercent: 1, otherDescription: `Bozzy: ${category || 'Other'}` };
 }
 
 export function isIncomeRefNumber(ref: ScheduleCRefNumber): boolean {

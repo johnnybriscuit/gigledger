@@ -40,7 +40,7 @@ export const DashboardEmptyState: React.FC<DashboardEmptyStateProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.welcomeTitle}>Welcome to GigLedger! 👋</Text>
+        <Text style={styles.welcomeTitle}>Welcome to Bozzy! 👋</Text>
         <Text style={styles.welcomeSubtitle}>
           You're all set up. Here's what you can do next:
         </Text>

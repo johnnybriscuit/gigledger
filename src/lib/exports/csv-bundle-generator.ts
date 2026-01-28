@@ -116,5 +116,5 @@ export async function generateCSVBundle(pkg: TaxExportPackage): Promise<void> {
 
   // Generate and download the ZIP file
   const zipBytes = await zip.generateAsync({ type: 'uint8array' });
-  downloadZip(zipBytes, `GigLedger_CSV_Bundle_${taxYear}.zip`);
+  downloadZip(zipBytes, `Bozzy_CSV_Bundle_${taxYear}.zip`);
 }

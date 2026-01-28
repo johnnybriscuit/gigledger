@@ -33,7 +33,7 @@ export function ErrorScreen({
             Your account session is no longer valid. This can happen if your account was removed or your session expired.
           </Text>
           <Text style={styles.hint}>
-            Please sign in again to continue using GigLedger.
+            Please sign in again to continue using Bozzy.
           </Text>
           <Button 
             variant="primary" 

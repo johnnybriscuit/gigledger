@@ -18,7 +18,7 @@ export function LoadingScreen({ message = 'Loading your dashboard...' }: Loading
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <H1 style={styles.title}>GigLedger</H1>
+        <H1 style={styles.title}>Bozzy</H1>
         <ActivityIndicator size="large" color={colors.brand.DEFAULT} style={styles.spinner} />
         <Text style={styles.message}>{message}</Text>
       </View>

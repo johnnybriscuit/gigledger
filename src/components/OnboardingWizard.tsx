@@ -105,7 +105,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         <View style={styles.stepContentContainer}>
           {currentStep === 'welcome' && (
             <View>
-              <Text style={styles.stepTitle}>Welcome to GigLedger! 🎵</Text>
+              <Text style={styles.stepTitle}>Welcome to Bozzy! 🎵</Text>
               <Text style={styles.stepDescription}>
                 Track your music income, expenses, and get tax estimates all in one place.
               </Text>

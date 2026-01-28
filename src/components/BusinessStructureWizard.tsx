@@ -51,7 +51,7 @@ export function BusinessStructureWizard() {
         reasons: [
           'You indicated this is a shared business with other owners',
           'Partnership structure allows you to formally split income and expenses',
-          'GigLedger tracks total income and expenses; you and your accountant handle partner allocations',
+          'Bozzy tracks total income and expenses; you and your accountant handle partner allocations',
         ],
       };
     }
@@ -64,9 +64,9 @@ export function BusinessStructureWizard() {
         reasons: [
           'You\'re already running payroll, which is required for S-Corp taxation',
           'S-Corp can reduce self-employment taxes on distributions beyond salary',
-          'In GigLedger Pro, we track income and expenses but do not calculate self-employment tax',
+          'In Bozzy Pro, we track income and expenses but do not calculate self-employment tax',
         ],
-        note: isProPlan ? undefined : '🔓 S-Corp mode requires GigLedger Pro. Upgrade to unlock this feature.',
+        note: isProPlan ? undefined : '🔓 S-Corp mode requires Bozzy Pro. Upgrade to unlock this feature.',
       };
     }
 
@@ -92,7 +92,7 @@ export function BusinessStructureWizard() {
         reasons: [
           'Provides liability protection beyond your personal name',
           'Taxed the same as Individual/Sole Proprietor by default',
-          'GigLedger calculates both income tax and self-employment tax estimates',
+          'Bozzy calculates both income tax and self-employment tax estimates',
         ],
       };
     }
@@ -104,7 +104,7 @@ export function BusinessStructureWizard() {
       reasons: [
         'Simplest setup for most freelance musicians',
         'No LLC or separate business required',
-        'GigLedger calculates both income tax and self-employment tax estimates for you',
+        'Bozzy calculates both income tax and self-employment tax estimates for you',
       ],
     };
   };
@@ -121,7 +121,7 @@ export function BusinessStructureWizard() {
     if (recommendation.structure === 'llc_scorp' && !isProPlan) {
       Alert.alert(
         'Upgrade Required',
-        'S-Corp mode is available on GigLedger Pro. You can still track your income as an Individual or Single-Member LLC. To turn off self-employment estimates, upgrade to Pro.',
+        'S-Corp mode is available on Bozzy Pro. You can still track your income as an Individual or Single-Member LLC. To turn off self-employment estimates, upgrade to Pro.',
         [{ text: 'OK' }]
       );
       return;
@@ -142,7 +142,7 @@ export function BusinessStructureWizard() {
       if (error.message?.includes('SCORP_REQUIRES_PRO')) {
         Alert.alert(
           'Upgrade Required',
-          'S-Corp mode requires GigLedger Pro. Please upgrade to use this feature.',
+          'S-Corp mode requires Bozzy Pro. Please upgrade to use this feature.',
           [{ text: 'OK' }]
         );
       } else {

@@ -15,7 +15,7 @@ export function downloadJSONBackup(pkg: TaxExportPackage): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `GigLedger_Backup_${pkg.metadata.taxYear}.json`;
+  link.download = `Bozzy_Backup_${pkg.metadata.taxYear}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }

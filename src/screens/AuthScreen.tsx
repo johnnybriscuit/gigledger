@@ -501,7 +501,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
             activeOpacity={0.7}
             accessibilityRole="link"
             accessibilityLabel="Back to Home"
-            accessibilityHint="Return to the GigLedger homepage"
+            accessibilityHint="Return to the Bozzy homepage"
           >
             <Text style={styles.backToHomeText}>← Back to Home</Text>
           </TouchableOpacity>
@@ -509,7 +509,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
         {/* Header */}
         <View style={styles.authHeader}>
-          <Text style={styles.authTitle}>GigLedger</Text>
+          <Text style={styles.authTitle}>Bozzy</Text>
           <Text style={styles.authSubtitle}>Track your music income & expenses</Text>
         </View>
 

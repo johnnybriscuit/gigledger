@@ -48,7 +48,7 @@ export function BusinessStructuresScreen({ onNavigateBack, onNavigateToSubscript
             • Simplest setup—no LLC or separate business required{'\n'}
             • Self-employment tax applies to your net profit{'\n'}
             • Great for early-career or part-time musicians{'\n'}
-            • In GigLedger, we calculate both income tax and self-employment tax estimates for this mode
+            • In Bozzy, we calculate both income tax and self-employment tax estimates for this mode
           </Text>
         </View>
 
@@ -70,7 +70,7 @@ export function BusinessStructuresScreen({ onNavigateBack, onNavigateToSubscript
             • Still taxed the same as an Individual / Sole Proprietor{'\n'}
             • Self-employment tax still applies to net profit{'\n'}
             • Helpful if you want legal separation or sign contracts as a business{'\n'}
-            • In GigLedger, we treat this the same as Individual for tax estimates
+            • In Bozzy, we treat this the same as Individual for tax estimates
           </Text>
         </View>
 
@@ -94,14 +94,14 @@ export function BusinessStructuresScreen({ onNavigateBack, onNavigateToSubscript
           <Text style={styles.bulletList}>
             • Self-employment tax does not apply the same way to S-Corp profits{'\n'}
             • Usually only worth it once your music profit is high enough (often around ~$60k+/year, depending on your situation){'\n'}
-            • Requires running payroll and doing more advanced bookkeeping outside of GigLedger{'\n'}
-            • In GigLedger, S-Corp mode switches to "tax tracking only": we track income and expenses, but do not calculate self-employment tax estimates for you
+            • Requires running payroll and doing more advanced bookkeeping outside of Bozzy{'\n'}
+            • In Bozzy, S-Corp mode switches to "tax tracking only": we track income and expenses, but do not calculate self-employment tax estimates for you
           </Text>
 
           {!isProPlan && (
             <View style={styles.upgradeBox}>
               <Text style={styles.upgradeText}>
-                🔓 LLC taxed as S-Corp is a GigLedger Pro feature. Upgrade to Pro to turn off self-employment tax estimates and track your S-Corp income more cleanly.
+                🔓 LLC taxed as S-Corp is a Bozzy Pro feature. Upgrade to Pro to turn off self-employment tax estimates and track your S-Corp income more cleanly.
               </Text>
               {onNavigateToSubscription && (
                 <TouchableOpacity style={styles.upgradeButton} onPress={onNavigateToSubscription}>
@@ -130,7 +130,7 @@ export function BusinessStructuresScreen({ onNavigateBack, onNavigateToSubscript
             • Taxes are handled at the partnership / entity level{'\n'}
             • Individual partners receive K-1s based on their share of the band{'\n'}
             • Self-employment tax rules can be more nuanced and entity-specific{'\n'}
-            • In GigLedger, we focus on tracking total income and expenses—you and your accountant handle partner allocations
+            • In Bozzy, we focus on tracking total income and expenses—you and your accountant handle partner allocations
           </Text>
         </View>
 
@@ -144,7 +144,7 @@ export function BusinessStructuresScreen({ onNavigateBack, onNavigateToSubscript
         {/* Disclaimer */}
         <View style={styles.disclaimer}>
           <Text style={styles.disclaimerText}>
-            <Text style={styles.bold}>Heads up:</Text> GigLedger provides tax estimates only, not tax or legal advice. Business structure decisions are personal and should be made with a qualified CPA or attorney.
+            <Text style={styles.bold}>Heads up:</Text> Bozzy provides tax estimates only, not tax or legal advice. Business structure decisions are personal and should be made with a qualified CPA or attorney.
           </Text>
         </View>
 

@@ -29,7 +29,7 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
       {/* Top Navigation Bar */}
       <View style={[styles.navBar, isMobile && styles.navBarMobile]}>
         <View style={[styles.navContent, { maxWidth }, isMobile && styles.navContentMobile]}>
-          <Text style={styles.navLogo}>💼 GigLedger</Text>
+          <Text style={styles.navLogo}>💼 Bozzy</Text>
           <View style={[styles.navButtons, isMobile && styles.navButtonsMobile]}>
             <TouchableOpacity onPress={onSignIn} activeOpacity={0.7}>
               <Text style={styles.navLinkText}>Log in</Text>
@@ -215,7 +215,7 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
               />
               <FAQItem
                 question="Is this tax advice?"
-                answer="No. GigLedger provides estimates only. Consult a tax professional for advice specific to your situation."
+                answer="No. Bozzy provides estimates only. Consult a tax professional for advice specific to your situation."
                 isMobile={isMobile}
               />
               <FAQItem
@@ -230,7 +230,7 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
               />
               <FAQItem
                 question="Do you support LLC/S-Corp?"
-                answer="Yes. GigLedger works for sole proprietors, LLCs, and S-Corps. Track income and expenses the same way regardless of your business structure."
+                answer="Yes. Bozzy works for sole proprietors, LLCs, and S-Corps. Track income and expenses the same way regardless of your business structure."
                 isMobile={isMobile}
               />
               <FAQItem
@@ -274,7 +274,7 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
               <Text style={styles.footerLink}>Privacy Policy</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.footerText}>© 2025 GigLedger. All rights reserved.</Text>
+          <Text style={styles.footerText}>© 2025 Bozzy. All rights reserved.</Text>
           <Text style={styles.footerDisclaimer}>Estimates only. Not tax advice.</Text>
         </View>
       </ScrollView>

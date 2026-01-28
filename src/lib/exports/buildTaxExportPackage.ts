@@ -266,12 +266,12 @@ export function buildTaxExportPackageFromData(input: {
   const mileageDeductionTotal = roundCents(mileageRows.reduce((sum, r) => sum + r.deductionAmount, 0));
   if (mileageDeductionTotal > 0) {
     expenseTotalsByScheduleCRefNumber[306] = mileageDeductionTotal;
-    warnings.push('Car and truck expenses include a standard mileage rate deduction computed by GigLedger.');
+    warnings.push('Car and truck expenses include a standard mileage rate deduction computed by Bozzy.');
   }
 
   for (const row of expenseRows) {
     if (row.scheduleCRefNumber === 302) {
-      const name = `GigLedger: ${row.glCategory}`;
+      const name = `Bozzy: ${row.glCategory}`;
       otherExpensesBreakdownMap[name] = roundCents((otherExpensesBreakdownMap[name] || 0) + row.deductibleAmount);
     } else {
       expenseTotalsByScheduleCRefNumber[row.scheduleCRefNumber] = roundCents(

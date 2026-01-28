@@ -134,7 +134,7 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.step}>Step 1 of 2</Text>
-          <Text style={styles.title}>Welcome to GigLedger 🎵</Text>
+          <Text style={styles.title}>Welcome to Bozzy 🎵</Text>
           <Text style={styles.subtitle}>
             Let's set up a few basics so we can estimate your take-home pay correctly. This takes under a minute.
           </Text>
@@ -217,7 +217,7 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
           </View>
 
           <Text style={styles.disclaimer}>
-            GigLedger gives estimates only and isn't tax advice. Please confirm details with a tax professional.
+            Bozzy gives estimates only and isn't tax advice. Please confirm details with a tax professional.
           </Text>
         </View>
       </ScrollView>

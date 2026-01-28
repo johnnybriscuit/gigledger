@@ -403,7 +403,7 @@ export function downloadAllCSVs(
   scheduleCSummary: ScheduleCSummaryRow,
   taxYear: number
 ): void {
-  const prefix = `gigledger_${taxYear}`;
+  const prefix = `bozzy_${taxYear}`;
 
   // Download each CSV with a small delay to avoid browser blocking
   setTimeout(() => downloadCSV(generateGigsCSV(gigs), `${prefix}_gigs.csv`), 0);

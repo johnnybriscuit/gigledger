@@ -47,7 +47,7 @@ export function BackupCodesDisplay({
       setDownloading(true);
       
       const codesText = [
-        'GigLedger 2FA Backup Codes',
+        'Bozzy 2FA Backup Codes',
         '===========================',
         '',
         'Save these codes in a secure location.',
@@ -64,12 +64,12 @@ export function BackupCodesDisplay({
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `gigledger-backup-codes-${Date.now()}.txt`;
+        a.download = `bozzy-backup-codes-${Date.now()}.txt`;
         a.click();
         URL.revokeObjectURL(url);
       } else {
         // Mobile: save to file and share
-        const fileName = `gigledger-backup-codes-${Date.now()}.txt`;
+        const fileName = `bozzy-backup-codes-${Date.now()}.txt`;
         const fileUri = `${FileSystem.documentDirectory}${fileName}`;
         
         await FileSystem.writeAsStringAsync(fileUri, codesText);

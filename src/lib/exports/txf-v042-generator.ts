@@ -18,8 +18,8 @@ export function generateTXFv042(input: {
 
   const headerA =
     flavor === 'turbotax'
-      ? `AGigLedger ${appVersion} (TurboTax Export)`
-      : `AGigLedger ${appVersion} (H&R Block Export)`;
+      ? `ABozzy ${appVersion} (TurboTax Export)`
+      : `ABozzy ${appVersion} (H&R Block Export)`;
 
   const lines: string[] = [];
   lines.push('V042');
@@ -83,8 +83,8 @@ export function generateTXFv042(input: {
 
   const filename =
     flavor === 'turbotax'
-      ? `gigledger_turbotax_${pkg.metadata.taxYear}.txf`
-      : `gigledger_hrblock_${pkg.metadata.taxYear}.txf`;
+      ? `bozzy_turbotax_${pkg.metadata.taxYear}.txf`
+      : `bozzy_hrblock_${pkg.metadata.taxYear}.txf`;
 
   return { filename, content: lines.join('\n') };
 }

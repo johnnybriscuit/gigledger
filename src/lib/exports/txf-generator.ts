@@ -67,7 +67,7 @@ export function generateTXF(input: TXFGeneratorInput): string {
   // HEADER
   // ============================================================================
   lines.push('V042'); // TXF Version (042 = TurboTax 2020+)
-  lines.push('AGigLedger'); // Application name
+  lines.push('ABozzy'); // Application name
   lines.push('^');
   
   // Date of export
@@ -355,7 +355,7 @@ export function downloadTXF(content: string, taxYear: number): void {
   const url = URL.createObjectURL(blob);
   
   link.setAttribute('href', url);
-  link.setAttribute('download', `gigledger_${taxYear}_schedule_c.txf`);
+  link.setAttribute('download', `bozzy_${taxYear}_schedule_c.txf`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();

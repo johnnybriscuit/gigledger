@@ -27,28 +27,28 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
         )}
 
         {/* Header */}
-        <Text style={styles.mainTitle}>GigLedger Terms of Service</Text>
+        <Text style={styles.mainTitle}>Bozzy Terms of Service</Text>
         <Text style={styles.effectiveDate}>Effective Date: Upon Acceptance</Text>
         <Text style={styles.effectiveDate}>Last Updated: January 9, 2026</Text>
 
         {/* Introduction */}
         <Text style={styles.paragraph}>
-          These GigLedger Terms of Service ("Terms") are a legal agreement between you ("you" or "User") and GigLedger ("GigLedger," "we," "us," or "our") governing your access to and use of:
+          These Bozzy Terms of Service ("Terms") are a legal agreement between you ("you" or "User") and Bozzy ("Bozzy," "we," "us," or "our") governing your access to and use of:
         </Text>
         <Text style={styles.paragraph}>
-          The GigLedger web application, mobile application(s), and related tools for tracking income, gigs, payers, expenses, mileage, and tax estimates (collectively, the "Service"); and
+          The Bozzy web application, mobile application(s), and related tools for tracking income, gigs, payers, expenses, mileage, and tax estimates (collectively, the "Service"); and
         </Text>
         <Text style={styles.paragraph}>
           Any websites we operate, including the website/URL where you access the Service (the "Website").
         </Text>
         <Text style={styles.paragraph}>
-          GigLedger is designed primarily for musicians and other gig-based workers in the United States to help organize income & expenses and generate informational summaries and exports for tax preparation. GigLedger does not hold client funds, process payments, or provide tax, legal, or accounting advice.
+          Bozzy is designed primarily for musicians and other gig-based workers in the United States to help organize income & expenses and generate informational summaries and exports for tax preparation. Bozzy does not hold client funds, process payments, or provide tax, legal, or accounting advice.
         </Text>
         <Text style={styles.paragraph}>
           By accessing or using the Service or Website, you acknowledge that you have read, understand, and agree to be bound by these Terms.
         </Text>
         <Text style={styles.importantText}>
-          If you do not agree to these Terms, do not use GigLedger.
+          If you do not agree to these Terms, do not use Bozzy.
         </Text>
         <Text style={styles.importantText}>
           Important: These Terms include a binding arbitration provision and class action waiver (see Section 13).
@@ -120,7 +120,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
             You may use the Service only in compliance with these Terms and all applicable laws.
           </Text>
           <Text style={styles.paragraph}>
-            If GigLedger has previously suspended or terminated your account, you are not permitted to create another account or use the Service.
+            If Bozzy has previously suspended or terminated your account, you are not permitted to create another account or use the Service.
           </Text>
           <Text style={styles.paragraph}>We describe users as:</Text>
           <Text style={styles.listItem}>• Site Visitors – people who visit our marketing pages.</Text>
@@ -137,7 +137,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           
           <Text style={styles.subsectionTitle}>2.1 Registration</Text>
           <Text style={styles.paragraph}>
-            To use most features, you must create a GigLedger account with a valid email and password (or supported auth method). You agree to:
+            To use most features, you must create a Bozzy account with a valid email and password (or supported auth method). You agree to:
           </Text>
           <Text style={styles.listItem}>• Provide accurate, current, complete information.</Text>
           <Text style={styles.listItem}>• Keep your information up to date.</Text>
@@ -150,25 +150,25 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           <Text style={styles.listItem}>• All activity that occurs under your account, whether authorized or not.</Text>
           <Text style={styles.listItem}>• Maintaining the confidentiality of your password and login.</Text>
           <Text style={styles.paragraph}>
-            If you suspect unauthorized access, email us promptly at gigledgers@gmail.com. We may require information to verify your identity before restoring or modifying access.
+            If you suspect unauthorized access, email us promptly at support@bozzygigs.com. We may require information to verify your identity before restoring or modifying access.
           </Text>
           <Text style={styles.paragraph}>
-            GigLedger is not liable for losses arising from unauthorized use of your account. You may be liable for losses GigLedger or others incur due to such use.
+            Bozzy is not liable for losses arising from unauthorized use of your account. You may be liable for losses Bozzy or others incur due to such use.
           </Text>
         </View>
 
         {/* Section 3 */}
         <View nativeID="section3" style={styles.section}>
           <Text style={styles.sectionTitle}>3. Our Services & Proprietary Rights</Text>
-          <Text style={styles.paragraph}>GigLedger provides tools that help you:</Text>
+          <Text style={styles.paragraph}>Bozzy provides tools that help you:</Text>
           <Text style={styles.listItem}>• Track gigs, payers/clients, income, tips, per diems, expenses, and mileage.</Text>
           <Text style={styles.listItem}>• View dashboards and summaries.</Text>
           <Text style={styles.listItem}>• Generate CSV or similar exports suitable for sharing with a tax professional or importing into supported tax products.</Text>
           <Text style={styles.paragraph}>
-            The Service, Website, software, designs, text, graphics, logos, trademarks, and all related intellectual property ("GigLedger Content") are owned or licensed by GigLedger and protected by applicable laws.
+            The Service, Website, software, designs, text, graphics, logos, trademarks, and all related intellectual property ("Bozzy Content") are owned or licensed by Bozzy and protected by applicable laws.
           </Text>
           <Text style={styles.paragraph}>
-            Except for the limited license in Section 6, you do not acquire any ownership rights in the Service or GigLedger Content. You agree not to:
+            Except for the limited license in Section 6, you do not acquire any ownership rights in the Service or Bozzy Content. You agree not to:
           </Text>
           <Text style={styles.listItem}>• Copy, modify, distribute, reverse engineer, or create derivative works of the Service;</Text>
           <Text style={styles.listItem}>• Remove or alter copyright, trademark, or proprietary notices.</Text>
@@ -180,11 +180,11 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           
           <Text style={styles.subsectionTitle}>4.1 User Data</Text>
           <Text style={styles.paragraph}>
-            You may submit information about your gigs, payers, income, expenses, mileage, and other financial/activity data (collectively, "User Data"). As between you and GigLedger:
+            You may submit information about your gigs, payers, income, expenses, mileage, and other financial/activity data (collectively, "User Data"). As between you and Bozzy:
           </Text>
           <Text style={styles.listItem}>• You retain ownership of your User Data.</Text>
           <Text style={styles.paragraph}>
-            You grant GigLedger a non-exclusive, worldwide, royalty-free license to host, store, process, display, and use User Data solely to:
+            You grant Bozzy a non-exclusive, worldwide, royalty-free license to host, store, process, display, and use User Data solely to:
           </Text>
           <Text style={styles.listItem}>• Provide, maintain, secure, and improve the Service;</Text>
           <Text style={styles.listItem}>• Generate your reports and exports;</Text>
@@ -196,7 +196,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
 
           <Text style={styles.subsectionTitle}>4.2 Feedback</Text>
           <Text style={styles.paragraph}>
-            If you provide ideas, suggestions, or feedback ("Feedback"), you grant GigLedger a perpetual, irrevocable, sublicensable, worldwide, royalty-free license to use that Feedback for any purpose without obligation or compensation.
+            If you provide ideas, suggestions, or feedback ("Feedback"), you grant Bozzy a perpetual, irrevocable, sublicensable, worldwide, royalty-free license to use that Feedback for any purpose without obligation or compensation.
           </Text>
 
           <Text style={styles.subsectionTitle}>4.3 Responsibility</Text>
@@ -209,7 +209,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
         {/* Section 5 */}
         <View nativeID="section5" style={styles.section}>
           <Text style={styles.sectionTitle}>5. Estimates, No Tax / Legal / Accounting Advice</Text>
-          <Text style={styles.paragraph}>GigLedger may display estimated:</Text>
+          <Text style={styles.paragraph}>Bozzy may display estimated:</Text>
           <Text style={styles.listItem}>• Net income after expenses,</Text>
           <Text style={styles.listItem}>• Suggested tax set-aside amounts,</Text>
           <Text style={styles.listItem}>• Effective tax rates or similar metrics.</Text>
@@ -222,9 +222,9 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           <Text style={styles.paragraph}>You are solely responsible for:</Text>
           <Text style={styles.listItem}>• Verifying all numbers,</Text>
           <Text style={styles.listItem}>• Complying with federal, state, and local tax rules,</Text>
-          <Text style={styles.listItem}>• Any decisions you make using information from GigLedger.</Text>
+          <Text style={styles.listItem}>• Any decisions you make using information from Bozzy.</Text>
           <Text style={styles.paragraph}>
-            GigLedger does not guarantee that any export file will be compatible with, accepted by, or sufficient for any third-party software, tax authority, or professional.
+            Bozzy does not guarantee that any export file will be compatible with, accepted by, or sufficient for any third-party software, tax authority, or professional.
           </Text>
         </View>
 
@@ -234,7 +234,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           
           <Text style={styles.subsectionTitle}>6.1 Your License</Text>
           <Text style={styles.paragraph}>
-            Subject to these Terms, GigLedger grants you a limited, non-exclusive, non-transferable, revocable license to access and use the Service for your personal or internal business purposes.
+            Subject to these Terms, Bozzy grants you a limited, non-exclusive, non-transferable, revocable license to access and use the Service for your personal or internal business purposes.
           </Text>
 
           <Text style={styles.subsectionTitle}>6.2 Acceptable Use</Text>
@@ -255,7 +255,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
         <View nativeID="section7" style={styles.section}>
           <Text style={styles.sectionTitle}>7. Privacy</Text>
           <Text style={styles.paragraph}>
-            Your use of GigLedger is subject to our Privacy Policy, describing how we collect, use, and protect your information. By using the Service, you consent to our data practices as described there.
+            Your use of Bozzy is subject to our Privacy Policy, describing how we collect, use, and protect your information. By using the Service, you consent to our data practices as described there.
           </Text>
         </View>
 
@@ -263,16 +263,16 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
         <View nativeID="section8" style={styles.section}>
           <Text style={styles.sectionTitle}>8. Third-Party Services & Integrations</Text>
           <Text style={styles.paragraph}>
-            GigLedger may integrate with or rely on third-party services (for example: hosting providers, analytics tools, authentication, file storage, payment platforms for future features, etc.).
+            Bozzy may integrate with or rely on third-party services (for example: hosting providers, analytics tools, authentication, file storage, payment platforms for future features, etc.).
           </Text>
           <Text style={styles.paragraph}>
             Those services are provided by third parties under their own terms and privacy policies.
           </Text>
           <Text style={styles.paragraph}>
-            GigLedger is not responsible for the content, policies, or failures of third-party services.
+            Bozzy is not responsible for the content, policies, or failures of third-party services.
           </Text>
           <Text style={styles.paragraph}>
-            Any future payment functionality will be provided through regulated third-party processors; GigLedger itself does not hold customer funds.
+            Any future payment functionality will be provided through regulated third-party processors; Bozzy itself does not hold customer funds.
           </Text>
         </View>
 
@@ -281,7 +281,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           <Text style={styles.sectionTitle}>9. Subscriptions, Billing, Cancellation & Data Retention</Text>
           <Text style={styles.subsectionTitle}>9.1 Subscriptions & Pricing</Text>
           <Text style={styles.paragraph}>
-            GigLedger offers the following plans:
+            Bozzy offers the following plans:
           </Text>
           <Text style={styles.listItem}>• Free Plan: Up to 20 gigs and up to 20 expenses per account.</Text>
           <Text style={styles.listItem}>• Pro Monthly: $5/month for unlimited gigs and expenses.</Text>
@@ -332,12 +332,12 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           <Text style={styles.subsectionTitle}>10.2 Limitation of Liability</Text>
           <Text style={styles.paragraph}>To the maximum extent permitted by law:</Text>
           <Text style={styles.paragraph}>
-            GigLedger and its owners, employees, and affiliates will not be liable for any indirect, incidental, consequential, special, or punitive damages, or loss of profits, revenue, data, or goodwill, arising out of or related to your use of (or inability to use) the Service.
+            Bozzy and its owners, employees, and affiliates will not be liable for any indirect, incidental, consequential, special, or punitive damages, or loss of profits, revenue, data, or goodwill, arising out of or related to your use of (or inability to use) the Service.
           </Text>
           <Text style={styles.paragraph}>
             Our total aggregate liability for any claim relating to the Service will not exceed the greater of:
           </Text>
-          <Text style={styles.listItem}>• The amount you paid to GigLedger for the Service in the 3 months preceding the event giving rise to the claim; or</Text>
+          <Text style={styles.listItem}>• The amount you paid to Bozzy for the Service in the 3 months preceding the event giving rise to the claim; or</Text>
           <Text style={styles.listItem}>• $100 if you are on a free plan.</Text>
           <Text style={styles.paragraph}>
             Some jurisdictions don't allow certain exclusions/limitations, so parts of this section may not apply to you.
@@ -348,7 +348,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
         <View nativeID="section11" style={styles.section}>
           <Text style={styles.sectionTitle}>11. Indemnification</Text>
           <Text style={styles.paragraph}>
-            You agree to indemnify and hold harmless GigLedger and its owners, representatives, employees, and agents from and against any claims, damages, losses, liabilities, and expenses (including reasonable attorneys' fees) arising out of or related to:
+            You agree to indemnify and hold harmless Bozzy and its owners, representatives, employees, and agents from and against any claims, damages, losses, liabilities, and expenses (including reasonable attorneys' fees) arising out of or related to:
           </Text>
           <Text style={styles.listItem}>• Your use of the Service,</Text>
           <Text style={styles.listItem}>• Your User Data,</Text>
@@ -378,20 +378,20 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           </Text>
           <Text style={styles.paragraph}>To help resolve issues efficiently:</Text>
           <Text style={styles.paragraph}>
-            You agree to first contact us at gigledgers@gmail.com so we can try to resolve any dispute informally.
+            You agree to first contact us at support@bozzygigs.com so we can try to resolve any dispute informally.
           </Text>
           <Text style={styles.paragraph}>
             If we cannot resolve it informally, any dispute, claim, or controversy arising out of or relating to these Terms or your use of the Service will be resolved by binding arbitration (not in court), except that:
           </Text>
-          <Text style={styles.listItem}>• You or GigLedger may bring an individual action in small claims court; and</Text>
-          <Text style={styles.listItem}>• You or GigLedger may seek injunctive relief in court for intellectual property or misuse issues.</Text>
+          <Text style={styles.listItem}>• You or Bozzy may bring an individual action in small claims court; and</Text>
+          <Text style={styles.listItem}>• You or Bozzy may seek injunctive relief in court for intellectual property or misuse issues.</Text>
           <Text style={styles.paragraph}>Arbitration will:</Text>
           <Text style={styles.listItem}>• Be conducted by a recognized arbitration provider (e.g., JAMS or AAA) under its applicable rules;</Text>
           <Text style={styles.listItem}>• Take place by video/phone or in a reasonably convenient location in the United States;</Text>
           <Text style={styles.listItem}>• Be conducted on an individual basis only.</Text>
           <Text style={styles.subsectionTitle}>No Class Actions.</Text>
           <Text style={styles.paragraph}>
-            You and GigLedger each waive any right to bring claims as a plaintiff or class member in any purported class, collective, consolidated, or representative action.
+            You and Bozzy each waive any right to bring claims as a plaintiff or class member in any purported class, collective, consolidated, or representative action.
           </Text>
           <Text style={styles.paragraph}>
             If the class action waiver is found unenforceable as to a particular claim, that claim must proceed in court, not arbitration. This section survives termination of these Terms.
@@ -416,7 +416,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
         <View nativeID="section15" style={styles.section}>
           <Text style={styles.sectionTitle}>15. General</Text>
           <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Entire Agreement.</Text> These Terms (plus any referenced policies) are the entire agreement between you and GigLedger regarding the Service.
+            <Text style={styles.bold}>Entire Agreement.</Text> These Terms (plus any referenced policies) are the entire agreement between you and Bozzy regarding the Service.
           </Text>
           <Text style={styles.paragraph}>
             <Text style={styles.bold}>No Waiver.</Text> Failure to enforce a provision is not a waiver.
@@ -425,7 +425,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
             <Text style={styles.bold}>Severability.</Text> If any provision is found invalid or unenforceable, the rest remain in effect.
           </Text>
           <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Assignment.</Text> You may not assign these Terms. GigLedger may assign them in connection with a merger, acquisition, or sale of assets.
+            <Text style={styles.bold}>Assignment.</Text> You may not assign these Terms. Bozzy may assign them in connection with a merger, acquisition, or sale of assets.
           </Text>
           <Text style={styles.paragraph}>
             <Text style={styles.bold}>No Agency.</Text> Nothing creates a partnership, joint venture, or employment relationship.
@@ -434,7 +434,7 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
             <Text style={styles.bold}>Survival.</Text> Provisions that by nature should survive (e.g., limitations, arbitration, IP, indemnity) will survive termination.
           </Text>
           <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Notices.</Text> We may send notices via email or in-app. You can contact us at: gigledgers@gmail.com.
+            <Text style={styles.bold}>Notices.</Text> We may send notices via email or in-app. You can contact us at: support@bozzygigs.com.
           </Text>
         </View>
 
@@ -444,11 +444,11 @@ export function TermsScreen({ onNavigateBack }: TermsScreenProps) {
           <Text style={styles.paragraph}>
             If you have any questions about these Terms, contact us at:
           </Text>
-          <TouchableOpacity onPress={() => Linking.openURL('mailto:gigledgers@gmail.com?subject=GigLedger Terms of Service')}>
-            <Text style={styles.emailLink}>gigledgers@gmail.com</Text>
+          <TouchableOpacity onPress={() => Linking.openURL('mailto:support@bozzygigs.com?subject=Bozzy Terms of Service')}>
+            <Text style={styles.emailLink}>support@bozzygigs.com</Text>
           </TouchableOpacity>
           <Text style={styles.paragraph}>
-            Subject line: "GigLedger Terms of Service"
+            Subject line: "Bozzy Terms of Service"
           </Text>
         </View>
 

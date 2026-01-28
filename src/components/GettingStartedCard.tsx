@@ -104,7 +104,7 @@ export function GettingStartedCard({ onNavigateToTab }: GettingStartedCardProps)
         <View style={styles.actionsContainer}>
           {currentStep === 'welcome' && (
             <View>
-              <Text style={styles.actionTitle}>Welcome to GigLedger! 🎵</Text>
+              <Text style={styles.actionTitle}>Welcome to Bozzy! 🎵</Text>
               <Text style={styles.actionDescription}>
                 Track your music income, expenses, and get tax estimates all in one place.
               </Text>
