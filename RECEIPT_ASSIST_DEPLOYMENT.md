@@ -60,11 +60,17 @@ supabase db push
 
 ## Step 2: Deploy Edge Function
 
+### Link Project (If Not Already Linked)
+
+```bash
+supabase link --project-ref jvostkeswuhfwntbrfzl
+```
+
 ### Deploy via CLI (Recommended)
 
 ```bash
 # Deploy the process-receipt function
-supabase functions deploy process-receipt
+supabase functions deploy process-receipt --project-ref jvostkeswuhfwntbrfzl
 
 # Verify deployment
 supabase functions list
@@ -78,6 +84,8 @@ supabase functions list
 │ process-receipt │ ACTIVE │ 2026-01-29 16:40:00 │
 └─────────────────┴────────┴─────────────────────┘
 ```
+
+**Important**: The function will ONLY appear in the Supabase Dashboard Edge Functions list AFTER it's been deployed. If you don't see it yet, that's expected - deploy it first.
 
 ### Manual Deploy via Dashboard (Alternative)
 
