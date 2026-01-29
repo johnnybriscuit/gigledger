@@ -9,6 +9,7 @@ export interface ProcessReceiptResponse {
     date?: string;
     total?: number;
     currency?: string;
+    rawText?: string;
   };
   suggestion?: {
     category: string;
@@ -16,12 +17,41 @@ export interface ProcessReceiptResponse {
   };
   duplicate_suspected?: boolean;
   provider?: string;
+  sha256?: string;
+  receipt_storage_path?: string;
+  receipt_mime?: string;
 }
 
+// Mode 1: Process receipt for existing expense (expenseId mode)
 export async function processReceipt(expenseId: string): Promise<ProcessReceiptResponse> {
   try {
     const { data, error } = await supabase.functions.invoke('process-receipt', {
       body: { expenseId }
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data as ProcessReceiptResponse;
+  } catch (error: any) {
+    console.error('Receipt processing error:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to process receipt',
+      message: 'Unable to scan receipt. You can continue entering expense details manually.'
+    };
+  }
+}
+
+// Mode 2: Process receipt before expense creation (receipt_storage_path mode)
+export async function processReceiptBeforeCreation(
+  receipt_storage_path: string,
+  mimeType?: string
+): Promise<ProcessReceiptResponse> {
+  try {
+    const { data, error } = await supabase.functions.invoke('process-receipt', {
+      body: { receipt_storage_path, mimeType }
     });
 
     if (error) {
