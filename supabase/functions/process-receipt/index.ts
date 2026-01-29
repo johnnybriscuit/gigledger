@@ -199,8 +199,8 @@ async function extractReceipt({ bytes, mimeType }: { bytes: Uint8Array; mimeType
     return await extractWithMindee(bytes, mimeType)
   }
 
-  if (provider === 'google') {
-    return await extractWithGoogleVision(bytes, mimeType)
+  if (provider === 'documentai') {
+    return await extractWithGoogleDocumentAI(bytes, mimeType)
   }
 
   return { provider: 'disabled' }
@@ -246,49 +246,231 @@ async function extractWithMindee(bytes: Uint8Array, mimeType: string): Promise<R
   }
 }
 
-async function extractWithGoogleVision(bytes: Uint8Array, mimeType: string): Promise<ReceiptExtractionResult> {
-  const apiKey = Deno.env.get('GOOGLE_VISION_API_KEY')
-  if (!apiKey) {
+async function extractWithGoogleDocumentAI(bytes: Uint8Array, mimeType: string): Promise<ReceiptExtractionResult> {
+  const projectId = Deno.env.get('GOOGLE_CLOUD_PROJECT_ID')
+  const location = Deno.env.get('GOOGLE_DOCUMENTAI_LOCATION') || 'us'
+  const processorId = Deno.env.get('GOOGLE_DOCUMENTAI_PROCESSOR_ID')
+  const serviceAccountJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+
+  if (!projectId || !processorId || !serviceAccountJson) {
     return { provider: 'disabled' }
   }
 
-  const base64Image = btoa(String.fromCharCode(...bytes))
+  // Get OAuth access token from service account
+  const accessToken = await getGoogleAccessToken(serviceAccountJson)
 
-  const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+  // Encode file bytes to base64 safely
+  const base64Content = encodeBase64(bytes)
+
+  const endpoint = `https://${location}-documentai.googleapis.com/v1/projects/${projectId}/locations/${location}/processors/${processorId}:process`
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
+      'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      requests: [{
-        image: { content: base64Image },
-        features: [{ type: 'DOCUMENT_TEXT_DETECTION' }]
-      }]
+      rawDocument: {
+        content: base64Content,
+        mimeType: mimeType
+      }
     })
   })
 
   if (!response.ok) {
-    throw new Error(`Google Vision API error: ${response.statusText}`)
+    const errorText = await response.text()
+    throw new Error(`Document AI API error: ${response.statusText} - ${errorText}`)
   }
 
   const result = await response.json()
-  const textAnnotations = result.responses?.[0]?.textAnnotations
+  const document = result.document
 
-  if (!textAnnotations || textAnnotations.length === 0) {
-    throw new Error('No text detected in receipt')
+  if (!document) {
+    throw new Error('No document data from Document AI')
   }
 
-  const rawText = textAnnotations[0].description
-  const parsed = parseReceiptText(rawText)
+  // Extract structured entities from Document AI response
+  const entities = document.entities || []
+  const text = document.text || ''
+
+  let vendor: string | undefined
+  let date: string | undefined
+  let total: number | undefined
+  let currency = 'USD'
+  const lineItems: any[] = []
+
+  for (const entity of entities) {
+    const entityType = entity.type
+    const mentionText = entity.mentionText || ''
+
+    switch (entityType) {
+      case 'supplier_name':
+      case 'supplier':
+      case 'merchant_name':
+        if (!vendor) vendor = mentionText
+        break
+      case 'invoice_date':
+      case 'receipt_date':
+      case 'date':
+        if (!date) date = normalizeDate(mentionText)
+        break
+      case 'total_amount':
+      case 'net_amount':
+      case 'total':
+        if (!total) total = parseAmount(mentionText)
+        break
+      case 'currency':
+        currency = mentionText || 'USD'
+        break
+      case 'line_item':
+        lineItems.push({
+          description: entity.properties?.find((p: any) => p.type === 'line_item/description')?.mentionText,
+          amount: parseAmount(entity.properties?.find((p: any) => p.type === 'line_item/amount')?.mentionText)
+        })
+        break
+    }
+  }
+
+  // Fallback: parse from raw text if entities not found
+  if (!vendor || !date || !total) {
+    const parsed = parseReceiptText(text)
+    vendor = vendor || parsed.vendor
+    date = date || parsed.date
+    total = total || parsed.total
+  }
 
   return {
-    vendor: parsed.vendor,
-    date: parsed.date,
-    total: parsed.total,
-    currency: 'USD',
-    rawText,
-    provider: 'google'
+    vendor,
+    date,
+    total,
+    currency,
+    rawText: text,
+    lineItems: lineItems.length > 0 ? lineItems : undefined,
+    provider: 'documentai'
   }
+}
+
+async function getGoogleAccessToken(serviceAccountJson: string): Promise<string> {
+  const serviceAccount = JSON.parse(serviceAccountJson)
+  const now = Math.floor(Date.now() / 1000)
+  
+  // Create JWT for OAuth token exchange
+  const header = {
+    alg: 'RS256',
+    typ: 'JWT'
+  }
+  
+  const claimSet = {
+    iss: serviceAccount.client_email,
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now
+  }
+  
+  const encodedHeader = encodeBase64(new TextEncoder().encode(JSON.stringify(header)))
+  const encodedClaimSet = encodeBase64(new TextEncoder().encode(JSON.stringify(claimSet)))
+  const signatureInput = `${encodedHeader}.${encodedClaimSet}`
+  
+  // Import private key
+  const privateKey = serviceAccount.private_key
+  const pemHeader = '-----BEGIN PRIVATE KEY-----'
+  const pemFooter = '-----END PRIVATE KEY-----'
+  const pemContents = privateKey.substring(
+    pemHeader.length,
+    privateKey.length - pemFooter.length
+  ).replace(/\s/g, '')
+  
+  const binaryKey = decodeBase64(pemContents)
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    binaryKey,
+    {
+      name: 'RSASSA-PKCS1-v1_5',
+      hash: 'SHA-256'
+    },
+    false,
+    ['sign']
+  )
+  
+  // Sign the JWT
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    cryptoKey,
+    new TextEncoder().encode(signatureInput)
+  )
+  
+  const encodedSignature = encodeBase64(new Uint8Array(signature))
+  const jwt = `${signatureInput}.${encodedSignature}`
+  
+  // Exchange JWT for access token
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`
+  })
+  
+  if (!tokenResponse.ok) {
+    throw new Error(`Failed to get access token: ${tokenResponse.statusText}`)
+  }
+  
+  const tokenData = await tokenResponse.json()
+  return tokenData.access_token
+}
+
+function encodeBase64(data: Uint8Array): string {
+  const binString = Array.from(data, (byte) => String.fromCodePoint(byte)).join('')
+  return btoa(binString).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+function decodeBase64(str: string): Uint8Array {
+  const binString = atob(str.replace(/-/g, '+').replace(/_/g, '/'))
+  return Uint8Array.from(binString, (m) => m.codePointAt(0)!)
+}
+
+function parseAmount(text: string | undefined): number | undefined {
+  if (!text) return undefined
+  const cleaned = text.replace(/[^0-9.,]/g, '')
+  const normalized = cleaned.replace(',', '.')
+  const parsed = parseFloat(normalized)
+  return isNaN(parsed) ? undefined : parsed
+}
+
+function normalizeDate(dateStr: string | undefined): string | undefined {
+  if (!dateStr) return undefined
+  
+  // Try to parse and normalize to YYYY-MM-DD
+  const datePatterns = [
+    /^(\d{4})-(\d{1,2})-(\d{1,2})$/, // YYYY-MM-DD
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // MM/DD/YYYY
+    /^(\d{1,2})-(\d{1,2})-(\d{4})$/, // MM-DD-YYYY
+    /^(\d{1,2})\/(\d{1,2})\/(\d{2})$/, // MM/DD/YY
+  ]
+  
+  for (const pattern of datePatterns) {
+    const match = dateStr.match(pattern)
+    if (match) {
+      if (pattern.source.startsWith('^(\\d{4})')) {
+        // Already YYYY-MM-DD
+        const [, year, month, day] = match
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      } else if (pattern.source.includes('\\d{4}')) {
+        // MM/DD/YYYY or MM-DD-YYYY
+        const [, month, day, year] = match
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      } else {
+        // MM/DD/YY - assume 20YY
+        const [, month, day, year] = match
+        const fullYear = `20${year}`
+        return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      }
+    }
+  }
+  
+  return dateStr
 }
 
 function parseReceiptText(text: string): { vendor?: string; date?: string; total?: number } {

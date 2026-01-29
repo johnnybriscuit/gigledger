@@ -72,6 +72,8 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   const [scanResult, setScanResult] = useState<ProcessReceiptResponse | null>(null);
   const [enableReceiptScan, setEnableReceiptScan] = useState(true);
   const scanAttemptedRef = useRef(false);
+  const [dateTouched, setDateTouched] = useState(false);
+  const [currentExpenseId, setCurrentExpenseId] = useState<string | null>(null);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -79,6 +81,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   // Date picker handler
   const handleDateChange = (selectedDate: Date) => {
     setDate(toUtcDateString(selectedDate));
+    setDateTouched(true);
   };
 
   useEffect(() => {
@@ -135,6 +138,8 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     setScanResult(null);
     setEnableReceiptScan(true);
     scanAttemptedRef.current = false;
+    setDateTouched(false);
+    setCurrentExpenseId(null);
   };
 
   const handleFileSelect = () => {
@@ -185,24 +190,31 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     }
   };
 
-  const handleApplySuggestions = () => {
+  const handleApplySuggestions = async () => {
     if (!scanResult?.success || !scanResult.extracted) return;
 
+    const expenseId = editingExpense?.id || currentExpenseId;
+    if (!expenseId) return;
+
     const { extracted, suggestion } = scanResult;
+    const updates: any = {};
 
     // Apply vendor if empty
     if (!vendor && extracted.vendor) {
       setVendor(extracted.vendor);
+      updates.vendor = extracted.vendor;
     }
 
-    // Apply date if empty
-    if (!date && extracted.date) {
+    // Apply date if not touched by user
+    if (!dateTouched && extracted.date) {
       setDate(extracted.date);
+      updates.date = extracted.date;
     }
 
     // Apply amount if empty
     if (!amount && extracted.total) {
       setAmount(extracted.total.toString());
+      updates.amount = extracted.total;
     }
 
     // Apply category suggestion if still on default 'Other'
@@ -210,6 +222,22 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
       const suggestedCategory = suggestion.category as typeof EXPENSE_CATEGORIES[number];
       if (EXPENSE_CATEGORIES.includes(suggestedCategory)) {
         setCategory(suggestedCategory);
+        updates.category = suggestedCategory;
+      }
+    }
+
+    // Persist updates to database
+    if (Object.keys(updates).length > 0) {
+      try {
+        await updateExpense.mutateAsync({
+          id: expenseId,
+          ...updates,
+        });
+      } catch (error) {
+        console.error('Failed to apply suggestions:', error);
+        if (Platform.OS === 'web') {
+          window.alert('Failed to apply suggestions. Please try again.');
+        }
       }
     }
   };
@@ -252,6 +280,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
           ...validated,
         });
         expenseId = result.id;
+        setCurrentExpenseId(expenseId);
       } else {
         // Check limit before creating new expense
         const userId = await getSharedUserId();
@@ -274,6 +303,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         
         const result = await createExpense.mutateAsync(validated);
         expenseId = result.id;
+        setCurrentExpenseId(expenseId);
       }
 
       // Upload receipt if provided
@@ -290,12 +320,17 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         // Trigger receipt scanning if enabled and not already attempted
         if (enableReceiptScan && !scanAttemptedRef.current && !editingExpense) {
           scanAttemptedRef.current = true;
-          handleReceiptScan(expenseId);
+          // Don't close modal, let user see scan results
+          await handleReceiptScan(expenseId);
+          return; // Exit early, don't close modal
         }
       }
 
-      resetForm();
-      onClose();
+      // Only close if not scanning
+      if (!scanningReceipt && !scanResult) {
+        resetForm();
+        onClose();
+      }
     } catch (error: any) {
       console.error('Expense submission error:', error);
       if (error.errors) {
@@ -574,21 +609,34 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               </View>
             </View>
 
-            <TouchableOpacity 
-              style={styles.submitButton} 
-              onPress={handleSubmit}
-              disabled={uploading || createExpense.isPending || updateExpense.isPending}
-            >
-              <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
-                {uploading
-                  ? 'Uploading...'
-                  : createExpense.isPending || updateExpense.isPending
-                  ? 'Saving...'
-                  : editingExpense
-                  ? 'Update'
-                  : 'Add'}
-              </Text>
-            </TouchableOpacity>
+            {/* Show Done button if scan results are present, otherwise show Save button */}
+            {scanResult ? (
+              <TouchableOpacity 
+                style={styles.submitButton} 
+                onPress={() => {
+                  resetForm();
+                  onClose();
+                }}
+              >
+                <Text style={styles.submitButtonText}>Done</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={styles.submitButton} 
+                onPress={handleSubmit}
+                disabled={uploading || createExpense.isPending || updateExpense.isPending}
+              >
+                <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
+                  {uploading
+                    ? 'Uploading...'
+                    : createExpense.isPending || updateExpense.isPending
+                    ? 'Saving...'
+                    : editingExpense
+                    ? 'Update'
+                    : 'Add'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
       </View>
