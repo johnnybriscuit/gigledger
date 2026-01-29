@@ -51,7 +51,7 @@ export function useSavedRoutes() {
         .order('use_count', { ascending: false });
 
       if (error) throw error;
-      return data as SavedRoute[];
+      return (data || []) as unknown as SavedRoute[];
     },
     enabled: !!userId,
     staleTime: 60 * 1000, // 1 minute
@@ -77,7 +77,7 @@ export function useFavoriteRoutes() {
         .order('use_count', { ascending: false });
 
       if (error) throw error;
-      return data as SavedRoute[];
+      return (data || []) as unknown as SavedRoute[];
     },
     enabled: !!userId,
     staleTime: 60 * 1000,
@@ -105,7 +105,7 @@ export function useCreateSavedRoute() {
         .single();
 
       if (error) throw error;
-      return data as SavedRoute;
+      return data as unknown as SavedRoute;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.savedRoutes(userId || '') });
@@ -130,7 +130,7 @@ export function useUpdateSavedRoute() {
         .single();
 
       if (error) throw error;
-      return data as SavedRoute;
+      return data as unknown as SavedRoute;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.savedRoutes(userId || '') });
@@ -177,7 +177,7 @@ export function useToggleFavoriteRoute() {
         .single();
 
       if (error) throw error;
-      return data as SavedRoute;
+      return data as unknown as SavedRoute;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.savedRoutes(userId || '') });

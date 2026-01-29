@@ -97,6 +97,7 @@ export function SubcontractorFormModal({
       } else {
         const result = await createSubcontractor.mutateAsync({
           name: name.trim(),
+          normalized_name: name.trim().toLowerCase(),
           role: role.trim() || undefined,
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,

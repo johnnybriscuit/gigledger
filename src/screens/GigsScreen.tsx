@@ -425,7 +425,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           payer_id: g.payer_id,
           payer_name: g.payer?.name || '',
           gross: g.gross_amount,
-          title: g.title,
+          title: g.title ?? undefined,
         })) || []}
       />
       

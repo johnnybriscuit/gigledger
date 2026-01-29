@@ -41,7 +41,7 @@ export function usePaymentMethodDetails(userId?: string) {
         .order('method', { ascending: true });
 
       if (error) throw error;
-      return (data || []) as PaymentMethodDetail[];
+      return (data || []) as unknown as PaymentMethodDetail[];
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -73,7 +73,7 @@ export function useUpsertPaymentMethodDetail(userId: string) {
         .single();
 
       if (error) throw error;
-      return data as PaymentMethodDetail;
+      return data as unknown as PaymentMethodDetail;
     },
     onSuccess: () => {
       // Invalidate payment methods cache
@@ -99,7 +99,7 @@ export function useTogglePaymentMethodEnabled(userId: string) {
         .single();
 
       if (error) throw error;
-      return data as PaymentMethodDetail;
+      return data as unknown as PaymentMethodDetail;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.paymentMethods(userId) });

@@ -93,6 +93,7 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
       } else {
         const result = await createPayer.mutateAsync({
           name: name.trim(),
+          normalized_name: name.trim().toLowerCase(),
           payer_type: (type as any) || undefined,
           contact_email: contactEmail || undefined,
           notes: notes || undefined,

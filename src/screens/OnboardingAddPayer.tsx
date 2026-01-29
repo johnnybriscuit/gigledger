@@ -42,6 +42,7 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
     try {
       const result = await createPayer.mutateAsync({
         name: name.trim(),
+        normalized_name: name.trim().toLowerCase(),
         payer_type: type as any,
       });
 

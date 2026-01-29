@@ -45,7 +45,7 @@ export function useLocationHistory() {
         .limit(20); // Top 20 most used locations
 
       if (error) throw error;
-      return data as LocationHistoryItem[];
+      return (data || []) as unknown as LocationHistoryItem[];
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes - locations don't change often
@@ -102,7 +102,7 @@ export function useUpdateLocationNickname() {
         .single();
 
       if (error) throw error;
-      return data as LocationHistoryItem;
+      return data as unknown as LocationHistoryItem;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.locationHistory(userId || '') });
