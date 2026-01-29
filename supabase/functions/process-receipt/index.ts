@@ -67,15 +67,25 @@ serve(async (req) => {
       throw new Error('No receipt file found for this expense')
     }
 
-    const receiptPath = expense.receipt_storage_path || expense.receipt_url
-    if (!receiptPath) {
-      throw new Error('Receipt path is empty')
+    // Prefer receipt_storage_path, fallback to receipt_url if it's a storage path
+    let receiptPath = expense.receipt_storage_path
+    if (!receiptPath && expense.receipt_url) {
+      // Check if receipt_url is a storage path (not an http URL)
+      if (!expense.receipt_url.startsWith('http')) {
+        receiptPath = expense.receipt_url
+      }
     }
 
+    if (!receiptPath) {
+      throw new Error('No valid storage path found for receipt')
+    }
+
+    // Defense-in-depth: add user_id check
     await supabaseClient
       .from('expenses')
       .update({ receipt_extraction_status: 'pending' })
       .eq('id', expenseId)
+      .eq('user_id', user.id)
 
     const { data: fileData, error: downloadError } = await supabaseClient
       .storage
@@ -90,6 +100,7 @@ serve(async (req) => {
           receipt_extraction_error: 'Failed to download receipt file'
         })
         .eq('id', expenseId)
+        .eq('user_id', user.id)
       throw new Error('Failed to download receipt file')
     }
 
@@ -124,6 +135,7 @@ serve(async (req) => {
           receipt_mime: mimeType
         })
         .eq('id', expenseId)
+        .eq('user_id', user.id)
 
       return new Response(
         JSON.stringify({
@@ -162,6 +174,7 @@ serve(async (req) => {
       .from('expenses')
       .update(updateData)
       .eq('id', expenseId)
+      .eq('user_id', user.id)
 
     return new Response(
       JSON.stringify({
@@ -259,8 +272,8 @@ async function extractWithGoogleDocumentAI(bytes: Uint8Array, mimeType: string):
   // Get OAuth access token from service account
   const accessToken = await getGoogleAccessToken(serviceAccountJson)
 
-  // Encode file bytes to base64 safely
-  const base64Content = encodeBase64(bytes)
+  // Encode file bytes to STANDARD base64 for Document AI (not base64url)
+  const base64Content = encodeBase64Standard(bytes)
 
   const endpoint = `https://${location}-documentai.googleapis.com/v1/projects/${projectId}/locations/${location}/processors/${processorId}:process`
 
@@ -369,8 +382,8 @@ async function getGoogleAccessToken(serviceAccountJson: string): Promise<string>
     iat: now
   }
   
-  const encodedHeader = encodeBase64(new TextEncoder().encode(JSON.stringify(header)))
-  const encodedClaimSet = encodeBase64(new TextEncoder().encode(JSON.stringify(claimSet)))
+  const encodedHeader = encodeBase64Url(new TextEncoder().encode(JSON.stringify(header)))
+  const encodedClaimSet = encodeBase64Url(new TextEncoder().encode(JSON.stringify(claimSet)))
   const signatureInput = `${encodedHeader}.${encodedClaimSet}`
   
   // Import private key
@@ -401,7 +414,7 @@ async function getGoogleAccessToken(serviceAccountJson: string): Promise<string>
     new TextEncoder().encode(signatureInput)
   )
   
-  const encodedSignature = encodeBase64(new Uint8Array(signature))
+  const encodedSignature = encodeBase64Url(new Uint8Array(signature))
   const jwt = `${signatureInput}.${encodedSignature}`
   
   // Exchange JWT for access token
@@ -421,7 +434,14 @@ async function getGoogleAccessToken(serviceAccountJson: string): Promise<string>
   return tokenData.access_token
 }
 
-function encodeBase64(data: Uint8Array): string {
+// Standard base64 encoding for Document AI rawDocument.content
+function encodeBase64Standard(data: Uint8Array): string {
+  const binString = Array.from(data, (byte) => String.fromCodePoint(byte)).join('')
+  return btoa(binString) // Keep +, /, and = for standard base64
+}
+
+// Base64url encoding for JWT segments (no padding, URL-safe)
+function encodeBase64Url(data: Uint8Array): string {
   const binString = Array.from(data, (byte) => String.fromCodePoint(byte)).join('')
   return btoa(binString).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
@@ -433,8 +453,33 @@ function decodeBase64(str: string): Uint8Array {
 
 function parseAmount(text: string | undefined): number | undefined {
   if (!text) return undefined
+  
+  // Remove all non-numeric characters except . and ,
   const cleaned = text.replace(/[^0-9.,]/g, '')
-  const normalized = cleaned.replace(',', '.')
+  
+  if (!cleaned) return undefined
+  
+  // Detect format: if last separator is comma, it's European (1.200,50)
+  // If last separator is period, it's US (1,200.50)
+  const lastComma = cleaned.lastIndexOf(',')
+  const lastPeriod = cleaned.lastIndexOf('.')
+  
+  let normalized: string
+  
+  if (lastComma > lastPeriod) {
+    // European format: 1.200,50 -> remove dots, replace comma with period
+    normalized = cleaned.replace(/\./g, '').replace(',', '.')
+  } else if (lastPeriod > lastComma) {
+    // US format: 1,200.50 -> remove commas
+    normalized = cleaned.replace(/,/g, '')
+  } else if (lastComma === -1 && lastPeriod === -1) {
+    // No separators, just digits
+    normalized = cleaned
+  } else {
+    // Single separator - assume it's decimal
+    normalized = cleaned.replace(',', '.')
+  }
+  
   const parsed = parseFloat(normalized)
   return isNaN(parsed) ? undefined : parsed
 }
