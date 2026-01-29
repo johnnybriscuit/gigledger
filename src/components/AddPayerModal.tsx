@@ -88,7 +88,7 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
 
       // Map 'type' from validation to 'payer_type' for database
       const { type: payer_type, ...rest } = validated;
-      const dbData = { payer_type, ...rest };
+      const dbData = { payer_type, normalized_name: name.trim().toLowerCase(), ...rest };
 
       if (editingPayer) {
         await updatePayer.mutateAsync({

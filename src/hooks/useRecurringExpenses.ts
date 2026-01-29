@@ -141,7 +141,7 @@ export function useCreateRecurringExpense() {
 
       // Calculate next due date using client-side function
       const nextDueDate = calculateNextDueDate(
-        input.frequency,
+        input.frequency as 'monthly' | 'yearly' | 'weekly',
         input.day_of_week,
         input.day_of_month,
         input.month_of_year
@@ -187,7 +187,7 @@ export function useUpdateRecurringExpense() {
 
         if (current) {
           nextDueDate = calculateNextDueDate(
-            input.frequency || current.frequency,
+            (input.frequency || current.frequency) as 'monthly' | 'yearly' | 'weekly',
             input.day_of_week !== undefined ? input.day_of_week : current.day_of_week,
             input.day_of_month !== undefined ? input.day_of_month : current.day_of_month,
             input.month_of_year !== undefined ? input.month_of_year : current.month_of_year
