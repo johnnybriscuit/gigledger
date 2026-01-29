@@ -143,6 +143,75 @@ export async function uploadReceipt(expenseId: string, file: File): Promise<stri
   return fileName;
 }
 
+// Upload receipt to temp location (before expense creation)
+export async function uploadTempReceipt(file: File): Promise<{ tmpPath: string; mimeType: string }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const fileExt = file.name.split('.').pop();
+  const uuid = crypto.randomUUID();
+  const tmpPath = `tmp/${uuid}.${fileExt}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('receipts')
+    .upload(tmpPath, file, {
+      upsert: true,
+    });
+
+  if (uploadError) throw uploadError;
+
+  return {
+    tmpPath,
+    mimeType: file.type
+  };
+}
+
+// Move temp receipt to final location
+export async function moveTempReceiptToFinal(
+  tmpPath: string,
+  expenseId: string
+): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const fileExt = tmpPath.split('.').pop();
+  const finalPath = `${user.id}/${expenseId}_receipt.${fileExt}`;
+
+  // Download from tmp
+  const { data: fileData, error: downloadError } = await supabase.storage
+    .from('receipts')
+    .download(tmpPath);
+
+  if (downloadError || !fileData) {
+    throw new Error('Failed to download temp receipt');
+  }
+
+  // Upload to final location
+  const { error: uploadError } = await supabase.storage
+    .from('receipts')
+    .upload(finalPath, fileData, {
+      upsert: true,
+    });
+
+  if (uploadError) throw uploadError;
+
+  // Delete tmp file
+  await supabase.storage
+    .from('receipts')
+    .remove([tmpPath]);
+
+  return finalPath;
+}
+
+// Delete temp receipt
+export async function deleteTempReceipt(tmpPath: string): Promise<void> {
+  const { error } = await supabase.storage
+    .from('receipts')
+    .remove([tmpPath]);
+
+  if (error) console.error('Failed to delete temp receipt:', error);
+}
+
 // Get signed URL for receipt
 export async function getReceiptUrl(receiptPath: string): Promise<string> {
   const { data, error } = await supabase.storage
