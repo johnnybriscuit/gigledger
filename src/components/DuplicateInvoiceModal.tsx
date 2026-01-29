@@ -22,10 +22,10 @@ export function DuplicateInvoiceModal({ invoice, visible, onClose, onSuccess }: 
 
       const formData = await duplicateInvoice(invoice.id);
       const newInvoiceNumber = await getNextInvoiceNumber();
-      const newInvoice = await createInvoice(formData, newInvoiceNumber);
+      const newInvoice = await createInvoice(formData as unknown as any, newInvoiceNumber);
 
       Alert.alert('Success', `Invoice duplicated as ${newInvoiceNumber}`);
-      onSuccess?.(newInvoice.id);
+      onSuccess?.((newInvoice as any)?.id);
       onClose();
     } catch (error) {
       console.error('Error duplicating invoice:', error);
