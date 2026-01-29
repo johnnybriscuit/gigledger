@@ -142,12 +142,12 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     setCurrentExpenseId(null);
   };
 
-  const handleFileSelect = () => {
+  const handleFileSelect = async () => {
     if (Platform.OS === 'web') {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*,application/pdf';
-      input.onchange = (e: any) => {
+      input.onchange = async (e: any) => {
         const file = e.target?.files?.[0];
         if (file) {
           // Check file size (5MB limit)
@@ -159,6 +159,26 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
           // Reset scan state when new file is selected
           setScanResult(null);
           scanAttemptedRef.current = false;
+          
+          // Auto-create expense and scan if we have an editing expense
+          if (editingExpense && enableReceiptScan) {
+            try {
+              setUploading(true);
+              const receiptPath = await uploadReceipt(editingExpense.id, file);
+              await updateExpense.mutateAsync({
+                id: editingExpense.id,
+                receipt_url: receiptPath,
+                receipt_storage_path: receiptPath,
+              });
+              scanAttemptedRef.current = true;
+              await handleReceiptScan(editingExpense.id);
+            } catch (error: any) {
+              console.error('Receipt upload error:', error);
+              window.alert('Failed to upload receipt: ' + error.message);
+            } finally {
+              setUploading(false);
+            }
+          }
         }
       };
       input.click();
