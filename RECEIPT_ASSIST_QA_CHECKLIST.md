@@ -10,11 +10,16 @@
 
 ### Edge Function Deployment
 - [ ] Function deployed: `supabase functions deploy process-receipt`
-- [ ] Environment variables set in Supabase dashboard:
+- [ ] Secrets set in Supabase:
   - [ ] `SUPABASE_URL`
   - [ ] `SUPABASE_SERVICE_ROLE_KEY`
-  - [ ] `RECEIPT_OCR_PROVIDER` (set to 'disabled' initially)
+  - [ ] `RECEIPT_OCR_PROVIDER` (set to 'disabled' initially, then 'documentai')
+  - [ ] `GOOGLE_CLOUD_PROJECT_ID` (when enabling Document AI)
+  - [ ] `GOOGLE_DOCUMENTAI_LOCATION` (e.g., 'us')
+  - [ ] `GOOGLE_DOCUMENTAI_PROCESSOR_ID`
+  - [ ] `GOOGLE_SERVICE_ACCOUNT_JSON`
 - [ ] Function accessible via `supabase.functions.invoke('process-receipt')`
+- [ ] Function logs show no startup errors
 
 ### Build Verification
 - [ ] TypeScript compiles without errors (ignore Deno edge function warnings)
@@ -42,24 +47,34 @@
   - [ ] Can view/edit expense normally
   - [ ] Receipt link works if present
 
-### Scenario 2: OCR Provider Configured (Requires API Key)
-**Setup**: Set `RECEIPT_OCR_PROVIDER=mindee` and `MINDEE_API_KEY=your_key`
+### Scenario 2: Document AI Configured (Requires GCP Setup)
+**Setup**: Set `RECEIPT_OCR_PROVIDER=documentai` and configure GCP credentials
 
-- [ ] Upload receipt and create expense
+- [ ] Upload receipt (image) and create expense
   - [ ] Shows "🔍 Scanning receipt..." immediately after upload
-  - [ ] Scanning completes within 5-10 seconds
+  - [ ] Modal stays open (does NOT auto-close)
+  - [ ] Scanning completes within 5-15 seconds
   - [ ] Success panel appears with "✅ Receipt Scanned"
   - [ ] Extracted data displayed (vendor, date, total)
   - [ ] Category suggestion shown with confidence badge
   - [ ] Confidence label accurate (High/Medium/Low)
+  - [ ] "Done" button appears (replaces "Add" button)
+
+- [ ] Upload receipt (PDF) and create expense
+  - [ ] PDF uploads successfully
+  - [ ] Scanning works for PDF files
+  - [ ] Extracted data appears correctly
+  - [ ] Modal stays open until "Done" clicked
 
 - [ ] Apply suggestions with empty fields
   - [ ] Click "Apply Suggestions" button
   - [ ] Vendor field populated if empty
-  - [ ] Date field populated if empty
+  - [ ] Date field populated if date not manually changed
   - [ ] Amount field populated if empty
   - [ ] Category changed to suggestion if was "Other"
   - [ ] Description and notes remain untouched
+  - [ ] Changes persisted to database immediately
+  - [ ] Success feedback shown (or no error)
 
 - [ ] Apply suggestions with filled fields
   - [ ] Pre-fill vendor field before applying
@@ -67,6 +82,19 @@
   - [ ] Vendor field NOT overwritten
   - [ ] Only empty fields get populated
   - [ ] User data preserved
+  - [ ] Database updated with only changed fields
+
+- [ ] Date handling
+  - [ ] Default date (today) can be replaced by extracted date
+  - [ ] Manually changed date NOT replaced by extracted date
+  - [ ] Date picker interaction marks date as "touched"
+
+- [ ] Modal flow
+  - [ ] After upload + scan, modal stays open
+  - [ ] User can review extracted data
+  - [ ] User can apply suggestions
+  - [ ] User clicks "Done" to close modal
+  - [ ] Expense appears in list immediately
 
 - [ ] Category suggestion accuracy
   - [ ] Upload Uber/Lyft receipt → Suggests "Travel"
