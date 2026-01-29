@@ -43,8 +43,6 @@ export function useInvoices() {
 
       if (fetchError) throw fetchError;
 
-      return invoicesData as unknown as any;
-
       const invoicesWithCalculations = (invoicesData || []).map((invoice: any) => {
         const totalPaid = invoice.payments?.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0) || 0;
         return {
