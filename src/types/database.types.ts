@@ -86,6 +86,19 @@ export type Database = {
           meals_percent_allowed: number | null
           notes: string | null
           receipt_url: string | null
+          receipt_extraction_status: string | null
+          receipt_extracted_at: string | null
+          receipt_extraction_error: string | null
+          receipt_extracted_json: any | null
+          receipt_vendor: string | null
+          receipt_total: number | null
+          receipt_currency: string | null
+          receipt_date: string | null
+          category_suggestion: string | null
+          category_confidence: number | null
+          receipt_sha256: string | null
+          receipt_storage_path: string | null
+          receipt_mime: string | null
           recurring_expense_id: string | null
           updated_at: string
           user_id: string
@@ -104,6 +117,19 @@ export type Database = {
           meals_percent_allowed?: number | null
           notes?: string | null
           receipt_url?: string | null
+          receipt_extraction_status?: string | null
+          receipt_extracted_at?: string | null
+          receipt_extraction_error?: string | null
+          receipt_extracted_json?: any | null
+          receipt_vendor?: string | null
+          receipt_total?: number | null
+          receipt_currency?: string | null
+          receipt_date?: string | null
+          category_suggestion?: string | null
+          category_confidence?: number | null
+          receipt_sha256?: string | null
+          receipt_storage_path?: string | null
+          receipt_mime?: string | null
           recurring_expense_id?: string | null
           updated_at?: string
           user_id: string
@@ -122,6 +148,19 @@ export type Database = {
           meals_percent_allowed?: number | null
           notes?: string | null
           receipt_url?: string | null
+          receipt_extraction_status?: string | null
+          receipt_extracted_at?: string | null
+          receipt_extraction_error?: string | null
+          receipt_extracted_json?: any | null
+          receipt_vendor?: string | null
+          receipt_total?: number | null
+          receipt_currency?: string | null
+          receipt_date?: string | null
+          category_suggestion?: string | null
+          category_confidence?: number | null
+          receipt_sha256?: string | null
+          receipt_storage_path?: string | null
+          receipt_mime?: string | null
           recurring_expense_id?: string | null
           updated_at?: string
           user_id?: string

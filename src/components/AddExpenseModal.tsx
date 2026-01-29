@@ -20,6 +20,7 @@ import { DeductibilityHint } from './DeductibilityHint';
 import { BusinessUseSlider } from './BusinessUseSlider';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getSharedUserId } from '../lib/sharedAuth';
+import { processReceipt, getConfidenceLabel, getConfidenceColor, type ProcessReceiptResponse } from '../lib/receipts/processReceipt';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -65,6 +66,12 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   const [mealsDeductiblePercent, setMealsDeductiblePercent] = useState<50 | 100>(50);
   const [gigId, setGigId] = useState<string | null>(null);
   const [attachToSameGig, setAttachToSameGig] = useState(false);
+  
+  // Receipt Assist state
+  const [scanningReceipt, setScanningReceipt] = useState(false);
+  const [scanResult, setScanResult] = useState<ProcessReceiptResponse | null>(null);
+  const [enableReceiptScan, setEnableReceiptScan] = useState(true);
+  const scanAttemptedRef = useRef(false);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -124,6 +131,10 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     setReceiptFile(null);
     setBusinessUsePercent(100);
     setMealsDeductiblePercent(50);
+    setScanningReceipt(false);
+    setScanResult(null);
+    setEnableReceiptScan(true);
+    scanAttemptedRef.current = false;
   };
 
   const handleFileSelect = () => {
@@ -140,10 +151,73 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
             return;
           }
           setReceiptFile(file);
+          // Reset scan state when new file is selected
+          setScanResult(null);
+          scanAttemptedRef.current = false;
         }
       };
       input.click();
     }
+  };
+
+  const handleReceiptScan = async (expenseId: string) => {
+    try {
+      setScanningReceipt(true);
+      setScanResult(null);
+      
+      const result = await processReceipt(expenseId);
+      setScanResult(result);
+      
+      if (result.success && result.duplicate_suspected) {
+        if (Platform.OS === 'web') {
+          window.alert('⚠️ This receipt may be a duplicate. Please verify before saving.');
+        }
+      }
+    } catch (error: any) {
+      console.error('Receipt scan error:', error);
+      setScanResult({
+        success: false,
+        error: error.message,
+        message: 'Unable to scan receipt. You can continue entering expense details manually.'
+      });
+    } finally {
+      setScanningReceipt(false);
+    }
+  };
+
+  const handleApplySuggestions = () => {
+    if (!scanResult?.success || !scanResult.extracted) return;
+
+    const { extracted, suggestion } = scanResult;
+
+    // Apply vendor if empty
+    if (!vendor && extracted.vendor) {
+      setVendor(extracted.vendor);
+    }
+
+    // Apply date if empty
+    if (!date && extracted.date) {
+      setDate(extracted.date);
+    }
+
+    // Apply amount if empty
+    if (!amount && extracted.total) {
+      setAmount(extracted.total.toString());
+    }
+
+    // Apply category suggestion if still on default 'Other'
+    if (category === 'Other' && suggestion?.category) {
+      const suggestedCategory = suggestion.category as typeof EXPENSE_CATEGORIES[number];
+      if (EXPENSE_CATEGORIES.includes(suggestedCategory)) {
+        setCategory(suggestedCategory);
+      }
+    }
+  };
+
+  const handleRescan = async () => {
+    if (!editingExpense?.id) return;
+    scanAttemptedRef.current = false;
+    await handleReceiptScan(editingExpense.id);
   };
 
   const handleSubmit = async () => {
@@ -210,7 +284,14 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         await updateExpense.mutateAsync({
           id: expenseId,
           receipt_url: receiptPath,
+          receipt_storage_path: receiptPath,
         });
+        
+        // Trigger receipt scanning if enabled and not already attempted
+        if (enableReceiptScan && !scanAttemptedRef.current && !editingExpense) {
+          scanAttemptedRef.current = true;
+          handleReceiptScan(expenseId);
+        }
       }
 
       resetForm();
@@ -409,6 +490,74 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 </TouchableOpacity>
               )}
             </View>
+
+            {/* Receipt Assist Panel */}
+            {scanningReceipt && (
+              <View style={styles.scanningPanel}>
+                <Text style={styles.scanningText}>🔍 Scanning receipt...</Text>
+              </View>
+            )}
+
+            {scanResult && !scanningReceipt && (
+              <View style={[styles.scanResultPanel, scanResult.success ? styles.scanSuccess : styles.scanError]}>
+                {scanResult.success ? (
+                  <>
+                    <View style={styles.scanResultHeader}>
+                      <Text style={styles.scanResultTitle}>✅ Receipt Scanned</Text>
+                      {editingExpense && (
+                        <TouchableOpacity onPress={handleRescan}>
+                          <Text style={styles.rescanButton}>Rescan</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    
+                    {scanResult.extracted && (
+                      <View style={styles.extractedData}>
+                        {scanResult.extracted.vendor && (
+                          <Text style={styles.extractedItem}>📍 Vendor: {scanResult.extracted.vendor}</Text>
+                        )}
+                        {scanResult.extracted.date && (
+                          <Text style={styles.extractedItem}>📅 Date: {scanResult.extracted.date}</Text>
+                        )}
+                        {scanResult.extracted.total && (
+                          <Text style={styles.extractedItem}>💰 Total: ${scanResult.extracted.total.toFixed(2)}</Text>
+                        )}
+                      </View>
+                    )}
+
+                    {scanResult.suggestion && (
+                      <View style={styles.suggestionBox}>
+                        <Text style={styles.suggestionLabel}>Suggested Category:</Text>
+                        <View style={styles.suggestionRow}>
+                          <Text style={styles.suggestionCategory}>{scanResult.suggestion.category}</Text>
+                          <Text style={[styles.confidenceBadge, { color: getConfidenceColor(scanResult.suggestion.confidence) }]}>
+                            {getConfidenceLabel(scanResult.suggestion.confidence)} confidence
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    <TouchableOpacity style={styles.applySuggestionsButton} onPress={handleApplySuggestions}>
+                      <Text style={styles.applySuggestionsText}>Apply Suggestions</Text>
+                    </TouchableOpacity>
+
+                    {scanResult.duplicate_suspected && (
+                      <Text style={styles.duplicateWarning}>⚠️ This receipt may be a duplicate</Text>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.scanErrorTitle}>❌ {scanResult.error || 'Scan Failed'}</Text>
+                    <Text style={styles.scanErrorMessage}>{scanResult.message}</Text>
+                    {editingExpense && (
+                      <TouchableOpacity style={styles.retryButton} onPress={handleRescan}>
+                        <Text style={styles.retryButtonText}>Try Again</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+              </View>
+            )}
 
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Notes (Optional)</Text>
@@ -832,5 +981,128 @@ const styles = StyleSheet.create({
   },
   mealsToggleTextActive: {
     color: '#fff',
+  },
+  // Receipt Assist styles
+  scanningPanel: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  scanningText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e40af',
+  },
+  scanResultPanel: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  scanSuccess: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#10b981',
+  },
+  scanError: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#ef4444',
+  },
+  scanResultHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  scanResultTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#065f46',
+  },
+  rescanButton: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  extractedData: {
+    marginBottom: 12,
+  },
+  extractedItem: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 4,
+  },
+  suggestionBox: {
+    backgroundColor: '#fefce8',
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 12,
+  },
+  suggestionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#92400e',
+    marginBottom: 4,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  suggestionCategory: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#78350f',
+  },
+  confidenceBadge: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  applySuggestionsButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  applySuggestionsText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  duplicateWarning: {
+    fontSize: 12,
+    color: '#dc2626',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  scanErrorTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#991b1b',
+    marginBottom: 8,
+  },
+  scanErrorMessage: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
