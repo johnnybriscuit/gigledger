@@ -32,9 +32,13 @@ serve(async (req) => {
       throw new Error('Missing authorization header')
     }
 
-    const { expenseId } = await req.json()
-    if (!expenseId) {
-      throw new Error('Missing expenseId')
+    const { expenseId, receipt_storage_path, mimeType: providedMimeType } = await req.json()
+    
+    // Support two modes:
+    // 1. expenseId mode (existing flow for editing expenses)
+    // 2. receipt_storage_path mode (new flow for scanning before expense creation)
+    if (!expenseId && !receipt_storage_path) {
+      throw new Error('Missing expenseId or receipt_storage_path')
     }
 
     const supabaseClient = createClient(
@@ -49,43 +53,54 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { data: expense, error: expenseError } = await supabaseClient
-      .from('expenses')
-      .select('*')
-      .eq('id', expenseId)
-      .eq('user_id', user.id)
-      .single()
+    let receiptPath: string
+    let mimeType: string
+    
+    // Mode 1: expenseId provided (existing flow)
+    if (expenseId) {
+      const { data: expense, error: expenseError } = await supabaseClient
+        .from('expenses')
+        .select('*')
+        .eq('id', expenseId)
+        .eq('user_id', user.id)
+        .single()
 
-    if (expenseError || !expense) {
-      return new Response(
-        JSON.stringify({ error: 'Expense not found or access denied' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      )
-    }
-
-    if (!expense.receipt_url && !expense.receipt_storage_path) {
-      throw new Error('No receipt file found for this expense')
-    }
-
-    // Prefer receipt_storage_path, fallback to receipt_url if it's a storage path
-    let receiptPath = expense.receipt_storage_path
-    if (!receiptPath && expense.receipt_url) {
-      // Check if receipt_url is a storage path (not an http URL)
-      if (!expense.receipt_url.startsWith('http')) {
-        receiptPath = expense.receipt_url
+      if (expenseError || !expense) {
+        return new Response(
+          JSON.stringify({ error: 'Expense not found or access denied' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        )
       }
-    }
 
-    if (!receiptPath) {
-      throw new Error('No valid storage path found for receipt')
-    }
+      if (!expense.receipt_url && !expense.receipt_storage_path) {
+        throw new Error('No receipt file found for this expense')
+      }
 
-    // Defense-in-depth: add user_id check
-    await supabaseClient
-      .from('expenses')
-      .update({ receipt_extraction_status: 'pending' })
-      .eq('id', expenseId)
-      .eq('user_id', user.id)
+      // Prefer receipt_storage_path, fallback to receipt_url if it's a storage path
+      receiptPath = expense.receipt_storage_path
+      if (!receiptPath && expense.receipt_url) {
+        if (!expense.receipt_url.startsWith('http')) {
+          receiptPath = expense.receipt_url
+        }
+      }
+
+      if (!receiptPath) {
+        throw new Error('No valid storage path found for receipt')
+      }
+
+      mimeType = expense.receipt_mime || guessMimeType(receiptPath)
+      
+      // Update status to pending
+      await supabaseClient
+        .from('expenses')
+        .update({ receipt_extraction_status: 'pending' })
+        .eq('id', expenseId)
+        .eq('user_id', user.id)
+    } else {
+      // Mode 2: receipt_storage_path provided (new flow - scan before expense creation)
+      receiptPath = receipt_storage_path!
+      mimeType = providedMimeType || guessMimeType(receiptPath)
+    }
 
     const { data: fileData, error: downloadError } = await supabaseClient
       .storage
@@ -93,31 +108,37 @@ serve(async (req) => {
       .download(receiptPath)
 
     if (downloadError || !fileData) {
-      await supabaseClient
-        .from('expenses')
-        .update({
-          receipt_extraction_status: 'failed',
-          receipt_extraction_error: 'Failed to download receipt file'
-        })
-        .eq('id', expenseId)
-        .eq('user_id', user.id)
+      if (expenseId) {
+        await supabaseClient
+          .from('expenses')
+          .update({
+            receipt_extraction_status: 'failed',
+            receipt_extraction_error: 'Failed to download receipt file'
+          })
+          .eq('id', expenseId)
+          .eq('user_id', user.id)
+      }
       throw new Error('Failed to download receipt file')
     }
 
     const fileBytes = new Uint8Array(await fileData.arrayBuffer())
     const sha256Hash = await computeSHA256(fileBytes)
 
-    const { data: duplicates } = await supabaseClient
+    // Check for duplicates (user-scoped)
+    let duplicateQuery = supabaseClient
       .from('expenses')
       .select('id, description, date')
       .eq('user_id', user.id)
       .eq('receipt_sha256', sha256Hash)
-      .neq('id', expenseId)
       .limit(1)
-
+    
+    // Exclude current expense if in expenseId mode
+    if (expenseId) {
+      duplicateQuery = duplicateQuery.neq('id', expenseId)
+    }
+    
+    const { data: duplicates } = await duplicateQuery
     const duplicateSuspected = duplicates && duplicates.length > 0
-
-    const mimeType = expense.receipt_mime || guessMimeType(receiptPath)
 
     const extractionResult = await extractReceipt({
       bytes: fileBytes,
@@ -125,24 +146,27 @@ serve(async (req) => {
     })
 
     if (extractionResult.provider === 'disabled') {
-      await supabaseClient
-        .from('expenses')
-        .update({
-          receipt_extraction_status: 'failed',
-          receipt_extraction_error: 'Receipt scanning is not enabled. Please configure an OCR provider.',
-          receipt_sha256: sha256Hash,
-          receipt_storage_path: receiptPath,
-          receipt_mime: mimeType
-        })
-        .eq('id', expenseId)
-        .eq('user_id', user.id)
+      if (expenseId) {
+        await supabaseClient
+          .from('expenses')
+          .update({
+            receipt_extraction_status: 'failed',
+            receipt_extraction_error: 'Receipt scanning is not enabled. Please configure an OCR provider.',
+            receipt_sha256: sha256Hash,
+            receipt_storage_path: receiptPath,
+            receipt_mime: mimeType
+          })
+          .eq('id', expenseId)
+          .eq('user_id', user.id)
+      }
 
       return new Response(
         JSON.stringify({
           success: false,
           error: 'Receipt scanning not enabled',
           message: 'Receipt scanning is not configured. You can still add expenses manually.',
-          duplicate_suspected: duplicateSuspected
+          duplicate_suspected: duplicateSuspected,
+          sha256: sha256Hash
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
@@ -154,27 +178,30 @@ serve(async (req) => {
       rawText: extractionResult.rawText
     })
 
-    const updateData = {
-      receipt_extraction_status: 'succeeded',
-      receipt_extracted_at: new Date().toISOString(),
-      receipt_extraction_error: null,
-      receipt_extracted_json: extractionResult,
-      receipt_vendor: extractionResult.vendor || null,
-      receipt_total: extractionResult.total || null,
-      receipt_currency: extractionResult.currency || 'USD',
-      receipt_date: extractionResult.date || null,
-      category_suggestion: categorySuggestion.category,
-      category_confidence: categorySuggestion.confidence,
-      receipt_sha256: sha256Hash,
-      receipt_storage_path: receiptPath,
-      receipt_mime: mimeType
-    }
+    // Only update expense if in expenseId mode
+    if (expenseId) {
+      const updateData = {
+        receipt_extraction_status: 'succeeded',
+        receipt_extracted_at: new Date().toISOString(),
+        receipt_extraction_error: null,
+        receipt_extracted_json: extractionResult,
+        receipt_vendor: extractionResult.vendor || null,
+        receipt_total: extractionResult.total || null,
+        receipt_currency: extractionResult.currency || 'USD',
+        receipt_date: extractionResult.date || null,
+        category_suggestion: categorySuggestion.category,
+        category_confidence: categorySuggestion.confidence,
+        receipt_sha256: sha256Hash,
+        receipt_storage_path: receiptPath,
+        receipt_mime: mimeType
+      }
 
-    await supabaseClient
-      .from('expenses')
-      .update(updateData)
-      .eq('id', expenseId)
-      .eq('user_id', user.id)
+      await supabaseClient
+        .from('expenses')
+        .update(updateData)
+        .eq('id', expenseId)
+        .eq('user_id', user.id)
+    }
 
     return new Response(
       JSON.stringify({
@@ -183,11 +210,15 @@ serve(async (req) => {
           vendor: extractionResult.vendor,
           date: extractionResult.date,
           total: extractionResult.total,
-          currency: extractionResult.currency
+          currency: extractionResult.currency,
+          rawText: extractionResult.rawText
         },
         suggestion: categorySuggestion,
         duplicate_suspected: duplicateSuspected,
-        provider: extractionResult.provider
+        provider: extractionResult.provider,
+        sha256: sha256Hash,
+        receipt_storage_path: receiptPath,
+        receipt_mime: mimeType
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
