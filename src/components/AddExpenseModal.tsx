@@ -12,7 +12,7 @@ import {
   Image,
   useWindowDimensions,
 } from 'react-native';
-import { useCreateExpense, useUpdateExpense, uploadReceipt, uploadTempReceipt, moveTempReceiptToFinal, deleteTempReceipt } from '../hooks/useExpenses';
+import { useCreateExpense, useUpdateExpense, uploadReceipt, createDraftExpense, deleteDraftExpense } from '../hooks/useExpenses';
 import { expenseSchema, type ExpenseFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
@@ -75,10 +75,8 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   const [dateTouched, setDateTouched] = useState(false);
   const [currentExpenseId, setCurrentExpenseId] = useState<string | null>(null);
   
-  // Temp receipt state (for receipt-first flow)
-  const [tmpReceiptPath, setTmpReceiptPath] = useState<string | null>(null);
-  const [receiptMimeType, setReceiptMimeType] = useState<string | null>(null);
-  const [scanSha256, setScanSha256] = useState<string | null>(null);
+  // Draft expense state (for receipt-first flow)
+  const [draftExpenseId, setDraftExpenseId] = useState<string | null>(null);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -130,9 +128,9 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   }, [editingExpense, duplicatingExpense, visible]);
 
   const resetForm = async () => {
-    // Clean up temp receipt if exists
-    if (tmpReceiptPath) {
-      await deleteTempReceipt(tmpReceiptPath);
+    // Clean up draft expense if exists
+    if (draftExpenseId) {
+      await deleteDraftExpense(draftExpenseId);
     }
     
     setDate('');
@@ -151,9 +149,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     scanAttemptedRef.current = false;
     setDateTouched(false);
     setCurrentExpenseId(null);
-    setTmpReceiptPath(null);
-    setReceiptMimeType(null);
-    setScanSha256(null);
+    setDraftExpenseId(null);
   };
 
   const handleFileSelect = async () => {
@@ -192,22 +188,39 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               setUploading(false);
             }
           } else {
-            // New expense mode: upload to temp and scan immediately
+            // New expense mode: create draft expense, upload receipt, then scan
             if (enableReceiptScan) {
               try {
                 setUploading(true);
                 setScanningReceipt(true);
                 
-                // Upload to temp location
-                const { tmpPath, mimeType } = await uploadTempReceipt(file);
-                setTmpReceiptPath(tmpPath);
-                setReceiptMimeType(mimeType);
+                console.log('[Receipt] Creating draft expense...');
+                // 1. Create draft expense
+                const expenseId = await createDraftExpense();
+                setDraftExpenseId(expenseId);
+                setCurrentExpenseId(expenseId);
+                console.log('[Receipt] Draft expense created:', expenseId);
                 
-                // Scan immediately
-                const result = await processReceiptBeforeCreation(tmpPath, mimeType);
+                // 2. Upload receipt to user-scoped path
+                console.log('[Receipt] Uploading receipt...');
+                const receiptPath = await uploadReceipt(expenseId, file);
+                console.log('[Receipt] Receipt uploaded to:', receiptPath);
+                
+                // 3. Update draft with receipt path
+                await updateExpense.mutateAsync({
+                  id: expenseId,
+                  receipt_url: receiptPath,
+                  receipt_storage_path: receiptPath,
+                  receipt_mime: file.type,
+                });
+                
+                // 4. Scan receipt
+                console.log('[Receipt] Scanning receipt...');
+                const result = await processReceipt(expenseId);
                 setScanResult(result);
+                console.log('[Receipt] Scan result:', result);
                 
-                // Auto-populate fields from scan results
+                // 5. Auto-populate fields from scan results
                 if (result.success && result.extracted) {
                   if (!vendor && result.extracted.vendor) {
                     setVendor(result.extracted.vendor);
@@ -229,20 +242,21 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                     const desc = `Receipt: ${result.extracted.vendor}${result.extracted.date ? ' - ' + result.extracted.date : ''}`;
                     setDescription(desc);
                   }
-                  // Store sha256 for final save
-                  if (result.sha256) {
-                    setScanSha256(result.sha256);
-                  }
                 }
                 
                 scanAttemptedRef.current = true;
               } catch (error: any) {
-                console.error('Receipt upload/scan error:', error);
+                console.error('[Receipt] Upload/scan error:', error);
                 setScanResult({
                   success: false,
                   error: error.message,
                   message: 'Failed to scan receipt. You can continue entering details manually.'
                 });
+                // Clean up draft expense on error
+                if (draftExpenseId) {
+                  await deleteDraftExpense(draftExpenseId);
+                  setDraftExpenseId(null);
+                }
               } finally {
                 setUploading(false);
                 setScanningReceipt(false);
@@ -371,8 +385,18 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         });
         expenseId = result.id;
         setCurrentExpenseId(expenseId);
+      } else if (draftExpenseId) {
+        // Update draft expense with final values
+        const result = await updateExpense.mutateAsync({
+          id: draftExpenseId,
+          ...validated,
+          is_draft: false, // Mark as no longer draft
+        });
+        expenseId = result.id;
+        setCurrentExpenseId(expenseId);
+        setDraftExpenseId(null); // Clear draft state
       } else {
-        // Check limit before creating new expense
+        // No draft - create new expense (fallback for non-receipt flow)
         const userId = await getSharedUserId();
         if (!userId) {
           throw new Error('User not authenticated');
@@ -396,47 +420,8 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         setCurrentExpenseId(expenseId);
       }
 
-      // Handle receipt
-      if (tmpReceiptPath) {
-        // New expense with temp receipt: move to final location
-        try {
-          const finalPath = await moveTempReceiptToFinal(tmpReceiptPath, expenseId);
-          
-          // Update expense with receipt metadata
-          await updateExpense.mutateAsync({
-            id: expenseId,
-            receipt_storage_path: finalPath,
-            receipt_url: finalPath,
-            receipt_mime: receiptMimeType,
-            receipt_sha256: scanSha256,
-            receipt_extraction_status: scanResult?.success ? 'succeeded' : 'failed',
-            receipt_extracted_json: scanResult?.extracted,
-            receipt_vendor: scanResult?.extracted?.vendor,
-            receipt_total: scanResult?.extracted?.total,
-            receipt_date: scanResult?.extracted?.date,
-            receipt_currency: scanResult?.extracted?.currency,
-            category_suggestion: scanResult?.suggestion?.category,
-            category_confidence: scanResult?.suggestion?.confidence,
-          });
-        } catch (error) {
-          console.error('Failed to move receipt:', error);
-          // Expense still created, just log the error
-        }
-      } else if (receiptFile && expenseId && !editingExpense) {
-        // Fallback: direct upload if temp flow wasn't used
-        receiptPath = await uploadReceipt(expenseId, receiptFile);
-        await updateExpense.mutateAsync({
-          id: expenseId,
-          receipt_url: receiptPath,
-          receipt_storage_path: receiptPath,
-        });
-      }
-
-      // Only close if not scanning
-      if (!scanningReceipt && !scanResult) {
-        resetForm();
-        onClose();
-      }
+      resetForm();
+      onClose();
     } catch (error: any) {
       console.error('Expense submission error:', error);
       if (error.errors) {
@@ -500,12 +485,13 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 {receiptFile && (
                   <TouchableOpacity
                     style={styles.removeFileButton}
-                    onPress={() => {
+                    onPress={async () => {
                       setReceiptFile(null);
                       setScanResult(null);
-                      if (tmpReceiptPath) {
-                        deleteTempReceipt(tmpReceiptPath);
-                        setTmpReceiptPath(null);
+                      // Clean up draft expense if exists
+                      if (draftExpenseId) {
+                        await deleteDraftExpense(draftExpenseId);
+                        setDraftExpenseId(null);
                       }
                     }}
                   >

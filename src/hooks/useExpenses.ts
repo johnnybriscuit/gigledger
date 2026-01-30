@@ -143,73 +143,55 @@ export async function uploadReceipt(expenseId: string, file: File): Promise<stri
   return fileName;
 }
 
-// Upload receipt to temp location (before expense creation)
-export async function uploadTempReceipt(file: File): Promise<{ tmpPath: string; mimeType: string }> {
+// Create draft expense for receipt-first flow
+export async function createDraftExpense(): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const fileExt = file.name.split('.').pop();
-  const uuid = crypto.randomUUID();
-  const tmpPath = `tmp/${uuid}.${fileExt}`;
+  const today = new Date().toISOString().split('T')[0];
+  
+  const { data, error } = await supabase
+    .from('expenses')
+    .insert({
+      user_id: user.id,
+      date: today,
+      category: 'Other',
+      description: '(Draft - scanning receipt...)',
+      amount: 0,
+      is_draft: true,
+    })
+    .select()
+    .single();
 
-  const { error: uploadError } = await supabase.storage
-    .from('receipts')
-    .upload(tmpPath, file, {
-      upsert: true,
-    });
-
-  if (uploadError) throw uploadError;
-
-  return {
-    tmpPath,
-    mimeType: file.type
-  };
+  if (error) throw error;
+  return data.id;
 }
 
-// Move temp receipt to final location
-export async function moveTempReceiptToFinal(
-  tmpPath: string,
-  expenseId: string
-): Promise<string> {
+// Delete draft expense (on cancel)
+export async function deleteDraftExpense(expenseId: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  if (!user) return;
 
-  const fileExt = tmpPath.split('.').pop();
-  const finalPath = `${user.id}/${expenseId}_receipt.${fileExt}`;
+  // Delete receipt from storage first
+  const { data: expense } = await supabase
+    .from('expenses')
+    .select('receipt_storage_path')
+    .eq('id', expenseId)
+    .eq('user_id', user.id)
+    .single();
 
-  // Download from tmp
-  const { data: fileData, error: downloadError } = await supabase.storage
-    .from('receipts')
-    .download(tmpPath);
-
-  if (downloadError || !fileData) {
-    throw new Error('Failed to download temp receipt');
+  if (expense?.receipt_storage_path) {
+    await supabase.storage
+      .from('receipts')
+      .remove([expense.receipt_storage_path]);
   }
 
-  // Upload to final location
-  const { error: uploadError } = await supabase.storage
-    .from('receipts')
-    .upload(finalPath, fileData, {
-      upsert: true,
-    });
-
-  if (uploadError) throw uploadError;
-
-  // Delete tmp file
-  await supabase.storage
-    .from('receipts')
-    .remove([tmpPath]);
-
-  return finalPath;
-}
-
-// Delete temp receipt
-export async function deleteTempReceipt(tmpPath: string): Promise<void> {
-  const { error } = await supabase.storage
-    .from('receipts')
-    .remove([tmpPath]);
-
-  if (error) console.error('Failed to delete temp receipt:', error);
+  // Delete expense
+  await supabase
+    .from('expenses')
+    .delete()
+    .eq('id', expenseId)
+    .eq('user_id', user.id);
 }
 
 // Get signed URL for receipt
