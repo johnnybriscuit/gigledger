@@ -126,21 +126,34 @@ export function useDeleteExpense() {
 
 // Upload receipt to Supabase Storage
 export async function uploadReceipt(expenseId: string, file: File): Promise<string> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !user?.id) throw new Error('Not authenticated');
 
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${user.id}/${expenseId}_receipt.${fileExt}`;
+  const userId = user.id;
+  
+  // Create safe filename (replace spaces and special chars with underscores)
+  const safeName = (file.name || 'receipt')
+    .replace(/[^a-zA-Z0-9._-]/g, '_');
+
+  // Object key: userId/expenseId/timestamp_filename
+  const objectKey = `${userId}/${expenseId}/${Date.now()}_${safeName}`;
+  
+  console.log('[uploadReceipt] Uploading to key:', objectKey);
 
   const { error: uploadError } = await supabase.storage
     .from('receipts')
-    .upload(fileName, file, {
+    .upload(objectKey, file, {
+      contentType: file.type || 'application/octet-stream',
       upsert: true,
     });
 
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    console.error('[uploadReceipt] Upload failed:', uploadError);
+    throw uploadError;
+  }
 
-  return fileName;
+  console.log('[uploadReceipt] Upload successful');
+  return objectKey;
 }
 
 // Create draft expense for receipt-first flow
