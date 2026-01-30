@@ -12,7 +12,7 @@ import {
   Image,
   useWindowDimensions,
 } from 'react-native';
-import { useCreateExpense, useUpdateExpense, uploadReceipt } from '../hooks/useExpenses';
+import { useCreateExpense, useUpdateExpense, uploadReceipt, uploadTempReceipt, moveTempReceiptToFinal, deleteTempReceipt } from '../hooks/useExpenses';
 import { expenseSchema, type ExpenseFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
@@ -20,7 +20,7 @@ import { DeductibilityHint } from './DeductibilityHint';
 import { BusinessUseSlider } from './BusinessUseSlider';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getSharedUserId } from '../lib/sharedAuth';
-import { processReceipt, getConfidenceLabel, getConfidenceColor, type ProcessReceiptResponse } from '../lib/receipts/processReceipt';
+import { processReceipt, processReceiptBeforeCreation, getConfidenceLabel, getConfidenceColor, type ProcessReceiptResponse } from '../lib/receipts/processReceipt';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -74,6 +74,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   const scanAttemptedRef = useRef(false);
   const [dateTouched, setDateTouched] = useState(false);
   const [currentExpenseId, setCurrentExpenseId] = useState<string | null>(null);
+  
+  // Temp receipt state (for receipt-first flow)
+  const [tmpReceiptPath, setTmpReceiptPath] = useState<string | null>(null);
+  const [receiptMimeType, setReceiptMimeType] = useState<string | null>(null);
+  const [scanSha256, setScanSha256] = useState<string | null>(null);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -124,8 +129,13 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     }
   }, [editingExpense, duplicatingExpense, visible]);
 
-  const resetForm = () => {
-    setDate(toUtcDateString(new Date()));
+  const resetForm = async () => {
+    // Clean up temp receipt if exists
+    if (tmpReceiptPath) {
+      await deleteTempReceipt(tmpReceiptPath);
+    }
+    
+    setDate('');
     setCategory('Other');
     setDescription('');
     setAmount('');
@@ -134,12 +144,16 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     setReceiptFile(null);
     setBusinessUsePercent(100);
     setMealsDeductiblePercent(50);
-    setScanningReceipt(false);
+    setGigId(null);
+    setAttachToSameGig(false);
     setScanResult(null);
-    setEnableReceiptScan(true);
+    setScanningReceipt(false);
     scanAttemptedRef.current = false;
     setDateTouched(false);
     setCurrentExpenseId(null);
+    setTmpReceiptPath(null);
+    setReceiptMimeType(null);
+    setScanSha256(null);
   };
 
   const handleFileSelect = async () => {
@@ -156,12 +170,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
             return;
           }
           setReceiptFile(file);
-          // Reset scan state when new file is selected
           setScanResult(null);
           scanAttemptedRef.current = false;
           
-          // Auto-create expense and scan if we have an editing expense
-          if (editingExpense && enableReceiptScan) {
+          if (editingExpense) {
+            // Edit mode: upload directly to expense
             try {
               setUploading(true);
               const receiptPath = await uploadReceipt(editingExpense.id, file);
@@ -177,6 +190,63 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               window.alert('Failed to upload receipt: ' + error.message);
             } finally {
               setUploading(false);
+            }
+          } else {
+            // New expense mode: upload to temp and scan immediately
+            if (enableReceiptScan) {
+              try {
+                setUploading(true);
+                setScanningReceipt(true);
+                
+                // Upload to temp location
+                const { tmpPath, mimeType } = await uploadTempReceipt(file);
+                setTmpReceiptPath(tmpPath);
+                setReceiptMimeType(mimeType);
+                
+                // Scan immediately
+                const result = await processReceiptBeforeCreation(tmpPath, mimeType);
+                setScanResult(result);
+                
+                // Auto-populate fields from scan results
+                if (result.success && result.extracted) {
+                  if (!vendor && result.extracted.vendor) {
+                    setVendor(result.extracted.vendor);
+                  }
+                  if (!date && result.extracted.date) {
+                    setDate(result.extracted.date);
+                  }
+                  if (!amount && result.extracted.total) {
+                    setAmount(result.extracted.total.toString());
+                  }
+                  if (category === 'Other' && result.suggestion?.category) {
+                    const suggestedCategory = result.suggestion.category as typeof EXPENSE_CATEGORIES[number];
+                    if (EXPENSE_CATEGORIES.includes(suggestedCategory)) {
+                      setCategory(suggestedCategory);
+                    }
+                  }
+                  // Generate default description if empty
+                  if (!description && result.extracted.vendor) {
+                    const desc = `Receipt: ${result.extracted.vendor}${result.extracted.date ? ' - ' + result.extracted.date : ''}`;
+                    setDescription(desc);
+                  }
+                  // Store sha256 for final save
+                  if (result.sha256) {
+                    setScanSha256(result.sha256);
+                  }
+                }
+                
+                scanAttemptedRef.current = true;
+              } catch (error: any) {
+                console.error('Receipt upload/scan error:', error);
+                setScanResult({
+                  success: false,
+                  error: error.message,
+                  message: 'Failed to scan receipt. You can continue entering details manually.'
+                });
+              } finally {
+                setUploading(false);
+                setScanningReceipt(false);
+              }
             }
           }
         }
@@ -326,24 +396,40 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         setCurrentExpenseId(expenseId);
       }
 
-      // Upload receipt if provided
-      if (receiptFile && expenseId) {
+      // Handle receipt
+      if (tmpReceiptPath) {
+        // New expense with temp receipt: move to final location
+        try {
+          const finalPath = await moveTempReceiptToFinal(tmpReceiptPath, expenseId);
+          
+          // Update expense with receipt metadata
+          await updateExpense.mutateAsync({
+            id: expenseId,
+            receipt_storage_path: finalPath,
+            receipt_url: finalPath,
+            receipt_mime: receiptMimeType,
+            receipt_sha256: scanSha256,
+            receipt_extraction_status: scanResult?.success ? 'succeeded' : 'failed',
+            receipt_extracted_json: scanResult?.extracted,
+            receipt_vendor: scanResult?.extracted?.vendor,
+            receipt_total: scanResult?.extracted?.total,
+            receipt_date: scanResult?.extracted?.date,
+            receipt_currency: scanResult?.extracted?.currency,
+            category_suggestion: scanResult?.suggestion?.category,
+            category_confidence: scanResult?.suggestion?.confidence,
+          });
+        } catch (error) {
+          console.error('Failed to move receipt:', error);
+          // Expense still created, just log the error
+        }
+      } else if (receiptFile && expenseId && !editingExpense) {
+        // Fallback: direct upload if temp flow wasn't used
         receiptPath = await uploadReceipt(expenseId, receiptFile);
-        
-        // Update expense with receipt path
         await updateExpense.mutateAsync({
           id: expenseId,
           receipt_url: receiptPath,
           receipt_storage_path: receiptPath,
         });
-        
-        // Trigger receipt scanning if enabled and not already attempted
-        if (enableReceiptScan && !scanAttemptedRef.current && !editingExpense) {
-          scanAttemptedRef.current = true;
-          // Don't close modal, let user see scan results
-          await handleReceiptScan(expenseId);
-          return; // Exit early, don't close modal
-        }
       }
 
       // Only close if not scanning
@@ -395,6 +481,87 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
           </View>
 
           <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+            {/* Section 0: Receipt Upload (Receipt-First UX) */}
+            {!editingExpense && (
+              <View style={styles.receiptFirstSection}>
+                <Text style={styles.receiptFirstTitle}>Upload receipt to auto-fill (optional)</Text>
+                <Text style={styles.receiptFirstSubtext}>
+                  We'll extract vendor/date/total and suggest a category. You can edit anything before saving.
+                </Text>
+                <TouchableOpacity
+                  style={styles.receiptUploadButton}
+                  onPress={handleFileSelect}
+                  disabled={uploading}
+                >
+                  <Text style={styles.receiptUploadButtonText}>
+                    {receiptFile ? `📎 ${receiptFile.name}` : '📷 Upload Receipt'}
+                  </Text>
+                </TouchableOpacity>
+                {receiptFile && (
+                  <TouchableOpacity
+                    style={styles.removeFileButton}
+                    onPress={() => {
+                      setReceiptFile(null);
+                      setScanResult(null);
+                      if (tmpReceiptPath) {
+                        deleteTempReceipt(tmpReceiptPath);
+                        setTmpReceiptPath(null);
+                      }
+                    }}
+                  >
+                    <Text style={styles.removeFileText}>Remove</Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Scanning Panel */}
+                {scanningReceipt && (
+                  <View style={styles.scanningPanel}>
+                    <Text style={styles.scanningText}>🔍 Scanning receipt...</Text>
+                  </View>
+                )}
+
+                {/* Scan Results */}
+                {scanResult && !scanningReceipt && (
+                  <View style={[styles.scanResultPanel, scanResult.success ? styles.scanSuccess : styles.scanError]}>
+                    {scanResult.success ? (
+                      <>
+                        <Text style={styles.scanResultTitle}>✅ Receipt Scanned</Text>
+                        {scanResult.extracted && (
+                          <View style={styles.extractedData}>
+                            {scanResult.extracted.vendor && (
+                              <Text style={styles.extractedItem}>📍 Vendor: {scanResult.extracted.vendor}</Text>
+                            )}
+                            {scanResult.extracted.date && (
+                              <Text style={styles.extractedItem}>📅 Date: {scanResult.extracted.date}</Text>
+                            )}
+                            {scanResult.extracted.total && (
+                              <Text style={styles.extractedItem}>💰 Total: ${scanResult.extracted.total.toFixed(2)}</Text>
+                            )}
+                          </View>
+                        )}
+                        {scanResult.suggestion && (
+                          <View style={styles.suggestionBox}>
+                            <Text style={styles.suggestionLabel}>Suggested Category:</Text>
+                            <Text style={styles.suggestionCategory}>{scanResult.suggestion.category}</Text>
+                          </View>
+                        )}
+                        {scanResult.duplicate_suspected && (
+                          <View style={styles.warningBox}>
+                            <Text style={styles.warningText}>⚠️ This receipt may be a duplicate</Text>
+                          </View>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Text style={styles.scanErrorTitle}>❌ Scan Failed</Text>
+                        <Text style={styles.scanErrorMessage}>{scanResult.message || 'Unable to scan receipt'}</Text>
+                      </>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* Section 1: Date + Category */}
             <View style={styles.section}>
               <View style={styles.inputGroup}>
@@ -1172,5 +1339,53 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Receipt-First UX styles
+  receiptFirstSection: {
+    backgroundColor: '#f0f9ff',
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  receiptFirstTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  receiptFirstSubtext: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  receiptUploadButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  receiptUploadButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  warningBox: {
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+    borderRadius: 6,
+    padding: 10,
+    marginTop: 8,
+  },
+  warningText: {
+    fontSize: 13,
+    color: '#dc2626',
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
