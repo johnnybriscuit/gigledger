@@ -77,28 +77,29 @@ export type Database = {
           amount: number
           business_use_percent: number | null
           category: Database["public"]["Enums"]["expense_category"]
+          category_confidence: number | null
+          category_suggestion: string | null
           created_at: string
           date: string
           description: string
           gig_id: string | null
           id: string
           irs_schedule_c_line: string | null
+          is_draft: boolean | null
           meals_percent_allowed: number | null
           notes: string | null
-          receipt_url: string | null
-          receipt_extraction_status: string | null
-          receipt_extracted_at: string | null
-          receipt_extraction_error: string | null
-          receipt_extracted_json: any | null
-          receipt_vendor: string | null
-          receipt_total: number | null
           receipt_currency: string | null
           receipt_date: string | null
-          category_suggestion: string | null
-          category_confidence: number | null
+          receipt_extracted_at: string | null
+          receipt_extracted_json: Json | null
+          receipt_extraction_error: string | null
+          receipt_extraction_status: string | null
+          receipt_mime: string | null
           receipt_sha256: string | null
           receipt_storage_path: string | null
-          receipt_mime: string | null
+          receipt_total: number | null
+          receipt_url: string | null
+          receipt_vendor: string | null
           recurring_expense_id: string | null
           updated_at: string
           user_id: string
@@ -108,28 +109,29 @@ export type Database = {
           amount: number
           business_use_percent?: number | null
           category: Database["public"]["Enums"]["expense_category"]
+          category_confidence?: number | null
+          category_suggestion?: string | null
           created_at?: string
           date: string
           description: string
           gig_id?: string | null
           id?: string
           irs_schedule_c_line?: string | null
+          is_draft?: boolean | null
           meals_percent_allowed?: number | null
           notes?: string | null
-          receipt_url?: string | null
-          receipt_extraction_status?: string | null
-          receipt_extracted_at?: string | null
-          receipt_extraction_error?: string | null
-          receipt_extracted_json?: any | null
-          receipt_vendor?: string | null
-          receipt_total?: number | null
           receipt_currency?: string | null
           receipt_date?: string | null
-          category_suggestion?: string | null
-          category_confidence?: number | null
+          receipt_extracted_at?: string | null
+          receipt_extracted_json?: Json | null
+          receipt_extraction_error?: string | null
+          receipt_extraction_status?: string | null
+          receipt_mime?: string | null
           receipt_sha256?: string | null
           receipt_storage_path?: string | null
-          receipt_mime?: string | null
+          receipt_total?: number | null
+          receipt_url?: string | null
+          receipt_vendor?: string | null
           recurring_expense_id?: string | null
           updated_at?: string
           user_id: string
@@ -139,28 +141,29 @@ export type Database = {
           amount?: number
           business_use_percent?: number | null
           category?: Database["public"]["Enums"]["expense_category"]
+          category_confidence?: number | null
+          category_suggestion?: string | null
           created_at?: string
           date?: string
           description?: string
           gig_id?: string | null
           id?: string
           irs_schedule_c_line?: string | null
+          is_draft?: boolean | null
           meals_percent_allowed?: number | null
           notes?: string | null
-          receipt_url?: string | null
-          receipt_extraction_status?: string | null
-          receipt_extracted_at?: string | null
-          receipt_extraction_error?: string | null
-          receipt_extracted_json?: any | null
-          receipt_vendor?: string | null
-          receipt_total?: number | null
           receipt_currency?: string | null
           receipt_date?: string | null
-          category_suggestion?: string | null
-          category_confidence?: number | null
+          receipt_extracted_at?: string | null
+          receipt_extracted_json?: Json | null
+          receipt_extraction_error?: string | null
+          receipt_extraction_status?: string | null
+          receipt_mime?: string | null
           receipt_sha256?: string | null
           receipt_storage_path?: string | null
-          receipt_mime?: string | null
+          receipt_total?: number | null
+          receipt_url?: string | null
+          receipt_vendor?: string | null
           recurring_expense_id?: string | null
           updated_at?: string
           user_id?: string
@@ -758,6 +761,7 @@ export type Database = {
         Row: {
           contact_email: string | null
           created_at: string
+          created_by_import_batch_id: string | null
           expect_1099: boolean | null
           id: string
           name: string
@@ -773,12 +777,13 @@ export type Database = {
         Insert: {
           contact_email?: string | null
           created_at?: string
+          created_by_import_batch_id?: string | null
           expect_1099?: boolean | null
           id?: string
           name: string
           normalized_name: string
           notes?: string | null
-          payer_type: Database["public"]["Enums"]["payer_type"]
+          payer_type?: Database["public"]["Enums"]["payer_type"]
           tax_id?: string | null
           tax_id_last4?: string | null
           tax_id_type?: string | null
@@ -788,6 +793,7 @@ export type Database = {
         Update: {
           contact_email?: string | null
           created_at?: string
+          created_by_import_batch_id?: string | null
           expect_1099?: boolean | null
           id?: string
           name?: string
@@ -800,7 +806,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payers_created_by_import_batch_id_fkey"
+            columns: ["created_by_import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "import_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_method_details: {
         Row: {
