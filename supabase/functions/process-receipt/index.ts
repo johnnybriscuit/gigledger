@@ -102,24 +102,32 @@ serve(async (req) => {
       mimeType = providedMimeType || guessMimeType(receiptPath)
     }
 
+    console.log('[process-receipt] Attempting to download from path:', receiptPath)
+    console.log('[process-receipt] User ID:', user.id)
+
     const { data: fileData, error: downloadError } = await supabaseClient
       .storage
       .from('receipts')
       .download(receiptPath)
 
     if (downloadError || !fileData) {
+      console.error('[process-receipt] Download failed:', downloadError)
+      const errorMessage = downloadError ? `${downloadError.message} (${downloadError.name})` : 'No file data returned'
+      
       if (expenseId) {
         await supabaseClient
           .from('expenses')
           .update({
             receipt_extraction_status: 'failed',
-            receipt_extraction_error: 'Failed to download receipt file'
+            receipt_extraction_error: `Failed to download receipt file: ${errorMessage}`
           })
           .eq('id', expenseId)
           .eq('user_id', user.id)
       }
-      throw new Error('Failed to download receipt file')
+      throw new Error(`Failed to download receipt file: ${errorMessage}`)
     }
+
+    console.log('[process-receipt] Download successful, file size:', fileData.size)
 
     const fileBytes = new Uint8Array(await fileData.arrayBuffer())
     const sha256Hash = await computeSHA256(fileBytes)
