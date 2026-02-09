@@ -45,14 +45,6 @@ export function useGigs() {
   
   console.log('[useGigs] userId:', userId, 'enabled:', !!userId);
   
-  // Force invalidate cache on mount to ensure fresh data
-  React.useEffect(() => {
-    if (userId) {
-      console.log('[useGigs] Invalidating cache for userId:', userId);
-      queryClient.invalidateQueries({ queryKey: queryKeys.gigs(userId) });
-    }
-  }, [userId, queryClient]);
-  
   const result = useQuery({
     queryKey: userId ? queryKeys.gigs(userId) : ['gigs-loading'],
     queryFn: async () => {
@@ -75,9 +67,10 @@ export function useGigs() {
       return data as GigWithPayer[];
     },
     enabled: !!userId,
-    staleTime: 0, // Always refetch
-    gcTime: 0, // Don't cache
+    staleTime: 0, // Always consider data stale to refetch
+    gcTime: 5 * 60 * 1000, // Keep cached data for 5 minutes to show while refetching
     refetchOnMount: 'always', // Always refetch when component mounts
+    placeholderData: (previousData) => previousData, // Show previous data while refetching
   });
   
   console.log('[useGigs] Returning data:', result.data?.length, 'isLoading:', result.isLoading);
