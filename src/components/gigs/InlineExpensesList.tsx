@@ -22,11 +22,15 @@ interface InlineExpensesListProps {
 
 const EXPENSE_CATEGORIES = [
   'Travel',
-  'Meals',
+  'Meals & Entertainment',
   'Lodging',
   'Supplies',
-  'Equipment',
-  'Fees',
+  'Equipment/Gear',
+  'Professional Fees',
+  'Marketing/Promotion',
+  'Software/Subscriptions',
+  'Education/Training',
+  'Rent/Studio',
   'Other',
 ];
 
