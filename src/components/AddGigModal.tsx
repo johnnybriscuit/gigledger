@@ -579,12 +579,14 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       }
 
       // Prepare inline expenses data (used for both create and edit)
-      const expensesData = inlineExpenses.map(exp => ({
-        category: exp.category,
-        description: exp.description,
-        amount: parseFloat(exp.amount) || 0,
-        note: exp.note,
-      }));
+      const expensesData = inlineExpenses
+        .filter(exp => exp.description && exp.amount && parseFloat(exp.amount) > 0)
+        .map(exp => ({
+          category: exp.category,
+          description: exp.description,
+          amount: parseFloat(exp.amount) || 0,
+          note: exp.note,
+        }));
 
       // Prepare inline mileage data (used for both create and edit)
       const mileageData = inlineMileage ? {
