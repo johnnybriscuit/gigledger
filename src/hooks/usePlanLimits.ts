@@ -16,14 +16,15 @@ import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
 import type { SubscriptionTier, SubscriptionStatus } from './useSubscription';
+import { PLAN_LIMITS as PLAN_LIMITS_CONSTANTS } from '../constants/plans';
 
 // Plan limits configuration
-// Free plan: 10 gigs per month, 10 expenses per month (new monthly limits)
+// Free plan: Uses PLAN_LIMITS from constants/plans.ts
 // Paid plans (monthly/yearly): No practical limit (set to 10,000 as safety cap)
 export const PLAN_LIMITS = {
   free: {
-    maxGigs: 10,
-    maxExpenses: 10,
+    maxGigs: PLAN_LIMITS_CONSTANTS.FREE.GIGS_PER_MONTH,
+    maxExpenses: PLAN_LIMITS_CONSTANTS.FREE.EXPENSES_PER_MONTH,
   },
   paid: {
     maxGigs: 10000,
