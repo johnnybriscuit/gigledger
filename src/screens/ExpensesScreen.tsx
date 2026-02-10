@@ -256,6 +256,18 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
         </View>
       )}
 
+      {/* Usage Banner - show for all free plan users on All Expenses tab */}
+      {activeTab === 'all' && isFreePlan && (
+        <View style={styles.bannerWrapper}>
+          <UsageLimitBanner
+            label="expenses"
+            usedCount={expenseCount}
+            limitCount={7}
+            onUpgradePress={handleNavigateToSubscription}
+          />
+        </View>
+      )}
+
       {/* All Expenses Tab */}
       {activeTab === 'all' && (expenses && expenses.length === 0 ? (
         <EmptyState
@@ -272,19 +284,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            <>
-              <DeductionInfoCard />
-              {isFreePlan && (
-                <View style={styles.bannerContainer}>
-                  <UsageLimitBanner
-                    label="expenses"
-                    usedCount={expenseCount}
-                    limitCount={7}
-                    onUpgradePress={handleNavigateToSubscription}
-                  />
-                </View>
-              )}
-            </>
+            <DeductionInfoCard />
           }
           renderItem={({ item }) => (
             <Card variant="elevated" style={styles.card}>
@@ -564,6 +564,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: parseInt(spacing[2]),
+  },
+  bannerWrapper: {
+    padding: parseInt(spacing[4]),
+    paddingBottom: 0,
   },
   bannerContainer: {
     marginBottom: parseInt(spacing[4]),

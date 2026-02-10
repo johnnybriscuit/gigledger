@@ -354,6 +354,18 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         </View>
       </View>
 
+      {/* Usage Banner - show for all free plan users */}
+      {isFreePlan && (
+        <View style={styles.bannerWrapper}>
+          <UsageLimitBanner
+            label="gigs"
+            usedCount={gigCount}
+            limitCount={7}
+            onUpgradePress={handleUpgradeClick}
+          />
+        </View>
+      )}
+
       {gigs && gigs.length === 0 ? (
         <EmptyState
           title="No gigs yet"
@@ -368,18 +380,6 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           data={gigs}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
-            isFreePlan ? (
-              <View style={styles.bannerContainer}>
-                <UsageLimitBanner
-                  label="gigs"
-                  usedCount={gigCount}
-                  limitCount={7}
-                  onUpgradePress={handleUpgradeClick}
-                />
-              </View>
-            ) : null
-          }
           renderItem={({ item }) => (
             <GigCard
               item={item}
@@ -464,6 +464,10 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: parseInt(spacing[4]),
+  },
+  bannerWrapper: {
+    padding: parseInt(spacing[4]),
+    paddingBottom: 0,
   },
   bannerContainer: {
     marginBottom: parseInt(spacing[4]),
