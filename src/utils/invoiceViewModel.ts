@@ -1,5 +1,8 @@
-import { Invoice, InvoiceLineItem, formatCurrency } from '../types/invoice';
+import { Invoice, InvoiceLineItem, formatCurrency, InvoiceSettings } from '../types/invoice';
 import { PaymentMethodDetail } from '../hooks/usePaymentMethodDetails';
+import { PaymentMethodDisplay } from '../types/paymentMethods';
+import { formatPaymentMethodsForDisplay } from './formatPaymentMethods';
+import { getPaymentMethodsConfig } from './paymentMethodsMigration';
 
 /**
  * Computed line item with guaranteed correct amount calculation
@@ -14,6 +17,7 @@ export interface ComputedLineItem {
 
 /**
  * Payment method with resolved details
+ * @deprecated Use PaymentMethodDisplay from formatPaymentMethods instead
  */
 export interface ResolvedPaymentMethod {
   method: string;
@@ -37,8 +41,11 @@ export interface InvoiceViewModel {
   discountAmount: number;
   totalDue: number;
   
-  // Resolved payment methods with details
+  // Resolved payment methods with details (legacy)
   paymentMethods: ResolvedPaymentMethod[];
+  
+  // New structured payment method displays
+  paymentMethodDisplays: PaymentMethodDisplay[];
 }
 
 /**
@@ -46,7 +53,8 @@ export interface InvoiceViewModel {
  */
 export function buildInvoiceViewModel(
   invoice: Invoice,
-  paymentMethodDetails?: PaymentMethodDetail[]
+  paymentMethodDetails?: PaymentMethodDetail[],
+  settings?: InvoiceSettings
 ): InvoiceViewModel {
   // Compute line items with correct math
   const lineItems: ComputedLineItem[] = (invoice.line_items || []).map((item) => {
@@ -76,7 +84,7 @@ export function buildInvoiceViewModel(
   // Total due
   const totalDue = subtotal + taxAmount - discountAmount;
   
-  // Resolve payment methods with details
+  // Resolve payment methods with details (legacy support)
   const paymentMethods: ResolvedPaymentMethod[] = (invoice.accepted_payment_methods || []).map((pm) => {
     const methodKey = pm.method.toLowerCase().replace(/\s+/g, '');
     const detail = paymentMethodDetails?.find(pmd => pmd.method === methodKey);
@@ -102,6 +110,30 @@ export function buildInvoiceViewModel(
     };
   });
   
+  // New structured payment method displays
+  let paymentMethodDisplays: PaymentMethodDisplay[] = [];
+  
+  if (settings) {
+    // Try to get payment methods config from settings
+    const config = getPaymentMethodsConfig(settings);
+    if (config && config.methods.length > 0) {
+      paymentMethodDisplays = formatPaymentMethodsForDisplay(
+        config,
+        invoice.invoice_number
+      );
+    }
+  }
+  
+  // Fallback to legacy format if no new config available
+  if (paymentMethodDisplays.length === 0 && paymentMethods.length > 0) {
+    paymentMethodDisplays = paymentMethods.map(pm => ({
+      label: pm.method,
+      details: pm.displayText.includes(':') 
+        ? pm.displayText.split(':').slice(1).join(':').trim()
+        : pm.displayText,
+    }));
+  }
+  
   return {
     invoice,
     lineItems,
@@ -109,7 +141,8 @@ export function buildInvoiceViewModel(
     taxAmount,
     discountAmount,
     totalDue,
-    paymentMethods,
+    paymentMethods, // Keep for backward compatibility
+    paymentMethodDisplays, // New structured displays
   };
 }
 

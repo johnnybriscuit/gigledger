@@ -41,7 +41,8 @@ export interface InvoiceSettings {
   color_scheme: string;
   font_style: string;
   layout_style: string;
-  accepted_payment_methods: PaymentMethodDetail[];
+  accepted_payment_methods: PaymentMethodDetail[]; // Legacy - kept for backward compatibility
+  payment_methods_config?: any; // New structured config - typed as any to avoid circular dependency, use PaymentMethodsConfig from paymentMethods.ts
   created_at: string;
   updated_at: string;
 }

@@ -15,8 +15,8 @@ function escapeHtml(text: string): string {
 }
 
 export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, paymentMethodDetails?: PaymentMethodDetail[]): string {
-  // Build view model with correct calculations
-  const viewModel = buildInvoiceViewModel(invoice, paymentMethodDetails);
+  // Build view model with correct calculations (pass settings for new payment methods)
+  const viewModel = buildInvoiceViewModel(invoice, paymentMethodDetails, settings);
   
   const getColorScheme = () => {
     switch (settings.color_scheme) {
@@ -227,6 +227,7 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, 
       margin-top: 30px;
       padding-top: 20px;
       border-top: 1px solid #e5e7eb;
+      page-break-inside: avoid;
     }
     
     .terms-label {
@@ -374,10 +375,10 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, 
         <div class="terms-text">${invoice.payment_terms}</div>
       ` : ''}
       
-      ${viewModel.paymentMethods.length > 0 ? `
-        <div class="terms-label">Payment Methods Accepted:</div>
+      ${viewModel.paymentMethodDisplays.length > 0 ? `
+        <div class="terms-label">Payment Methods:</div>
         <div class="terms-text">
-          ${viewModel.paymentMethods.map(pm => `• ${escapeHtml(pm.displayText)}`).join('<br>')}
+          ${viewModel.paymentMethodDisplays.map(pm => `<strong>${escapeHtml(pm.label)}:</strong> ${escapeHtml(pm.details)}`).join('<br>')}
         </div>
       ` : ''}
       

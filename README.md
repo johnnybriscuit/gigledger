@@ -1,432 +1,177 @@
-# 💼 Bozzy
+# Supabase CLI
 
-> A premium expense tracking and tax management platform for freelancers and gig workers, built with React Native and Supabase.
+[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
+](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
 
-[![React Native](https://img.shields.io/badge/React%20Native-0.74-blue.svg)](https://reactnative.dev/)
-[![Expo](https://img.shields.io/badge/Expo-51-black.svg)](https://expo.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-Backend-green.svg)](https://supabase.com/)
+[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
 
-## ✨ Features
+This repository contains all the functionality for Supabase CLI.
 
-### 📊 Premium Dashboard
-- **Interactive Charts** - Monthly overview, cumulative net profit, expense breakdown, and top payers
-- **Real-time Tax Estimates** - Automatic calculation of SE, federal, and state taxes
-- **Drill-Through Analysis** - Click any chart to see detailed transactions
-- **Smart Date Ranges** - YTD, Last 30/90 days, Last Year, or custom ranges
-- **Light/Dark Theme** - Professional design system with theme support
+- [x] Running Supabase locally
+- [x] Managing database migrations
+- [x] Creating and deploying Supabase Functions
+- [x] Generating types directly from your database schema
+- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
 
-### 💰 Gig Management
-- **Inline Expenses & Mileage** - Add expenses and mileage directly when creating gigs
-- **Automatic Mileage Calculation** - Google Maps Distance Matrix API integration
-- **Live Net Calculator** - Real-time net profit calculation with tax estimates
-- **Payer Tracking** - Manage clients and track 1099 expectations
-- **Bulk Import** - CSV import for quick data entry
+## Getting started
 
-### 📉 Expense Tracking
-- **7 Categories** - Travel, Meals, Lodging, Supplies, Equipment, Fees, Other
-- **IRS Mileage Rate** - Automatic deduction calculation ($0.70/mile for 2025)
-- **Receipt Storage** - Upload and attach receipts to expenses
-- **Recurring Expenses** - Set up monthly/quarterly recurring expenses
+### Install the CLI
 
-### 📊 Export Center
-- **Schedule C Export** - IRS-ready CSV format for tax filing
-- **Custom Date Ranges** - Export any time period
-- **TXF Format** - Compatible with TurboTax and other tax software
-- **Detailed Reports** - Income, expenses, and mileage breakdowns
-
-### 🎯 Tax Planning
-- **Withholding Calculator** - Estimates based on filing status and state
-- **Quarterly Reminders** - Track estimated tax payment deadlines
-- **Effective Tax Rate** - See your real tax burden
-- **Set Aside Recommendations** - Know how much to save from each gig
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+ and npm
-- Expo CLI (`npm install -g expo-cli`)
-- iOS Simulator (Mac) or Android Studio
-- Supabase account (free tier works great)
-
-### Installation
+Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
 
 ```bash
-# Clone the repository
-git clone https://github.com/johnnybriscuit/bozzy.git
-cd bozzy
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your Supabase credentials
-
-# Start the development server
-npm start
+npm i supabase --save-dev
 ```
 
-### Environment Setup
+When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
 
-#### Local Development
-
-Create a `.env.local` file with:
-
-```env
-# Supabase (Required)
-EXPO_PUBLIC_SUPABASE_URL=http://localhost:54321
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-local-anon-key
-
-# Site URL (Required)
-EXPO_PUBLIC_SITE_URL=http://localhost:8090
-
-# Optional Features
-EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-EXPO_PUBLIC_DEFAULT_MILEAGE_RATE=0.70
-EXPO_PUBLIC_ANTIBOT_ENABLED=false
-
-# Optional: Redis for distributed rate limiting
-# UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
-# UPSTASH_REDIS_REST_TOKEN=your-token
-
-# Optional: Cloudflare Turnstile (only if ANTIBOT_ENABLED=true)
-# TURNSTILE_SECRET_KEY=your-secret-key
+```
+NODE_OPTIONS=--no-experimental-fetch yarn add supabase
 ```
 
-#### Staging Environment
+> **Note**
+For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
 
-```env
-# Supabase (Required)
-EXPO_PUBLIC_SUPABASE_URL=https://staging-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-staging-anon-key
+<details>
+  <summary><b>macOS</b></summary>
 
-# Site URL (Required)
-EXPO_PUBLIC_SITE_URL=https://staging.bozzygigs.com
+  Available via [Homebrew](https://brew.sh). To install:
 
-# Optional Features
-EXPO_PUBLIC_ANTIBOT_ENABLED=false
-UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
-UPSTASH_REDIS_REST_TOKEN=your-token
-```
+  ```sh
+  brew install supabase/tap/supabase
+  ```
 
-#### Production Environment
+  To install the beta release channel:
+  
+  ```sh
+  brew install supabase/tap/supabase-beta
+  brew link --overwrite supabase-beta
+  ```
+  
+  To upgrade:
 
-```env
-# Supabase (Required)
-EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
+  ```sh
+  brew upgrade supabase
+  ```
+</details>
 
-# Site URL (Required)
-EXPO_PUBLIC_SITE_URL=https://bozzygigs.com
+<details>
+  <summary><b>Windows</b></summary>
 
-# Optional Features
-EXPO_PUBLIC_ANTIBOT_ENABLED=false
-UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
-UPSTASH_REDIS_REST_TOKEN=your-token
+  Available via [Scoop](https://scoop.sh). To install:
 
-# Optional: Cloudflare Turnstile (only if ANTIBOT_ENABLED=true)
-# TURNSTILE_SECRET_KEY=your-secret-key
-```
+  ```powershell
+  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+  scoop install supabase
+  ```
 
-### Database Setup
+  To upgrade:
 
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Run migrations in order from `supabase/migrations/`
-3. Enable Row Level Security (RLS) policies
-4. Set up Storage bucket for receipts (optional)
+  ```powershell
+  scoop update supabase
+  ```
+</details>
 
-See [SUPABASE_SETUP_CHECKLIST.md](./SUPABASE_SETUP_CHECKLIST.md) for detailed instructions.
+<details>
+  <summary><b>Linux</b></summary>
 
-## 🚀 Deployment
+  Available via [Homebrew](https://brew.sh) and Linux packages.
 
-### Vercel Deployment
+  #### via Homebrew
 
-1. **Connect Repository**
-   - Import your GitHub repository to Vercel
-   - Select the `main` branch for production
+  To install:
 
-2. **Configure Environment Variables**
-   - Add all required environment variables in Vercel dashboard
-   - Use production values for `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SITE_URL`
+  ```sh
+  brew install supabase/tap/supabase
+  ```
 
-3. **Deploy**
-   - Vercel will automatically build and deploy
-   - Note your deployment URL (e.g., `https://bozzy.vercel.app`)
+  To upgrade:
 
-### Supabase Configuration
+  ```sh
+  brew upgrade supabase
+  ```
 
-1. **Update Redirect URLs**
-   - Go to Authentication → URL Configuration
-   - Add redirect URLs:
-     - `https://your-domain.com/auth/callback`
-     - `https://your-domain.com/*`
-   - For staging: `https://staging.your-domain.com/*`
+  #### via Linux packages
 
-2. **Email Templates**
-   - Customize magic link email template
-   - Update confirmation email template
-   - Set sender name and email
+  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
 
-3. **Rate Limits**
-   - Configure Supabase rate limits if needed
-   - Our app has additional rate limiting (5 req/10min per IP+email)
+  ```sh
+  sudo apk add --allow-untrusted <...>.apk
+  ```
 
-### Deployment Checklist
+  ```sh
+  sudo dpkg -i <...>.deb
+  ```
 
-- [ ] Environment variables set in Vercel
-- [ ] Supabase redirect URLs configured
-- [ ] Email templates customized
-- [ ] Test magic link flow in production
-- [ ] Test password signup flow
-- [ ] Test MFA enrollment and challenge
-- [ ] Verify rate limiting works
-- [ ] Check CSRF protection (403 without token)
-- [ ] Test tax profile banner appears for new users
-- [ ] Monitor logs for audit events
+  ```sh
+  sudo rpm -i <...>.rpm
+  ```
 
-## 🔒 Security Features
+  ```sh
+  sudo pacman -U <...>.pkg.tar.zst
+  ```
+</details>
 
-### Authentication
-- **Hybrid Auth**: Magic link or email+password
-- **TOTP MFA**: Enforced after first login with QR code enrollment
-- **Email Verification**: Required before app access
-- **Recovery Codes**: Generated during MFA setup
+<details>
+  <summary><b>Other Platforms</b></summary>
 
-### Password Policy
-- **Minimum Length**: 10 characters
-- **Complexity**: At least one letter and one number
-- **Strength Meter**: Real-time visual feedback
-- **Server Validation**: Double-checked on backend
+  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
 
-### CSRF Protection
-- **Double-Submit Pattern**: HttpOnly cookie + header token
-- **SameSite=Lax**: Cookie security
-- **Token Verification**: All POST requests validated
-- **403 on Failure**: Clear error codes
+  ```sh
+  go install github.com/supabase/cli@latest
+  ```
 
-### Rate Limiting
-- **5 requests per 10 minutes** per IP+email combination
-- **Vercel-Aware**: Proper IP extraction from `x-forwarded-for`
-- **Private IP Filtering**: Ignores local/private IPs
-- **Redis-Backed**: Distributed rate limiting (with in-memory fallback)
-- **429 Response**: Clear retry-after headers
+  Add a symlink to the binary in `$PATH` for easier access:
 
-### Audit Logging
-- **Structured Logs**: JSON format for easy parsing
-- **Privacy-Preserving**: Only hashed email/IP (no PII)
-- **Event Tracking**: All auth events logged
-  - `magic_link_start | success | rate_limited | csrf_failed | antibot_failed | error`
-  - `signup_start | success | rate_limited | csrf_failed | antibot_failed | error`
+  ```sh
+  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
+  ```
 
-### API Security
-- **POST-Only**: Auth endpoints reject other methods (405)
-- **Content-Type Validation**: Requires `application/json` (415)
-- **Same-Origin CORS**: No external origins allowed
-- **Cache-Control**: `no-store` on sensitive endpoints
-- **Vary Header**: Proper cache key variation
+  This works on other non-standard Linux distros.
+</details>
 
-### Optional: Anti-Bot Protection
-- **Cloudflare Turnstile**: Server-side verification only
-- **No UI Widget**: Seamless user experience
-- **Toggle**: Enable via `EXPO_PUBLIC_ANTIBOT_ENABLED=true`
-- **403 on Failure**: Clear error codes
+<details>
+  <summary><b>Community Maintained Packages</b></summary>
 
-## 🧪 Testing
+  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
+  To install in your working directory:
 
-### Run Tests
+  ```bash
+  pkgx install supabase
+  ```
+
+  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
+</details>
+
+### Run the CLI
 
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
+supabase bootstrap
 ```
 
-### Test Coverage
-
-- **Password Validation**: 13 tests
-  - Minimum requirements
-  - Strength calculation
-  - Bonus points
-  - Server/client consistency
-
-- **Rate Limiting**: 18 tests
-  - IP extraction (Vercel headers)
-  - Private IP filtering
-  - x-forwarded-for parsing
-  - Fallback behavior
-
-- **CSRF Protection**: 4 tests
-  - Token generation
-  - Verification logic
-  - Missing/mismatched tokens
-  - Edge cases
-
-### Expected Output
-
-```
-Test Suites: X passed, X total
-Tests:       35+ passed, 35+ total
-Snapshots:   X total
-Time:        X.XXX s
-```
-
-All tests should pass (green).
-
-## 📱 Platform Support
-
-- **Web** - Full-featured dashboard with Recharts
-- **iOS** - Native app with optimized mobile UI
-- **Android** - Native app with optimized mobile UI
-
-## 🏗️ Architecture
-
-### Tech Stack
-- **Frontend**: React Native + Expo
-- **Backend**: Supabase (PostgreSQL + Auth + Storage)
-- **State Management**: React Query (TanStack Query)
-- **Charts**: Recharts (web) + Victory Native (mobile)
-- **Styling**: React Native StyleSheet
-- **Type Safety**: TypeScript throughout
-
-### Project Structure
-```
-gigledger/
-├── src/
-│   ├── components/          # Reusable UI components
-│   │   ├── dashboard/       # Premium dashboard components
-│   │   ├── charts/          # Chart wrappers
-│   │   └── gigs/            # Gig-specific components
-│   ├── screens/             # Main app screens
-│   ├── hooks/               # Custom React hooks
-│   ├── lib/                 # Utilities and helpers
-│   │   ├── charts/          # Chart color tokens
-│   │   └── tax/             # Tax calculation logic
-│   ├── services/            # API services
-│   ├── contexts/            # React contexts (Theme, etc.)
-│   └── types/               # TypeScript definitions
-├── supabase/
-│   └── migrations/          # Database migrations
-└── docs/                    # Additional documentation
-```
-
-## 📚 Documentation
-
-- [Premium Dashboard Guide](./PREMIUM_DASHBOARD_SUMMARY.md) - Complete dashboard documentation
-- [Quick Start Guide](./DASHBOARD_QUICKSTART.md) - Get started with the dashboard
-- [Automatic Mileage](./AUTOMATIC_MILEAGE_SUMMARY.md) - Google Maps integration
-- [Gig Form Upgrade](./GIGFORM_UPGRADE_SUMMARY.md) - Inline expenses & mileage
-- [Export Center](./EXPORT_CENTER_COMPLETE.md) - Tax export features
-- [CSV Import Guide](./CSV_IMPORT_GUIDE.md) - Bulk import instructions
-- [Backup Guide](./BACKUP_GUIDE.md) - How to backup and restore
-
-## 🎨 Screenshots
-
-### Dashboard
-*Premium dashboard with interactive charts and real-time tax estimates*
-
-### Gig Management
-*Inline expenses and automatic mileage calculation*
-
-### Charts & Analytics
-*Click any bar to drill through to detailed transactions*
-
-> **Note**: Screenshots coming soon! The app is fully functional.
-
-## 🔧 Development
-
-### Available Scripts
+Or using npx:
 
 ```bash
-npm start          # Start Expo dev server
-npm run web        # Start web version
-npm run ios        # Start iOS simulator
-npm run android    # Start Android emulator
-npm test           # Run tests (if configured)
+npx supabase bootstrap
 ```
 
-### Key Features in Development
+The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
 
-- [ ] Receipt OCR scanning
-- [ ] Mobile push notifications for tax deadlines
-- [ ] Multi-year tax comparisons
-- [ ] Payer performance analytics
-- [ ] Quarterly tax payment tracking
+## Docs
 
-## 🤝 Contributing
+Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
 
-This is a personal project, but suggestions and bug reports are welcome!
+## Breaking changes
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
 
-## 📄 License
+However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
 
-This project is private and proprietary. All rights reserved.
+## Developing
 
-## 🙏 Acknowledgments
+To run from source:
 
-- [Expo](https://expo.dev/) - Amazing React Native framework
-- [Supabase](https://supabase.com/) - Backend as a service
-- [Recharts](https://recharts.org/) - Beautiful charts for React
-- [React Query](https://tanstack.com/query) - Powerful data fetching
-- [Google Maps API](https://developers.google.com/maps) - Mileage calculations
-
-## 📞 Support
-
-For questions or issues:
-- Check the [documentation](./docs/)
-- Review [existing issues](https://github.com/johnnybriscuit/bozzy/issues)
-- Create a new issue with detailed information
-
-## 🗺️ Roadmap
-
-### Phase 1: Core Features ✅
-- [x] User authentication
-- [x] Gig management
-- [x] Expense tracking
-- [x] Mileage logging
-- [x] Basic dashboard
-- [x] Tax estimates
-
-### Phase 2: Premium Dashboard ✅
-- [x] Interactive charts
-- [x] Drill-through analysis
-- [x] Theme support
-- [x] Date range filtering
-- [x] Quick actions
-
-### Phase 3: Advanced Features ✅
-- [x] Inline expenses/mileage
-- [x] Automatic mileage calculation
-- [x] CSV import
-- [x] Export center
-- [ ] Receipt OCR
-- [ ] Goal tracking
-
-### Phase 4: Mobile Optimization 📱
-- [ ] Victory Native charts
-- [ ] Offline mode
-- [ ] Push notifications
-- [ ] Camera integration
-- [ ] Biometric auth
-
-### Phase 5: Analytics & Insights 📊
-- [ ] Year-over-year comparisons
-- [ ] Trend predictions
-- [ ] Tax optimization suggestions
-- [ ] Payer performance analysis
-
----
-
-**Built with ❤️ for freelancers and gig workers**
-
-*Last updated: October 31, 2025*
+```sh
+# Go >= 1.22
+go run . help
+```

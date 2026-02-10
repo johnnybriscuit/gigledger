@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { PaymentMethodDetail, PAYMENT_METHODS, COLOR_SCHEMES, FONT_STYLES, LAYOUT_STYLES, CURRENCIES } from '../types/invoice';
+import { PaymentMethodsConfig } from '../types/paymentMethods';
+import { PaymentMethodsEditor } from './PaymentMethodsEditor';
+import { getPaymentMethodsConfig, validatePaymentMethodsConfig } from '../utils/paymentMethodsMigration';
 
 interface InvoiceSettingsProps {
   onSuccess?: () => void;
@@ -25,6 +28,7 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
     layout_style: 'classic',
   });
   const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<PaymentMethodDetail[]>([]);
+  const [paymentMethodsConfig, setPaymentMethodsConfig] = useState<PaymentMethodsConfig>({ enabled: false, methods: [] });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -45,6 +49,10 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
         layout_style: settings.layout_style,
       });
       setSelectedPaymentMethods(settings.accepted_payment_methods || []);
+      
+      // Load payment methods config (migrating from old format if needed)
+      const config = getPaymentMethodsConfig(settings);
+      setPaymentMethodsConfig(config);
     }
   }, [settings]);
 
@@ -54,12 +62,20 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
       return;
     }
 
+    // Validate payment methods
+    const paymentErrors = validatePaymentMethodsConfig(paymentMethodsConfig);
+    if (paymentErrors.length > 0) {
+      window.alert(`Error\n\nPlease fix payment method errors:\n${paymentErrors.map(e => `- ${e.message}`).join('\n')}`);
+      return;
+    }
+
     try {
       setSaving(true);
       const settingsData = {
         ...formData,
         default_tax_rate: formData.default_tax_rate ? parseFloat(formData.default_tax_rate) : undefined,
-        accepted_payment_methods: selectedPaymentMethods,
+        accepted_payment_methods: selectedPaymentMethods, // Keep for backward compatibility
+        payment_methods_config: paymentMethodsConfig, // New structured config
       };
 
       if (settings) {
@@ -219,34 +235,11 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Accepted Payment Methods</Text>
-        <Text style={styles.helperText}>Select the payment methods you accept and add details (optional)</Text>
-
-        {PAYMENT_METHODS.map((method) => {
-          const isSelected = selectedPaymentMethods.find(pm => pm.method === method);
-          return (
-            <View key={method} style={styles.paymentMethodContainer}>
-              <TouchableOpacity
-                style={styles.checkboxContainer}
-                onPress={() => togglePaymentMethod(method)}
-              >
-                <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                  {isSelected && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>{method}</Text>
-              </TouchableOpacity>
-              
-              {isSelected && (
-                <TextInput
-                  style={[styles.input, styles.paymentDetailsInput]}
-                  value={isSelected.details || ''}
-                  onChangeText={(text) => updatePaymentMethodDetails(method, text)}
-                  placeholder={`e.g., @username or email`}
-                />
-              )}
-            </View>
-          );
-        })}
+        <PaymentMethodsEditor
+          config={paymentMethodsConfig}
+          onChange={setPaymentMethodsConfig}
+          invoiceNumber={formData.invoice_prefix + '001'}
+        />
       </View>
 
       <View style={styles.section}>
