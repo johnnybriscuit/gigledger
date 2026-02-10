@@ -12,6 +12,7 @@ import { useExpenses, useDeleteExpense } from '../hooks/useExpenses';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { RecurringExpenseModal } from '../components/RecurringExpenseModal';
 import { PaywallModal } from '../components/PaywallModal';
+import { UsageLimitBanner } from '../components/UsageLimitBanner';
 import {
   useRecurringExpenses,
   useActiveRecurringExpenses,
@@ -274,23 +275,13 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
             <>
               <DeductionInfoCard />
               {isFreePlan && (
-                <View style={styles.usageIndicator}>
-                  <View style={styles.usageHeader}>
-                    <Text style={styles.usageText}>
-                      You've used {expenseCount} of 10 expenses this month • Resets on the 1st
-                    </Text>
-                    <TouchableOpacity onPress={handleNavigateToSubscription}>
-                      <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.progressBar}>
-                    <View 
-                      style={[
-                        styles.progressFill, 
-                        { width: `${Math.min((expenseCount / 10) * 100, 100)}%` }
-                      ]} 
-                    />
-                  </View>
+                <View style={styles.bannerContainer}>
+                  <UsageLimitBanner
+                    label="expenses"
+                    usedCount={expenseCount}
+                    limitCount={7}
+                    onUpgradePress={handleNavigateToSubscription}
+                  />
                 </View>
               )}
             </>
@@ -574,34 +565,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: parseInt(spacing[2]),
   },
-  usageIndicator: {
-    backgroundColor: '#fef3c7',
-    padding: parseInt(spacing[4]),
+  bannerContainer: {
     marginBottom: parseInt(spacing[4]),
-    borderRadius: parseInt(radius.md),
-    borderWidth: 1,
-    borderColor: '#fbbf24',
-  },
-  usageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: parseInt(spacing[2]),
-  },
-  usageText: {
-    fontSize: parseInt(typography.fontSize.body.size),
-    color: '#78350f',
-    fontWeight: typography.fontWeight.medium,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#fde68a',
-    borderRadius: parseInt(radius.full),
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#f59e0b',
-    borderRadius: parseInt(radius.full),
   },
 });

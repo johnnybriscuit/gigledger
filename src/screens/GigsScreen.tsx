@@ -12,6 +12,7 @@ import { useGigs, useDeleteGig, useUpdateGig, type GigWithPayer } from '../hooks
 import { AddGigModal } from '../components/AddGigModal';
 import { CSVImportWizard } from '../components/csv/CSVImportWizard';
 import { PaywallModal } from '../components/PaywallModal';
+import { UsageLimitBanner } from '../components/UsageLimitBanner';
 import { usePayers } from '../hooks/usePayers';
 import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
 import { usePlanLimits } from '../hooks/usePlanLimits';
@@ -369,23 +370,13 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
             isFreePlan ? (
-              <View style={styles.usageIndicator}>
-                <View style={styles.usageHeader}>
-                  <Text style={styles.usageText}>
-                    You've used {gigCount} of 10 gigs this month • Resets on the 1st
-                  </Text>
-                  <TouchableOpacity onPress={handleUpgradeClick}>
-                    <Text semibold style={{ color: colors.brand.DEFAULT }}>Upgrade</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressFill, 
-                      { width: `${Math.min((gigCount / 10) * 100, 100)}%` }
-                    ]} 
-                  />
-                </View>
+              <View style={styles.bannerContainer}>
+                <UsageLimitBanner
+                  label="gigs"
+                  usedCount={gigCount}
+                  limitCount={7}
+                  onUpgradePress={handleUpgradeClick}
+                />
               </View>
             ) : null
           }
@@ -474,34 +465,8 @@ const styles = StyleSheet.create({
   listContent: {
     padding: parseInt(spacing[4]),
   },
-  usageIndicator: {
-    backgroundColor: colors.warning.muted,
-    borderRadius: parseInt(radius.sm),
-    padding: parseInt(spacing[3]),
+  bannerContainer: {
     marginBottom: parseInt(spacing[4]),
-    borderWidth: 1,
-    borderColor: colors.warning.DEFAULT,
-  },
-  usageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: parseInt(spacing[2]),
-  },
-  usageText: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: '#92400e',
-    flex: 1,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#fef3c7',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.warning.DEFAULT,
   },
   card: {
     marginBottom: parseInt(spacing[3]),
