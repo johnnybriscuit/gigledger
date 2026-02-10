@@ -181,7 +181,7 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }:
           )}
           <View style={styles.reminderBox}>
             <Text style={styles.reminderText}>
-              💡 <Text style={styles.reminderBold}>Tip:</Text> Configure payment methods in <Text style={styles.reminderBold}>Account → Payment Methods</Text> to include payment instructions on invoices.
+              💡 <Text style={styles.reminderBold}>Tip:</Text> Configure payment methods in <Text style={styles.reminderBold}>Settings</Text> to include payment instructions on invoices.
             </Text>
           </View>
         </View>
