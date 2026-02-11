@@ -18,34 +18,14 @@ export function useExpenses() {
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated');
 
-      // TEMPORARILY FETCH ALL EXPENSES INCLUDING DRAFTS FOR DEBUGGING
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
         .eq('user_id', userId)
-        // .neq('is_draft', true)  // COMMENTED OUT TO SEE ALL EXPENSES
+        .or('is_draft.is.null,is_draft.eq.false')
         .order('date', { ascending: false });
 
       if (error) throw error;
-      
-      console.log('[useExpenses] Fetched expenses count:', data?.length);
-      const draftInfo = data?.map(e => ({ 
-        desc: e.description?.substring(0, 30), 
-        is_draft: e.is_draft,
-        id: e.id 
-      }));
-      console.log('[useExpenses] is_draft values:', draftInfo);
-      
-      // Log specifically any expenses with is_draft = true
-      const drafts = data?.filter(e => e.is_draft === true);
-      if (drafts && drafts.length > 0) {
-        console.warn('[useExpenses] FOUND DRAFT EXPENSES (these will be hidden):', drafts.map(e => ({
-          id: e.id,
-          desc: e.description,
-          is_draft: e.is_draft
-        })));
-      }
-      
       return data as Expense[];
     },
     enabled: !!userId,
@@ -96,17 +76,7 @@ export function useUpdateExpense() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: ExpenseUpdate & { id: string }) => {
       // Remove user_id from updates to prevent RLS policy violations
-      // Explicitly preserve is_draft if it exists
-      const { user_id, ...restUpdates } = updates as any;
-      const safeUpdates = {
-        ...restUpdates,
-        ...(updates.hasOwnProperty('is_draft') ? { is_draft: (updates as any).is_draft } : {})
-      };
-      
-      console.log('[useUpdateExpense] Updating expense:', id);
-      console.log('[useUpdateExpense] Original updates:', updates);
-      console.log('[useUpdateExpense] Safe updates:', safeUpdates);
-      console.log('[useUpdateExpense] is_draft in updates:', safeUpdates.is_draft);
+      const { user_id, ...safeUpdates } = updates as any;
       
       const { data, error } = await supabase
         .from('expenses')
@@ -115,13 +85,7 @@ export function useUpdateExpense() {
         .select()
         .single();
 
-      if (error) {
-        console.error('[useUpdateExpense] Update error:', error);
-        throw error;
-      }
-      
-      console.log('[useUpdateExpense] Update result:', data);
-      console.log('[useUpdateExpense] is_draft in result:', data?.is_draft);
+      if (error) throw error;
       return data as Expense;
     },
     onSuccess: async () => {
