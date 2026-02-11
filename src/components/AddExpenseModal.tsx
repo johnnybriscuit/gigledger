@@ -130,12 +130,14 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     }
   }, [editingExpense, duplicatingExpense, visible]);
 
-  const resetForm = async () => {
-    // Clean up draft expense if exists
-    if (draftExpenseId) {
+  const resetForm = async (skipDraftCleanup = false) => {
+    // Clean up draft expense if exists (unless we just saved it)
+    if (draftExpenseId && !skipDraftCleanup) {
       console.log('🗑️ [RESET] Deleting draft expense:', draftExpenseId);
       await deleteDraftExpense(draftExpenseId);
       console.log('🗑️ [RESET] Draft deleted');
+    } else if (skipDraftCleanup) {
+      console.log('✅ [RESET] Skipping draft cleanup (expense was saved)');
     } else {
       console.log('✅ [RESET] No draft to delete');
     }
@@ -503,6 +505,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         console.log('💾 [SAVE] Expense saved successfully:', result.id, 'is_draft:', result.is_draft);
         expenseId = result.id;
         setCurrentExpenseId(expenseId);
+        
+        // CRITICAL: Skip draft cleanup since we just saved it
+        resetForm(true);
+        onClose();
+        return;
       } else {
         // No draft - create new expense (fallback for non-receipt flow)
         const userId = await getSharedUserId();
