@@ -18,35 +18,14 @@ export function useExpenses() {
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated');
 
-      // FETCH ALL EXPENSES - NO FILTERS TO DEBUG
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
         .eq('user_id', userId)
+        .or('is_draft.is.null,is_draft.eq.false')
         .order('date', { ascending: false });
 
       if (error) throw error;
-      
-      console.log('📊 [FETCH] Total expenses in DB:', data?.length);
-      
-      // Show ALL expenses with their is_draft status
-      const allExpenses = data?.map(e => ({
-        desc: e.description?.substring(0, 40),
-        is_draft: e.is_draft,
-        id: e.id.substring(0, 8)
-      }));
-      console.log('📊 [FETCH] ALL EXPENSES:', allExpenses);
-      
-      // Count by is_draft status
-      const draftCount = data?.filter(e => e.is_draft === true).length || 0;
-      const nonDraftCount = data?.filter(e => e.is_draft === false).length || 0;
-      const nullCount = data?.filter(e => e.is_draft === null).length || 0;
-      console.log('📊 [FETCH] Draft status breakdown:', {
-        'is_draft=true': draftCount,
-        'is_draft=false': nonDraftCount,
-        'is_draft=null': nullCount
-      });
-      
       return data as Expense[];
     },
     enabled: !!userId,

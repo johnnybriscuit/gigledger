@@ -141,13 +141,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   const resetForm = async (skipDraftCleanup = false) => {
     // Clean up draft expense if exists (unless we just saved it)
     if (draftExpenseId && !skipDraftCleanup) {
-      console.log('🗑️ [RESET] Deleting draft expense:', draftExpenseId);
       await deleteDraftExpense(draftExpenseId);
-      console.log('🗑️ [RESET] Draft deleted');
-    } else if (skipDraftCleanup) {
-      console.log('✅ [RESET] Skipping draft cleanup (expense was saved)');
-    } else {
-      console.log('✅ [RESET] No draft to delete');
     }
     
     setDate('');
@@ -499,25 +493,20 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         setCurrentExpenseId(expenseId);
       } else if (draftExpenseId) {
         // Update draft expense with final values
-        // CRITICAL: Clear draft state BEFORE updating to prevent resetForm from deleting it
         const tempDraftId = draftExpenseId;
-        console.log('💾 [SAVE] Saving draft expense:', tempDraftId);
         setDraftExpenseId(null);
-        console.log('💾 [SAVE] Cleared draftExpenseId state');
         
         const result = await updateExpense.mutateAsync({
           id: tempDraftId,
           ...validated,
           is_draft: false, // Mark as no longer draft
         });
-        console.log('💾 [SAVE] Expense saved successfully:', result.id, 'is_draft:', result.is_draft);
         expenseId = result.id;
         setCurrentExpenseId(expenseId);
         
-        // CRITICAL: Mark that we just saved to prevent useEffect from deleting
+        // Mark that we just saved to prevent useEffect from deleting
         setJustSaved(true);
         
-        // Skip draft cleanup since we just saved it
         resetForm(true);
         onClose();
         return;
