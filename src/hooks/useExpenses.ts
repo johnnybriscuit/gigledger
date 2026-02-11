@@ -26,6 +26,15 @@ export function useExpenses() {
         .order('date', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('📊 [FETCH] Fetched', data?.length, 'expenses');
+      const recentExpenses = data?.slice(0, 3).map(e => ({
+        desc: e.description?.substring(0, 40),
+        is_draft: e.is_draft,
+        id: e.id.substring(0, 8)
+      }));
+      console.log('📊 [FETCH] Most recent 3:', recentExpenses);
+      
       return data as Expense[];
     },
     enabled: !!userId,
