@@ -429,10 +429,13 @@ async function getGoogleAccessToken(serviceAccountJson: string): Promise<string>
   const privateKey = serviceAccount.private_key
   const pemHeader = '-----BEGIN PRIVATE KEY-----'
   const pemFooter = '-----END PRIVATE KEY-----'
-  const pemContents = privateKey.substring(
-    pemHeader.length,
-    privateKey.length - pemFooter.length
-  ).replace(/\s/g, '')
+  
+  // Extract base64 content between header and footer
+  const startIndex = privateKey.indexOf(pemHeader) + pemHeader.length
+  const endIndex = privateKey.indexOf(pemFooter)
+  const pemContents = privateKey
+    .substring(startIndex, endIndex)
+    .replace(/\s/g, '') // Remove all whitespace including newlines
   
   const binaryKey = decodeBase64(pemContents)
   const cryptoKey = await crypto.subtle.importKey(
