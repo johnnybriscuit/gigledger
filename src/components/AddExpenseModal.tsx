@@ -839,34 +839,23 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               </View>
             </View>
 
-            {/* Show Done button if scan results are present, otherwise show Save button */}
-            {scanResult ? (
-              <TouchableOpacity 
-                style={styles.submitButton} 
-                onPress={() => {
-                  resetForm();
-                  onClose();
-                }}
-              >
-                <Text style={styles.submitButtonText}>Done</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={styles.submitButton} 
-                onPress={handleSubmit}
-                disabled={uploading || createExpense.isPending || updateExpense.isPending}
-              >
-                <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
-                  {uploading
-                    ? 'Uploading...'
-                    : createExpense.isPending || updateExpense.isPending
-                    ? 'Saving...'
-                    : editingExpense
-                    ? 'Update'
-                    : 'Add'}
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={styles.submitButton} 
+              onPress={handleSubmit}
+              disabled={uploading || createExpense.isPending || updateExpense.isPending}
+            >
+              <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
+                {uploading
+                  ? 'Uploading...'
+                  : createExpense.isPending || updateExpense.isPending
+                  ? 'Saving...'
+                  : editingExpense
+                  ? 'Update'
+                  : scanResult
+                  ? 'Save Expense'
+                  : 'Add'}
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
       </View>
