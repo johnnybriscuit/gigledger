@@ -84,9 +84,15 @@ export function useUpdateExpense() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: ExpenseUpdate & { id: string }) => {
       // Remove user_id from updates to prevent RLS policy violations
-      const { user_id, ...safeUpdates } = updates as any;
+      // Explicitly preserve is_draft if it exists
+      const { user_id, ...restUpdates } = updates as any;
+      const safeUpdates = {
+        ...restUpdates,
+        ...(updates.hasOwnProperty('is_draft') ? { is_draft: (updates as any).is_draft } : {})
+      };
       
       console.log('[useUpdateExpense] Updating expense:', id);
+      console.log('[useUpdateExpense] Original updates:', updates);
       console.log('[useUpdateExpense] Safe updates:', safeUpdates);
       console.log('[useUpdateExpense] is_draft in updates:', safeUpdates.is_draft);
       
