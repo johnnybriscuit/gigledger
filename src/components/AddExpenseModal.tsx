@@ -487,8 +487,13 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         // Update draft expense with final values
         console.log('[Submit] Updating draft expense:', draftExpenseId);
         console.log('[Submit] Update payload:', { ...validated, is_draft: false });
+        
+        // CRITICAL: Clear draft state BEFORE updating to prevent resetForm from deleting it
+        const tempDraftId = draftExpenseId;
+        setDraftExpenseId(null);
+        
         const result = await updateExpense.mutateAsync({
-          id: draftExpenseId,
+          id: tempDraftId,
           ...validated,
           is_draft: false, // Mark as no longer draft
         });
@@ -496,7 +501,6 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         console.log('[Submit] is_draft value in result:', result.is_draft);
         expenseId = result.id;
         setCurrentExpenseId(expenseId);
-        setDraftExpenseId(null); // Clear draft state
       } else {
         // No draft - create new expense (fallback for non-receipt flow)
         const userId = await getSharedUserId();
