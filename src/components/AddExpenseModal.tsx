@@ -226,7 +226,17 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                     setVendor(result.extracted.vendor);
                   }
                   if (!date && result.extracted.date) {
-                    setDate(result.extracted.date);
+                    // Validate date before setting to prevent invalid date errors
+                    try {
+                      const testDate = new Date(result.extracted.date);
+                      if (!isNaN(testDate.getTime())) {
+                        setDate(result.extracted.date);
+                      } else {
+                        console.warn('[Receipt] Invalid date extracted:', result.extracted.date);
+                      }
+                    } catch (e) {
+                      console.warn('[Receipt] Failed to parse date:', result.extracted.date, e);
+                    }
                   }
                   if (!amount && result.extracted.total) {
                     setAmount(result.extracted.total.toString());

@@ -540,24 +540,44 @@ function normalizeDate(dateStr: string | undefined): string | undefined {
   for (const pattern of datePatterns) {
     const match = dateStr.match(pattern)
     if (match) {
+      let normalized: string
       if (pattern.source.startsWith('^(\\d{4})')) {
         // Already YYYY-MM-DD
         const [, year, month, day] = match
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+        normalized = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
       } else if (pattern.source.includes('\\d{4}')) {
         // MM/DD/YYYY or MM-DD-YYYY
         const [, month, day, year] = match
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+        normalized = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
       } else {
         // MM/DD/YY - assume 20YY
         const [, month, day, year] = match
         const fullYear = `20${year}`
-        return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+        normalized = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+      }
+      
+      // Validate the date is actually valid
+      const testDate = new Date(normalized)
+      if (!isNaN(testDate.getTime())) {
+        return normalized
       }
     }
   }
   
-  return dateStr
+  // Try parsing with Date constructor as fallback
+  try {
+    const parsed = new Date(dateStr)
+    if (!isNaN(parsed.getTime())) {
+      const year = parsed.getFullYear()
+      const month = String(parsed.getMonth() + 1).padStart(2, '0')
+      const day = String(parsed.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+  } catch (e) {
+    // Invalid date, return undefined
+  }
+  
+  return undefined
 }
 
 function parseReceiptText(text: string): { vendor?: string; date?: string; total?: number } {
