@@ -77,6 +77,9 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   
   // Draft expense state (for receipt-first flow)
   const [draftExpenseId, setDraftExpenseId] = useState<string | null>(null);
+  
+  // Scanning progress state
+  const [scanningStep, setScanningStep] = useState<'uploading' | 'analyzing' | 'extracting' | null>(null);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -193,6 +196,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               try {
                 setUploading(true);
                 setScanningReceipt(true);
+                setScanningStep('uploading');
                 
                 console.log('[Receipt] Creating draft expense...');
                 // 1. Create draft expense
@@ -215,8 +219,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 });
                 
                 // 4. Scan receipt
+                setScanningStep('analyzing');
                 console.log('[Receipt] Scanning receipt...');
                 const result = await processReceipt(expenseId);
+                
+                setScanningStep('extracting');
                 setScanResult(result);
                 console.log('[Receipt] Scan result:', result);
                 
@@ -226,7 +233,17 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                     setVendor(result.extracted.vendor);
                   }
                   if (!date && result.extracted.date) {
-                    setDate(result.extracted.date);
+                    // Validate date before setting to prevent invalid date errors
+                    try {
+                      const testDate = new Date(result.extracted.date);
+                      if (!isNaN(testDate.getTime())) {
+                        setDate(result.extracted.date);
+                      } else {
+                        console.warn('[Receipt] Invalid date extracted:', result.extracted.date);
+                      }
+                    } catch (e) {
+                      console.warn('[Receipt] Failed to parse date:', result.extracted.date, e);
+                    }
                   }
                   if (!amount && result.extracted.total) {
                     setAmount(result.extracted.total.toString());
@@ -247,11 +264,35 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 scanAttemptedRef.current = true;
               } catch (error: any) {
                 console.error('[Receipt] Upload/scan error:', error);
+                
+                // Determine specific error message based on error type
+                let errorMessage = 'Unable to scan receipt. You can continue entering details manually.';
+                let errorType = 'unknown';
+                
+                if (error.message?.includes('Invalid time value') || error.message?.includes('date')) {
+                  errorMessage = 'Receipt date format not recognized. Please enter the date manually.';
+                  errorType = 'date_parse_error';
+                } else if (error.message?.includes('download') || error.message?.includes('storage')) {
+                  errorMessage = 'Unable to access receipt file. Please try uploading again.';
+                  errorType = 'storage_error';
+                } else if (error.message?.includes('quality') || error.message?.includes('image')) {
+                  errorMessage = 'Receipt image quality too low. Try a clearer photo or enter details manually.';
+                  errorType = 'quality_error';
+                } else if (error.message?.includes('format') || error.message?.includes('type')) {
+                  errorMessage = 'Receipt format not recognized. Please enter details manually.';
+                  errorType = 'format_error';
+                } else if (error.message?.includes('network') || error.message?.includes('timeout')) {
+                  errorMessage = 'Network error. Please check your connection and try again.';
+                  errorType = 'network_error';
+                }
+                
                 setScanResult({
                   success: false,
                   error: error.message,
-                  message: 'Failed to scan receipt. You can continue entering details manually.'
+                  message: errorMessage,
+                  errorType
                 });
+                
                 // Clean up draft expense on error
                 if (draftExpenseId) {
                   await deleteDraftExpense(draftExpenseId);
@@ -260,6 +301,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               } finally {
                 setUploading(false);
                 setScanningReceipt(false);
+                setScanningStep(null);
               }
             }
           }
@@ -291,6 +333,62 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
       });
     } finally {
       setScanningReceipt(false);
+    }
+  };
+
+  const handleRetryScan = async () => {
+    if (!receiptFile || !draftExpenseId) return;
+    
+    // Reset scan state
+    setScanResult(null);
+    setScanningReceipt(true);
+    setScanningStep('analyzing');
+    
+    try {
+      const result = await processReceipt(draftExpenseId);
+      setScanningStep('extracting');
+      setScanResult(result);
+      
+      // Auto-populate fields from scan results
+      if (result.success && result.extracted) {
+        if (!vendor && result.extracted.vendor) {
+          setVendor(result.extracted.vendor);
+        }
+        if (!date && result.extracted.date) {
+          try {
+            const testDate = new Date(result.extracted.date);
+            if (!isNaN(testDate.getTime())) {
+              setDate(result.extracted.date);
+            }
+          } catch (e) {
+            console.warn('[Receipt] Failed to parse date on retry:', result.extracted.date, e);
+          }
+        }
+        if (!amount && result.extracted.total) {
+          setAmount(result.extracted.total.toString());
+        }
+        if (category === 'Other' && result.suggestion?.category) {
+          const suggestedCategory = result.suggestion.category as typeof EXPENSE_CATEGORIES[number];
+          if (EXPENSE_CATEGORIES.includes(suggestedCategory)) {
+            setCategory(suggestedCategory);
+          }
+        }
+        if (!description && result.extracted.vendor) {
+          const desc = `Receipt: ${result.extracted.vendor}${result.extracted.date ? ' - ' + result.extracted.date : ''}`;
+          setDescription(desc);
+        }
+      }
+    } catch (error: any) {
+      console.error('[Receipt] Retry scan error:', error);
+      setScanResult({
+        success: false,
+        error: error.message,
+        message: 'Retry failed. Please enter details manually.',
+        errorType: 'retry_failed'
+      });
+    } finally {
+      setScanningReceipt(false);
+      setScanningStep(null);
     }
   };
 
@@ -499,10 +597,29 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                   </TouchableOpacity>
                 )}
 
-                {/* Scanning Panel */}
+                {/* Scanning Panel with Progress Indicator */}
                 {scanningReceipt && (
                   <View style={styles.scanningPanel}>
                     <Text style={styles.scanningText}>🔍 Scanning receipt...</Text>
+                    <View style={styles.progressSteps}>
+                      <View style={styles.progressStep}>
+                        <Text style={[styles.progressStepText, scanningStep === 'uploading' && styles.progressStepActive]}>
+                          {scanningStep === 'uploading' ? '⏳' : '✓'} Uploading
+                        </Text>
+                      </View>
+                      <Text style={styles.progressArrow}>→</Text>
+                      <View style={styles.progressStep}>
+                        <Text style={[styles.progressStepText, scanningStep === 'analyzing' && styles.progressStepActive]}>
+                          {scanningStep === 'analyzing' ? '⏳' : scanningStep === 'extracting' ? '✓' : '○'} Analyzing
+                        </Text>
+                      </View>
+                      <Text style={styles.progressArrow}>→</Text>
+                      <View style={styles.progressStep}>
+                        <Text style={[styles.progressStepText, scanningStep === 'extracting' && styles.progressStepActive]}>
+                          {scanningStep === 'extracting' ? '⏳' : '○'} Extracting
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 )}
 
@@ -541,6 +658,14 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                       <>
                         <Text style={styles.scanErrorTitle}>❌ Scan Failed</Text>
                         <Text style={styles.scanErrorMessage}>{scanResult.message || 'Unable to scan receipt'}</Text>
+                        {draftExpenseId && receiptFile && (
+                          <TouchableOpacity
+                            style={styles.retryButton}
+                            onPress={handleRetryScan}
+                          >
+                            <Text style={styles.retryButtonText}>🔄 Retry Scan</Text>
+                          </TouchableOpacity>
+                        )}
                       </>
                     )}
                   </View>
@@ -699,74 +824,6 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               )}
             </View>
 
-            {/* Receipt Assist Panel */}
-            {scanningReceipt && (
-              <View style={styles.scanningPanel}>
-                <Text style={styles.scanningText}>🔍 Scanning receipt...</Text>
-              </View>
-            )}
-
-            {scanResult && !scanningReceipt && (
-              <View style={[styles.scanResultPanel, scanResult.success ? styles.scanSuccess : styles.scanError]}>
-                {scanResult.success ? (
-                  <>
-                    <View style={styles.scanResultHeader}>
-                      <Text style={styles.scanResultTitle}>✅ Receipt Scanned</Text>
-                      {editingExpense && (
-                        <TouchableOpacity onPress={handleRescan}>
-                          <Text style={styles.rescanButton}>Rescan</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    
-                    {scanResult.extracted && (
-                      <View style={styles.extractedData}>
-                        {scanResult.extracted.vendor && (
-                          <Text style={styles.extractedItem}>📍 Vendor: {scanResult.extracted.vendor}</Text>
-                        )}
-                        {scanResult.extracted.date && (
-                          <Text style={styles.extractedItem}>📅 Date: {scanResult.extracted.date}</Text>
-                        )}
-                        {scanResult.extracted.total && (
-                          <Text style={styles.extractedItem}>💰 Total: ${scanResult.extracted.total.toFixed(2)}</Text>
-                        )}
-                      </View>
-                    )}
-
-                    {scanResult.suggestion && (
-                      <View style={styles.suggestionBox}>
-                        <Text style={styles.suggestionLabel}>Suggested Category:</Text>
-                        <View style={styles.suggestionRow}>
-                          <Text style={styles.suggestionCategory}>{scanResult.suggestion.category}</Text>
-                          <Text style={[styles.confidenceBadge, { color: getConfidenceColor(scanResult.suggestion.confidence) }]}>
-                            {getConfidenceLabel(scanResult.suggestion.confidence)} confidence
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-
-                    <TouchableOpacity style={styles.applySuggestionsButton} onPress={handleApplySuggestions}>
-                      <Text style={styles.applySuggestionsText}>Apply Suggestions</Text>
-                    </TouchableOpacity>
-
-                    {scanResult.duplicate_suspected && (
-                      <Text style={styles.duplicateWarning}>⚠️ This receipt may be a duplicate</Text>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.scanErrorTitle}>❌ {scanResult.error || 'Scan Failed'}</Text>
-                    <Text style={styles.scanErrorMessage}>{scanResult.message}</Text>
-                    {editingExpense && (
-                      <TouchableOpacity style={styles.retryButton} onPress={handleRescan}>
-                        <Text style={styles.retryButtonText}>Try Again</Text>
-                      </TouchableOpacity>
-                    )}
-                  </>
-                )}
-              </View>
-            )}
-
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Notes (Optional)</Text>
                 <TextInput
@@ -782,34 +839,23 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               </View>
             </View>
 
-            {/* Show Done button if scan results are present, otherwise show Save button */}
-            {scanResult ? (
-              <TouchableOpacity 
-                style={styles.submitButton} 
-                onPress={() => {
-                  resetForm();
-                  onClose();
-                }}
-              >
-                <Text style={styles.submitButtonText}>Done</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={styles.submitButton} 
-                onPress={handleSubmit}
-                disabled={uploading || createExpense.isPending || updateExpense.isPending}
-              >
-                <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
-                  {uploading
-                    ? 'Uploading...'
-                    : createExpense.isPending || updateExpense.isPending
-                    ? 'Saving...'
-                    : editingExpense
-                    ? 'Update'
-                    : 'Add'}
-                </Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity 
+              style={styles.submitButton} 
+              onPress={handleSubmit}
+              disabled={uploading || createExpense.isPending || updateExpense.isPending}
+            >
+              <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
+                {uploading
+                  ? 'Uploading...'
+                  : createExpense.isPending || updateExpense.isPending
+                  ? 'Saving...'
+                  : editingExpense
+                  ? 'Update'
+                  : scanResult
+                  ? 'Save Expense'
+                  : 'Add'}
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
       </View>
@@ -1373,5 +1419,29 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     fontWeight: '600',
     textAlign: 'center',
+  },
+  progressSteps: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingHorizontal: 8,
+  },
+  progressStep: {
+    alignItems: 'center',
+  },
+  progressStepText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  progressStepActive: {
+    color: '#3b82f6',
+    fontWeight: '700',
+  },
+  progressArrow: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginHorizontal: 8,
   },
 });
