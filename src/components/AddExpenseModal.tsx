@@ -78,6 +78,9 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   // Draft expense state (for receipt-first flow)
   const [draftExpenseId, setDraftExpenseId] = useState<string | null>(null);
   
+  // Track if we just saved to prevent useEffect from deleting
+  const [justSaved, setJustSaved] = useState(false);
+  
   // Scanning progress state
   const [scanningStep, setScanningStep] = useState<'uploading' | 'analyzing' | 'extracting' | null>(null);
 
@@ -125,10 +128,15 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
       // SAFETY: Do NOT auto-link to gig (default to null, user can toggle on if desired)
       setGigId(null);
       setAttachToSameGig(false);
-    } else {
+    } else if (!justSaved) {
       resetForm();
     }
-  }, [editingExpense, duplicatingExpense, visible]);
+    
+    // Reset justSaved flag when modal closes
+    if (!visible && justSaved) {
+      setJustSaved(false);
+    }
+  }, [editingExpense, duplicatingExpense, visible, justSaved]);
 
   const resetForm = async (skipDraftCleanup = false) => {
     // Clean up draft expense if exists (unless we just saved it)
@@ -506,7 +514,10 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         expenseId = result.id;
         setCurrentExpenseId(expenseId);
         
-        // CRITICAL: Skip draft cleanup since we just saved it
+        // CRITICAL: Mark that we just saved to prevent useEffect from deleting
+        setJustSaved(true);
+        
+        // Skip draft cleanup since we just saved it
         resetForm(true);
         onClose();
         return;
