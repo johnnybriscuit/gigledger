@@ -78,6 +78,10 @@ export function useUpdateExpense() {
       // Remove user_id from updates to prevent RLS policy violations
       const { user_id, ...safeUpdates } = updates as any;
       
+      console.log('[useUpdateExpense] Updating expense:', id);
+      console.log('[useUpdateExpense] Safe updates:', safeUpdates);
+      console.log('[useUpdateExpense] is_draft in updates:', safeUpdates.is_draft);
+      
       const { data, error } = await supabase
         .from('expenses')
         .update(safeUpdates)
@@ -85,7 +89,13 @@ export function useUpdateExpense() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useUpdateExpense] Update error:', error);
+        throw error;
+      }
+      
+      console.log('[useUpdateExpense] Update result:', data);
+      console.log('[useUpdateExpense] is_draft in result:', data?.is_draft);
       return data as Expense;
     },
     onSuccess: async () => {
