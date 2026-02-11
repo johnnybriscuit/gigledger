@@ -4,6 +4,7 @@ export interface ProcessReceiptResponse {
   success: boolean;
   error?: string;
   message?: string;
+  errorType?: string;
   extracted?: {
     vendor?: string;
     date?: string;
