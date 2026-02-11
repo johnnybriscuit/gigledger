@@ -22,7 +22,7 @@ export function useExpenses() {
         .from('expenses')
         .select('*')
         .eq('user_id', userId)
-        .eq('is_draft', false)
+        .or('is_draft.is.null,is_draft.eq.false')
         .order('date', { ascending: false });
 
       if (error) throw error;
