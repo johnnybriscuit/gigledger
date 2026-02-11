@@ -18,21 +18,33 @@ export function useExpenses() {
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated');
 
+      // TEMPORARILY FETCH ALL EXPENSES INCLUDING DRAFTS FOR DEBUGGING
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
         .eq('user_id', userId)
-        .neq('is_draft', true)
+        // .neq('is_draft', true)  // COMMENTED OUT TO SEE ALL EXPENSES
         .order('date', { ascending: false });
 
       if (error) throw error;
       
       console.log('[useExpenses] Fetched expenses count:', data?.length);
-      console.log('[useExpenses] is_draft values:', data?.map(e => ({ 
+      const draftInfo = data?.map(e => ({ 
         desc: e.description?.substring(0, 30), 
         is_draft: e.is_draft,
         id: e.id 
-      })));
+      }));
+      console.log('[useExpenses] is_draft values:', draftInfo);
+      
+      // Log specifically any expenses with is_draft = true
+      const drafts = data?.filter(e => e.is_draft === true);
+      if (drafts && drafts.length > 0) {
+        console.warn('[useExpenses] FOUND DRAFT EXPENSES (these will be hidden):', drafts.map(e => ({
+          id: e.id,
+          desc: e.description,
+          is_draft: e.is_draft
+        })));
+      }
       
       return data as Expense[];
     },
