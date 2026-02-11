@@ -22,6 +22,7 @@ export function useExpenses() {
         .from('expenses')
         .select('*')
         .eq('user_id', userId)
+        .eq('is_draft', false)
         .order('date', { ascending: false });
 
       if (error) throw error;
