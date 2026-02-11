@@ -22,10 +22,18 @@ export function useExpenses() {
         .from('expenses')
         .select('*')
         .eq('user_id', userId)
-        .or('is_draft.is.null,is_draft.eq.false')
+        .neq('is_draft', true)
         .order('date', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('[useExpenses] Fetched expenses count:', data?.length);
+      console.log('[useExpenses] is_draft values:', data?.map(e => ({ 
+        desc: e.description?.substring(0, 30), 
+        is_draft: e.is_draft,
+        id: e.id 
+      })));
+      
       return data as Expense[];
     },
     enabled: !!userId,
