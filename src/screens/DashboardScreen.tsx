@@ -11,7 +11,7 @@ import { ExportsScreen } from './ExportsScreen';
 import { AccountScreen } from './AccountScreen';
 import { SubscriptionScreen } from './SubscriptionScreen';
 import { InvoicesScreen } from './InvoicesScreen';
-import { ToursScreen } from './ToursScreen';
+// import { ToursScreen } from './ToursScreen';
 import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { useDateRange } from '../hooks/useDateRange';
@@ -150,8 +150,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         return <PayersScreen />;
       case 'gigs':
         return <GigsScreen onNavigateToSubscription={() => setActiveTab('subscription')} />;
-      case 'tours':
-        return <ToursScreen />;
+      // case 'tours':
+      //   return <ToursScreen />;
       case 'expenses':
         return <ExpensesScreen onNavigateToSubscription={() => setActiveTab('subscription')} />;
       case 'mileage':
