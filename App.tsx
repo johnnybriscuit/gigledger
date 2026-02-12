@@ -49,10 +49,42 @@ if (__DEV__) {
 
 function AppContent() {
   const bootstrap = useAppBootstrap();
-  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>('landing');
+  
+  // Determine initial route from URL pathname on web
+  const getInitialRoute = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      if (pathname === '/terms') return 'terms';
+      if (pathname === '/privacy') return 'privacy';
+      if (pathname === '/forgot-password') return 'forgot-password';
+      if (pathname === '/reset-password') return 'reset-password';
+    }
+    return 'landing';
+  };
+  
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>(getInitialRoute());
   const [authResolved, setAuthResolved] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [onboardingJustCompleted, setOnboardingJustCompleted] = useState(false);
+
+  // Sync URL with current route on web
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const routeToPath: Record<string, string> = {
+        'landing': '/',
+        'auth': '/',
+        'terms': '/terms',
+        'privacy': '/privacy',
+        'forgot-password': '/forgot-password',
+        'reset-password': '/reset-password',
+      };
+      
+      const targetPath = routeToPath[currentRoute] || '/';
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState({}, '', targetPath);
+      }
+    }
+  }, [currentRoute]);
 
   // Resolve auth state on mount to prevent landing page flash
   useEffect(() => {
