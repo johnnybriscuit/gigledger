@@ -65,6 +65,15 @@ export const queryKeys = {
   
   // Location history (for autocomplete)
   locationHistory: (userId: string) => ['location-history', userId] as const,
+  
+  // Tours
+  tours: (userId: string) => ['tours', userId] as const,
+  tour: (userId: string, tourId: string) => ['tours', userId, tourId] as const,
+  
+  // Settlements
+  settlements: (userId: string, tourId?: string) => 
+    tourId ? ['settlements', userId, tourId] as const : ['settlements', userId] as const,
+  settlement: (userId: string, settlementId: string) => ['settlements', userId, settlementId] as const,
 } as const;
 
 /**
@@ -86,6 +95,8 @@ export function invalidateUserQueries(queryClient: any, userId: string) {
     'tax-profile',
     'onboarding',
     'exports',
+    'tours',
+    'settlements',
   ];
   
   baseKeys.forEach(key => {

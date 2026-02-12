@@ -1,0 +1,12 @@
+node_modules
+.expo
+.expo-shared
+*.log
+.DS_Store
+.env.local
+.env
+src
+supabase
+docs
+*.md
+!README.md

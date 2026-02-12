@@ -74,6 +74,8 @@ export type Database = {
       }
       expenses: {
         Row: {
+          allocation_json: Json | null
+          allocation_mode: string | null
           amount: number
           business_use_percent: number | null
           category: Database["public"]["Enums"]["expense_category"]
@@ -85,7 +87,7 @@ export type Database = {
           gig_id: string | null
           id: string
           irs_schedule_c_line: string | null
-          is_draft: boolean | null
+          is_draft: boolean
           meals_percent_allowed: number | null
           notes: string | null
           receipt_currency: string | null
@@ -101,11 +103,14 @@ export type Database = {
           receipt_url: string | null
           receipt_vendor: string | null
           recurring_expense_id: string | null
+          tour_id: string | null
           updated_at: string
           user_id: string
           vendor: string | null
         }
         Insert: {
+          allocation_json?: Json | null
+          allocation_mode?: string | null
           amount: number
           business_use_percent?: number | null
           category: Database["public"]["Enums"]["expense_category"]
@@ -117,7 +122,7 @@ export type Database = {
           gig_id?: string | null
           id?: string
           irs_schedule_c_line?: string | null
-          is_draft?: boolean | null
+          is_draft?: boolean
           meals_percent_allowed?: number | null
           notes?: string | null
           receipt_currency?: string | null
@@ -133,11 +138,14 @@ export type Database = {
           receipt_url?: string | null
           receipt_vendor?: string | null
           recurring_expense_id?: string | null
+          tour_id?: string | null
           updated_at?: string
           user_id: string
           vendor?: string | null
         }
         Update: {
+          allocation_json?: Json | null
+          allocation_mode?: string | null
           amount?: number
           business_use_percent?: number | null
           category?: Database["public"]["Enums"]["expense_category"]
@@ -149,7 +157,7 @@ export type Database = {
           gig_id?: string | null
           id?: string
           irs_schedule_c_line?: string | null
-          is_draft?: boolean | null
+          is_draft?: boolean
           meals_percent_allowed?: number | null
           notes?: string | null
           receipt_currency?: string | null
@@ -165,6 +173,7 @@ export type Database = {
           receipt_url?: string | null
           receipt_vendor?: string | null
           recurring_expense_id?: string | null
+          tour_id?: string | null
           updated_at?: string
           user_id?: string
           vendor?: string | null
@@ -182,6 +191,20 @@ export type Database = {
             columns: ["recurring_expense_id"]
             isOneToOne: false
             referencedRelation: "recurring_expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "tour_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "v_tour_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -256,6 +279,7 @@ export type Database = {
           taxes_withheld: boolean | null
           tips: number
           title: string | null
+          tour_id: string | null
           updated_at: string
           user_id: string
         }
@@ -283,6 +307,7 @@ export type Database = {
           taxes_withheld?: boolean | null
           tips?: number
           title?: string | null
+          tour_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -310,6 +335,7 @@ export type Database = {
           taxes_withheld?: boolean | null
           tips?: number
           title?: string | null
+          tour_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -319,6 +345,20 @@ export type Database = {
             columns: ["payer_id"]
             isOneToOne: false
             referencedRelation: "payers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gigs_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "tour_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gigs_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "v_tour_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -470,6 +510,7 @@ export type Database = {
           layout_style: string
           logo_url: string | null
           next_invoice_number: number
+          payment_methods_config: Json | null
           phone: string | null
           tax_id: string | null
           updated_at: string
@@ -492,6 +533,7 @@ export type Database = {
           layout_style?: string
           logo_url?: string | null
           next_invoice_number?: number
+          payment_methods_config?: Json | null
           phone?: string | null
           tax_id?: string | null
           updated_at?: string
@@ -514,6 +556,7 @@ export type Database = {
           layout_style?: string
           logo_url?: string | null
           next_invoice_number?: number
+          payment_methods_config?: Json | null
           phone?: string | null
           tax_id?: string | null
           updated_at?: string
@@ -1056,6 +1099,63 @@ export type Database = {
         }
         Relationships: []
       }
+      settlements: {
+        Row: {
+          allocation_json: Json | null
+          allocation_mode: string
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          payer_name: string | null
+          tour_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allocation_json?: Json | null
+          allocation_mode?: string
+          amount: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payer_name?: string | null
+          tour_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allocation_json?: Json | null
+          allocation_mode?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          payer_name?: string | null
+          tour_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlements_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "tour_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "settlements_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "v_tour_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       state_tax_rates: {
         Row: {
           brackets: Json | null
@@ -1183,6 +1283,42 @@ export type Database = {
           stripe_subscription_id?: string | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
           trial_end?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tour_runs: {
+        Row: {
+          artist_name: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          start_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          artist_name?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          start_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          artist_name?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          start_date?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1443,6 +1579,27 @@ export type Database = {
           notes?: string | null
           type?: Database["public"]["Enums"]["payer_type"] | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      v_tour_summary: {
+        Row: {
+          artist_name: string | null
+          computed_end_date: string | null
+          computed_start_date: string | null
+          created_at: string | null
+          end_date: string | null
+          gig_count: number | null
+          gigs_fees: number | null
+          gigs_gross: number | null
+          id: string | null
+          name: string | null
+          notes: string | null
+          settlements_total: number | null
+          start_date: string | null
+          tour_expenses_total: number | null
+          updated_at: string | null
+          user_id: string | null
         }
         Relationships: []
       }

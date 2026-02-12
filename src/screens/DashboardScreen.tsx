@@ -11,6 +11,7 @@ import { ExportsScreen } from './ExportsScreen';
 import { AccountScreen } from './AccountScreen';
 import { SubscriptionScreen } from './SubscriptionScreen';
 import { InvoicesScreen } from './InvoicesScreen';
+import { ToursScreen } from './ToursScreen';
 import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { useDateRange } from '../hooks/useDateRange';
@@ -26,7 +27,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { DashboardTour } from '../components/DashboardTour';
 
-type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
+type Tab = 'dashboard' | 'payers' | 'gigs' | 'tours' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
 
 interface DashboardScreenProps {
   onNavigateToBusinessStructures?: () => void;
@@ -149,6 +150,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         return <PayersScreen />;
       case 'gigs':
         return <GigsScreen onNavigateToSubscription={() => setActiveTab('subscription')} />;
+      case 'tours':
+        return <ToursScreen />;
       case 'expenses':
         return <ExpensesScreen onNavigateToSubscription={() => setActiveTab('subscription')} />;
       case 'mileage':

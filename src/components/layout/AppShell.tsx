@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Text }
 import { colors, spacingNum } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 
-type Route = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
+type Route = 'dashboard' | 'payers' | 'gigs' | 'tours' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
 
 interface NavItem {
   id: Route;
@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'payers', label: 'Contacts', icon: '👥' },
   { id: 'gigs', label: 'Gigs', icon: '💼' },
+  { id: 'tours', label: 'Tours', icon: '🎸' },
   { id: 'expenses', label: 'Expenses', icon: '💰' },
   { id: 'mileage', label: 'Mileage', icon: '🚗' },
   { id: 'invoices', label: 'Invoices', icon: '🧾' },
