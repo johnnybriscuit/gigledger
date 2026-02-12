@@ -12,8 +12,11 @@ import { CreateTourModal } from '../components/tours/CreateTourModal';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacingNum } from '../styles/theme';
 import { formatDate } from '../utils/format';
-import { useNavigation } from '@react-navigation/native';
 import type { TourRun } from '../types/tours.types';
+
+interface ToursScreenProps {
+  onNavigateToTourDetail?: (tourId: string) => void;
+}
 
 function TourCard({ tour, onPress, onDelete }: { 
   tour: TourRun; 
@@ -61,14 +64,15 @@ function TourCard({ tour, onPress, onDelete }: {
   );
 }
 
-export function ToursScreen() {
-  const navigation = useNavigation();
+export function ToursScreen({ onNavigateToTourDetail }: ToursScreenProps = {}) {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const { data: tours, isLoading } = useTours();
   const deleteTour = useDeleteTour();
 
   const handleTourPress = (tourId: string) => {
-    navigation.navigate('TourDetail' as never, { tourId } as never);
+    if (onNavigateToTourDetail) {
+      onNavigateToTourDetail(tourId);
+    }
   };
 
   const handleDeleteTour = (tour: TourRun) => {
