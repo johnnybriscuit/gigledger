@@ -6,9 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useCreateTour } from '../../hooks/useTours';
-import { H2, Text, Button, Input } from '../../ui';
+import { H2, Text, Button } from '../../ui';
 import { colors, spacingNum, radiusNum } from '../../styles/theme';
 
 interface CreateTourModalProps {
@@ -84,21 +85,23 @@ export function CreateTourModal({ visible, onClose }: CreateTourModalProps) {
             <ScrollView style={styles.content}>
               <View style={styles.field}>
                 <Text style={styles.label}>Tour Name *</Text>
-                <Input
+                <TextInput
+                  style={[styles.input, errors.name && styles.inputError]}
                   value={name}
                   onChangeText={(text) => {
                     setName(text);
                     if (errors.name) setErrors({});
                   }}
                   placeholder="e.g., Summer 2026 Tour"
-                  error={errors.name}
                   autoFocus
                 />
+                {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
               </View>
 
               <View style={styles.field}>
                 <Text style={styles.label}>Artist/Band Name</Text>
-                <Input
+                <TextInput
+                  style={styles.input}
                   value={artistName}
                   onChangeText={setArtistName}
                   placeholder="Optional"
@@ -107,7 +110,8 @@ export function CreateTourModal({ visible, onClose }: CreateTourModalProps) {
 
               <View style={styles.field}>
                 <Text style={styles.label}>Notes</Text>
-                <Input
+                <TextInput
+                  style={[styles.input, styles.textArea]}
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Optional notes about this tour"
@@ -195,6 +199,27 @@ const styles = StyleSheet.create({
     marginBottom: spacingNum[2],
     fontWeight: '500',
     color: colors.text.DEFAULT,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: radiusNum.md,
+    padding: spacingNum[3],
+    fontSize: 16,
+    color: colors.text.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
+  },
+  inputError: {
+    borderColor: colors.danger.DEFAULT,
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  errorText: {
+    color: colors.danger.DEFAULT,
+    fontSize: 14,
+    marginTop: spacingNum[1],
   },
   hint: {
     marginTop: spacingNum[4],

@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   Platform,
   FlatList,
+  TextInput,
 } from 'react-native';
 import { useGigs } from '../../hooks/useGigs';
 import { useAddGigsToTour } from '../../hooks/useTours';
-import { H2, Text, Button, Input } from '../../ui';
+import { H2, Text, Button } from '../../ui';
 import { colors, spacingNum, radiusNum } from '../../styles/theme';
 import { formatDate } from '../../utils/format';
 
@@ -104,7 +105,8 @@ export function AddGigsToTourModal({ visible, tourId, onClose }: AddGigsToTourMo
             </View>
 
             <View style={styles.searchContainer}>
-              <Input
+              <TextInput
+                style={styles.searchInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Search gigs..."
@@ -214,6 +216,15 @@ const styles = StyleSheet.create({
     padding: spacingNum[6],
     borderBottomWidth: 1,
     borderBottomColor: colors.border.DEFAULT,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: radiusNum.md,
+    padding: spacingNum[3],
+    fontSize: 16,
+    color: colors.text.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
   },
   selectedCount: {
     marginTop: spacingNum[2],
