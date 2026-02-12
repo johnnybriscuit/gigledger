@@ -5,7 +5,7 @@ node_modules/
 
 # Expo
 .expo/
-dist/
+# dist/ - Committing dist for Vercel deployment
 web-build/
 expo-env.d.ts
 
