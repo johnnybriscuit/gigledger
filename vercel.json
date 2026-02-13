@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node minimal-test.js && npx expo export --platform web",
+  "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "npm install",
