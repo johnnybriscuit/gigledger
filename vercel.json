@@ -2,7 +2,7 @@
   "buildCommand": "node minimal-test.js && npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null,
-  "installCommand": "echo 'No install needed - using pre-built files'",
+  "installCommand": "npm install",
   "engines": {
     "node": "18.x"
   },
