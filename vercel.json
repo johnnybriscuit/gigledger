@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node build-with-gtm.js",
+  "buildCommand": "npx expo export --platform web && node post-build.js",
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "echo 'No install needed - using pre-built files'",

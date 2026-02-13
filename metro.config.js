@@ -19,4 +19,12 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     : context.resolveRequest(context, moduleName, platform);
 };
 
+// Custom HTML template for web builds
+if (config.transformer && config.transformer.minifierConfig) {
+  config.transformer.minifierConfig = {
+    ...config.transformer.minifierConfig,
+    keep_fnames: true,
+  };
+}
+
 module.exports = config;
