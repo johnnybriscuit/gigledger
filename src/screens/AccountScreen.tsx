@@ -175,6 +175,8 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
     // On web, use window.confirm instead of Alert.alert
     if (Platform.OS === 'web') {
       if (window.confirm('Are you sure you want to sign out?')) {
+        const { trackLogout } = await import('../lib/analytics');
+        trackLogout();
         await supabase.auth.signOut();
       }
     } else {
@@ -187,6 +189,8 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
             text: 'Sign Out',
             style: 'destructive',
             onPress: async () => {
+              const { trackLogout } = await import('../lib/analytics');
+              trackLogout();
               await supabase.auth.signOut();
             },
           },

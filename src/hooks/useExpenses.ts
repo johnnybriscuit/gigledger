@@ -57,6 +57,11 @@ export function useCreateExpense() {
         .single();
 
       if (error) throw error;
+      
+      // Track analytics
+      const { trackExpenseCreated } = await import('../lib/analytics');
+      trackExpenseCreated({ entity_id: data.id, source: 'expense_modal' });
+      
       return data as Expense;
     },
     onSuccess: async () => {
@@ -113,6 +118,10 @@ export function useDeleteExpense() {
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Track analytics
+      const { trackExpenseDeleted } = await import('../lib/analytics');
+      trackExpenseDeleted({ entity_id: id, source: 'expenses_screen' });
     },
     onSuccess: async () => {
       const userId = getCachedUserId();

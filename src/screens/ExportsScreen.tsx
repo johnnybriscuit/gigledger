@@ -200,6 +200,11 @@ export function ExportsScreen() {
 
     try {
       await generateCSVBundle(taxPackage.data);
+      
+      // Track analytics
+      const { trackExportCreated } = await import('../lib/analytics');
+      trackExportCreated({ export_type: 'csv_bundle', source: 'exports_screen' });
+      
       Alert.alert('CSV Bundle Downloaded', 'Your ZIP file contains 7 CSV files for CPA sharing and tax prep.');
     } catch (error: any) {
       console.error('CSV export error:', error);
@@ -232,6 +237,11 @@ export function ExportsScreen() {
 
     try {
       downloadJSONBackupCanonical(taxPackage.data);
+      
+      // Track analytics
+      const { trackExportCreated } = await import('../lib/analytics');
+      trackExportCreated({ export_type: 'json_backup', source: 'exports_screen' });
+      
       Alert.alert('Success', 'JSON backup downloaded successfully.');
     } catch (error: any) {
       console.error('JSON export error:', error);
@@ -264,6 +274,11 @@ export function ExportsScreen() {
 
     try {
       downloadExcelFromPackage(taxPackage.data);
+      
+      // Track analytics
+      const { trackExportCreated } = await import('../lib/analytics');
+      trackExportCreated({ export_type: 'excel', source: 'exports_screen' });
+      
       Alert.alert('Success', 'Excel file has been downloaded!');
     } catch (error: any) {
       console.error('Excel export error:', error);

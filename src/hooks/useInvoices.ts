@@ -127,6 +127,10 @@ export function useInvoices() {
       // Invalidate entitlements cache to update invoice count
       queryClient.invalidateQueries({ queryKey: ['entitlements'] });
       
+      // Track analytics
+      const { trackInvoiceCreated } = await import('../lib/analytics');
+      trackInvoiceCreated({ entity_id: invoice.id, source: 'invoice_form' });
+      
       return invoice;
     } catch (err) {
       console.error('Error creating invoice:', err);
@@ -247,6 +251,14 @@ export function useInvoices() {
         .eq('user_id', user.id);
 
       if (updateError) throw updateError;
+
+      // Track analytics
+      const { trackInvoiceSent, trackInvoiceMarkedPaid } = await import('../lib/analytics');
+      if (status === 'sent') {
+        trackInvoiceSent({ entity_id: invoiceId, source: 'invoice_screen' });
+      } else if (status === 'paid') {
+        trackInvoiceMarkedPaid({ entity_id: invoiceId, source: 'invoice_screen' });
+      }
 
       await fetchInvoices();
     } catch (err) {

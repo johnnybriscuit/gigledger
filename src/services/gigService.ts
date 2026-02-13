@@ -6,6 +6,7 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { getPlanAndUsage, createGigLimitError } from '../lib/planLimits';
+import { trackGigCreated, trackGigUpdated } from '../lib/analytics';
 
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
 type ExpenseInsert = Database['public']['Tables']['expenses']['Insert'];
@@ -176,6 +177,9 @@ export async function updateGigWithLines({
     }
   }
 
+  // Track analytics
+  trackGigUpdated({ entity_id: gigId, source: 'gig_modal' });
+
   return { id: gigId };
 }
 
@@ -288,6 +292,9 @@ export async function createGigWithLines({
         throw new Error(`Failed to create mileage: ${mileageError.message}`);
       }
     }
+
+    // Track analytics
+    trackGigCreated({ entity_id: gigId, source: 'gig_modal' });
 
     return createdGig;
   } catch (error) {

@@ -51,6 +51,11 @@ export function useCreateMileage() {
         .single();
 
       if (error) throw error;
+      
+      // Track analytics
+      const { trackMileageCreated } = await import('../lib/analytics');
+      trackMileageCreated({ entity_id: data.id, source: 'mileage_modal' });
+      
       return data as Mileage;
     },
     onSuccess: async () => {
@@ -99,6 +104,10 @@ export function useDeleteMileage() {
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Track analytics
+      const { trackMileageDeleted } = await import('../lib/analytics');
+      trackMileageDeleted({ entity_id: id, source: 'mileage_screen' });
     },
     onSuccess: async () => {
       const userId = getCachedUserId();

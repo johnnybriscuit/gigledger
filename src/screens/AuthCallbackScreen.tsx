@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { logSecurityEvent } from '../lib/mfa';
+import { trackLogin, trackSignUp } from '../lib/analytics';
 
 interface AuthCallbackScreenProps {
   onNavigateToMFASetup?: () => void;
@@ -65,6 +66,20 @@ export function AuthCallbackScreen({
           email: session.user.email,
           provider: 'google',
         });
+        
+        // Track analytics - check if this is first login (signup) or returning user
+        const createdAt = new Date(session.user.created_at || '');
+        const now = new Date();
+        const isNewUser = (now.getTime() - createdAt.getTime()) < 60000; // Created within last minute
+        
+        if (isNewUser) {
+          trackSignUp('google');
+        } else {
+          trackLogin('google');
+        }
+      } else {
+        // Magic link login
+        trackLogin('magic_link');
       }
 
       // Check if MFA is enrolled by checking actual factors

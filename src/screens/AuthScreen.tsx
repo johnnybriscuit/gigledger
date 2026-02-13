@@ -7,6 +7,7 @@ import { logSecurityEvent } from '../lib/mfa';
 import { validatePassword } from '../lib/passwordValidation';
 import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
 import { getBaseUrl } from '../lib/getBaseUrl';
+import { trackSignUp, trackLogin } from '../lib/analytics';
 
 interface AuthScreenProps {
   onNavigateToTerms?: () => void;
@@ -205,6 +206,12 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
       // Success
       await logSecurityEvent('magic_link_sent', { email, mode });
+      
+      // Track analytics event
+      if (mode === 'signup') {
+        trackSignUp('magic_link');
+      }
+      
       setEmailSent(true);
       setCooldown(60); // 60 second cooldown
 
@@ -301,6 +308,9 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         // Success - always navigate to Check Email screen for signups
         console.log('[Auth] Password signup successful', { emailConfirmationRequired: data.emailConfirmationRequired });
         await logSecurityEvent('password_signup', { email });
+        
+        // Track analytics event
+        trackSignUp('password');
 
         // Always show "Check your email" screen for signups
         // Even if emailConfirmationRequired is false, we want users to verify their email
@@ -317,6 +327,9 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
         // Log security event
         await logSecurityEvent('password_signin', { email });
+        
+        // Track analytics event
+        trackLogin('password');
 
         console.log('[Auth] Password sign-in successful');
       }
