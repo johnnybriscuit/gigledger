@@ -1,8 +1,8 @@
 {
-  "buildCommand": "echo 'Using pre-built dist folder'",
+  "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null,
-  "installCommand": "echo 'No install needed - using pre-built files'",
+  "installCommand": "npm install",
   "devCommand": "npx expo start --web",
   "rewrites": [
     {
