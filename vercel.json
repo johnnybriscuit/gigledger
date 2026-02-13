@@ -1,8 +1,11 @@
 {
-  "buildCommand": "node build-vercel.js",
+  "buildCommand": "node minimal-test.js && npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "echo 'No install needed - using pre-built files'",
+  "engines": {
+    "node": "18.x"
+  },
   "devCommand": "npx expo start --web",
   "rewrites": [
     {
