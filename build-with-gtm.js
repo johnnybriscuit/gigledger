@@ -14,30 +14,33 @@ const gtmNoscript = `
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NGTVPGJH" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->`;
 
-async function buildWithGTM() {
+function execSync(command) {
+  const { execSync } = require('child_process');
+  try {
+    const result = execSync(command, { encoding: 'utf8', stdio: 'pipe' });
+    return result;
+  } catch (error) {
+    console.error('Command failed:', command);
+    console.error('Error:', error.message);
+    throw error;
+  }
+}
+
+function buildWithGTM() {
   try {
     console.log('🏗️  Building with Expo...');
     
     // Run Expo export
-    const { spawn } = require('child_process');
-    await new Promise((resolve, reject) => {
-      const expo = spawn('npx', ['expo', 'export', '--platform', 'web'], {
-        stdio: 'inherit'
-      });
-      
-      expo.on('close', (code) => {
-        if (code === 0) {
-          resolve();
-        } else {
-          reject(new Error(`Expo build failed with code ${code}`));
-        }
-      });
-    });
-    
+    execSync('npx expo export --platform web');
     console.log('✅ Expo build complete');
     
     // Read the generated HTML
     const indexPath = path.join(process.cwd(), 'dist', 'index.html');
+    
+    if (!fs.existsSync(indexPath)) {
+      throw new Error(`Generated HTML not found at ${indexPath}`);
+    }
+    
     let html = fs.readFileSync(indexPath, 'utf8');
     
     // Inject GTM script in head
@@ -66,6 +69,7 @@ async function buildWithGTM() {
     
   } catch (error) {
     console.error('❌ Build failed:', error.message);
+    console.error('Stack:', error.stack);
     process.exit(1);
   }
 }
