@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node build-test.js",
+  "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "npm install",
