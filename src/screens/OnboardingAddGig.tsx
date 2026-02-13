@@ -16,6 +16,7 @@ import { supabase } from '../lib/supabase';
 import { useTaxEstimate } from '../hooks/useTaxEstimate';
 import { useQueryClient } from '@tanstack/react-query';
 import { useResponsiveButtonText, BUTTON_TEXT } from '../hooks/useResponsiveButtonText';
+import { trackOnboardingComplete } from '../lib/analytics';
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
@@ -155,15 +156,18 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
         }
         console.log('✅ [OnboardingAddGig] Profile updated successfully');
       } else {
-        console.error('🔴 [OnboardingAddGig] No user found');
+        console.log('✅ [OnboardingAddGig] Gig created successfully');
+
+        // Track onboarding completion
+        trackOnboardingComplete({ activation_type: 'first_gig' });
+
+        // Invalidate queries to refresh data
+        console.log('🔵 [OnboardingAddGig] Invalidating queries...');
+        queryClient.invalidateQueries();
+
+        console.log('✅ [OnboardingAddGig] Calling onComplete()');
+        onComplete();
       }
-
-      // Invalidate all queries to ensure dashboard loads with fresh data
-      console.log('🔵 [OnboardingAddGig] Invalidating queries...');
-      queryClient.invalidateQueries();
-
-      console.log('✅ [OnboardingAddGig] Calling onComplete()');
-      onComplete();
     } catch (error: any) {
       console.error('🔴 [OnboardingAddGig] Error in handleComplete:', error);
       console.error('🔴 [OnboardingAddGig] Error details:', {

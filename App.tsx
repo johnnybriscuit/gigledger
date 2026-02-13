@@ -27,6 +27,7 @@ import { LoadingScreen } from './src/components/LoadingScreen';
 import { ErrorScreen } from './src/components/ErrorScreen';
 import { perf } from './src/lib/performance';
 import { enableQueryDebug } from './src/lib/queryDebug';
+import { trackPageView } from './src/lib/analytics';
 import type { Session } from '@supabase/supabase-js';
 
 const queryClient = new QueryClient({
@@ -83,6 +84,13 @@ function AppContent() {
       if (window.location.pathname !== targetPath) {
         window.history.pushState({}, '', targetPath);
       }
+    }
+  }, [currentRoute]);
+
+  // Track page views on route changes
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      trackPageView(currentRoute, document.title);
     }
   }, [currentRoute]);
 

@@ -49,7 +49,7 @@ export function track(eventName: string, params?: Record<string, any>): void {
  */
 function isGTMReady(): boolean {
   return typeof window !== 'undefined' && 
-         window.dataLayer && 
+         !!window.dataLayer && 
          window.dataLayer.length > 0 && 
          window.dataLayer.some((item: any) => item.event === 'gtm.js');
 }
@@ -113,6 +113,12 @@ export function trackLogout(): void {
   trackWithGTMCheck('logout');
 }
 
+export function trackOnboardingComplete(params: {
+  activation_type: 'first_gig' | 'first_invoice' | 'first_action';
+}): void {
+  trackWithGTMCheck('onboarding_complete', params);
+}
+
 // ============================================================================
 // GIG EVENTS
 // ============================================================================
@@ -121,21 +127,30 @@ export function trackGigCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('gig_created', params);
+  trackWithGTMCheck('gig_created', {
+    entity_type: 'gig',
+    ...params
+  });
 }
 
 export function trackGigUpdated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('gig_updated', params);
+  trackWithGTMCheck('gig_updated', {
+    entity_type: 'gig',
+    ...params
+  });
 }
 
 export function trackGigDeleted(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('gig_deleted', params);
+  trackWithGTMCheck('gig_deleted', {
+    entity_type: 'gig',
+    ...params
+  });
 }
 
 // ============================================================================
@@ -146,14 +161,20 @@ export function trackExpenseCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('expense_created', params);
+  trackWithGTMCheck('expense_created', {
+    entity_type: 'expense',
+    ...params
+  });
 }
 
 export function trackExpenseDeleted(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('expense_deleted', params);
+  trackWithGTMCheck('expense_deleted', {
+    entity_type: 'expense',
+    ...params
+  });
 }
 
 // ============================================================================
@@ -164,14 +185,20 @@ export function trackMileageCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('mileage_created', params);
+  trackWithGTMCheck('mileage_created', {
+    entity_type: 'mileage',
+    ...params
+  });
 }
 
 export function trackMileageDeleted(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('mileage_deleted', params);
+  trackWithGTMCheck('mileage_deleted', {
+    entity_type: 'mileage',
+    ...params
+  });
 }
 
 // ============================================================================
@@ -182,21 +209,30 @@ export function trackInvoiceCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('invoice_created', params);
+  trackWithGTMCheck('invoice_created', {
+    entity_type: 'invoice',
+    ...params
+  });
 }
 
 export function trackInvoiceSent(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('invoice_sent', params);
+  trackWithGTMCheck('invoice_sent', {
+    entity_type: 'invoice',
+    ...params
+  });
 }
 
 export function trackInvoiceMarkedPaid(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('invoice_marked_paid', params);
+  trackWithGTMCheck('invoice_marked_paid', {
+    entity_type: 'invoice',
+    ...params
+  });
 }
 
 // ============================================================================
@@ -218,7 +254,10 @@ export function trackTourCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('tour_created', params);
+  trackWithGTMCheck('tour_created', {
+    entity_type: 'tour',
+    ...params
+  });
 }
 
 export function trackGigsAssignedToTour(params: {
@@ -232,5 +271,8 @@ export function trackSettlementCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  trackWithGTMCheck('settlement_created', params);
+  trackWithGTMCheck('settlement_created', {
+    entity_type: 'settlement',
+    ...params
+  });
 }
