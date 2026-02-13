@@ -5,7 +5,6 @@ node_modules
 .DS_Store
 .env.local
 .env
-src
 supabase
 docs
 *.md
