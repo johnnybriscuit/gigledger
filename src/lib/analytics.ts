@@ -45,6 +45,48 @@ export function track(eventName: string, params?: Record<string, any>): void {
 }
 
 /**
+ * Check if GTM is loaded and ready
+ */
+function isGTMReady(): boolean {
+  return typeof window !== 'undefined' && 
+         window.dataLayer && 
+         window.dataLayer.length > 0 && 
+         window.dataLayer.some((item: any) => item.event === 'gtm.js');
+}
+
+/**
+ * Safely push event with GTM ready check
+ * Waits up to 2 seconds for GTM to load
+ */
+export function trackWithGTMCheck(eventName: string, params?: Record<string, any>): void {
+  // Only run in browser
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  // If GTM is ready, track immediately
+  if (isGTMReady()) {
+    track(eventName, params);
+    return;
+  }
+
+  // Otherwise, wait for GTM to load
+  let attempts = 0;
+  const maxAttempts = 20; // 2 seconds max wait
+  const checkInterval = setInterval(() => {
+    attempts++;
+    
+    if (isGTMReady()) {
+      clearInterval(checkInterval);
+      track(eventName, params);
+    } else if (attempts >= maxAttempts) {
+      clearInterval(checkInterval);
+      console.warn('[Analytics] GTM not ready after 2 seconds, event not tracked:', eventName);
+    }
+  }, 100);
+}
+
+/**
  * Track page views (for SPA navigation)
  * Should be called on route changes
  */
@@ -60,15 +102,15 @@ export function trackPageView(path: string, title?: string): void {
 // ============================================================================
 
 export function trackSignUp(method: 'google' | 'magic_link' | 'password'): void {
-  track('sign_up', { method });
+  trackWithGTMCheck('sign_up', { method });
 }
 
 export function trackLogin(method: 'google' | 'magic_link' | 'password'): void {
-  track('login', { method });
+  trackWithGTMCheck('login', { method });
 }
 
 export function trackLogout(): void {
-  track('logout');
+  trackWithGTMCheck('logout');
 }
 
 // ============================================================================
@@ -79,21 +121,21 @@ export function trackGigCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('gig_created', params);
+  trackWithGTMCheck('gig_created', params);
 }
 
 export function trackGigUpdated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('gig_updated', params);
+  trackWithGTMCheck('gig_updated', params);
 }
 
 export function trackGigDeleted(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('gig_deleted', params);
+  trackWithGTMCheck('gig_deleted', params);
 }
 
 // ============================================================================
@@ -104,14 +146,14 @@ export function trackExpenseCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('expense_created', params);
+  trackWithGTMCheck('expense_created', params);
 }
 
 export function trackExpenseDeleted(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('expense_deleted', params);
+  trackWithGTMCheck('expense_deleted', params);
 }
 
 // ============================================================================
@@ -122,14 +164,14 @@ export function trackMileageCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('mileage_created', params);
+  trackWithGTMCheck('mileage_created', params);
 }
 
 export function trackMileageDeleted(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('mileage_deleted', params);
+  trackWithGTMCheck('mileage_deleted', params);
 }
 
 // ============================================================================
@@ -140,21 +182,21 @@ export function trackInvoiceCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('invoice_created', params);
+  trackWithGTMCheck('invoice_created', params);
 }
 
 export function trackInvoiceSent(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('invoice_sent', params);
+  trackWithGTMCheck('invoice_sent', params);
 }
 
 export function trackInvoiceMarkedPaid(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('invoice_marked_paid', params);
+  trackWithGTMCheck('invoice_marked_paid', params);
 }
 
 // ============================================================================
@@ -165,7 +207,7 @@ export function trackExportCreated(params: {
   export_type: string;
   source?: string;
 }): void {
-  track('export_created', params);
+  trackWithGTMCheck('export_created', params);
 }
 
 // ============================================================================
@@ -176,19 +218,19 @@ export function trackTourCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('tour_created', params);
+  trackWithGTMCheck('tour_created', params);
 }
 
 export function trackGigsAssignedToTour(params: {
   count: number;
   source?: string;
 }): void {
-  track('gigs_assigned_to_tour', params);
+  trackWithGTMCheck('gigs_assigned_to_tour', params);
 }
 
 export function trackSettlementCreated(params: {
   entity_id: string;
   source?: string;
 }): void {
-  track('settlement_created', params);
+  trackWithGTMCheck('settlement_created', params);
 }
