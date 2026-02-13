@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export --platform web && node post-build.js",
+  "buildCommand": "node build-vercel.js",
   "outputDirectory": "dist",
   "framework": null,
   "installCommand": "echo 'No install needed - using pre-built files'",
