@@ -17,7 +17,10 @@
     "supabase:types": "supabase gen types typescript --local > src/types/database.types.ts",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "lint:design-system": "eslint src/screens src/components --ext .ts,.tsx"
+    "lint:design-system": "eslint src/screens src/components --ext .ts,.tsx",
+    "build:web": "npm run build:expo && npm run inject:gtm",
+    "build:expo": "npx expo export --platform web",
+    "inject:gtm": "node inject-gtm.js"
   },
   "overrides": {
     "react-simple-maps": {
