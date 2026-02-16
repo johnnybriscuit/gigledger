@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'rea
 import { supabase } from '../lib/supabase';
 import { logSecurityEvent } from '../lib/mfa';
 import { trackLogin, trackSignUp } from '../lib/analytics';
+import { track } from '../lib/tracking';
 
 interface AuthCallbackScreenProps {
   onNavigateToMFASetup?: () => void;
@@ -74,12 +75,15 @@ export function AuthCallbackScreen({
         
         if (isNewUser) {
           trackSignUp('google');
+          track('sign_up', { method: 'google' });
         } else {
           trackLogin('google');
+          track('login', { method: 'google' });
         }
       } else {
         // Magic link login
         trackLogin('magic_link');
+        track('login', { method: 'magic_link' });
       }
 
       // Check if MFA is enrolled by checking actual factors

@@ -8,6 +8,7 @@ import { validatePassword } from '../lib/passwordValidation';
 import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
 import { getBaseUrl } from '../lib/getBaseUrl';
 import { trackSignUp, trackLogin } from '../lib/analytics';
+import { track } from '../lib/tracking';
 
 interface AuthScreenProps {
   onNavigateToTerms?: () => void;
@@ -210,6 +211,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
       // Track analytics event
       if (mode === 'signup') {
         trackSignUp('magic_link');
+        track('sign_up', { method: 'magic_link' });
       }
       
       setEmailSent(true);
@@ -311,6 +313,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         
         // Track analytics event
         trackSignUp('password');
+        track('sign_up', { method: 'password' });
 
         // Always show "Check your email" screen for signups
         // Even if emailConfirmationRequired is false, we want users to verify their email
@@ -330,6 +333,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         
         // Track analytics event
         trackLogin('password');
+        track('login', { method: 'password' });
 
         console.log('[Auth] Password sign-in successful');
       }

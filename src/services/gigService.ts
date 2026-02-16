@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { getPlanAndUsage, createGigLimitError } from '../lib/planLimits';
 import { trackGigCreated, trackGigUpdated } from '../lib/analytics';
+import { track } from '../lib/tracking';
 
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
 type ExpenseInsert = Database['public']['Tables']['expenses']['Insert'];
@@ -179,6 +180,11 @@ export async function updateGigWithLines({
 
   // Track analytics
   trackGigUpdated({ entity_id: gigId, source: 'gig_modal' });
+  track('gig_updated', {
+    entity_type: 'gig',
+    entity_id: gigId,
+    source: 'gig_modal'
+  });
 
   return { id: gigId };
 }
@@ -295,6 +301,11 @@ export async function createGigWithLines({
 
     // Track analytics
     trackGigCreated({ entity_id: gigId, source: 'gig_modal' });
+    track('gig_created', {
+      entity_type: 'gig',
+      entity_id: gigId,
+      source: 'gig_modal'
+    });
 
     return createdGig;
   } catch (error) {

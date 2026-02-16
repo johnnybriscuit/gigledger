@@ -214,7 +214,13 @@ export function useDeleteGig() {
       
       // Track analytics
       const { trackGigDeleted } = await import('../lib/analytics');
+      const { track } = await import('../lib/tracking');
       trackGigDeleted({ entity_id: id, source: 'gigs_screen' });
+      track('gig_deleted', {
+        entity_type: 'gig',
+        entity_id: id,
+        source: 'gigs_screen'
+      });
     },
     onSuccess: async () => {
       const userId = getCachedUserId();

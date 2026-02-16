@@ -176,7 +176,9 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
     if (Platform.OS === 'web') {
       if (window.confirm('Are you sure you want to sign out?')) {
         const { trackLogout } = await import('../lib/analytics');
+        const { track } = await import('../lib/tracking');
         trackLogout();
+        track('logout');
         await supabase.auth.signOut();
       }
     } else {
@@ -190,7 +192,9 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
             style: 'destructive',
             onPress: async () => {
               const { trackLogout } = await import('../lib/analytics');
+              const { track } = await import('../lib/tracking');
               trackLogout();
+              track('logout');
               await supabase.auth.signOut();
             },
           },
