@@ -24,19 +24,26 @@ declare global {
  * @param params - Event parameters (must not contain PII)
  */
 export function track(eventName: string, params?: Record<string, any>): void {
+  console.log('🔐 [Analytics] track called:', { eventName, params });
+  
   // Only run in browser
   if (typeof window === 'undefined') {
+    console.log('🔐 [Analytics] Not in browser - skipping track');
     return;
   }
 
   // Initialize dataLayer if it doesn't exist
   window.dataLayer = window.dataLayer || [];
+  console.log('🔐 [Analytics] dataLayer initialized, pushing event');
 
   // Push event to dataLayer
-  window.dataLayer.push({
+  const eventData = {
     event: eventName,
     ...params,
-  });
+  };
+  
+  window.dataLayer.push(eventData);
+  console.log('🔐 [Analytics] Event pushed to dataLayer:', eventData);
 
   // Log in development for debugging
   if (__DEV__) {
@@ -59,8 +66,11 @@ function isGTMReady(): boolean {
  * Waits up to 2 seconds for GTM to load
  */
 export function trackWithGTMCheck(eventName: string, params?: Record<string, any>): void {
+  console.log('🔐 [Analytics] trackWithGTMCheck called:', { eventName, params });
+  
   // Only run in browser
   if (typeof window === 'undefined') {
+    console.log('🔐 [Analytics] Not in browser - skipping');
     return;
   }
 
@@ -106,6 +116,8 @@ export function trackSignUp(method: 'google' | 'magic_link' | 'password'): void 
 }
 
 export function trackLogin(method: 'google' | 'magic_link' | 'password'): void {
+  console.log('🔐 [Analytics] trackLogin called with method:', method);
+  console.log('🔐 [Analytics] window.dataLayer:', window.dataLayer);
   trackWithGTMCheck('login', { method });
 }
 
