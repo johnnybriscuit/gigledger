@@ -133,9 +133,9 @@ export function EnhancedDashboard({
               <SkeletonDashboardCard />
             ) : (
               <QuickStats
-                gigsCount={data.gigsCount}
+                ytdGigsCount={data.ytdGigsCount}
+                paidGigsCount={data.paidGigsCount}
                 totalGrossIncome={data.totalGrossIncome}
-                totalExpenses={data.expenseBreakdown.reduce((sum, e) => sum + e.amount, 0)}
                 estimatedTaxRate={data.totals.effectiveTaxRate}
               />
             )}

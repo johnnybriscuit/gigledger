@@ -56,6 +56,8 @@ export interface DashboardData {
   incomeBreakdown: IncomeBreakdown;
   payerBreakdown: PayerBreakdown[];
   gigsCount: number; // NEW: Count of gigs in date range
+  ytdGigsCount: number; // NEW: Count of all YTD gigs (including future)
+  paidGigsCount: number; // NEW: Count of paid gigs in date range
   totalGrossIncome: number; // NEW: Total gross income (for avg per gig calculation)
   totals: {
     net: number;
@@ -379,6 +381,19 @@ export function useDashboardData(
       payerBreakdown = sortedPayers;
     }
 
+    // Calculate YTD gigs count (all gigs for the year, including future)
+    const now = new Date();
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const yearEnd = new Date(now.getFullYear(), 11, 31);
+    const ytdGigs = allGigs.filter(gig => {
+      const gigDate = new Date(gig.date || '');
+      return gigDate >= yearStart && gigDate <= yearEnd;
+    });
+    const ytdGigsCount = payerId ? ytdGigs.filter(g => g.payer_id === payerId).length : ytdGigs.length;
+
+    // Calculate paid gigs count (gigs with paid = true in date range)
+    const paidGigsCount = gigs.filter(gig => gig.paid === true).length;
+
     // Calculate current totals
     const currentTotals = isReadyForTotals ? {
       net: netProfit - totalTaxes, // True net profit after taxes
@@ -402,6 +417,8 @@ export function useDashboardData(
       incomeBreakdown,
       payerBreakdown,
       gigsCount: gigs.length,
+      ytdGigsCount,
+      paidGigsCount,
       totalGrossIncome: totalGross + totalTips + totalPerDiem,
       isReady: isReadyForTotals,
       totals: totalsToReturn,

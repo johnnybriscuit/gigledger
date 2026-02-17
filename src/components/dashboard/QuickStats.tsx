@@ -7,20 +7,20 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 
 interface QuickStatsProps {
-  gigsCount: number;
+  ytdGigsCount: number; // Total gigs logged for the year
+  paidGigsCount: number; // Gigs that have been paid
   totalGrossIncome: number;
-  totalExpenses: number;
   estimatedTaxRate: number; // Already calculated as totalTaxes / netBeforeTax
 }
 
 export function QuickStats({
-  gigsCount,
+  ytdGigsCount,
+  paidGigsCount,
   totalGrossIncome,
-  totalExpenses,
   estimatedTaxRate,
 }: QuickStatsProps) {
-  // Calculate average per gig
-  const avgPerGig = gigsCount > 0 ? totalGrossIncome / gigsCount : 0;
+  // Calculate average per gig (based on paid gigs)
+  const avgPerGig = paidGigsCount > 0 ? totalGrossIncome / paidGigsCount : 0;
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -46,24 +46,24 @@ export function QuickStats({
           {/* Gigs Logged */}
           <View style={[styles.stat, styles.statLeft]}>
             <Text style={styles.label}>Gigs Logged</Text>
-            <Text style={styles.value}>{gigsCount}</Text>
+            <Text style={styles.value}>{ytdGigsCount}</Text>
           </View>
 
           {/* Avg per Gig */}
           <View style={[styles.stat, styles.statRight]}>
             <Text style={styles.label}>Avg per Gig</Text>
             <Text style={styles.value}>
-              {gigsCount > 0 ? formatCurrency(avgPerGig) : '—'}
+              {paidGigsCount > 0 ? formatCurrency(avgPerGig) : '—'}
             </Text>
           </View>
         </View>
 
         {/* Row 2 */}
         <View style={styles.row}>
-          {/* Expenses */}
+          {/* Gigs Paid */}
           <View style={[styles.stat, styles.statLeft, styles.statBottom]}>
-            <Text style={styles.label}>Expenses</Text>
-            <Text style={styles.value}>{formatCurrency(totalExpenses)}</Text>
+            <Text style={styles.label}>Gigs Paid</Text>
+            <Text style={styles.value}>{paidGigsCount}</Text>
           </View>
 
           {/* Estimated Tax Rate */}
