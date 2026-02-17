@@ -527,70 +527,94 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         )}
       </View>
 
-      {/* Tour Filter Bar - hidden in selection mode */}
+      {/* Tour Filter Dropdown - hidden in selection mode */}
       {!isSelectionMode && (
         <View style={styles.filterBar}>
-        <Text style={styles.filterLabel}>Filter by tour:</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterButtons}
-        >
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                tourFilter === 'all' && styles.filterButtonActive,
-              ]}
-              onPress={() => setTourFilter('all')}
+          {Platform.OS === 'web' ? (
+            <select
+              value={tourFilter}
+              onChange={(e: any) => setTourFilter(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 8,
+                border: '1px solid #e5e7eb',
+                backgroundColor: 'white',
+                fontSize: 14,
+                cursor: 'pointer',
+                minWidth: 200,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+              } as any}
             >
-              <Text
-                style={
-                  tourFilter === 'all'
-                    ? styles.filterButtonTextActive
-                    : styles.filterButtonText
-                }
-              >
-                All Gigs
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                tourFilter === 'none' && styles.filterButtonActive,
-              ]}
-              onPress={() => setTourFilter('none')}
+              <option value="all">All Gigs</option>
+              <option value="none">No Tour</option>
+              {tours?.map((tour) => (
+                <option key={tour.id} value={tour.id}>
+                  {tour.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterButtons}
             >
-              <Text
-                style={
-                  tourFilter === 'none'
-                    ? styles.filterButtonTextActive
-                    : styles.filterButtonText
-                }
-              >
-                No Tour
-              </Text>
-            </TouchableOpacity>
-            {tours?.map((tour) => (
               <TouchableOpacity
-                key={tour.id}
                 style={[
                   styles.filterButton,
-                  tourFilter === tour.id && styles.filterButtonActive,
+                  tourFilter === 'all' && styles.filterButtonActive,
                 ]}
-                onPress={() => setTourFilter(tour.id)}
+                onPress={() => setTourFilter('all')}
               >
                 <Text
                   style={
-                    tourFilter === tour.id
+                    tourFilter === 'all'
                       ? styles.filterButtonTextActive
                       : styles.filterButtonText
                   }
                 >
-                  🎸 {tour.name}
+                  All Gigs
                 </Text>
               </TouchableOpacity>
-            ))}
-        </ScrollView>
+              <TouchableOpacity
+                style={[
+                  styles.filterButton,
+                  tourFilter === 'none' && styles.filterButtonActive,
+                ]}
+                onPress={() => setTourFilter('none')}
+              >
+                <Text
+                  style={
+                    tourFilter === 'none'
+                      ? styles.filterButtonTextActive
+                      : styles.filterButtonText
+                  }
+                >
+                  No Tour
+                </Text>
+              </TouchableOpacity>
+              {tours?.map((tour) => (
+                <TouchableOpacity
+                  key={tour.id}
+                  style={[
+                    styles.filterButton,
+                    tourFilter === tour.id && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setTourFilter(tour.id)}
+                >
+                  <Text
+                    style={
+                      tourFilter === tour.id
+                        ? styles.filterButtonTextActive
+                        : styles.filterButtonText
+                    }
+                  >
+                    🎸 {tour.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
       )}
 
@@ -606,51 +630,79 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         </View>
       )}
 
-      {filteredGigs && filteredGigs.length === 0 ? (
-        <EmptyState
-          title={
-            tourFilter === 'all'
-              ? "No gigs yet"
-              : tourFilter === 'none'
-              ? "No gigs without a tour"
-              : "No gigs in this tour"
-          }
-          description={
-            tourFilter === 'all'
-              ? "Start tracking your performances and income"
-              : "Try a different filter"
-          }
-          action={
-            tourFilter === 'all'
-              ? {
-                  label: 'Add Gig',
-                  onPress: handleAddGigClick,
-                }
-              : undefined
-          }
-        />
-      ) : (
-        <FlatList
-          data={filteredGigs}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <GigCard
-              item={item}
-              onEdit={() => handleEdit(item)}
-              onRepeat={() => handleRepeat(item)}
-              onDelete={() => handleDelete(item.id, getGigDisplayName(item))}
-              onTogglePaid={handleTogglePaid}
-              togglingGigId={togglingGigId}
-              formatDate={formatDate}
-              formatCurrency={formatCurrency}
-              isSelectionMode={isSelectionMode}
-              isSelected={selectedGigIds.includes(item.id)}
-              onToggleSelection={() => handleToggleGigSelection(item.id)}
-            />
-          )}
-        />
-      )}
+      {/* Content area with relative positioning for bulk actions bar */}
+      <View style={styles.contentArea}>
+        {filteredGigs && filteredGigs.length === 0 ? (
+          <EmptyState
+            title={
+              tourFilter === 'all'
+                ? "No gigs yet"
+                : tourFilter === 'none'
+                ? "No gigs without a tour"
+                : "No gigs in this tour"
+            }
+            description={
+              tourFilter === 'all'
+                ? "Start tracking your performances and income"
+                : "Try a different filter"
+            }
+            action={
+              tourFilter === 'all'
+                ? {
+                    label: 'Add Gig',
+                    onPress: handleAddGigClick,
+                  }
+                : undefined
+            }
+          />
+        ) : (
+          <FlatList
+            data={filteredGigs}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={[
+              styles.listContent,
+              isSelectionMode && selectedGigIds.length > 0 && styles.listContentWithBar,
+            ]}
+            renderItem={({ item }) => (
+              <GigCard
+                item={item}
+                onEdit={() => handleEdit(item)}
+                onRepeat={() => handleRepeat(item)}
+                onDelete={() => handleDelete(item.id, getGigDisplayName(item))}
+                onTogglePaid={handleTogglePaid}
+                togglingGigId={togglingGigId}
+                formatDate={formatDate}
+                formatCurrency={formatCurrency}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedGigIds.includes(item.id)}
+                onToggleSelection={() => handleToggleGigSelection(item.id)}
+              />
+            )}
+          />
+        )}
+
+        {/* Bulk Actions Bar - fixed at bottom when gigs are selected */}
+        {isSelectionMode && selectedGigIds.length > 0 && (
+          <View style={styles.bulkActionsBar}>
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={handleAddToTour}
+            >
+              Add to Tour
+            </Button>
+            {allSelectedHaveTour && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onPress={handleRemoveFromTour}
+              >
+                Remove from Tour
+              </Button>
+            )}
+          </View>
+        )}
+      </View>
 
       <AddGigModal
         visible={modalVisible}
@@ -706,28 +758,6 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           setSelectedGigIds([]);
         }}
       />
-
-      {/* Bulk Actions Bar - shown at bottom when gigs are selected */}
-      {isSelectionMode && selectedGigIds.length > 0 && (
-        <View style={styles.bulkActionsBar}>
-          <Button
-            variant="primary"
-            size="sm"
-            onPress={handleAddToTour}
-          >
-            Add to Tour
-          </Button>
-          {allSelectedHaveTour && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onPress={handleRemoveFromTour}
-            >
-              Remove from Tour
-            </Button>
-          )}
-        </View>
-      )}
     </View>
   );
 }
@@ -743,6 +773,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface.muted,
     gap: parseInt(spacing[2]),
+  },
+  contentArea: {
+    flex: 1,
+    position: 'relative',
   },
   header: {
     flexDirection: 'row',
@@ -760,18 +794,11 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   filterBar: {
-    paddingLeft: parseInt(spacing[5]),
+    paddingHorizontal: parseInt(spacing[5]),
     paddingVertical: parseInt(spacing[3]),
     backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.DEFAULT,
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.muted,
-    marginBottom: parseInt(spacing[2]),
-    paddingRight: parseInt(spacing[5]),
   },
   filterButtons: {
     flexDirection: 'row',
@@ -801,6 +828,9 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: parseInt(spacing[4]),
+  },
+  listContentWithBar: {
+    paddingBottom: 100, // Extra padding when bulk actions bar is visible
   },
   bannerWrapper: {
     padding: parseInt(spacing[4]),
