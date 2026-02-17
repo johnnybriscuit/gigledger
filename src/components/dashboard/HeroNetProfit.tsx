@@ -80,8 +80,6 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
     }).format(amount);
   };
 
-  // Sparkline data (last 12 points from cumulative net)
-  const sparklineData = currentData.cumulativeNet.slice(-12);
 
   return (
     <View 
@@ -137,11 +135,6 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
             </Text>
           </View>
         </View>
-      </View>
-
-      {/* Sparkline */}
-      <View style={styles.sparklineContainer}>
-        <MiniSparkline data={sparklineData} color={netProfit >= 0 ? chartColors.green : chartColors.red} />
       </View>
 
       {/* Set Aside pill */}
@@ -236,48 +229,6 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
   );
 }
 
-// Mini sparkline component (simple line chart)
-function MiniSparkline({ data, color }: { data: { month: string; value: number }[]; color: string }) {
-  if (data.length === 0) return null;
-
-  const values = data.map(d => d.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-
-  // Calculate points for SVG path
-  const width = 120;
-  const height = 30;
-  const points = values.map((value, index) => {
-    const x = (index / (values.length - 1)) * width;
-    const y = height - ((value - min) / range) * height;
-    return `${x},${y}`;
-  });
-
-  const pathData = `M ${points.join(' L ')}`;
-
-  if (Platform.OS === 'web') {
-    return (
-      <svg width={width} height={height} style={{ overflow: 'visible' }}>
-        <path
-          d={pathData}
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  // For mobile, show a simple text indicator
-  return (
-    <Text style={{ color, fontSize: 12 }}>
-      {values[values.length - 1] > values[0] ? '📈 Trending up' : '📉 Trending down'}
-    </Text>
-  );
-}
 
 const styles = StyleSheet.create({
   container: {
@@ -309,7 +260,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 16,
     gap: 8,
   },
   metricItem: {
@@ -346,10 +297,6 @@ const styles = StyleSheet.create({
   deltaText: {
     fontSize: 11,
     fontWeight: '600',
-  },
-  sparklineContainer: {
-    height: 30,
-    marginBottom: 16,
   },
   setAsidePill: {
     paddingHorizontal: 16,
