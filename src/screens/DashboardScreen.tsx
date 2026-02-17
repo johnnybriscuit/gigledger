@@ -16,6 +16,8 @@ import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { useDateRange } from '../hooks/useDateRange';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
+import { PayerFilter } from '../components/PayerFilter';
+import { usePayers } from '../hooks/usePayers';
 import { Toast } from '../components/Toast';
 import { TaxProfileBanner } from '../components/TaxProfileBanner';
 import { RangePopover } from '../components/RangePopover';
@@ -63,6 +65,10 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showOnboardingToast, setShowOnboardingToast] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [selectedPayerId, setSelectedPayerId] = useState<string | null>(null);
+  
+  // Fetch payers for filter
+  const { data: payers = [] } = usePayers();
 
   // Check if we should show onboarding completion toast and tour
   useEffect(() => {
@@ -174,8 +180,10 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
             dateRange={range}
             customStart={customStart}
             customEnd={customEnd}
+            payerId={selectedPayerId}
             onDateRangeChange={setRange}
             onCustomRangeChange={setCustomRange}
+            onPayerChange={setSelectedPayerId}
             onNavigateToExpenses={() => setActiveTab('expenses')}
             onNavigateToGigs={(payerFilter) => {
               // TODO: Pass payer filter to GigsScreen
@@ -230,16 +238,23 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
               Export
             </Button>
             {isDesktopWidth && (
-              <RangePopover
-                value={range}
-                onChange={setRange}
-                options={[
-                  { value: 'ytd' as DateRange, label: 'YTD' },
-                  { value: 'last30' as DateRange, label: 'Last 30 Days' },
-                  { value: 'last90' as DateRange, label: 'Last 90 Days' },
-                  { value: 'lastYear' as DateRange, label: 'Last Year' },
-                ]}
-              />
+              <>
+                <PayerFilter
+                  value={selectedPayerId}
+                  onChange={setSelectedPayerId}
+                  payers={payers.map(p => ({ id: p.id, name: p.name }))}
+                />
+                <RangePopover
+                  value={range}
+                  onChange={setRange}
+                  options={[
+                    { value: 'ytd' as DateRange, label: 'YTD' },
+                    { value: 'last30' as DateRange, label: 'Last 30 Days' },
+                    { value: 'last90' as DateRange, label: 'Last 90 Days' },
+                    { value: 'lastYear' as DateRange, label: 'Last Year' },
+                  ]}
+                />
+              </>
             )}
           </>
         ) : undefined

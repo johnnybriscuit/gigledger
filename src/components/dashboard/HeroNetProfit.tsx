@@ -17,18 +17,19 @@ interface HeroNetProfitProps {
   dateRange?: 'ytd' | 'last30' | 'last90' | 'lastYear' | 'custom';
   customStart?: Date;
   customEnd?: Date;
+  payerId?: string | null;
 }
 
-export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd }: HeroNetProfitProps) {
+export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payerId }: HeroNetProfitProps) {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
   const [showTaxBreakdown, setShowTaxBreakdown] = useState(false);
 
   // Get current period data
-  const currentData = useDashboardData(dateRange, customStart, customEnd);
+  const currentData = useDashboardData(dateRange, customStart, customEnd, payerId);
   
   // Get last 30 days for comparison
-  const last30Data = useDashboardData('last30');
+  const last30Data = useDashboardData('last30', undefined, undefined, payerId);
 
   // Get tax profile and calculate accurate breakdown
   const { data: taxProfile } = useTaxProfile();

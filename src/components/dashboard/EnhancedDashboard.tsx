@@ -29,8 +29,10 @@ interface EnhancedDashboardProps {
   dateRange: DateRange;
   customStart?: Date;
   customEnd?: Date;
+  payerId?: string | null;
   onDateRangeChange: (range: DateRange) => void;
   onCustomRangeChange?: (start: Date, end: Date) => void;
+  onPayerChange?: (payerId: string | null) => void;
   onNavigateToExpenses?: () => void;
   onNavigateToGigs?: (payerFilter?: string) => void;
 }
@@ -39,7 +41,9 @@ export function EnhancedDashboard({
   dateRange,
   customStart,
   customEnd,
+  payerId,
   onDateRangeChange,
+  onPayerChange,
   onNavigateToExpenses,
   onNavigateToGigs,
 }: EnhancedDashboardProps) {
@@ -48,7 +52,7 @@ export function EnhancedDashboard({
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
 
   // Fetch dashboard data
-  const data = useDashboardData(dateRange, customStart, customEnd);
+  const data = useDashboardData(dateRange, customStart, customEnd, payerId);
 
   // Mark when dashboard is interactive (data loaded)
   useEffect(() => {
@@ -119,6 +123,7 @@ export function EnhancedDashboard({
                 dateRange={dateRange}
                 customStart={customStart}
                 customEnd={customEnd}
+                payerId={payerId}
               />
             )}
           </View>

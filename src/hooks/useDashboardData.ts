@@ -4,6 +4,22 @@ import { useTaxCalculation } from './useTaxCalculation';
 import { useDashboardDataAggregated } from './useDashboardDataAggregated';
 import { supabase } from '../lib/supabase';
 import { debugTotals } from '../lib/debugTotals';
+import type { Database } from '../types/database.types';
+
+type GigRow = Database['public']['Tables']['gigs']['Row'];
+
+interface GigWithRelations extends GigRow {
+  payer?: {
+    id: string;
+    name: string;
+  };
+  subcontractor_payments?: Array<{
+    id: string;
+    subcontractor_id: string;
+    amount: number;
+    note: string | null;
+  }>;
+}
 
 export type DateRange = 'ytd' | 'last30' | 'last90' | 'lastYear' | 'custom';
 
@@ -120,7 +136,8 @@ function formatMonthLabel(monthKey: string): string {
 export function useDashboardData(
   dateRange: DateRange = 'ytd',
   customStart?: Date,
-  customEnd?: Date
+  customEnd?: Date,
+  payerId?: string | null
 ): DashboardData {
   // Store previous totals to prevent flash during refetch
   const previousTotalsRef = useRef<{
@@ -172,8 +189,8 @@ export function useDashboardData(
     
     // Include subcontractor payments in deductions
     const totalSubcontractorPayments = gigs.reduce((sum, gig) => {
-      const payments = gig.subcontractor_payments || [];
-      return sum + payments.reduce((paymentSum, p) => paymentSum + (p.amount || 0), 0);
+      const payments = (gig as GigWithRelations).subcontractor_payments || [];
+      return sum + payments.reduce((paymentSum: number, p: any) => paymentSum + (p.amount || 0), 0);
     }, 0);
     
     const totalDeductions = totalExpenses + totalMileageDeduction + totalSubcontractorPayments;
@@ -182,7 +199,7 @@ export function useDashboardData(
     const netBeforeTax = totalIncome - totalDeductions;
 
     return { netProfit: netBeforeTax, totalIncome, totalDeductions };
-  }, [isReadyForTotals, allGigs, allExpenses, allMileage, dateRange, customStart, customEnd]);
+  }, [isReadyForTotals, allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, payerId]);
 
   // Calculate taxes using new tax engine (must be called at top level)
   // Pass 0 if not ready to avoid calculations with incomplete data
@@ -197,9 +214,18 @@ export function useDashboardData(
     const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
 
     // Filter data by date range
-    const gigs = filterByDateRange(allGigs, startDate, endDate);
-    const expenses = filterByDateRange(allExpenses, startDate, endDate);
-    const mileage = filterByDateRange(allMileage, startDate, endDate);
+    let gigs = filterByDateRange(allGigs, startDate, endDate);
+    let expenses = filterByDateRange(allExpenses, startDate, endDate);
+    let mileage = filterByDateRange(allMileage, startDate, endDate);
+
+    // Filter by payer if specified
+    if (payerId) {
+      gigs = gigs.filter(gig => gig.payer_id === payerId);
+      // Filter expenses that are linked to gigs from this payer
+      const gigIds = new Set(gigs.map(g => g.id));
+      expenses = expenses.filter(exp => !exp.gig_id || gigIds.has(exp.gig_id));
+      mileage = mileage.filter(m => !m.gig_id || gigIds.has(m.gig_id));
+    }
 
     // Calculate totals
     const totalGross = gigs.reduce((sum, gig) => sum + (gig.gross_amount || 0), 0);
@@ -320,7 +346,7 @@ export function useDashboardData(
     // Payer breakdown - aggregate income by payer
     const payerMap = new Map<string, number>();
     gigs.forEach((gig) => {
-      const payerName = gig.payer?.name || 'Unknown';
+      const payerName = (gig as GigWithRelations).payer?.name || 'Unknown';
       const gigIncome =
         (gig.gross_amount || 0) +
         (gig.tips || 0) +
@@ -377,7 +403,7 @@ export function useDashboardData(
         seTax: taxResult?.seTax || 0,
       } : null, // NULL when not ready
     };
-  }, [isReadyForTotals, isInitialLoad, allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, netProfit, totalTaxes, effectiveTaxRate, taxResult]);
+  }, [isReadyForTotals, isInitialLoad, allGigs, allExpenses, allMileage, dateRange, customStart, customEnd, payerId, netProfit, totalTaxes, effectiveTaxRate, taxResult]);
 
   // Debug logging
   useEffect(() => {
