@@ -247,6 +247,9 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
                 <RangePopover
                   value={range}
                   onChange={setRange}
+                  onCustomRangeChange={setCustomRange}
+                  customStart={customStart}
+                  customEnd={customEnd}
                   options={[
                     { value: 'ytd' as DateRange, label: 'YTD' },
                     { value: 'last30' as DateRange, label: 'Last 30 Days' },

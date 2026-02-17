@@ -172,9 +172,18 @@ export function useDashboardData(
       return { netProfit: 0, totalIncome: 0, totalDeductions: 0 };
     }
     const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
-    const gigs = filterByDateRange(allGigs, startDate, endDate);
-    const expenses = filterByDateRange(allExpenses, startDate, endDate);
-    const mileage = filterByDateRange(allMileage, startDate, endDate);
+    let gigs = filterByDateRange(allGigs, startDate, endDate);
+    let expenses = filterByDateRange(allExpenses, startDate, endDate);
+    let mileage = filterByDateRange(allMileage, startDate, endDate);
+
+    // Filter by payer if specified
+    if (payerId) {
+      gigs = gigs.filter(gig => gig.payer_id === payerId);
+      // Filter expenses that are linked to gigs from this payer
+      const gigIds = new Set(gigs.map(g => g.id));
+      expenses = expenses.filter(exp => !exp.gig_id || gigIds.has(exp.gig_id));
+      mileage = mileage.filter(m => !m.gig_id || gigIds.has(m.gig_id));
+    }
 
     const totalGross = gigs.reduce((sum, gig) => sum + (gig.gross_amount || 0), 0);
     const totalTips = gigs.reduce((sum, gig) => sum + (gig.tips || 0), 0);

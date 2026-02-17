@@ -14,19 +14,32 @@ import {
   Platform,
 } from 'react-native';
 import type { DateRange } from '../hooks/useDashboardData';
+import { CustomDateRangePicker } from './CustomDateRangePicker';
 
 interface RangePopoverProps {
   value: DateRange;
   onChange: (range: DateRange) => void;
+  onCustomRangeChange?: (start: Date, end: Date) => void;
   options: Array<{ value: DateRange; label: string }>;
+  customStart?: Date;
+  customEnd?: Date;
 }
 
-export function RangePopover({ value, onChange, options }: RangePopoverProps) {
+export function RangePopover({ value, onChange, onCustomRangeChange, options, customStart, customEnd }: RangePopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef<any>(null);
 
   const selectedOption = options.find(opt => opt.value === value);
+  
+  const getDisplayLabel = () => {
+    if (value === 'custom' && customStart && customEnd) {
+      const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${formatDate(customStart)} - ${formatDate(customEnd)}`;
+    }
+    return selectedOption?.label || 'Select Range';
+  };
 
   const handleOpen = () => {
     if (Platform.OS === 'web' && triggerRef.current) {
@@ -45,8 +58,20 @@ export function RangePopover({ value, onChange, options }: RangePopoverProps) {
   };
 
   const handleSelect = (range: DateRange) => {
-    onChange(range);
-    setIsOpen(false);
+    if (range === 'custom') {
+      setIsOpen(false);
+      setShowCustomPicker(true);
+    } else {
+      onChange(range);
+      setIsOpen(false);
+    }
+  };
+
+  const handleCustomRangeSelect = (start: Date, end: Date) => {
+    if (onCustomRangeChange) {
+      onCustomRangeChange(start, end);
+    }
+    setShowCustomPicker(false);
   };
 
   // Close on Escape key
@@ -72,7 +97,7 @@ export function RangePopover({ value, onChange, options }: RangePopoverProps) {
         activeOpacity={0.7}
       >
         <Text style={styles.triggerIcon}>📅</Text>
-        <Text style={styles.triggerText}>{selectedOption?.label || 'Select Range'}</Text>
+        <Text style={styles.triggerText}>{getDisplayLabel()}</Text>
         <Text style={styles.triggerArrow}>▼</Text>
       </TouchableOpacity>
 
@@ -129,6 +154,57 @@ export function RangePopover({ value, onChange, options }: RangePopoverProps) {
                   )}
                 </TouchableOpacity>
               ))}
+              
+              {/* Custom option */}
+              <TouchableOpacity
+                style={[
+                  styles.option,
+                  value === 'custom' && styles.optionActive,
+                ]}
+                onPress={() => handleSelect('custom')}
+              >
+                <View style={styles.radioOuter}>
+                  {value === 'custom' && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <Text
+                  style={[
+                    styles.optionText,
+                    value === 'custom' && styles.optionTextActive,
+                  ]}
+                >
+                  Custom Range...
+                </Text>
+                {value === 'custom' && (
+                  <Text style={styles.checkmark}>✓</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Modal>
+      )}
+
+      {/* Custom Date Range Picker Modal */}
+      {showCustomPicker && (
+        <Modal
+          visible={showCustomPicker}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowCustomPicker(false)}
+        >
+          <Pressable
+            style={styles.customPickerBackdrop}
+            onPress={() => setShowCustomPicker(false)}
+          >
+            <View
+              style={styles.customPickerContainer}
+              onStartShouldSetResponder={() => true}
+            >
+              <CustomDateRangePicker
+                onSelectRange={handleCustomRangeSelect}
+                onClose={() => setShowCustomPicker(false)}
+              />
             </View>
           </Pressable>
         </Modal>
@@ -238,5 +314,15 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontWeight: '700',
     marginLeft: 8,
+  },
+  customPickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  customPickerContainer: {
+    maxWidth: '90%',
+    maxHeight: '90%',
   },
 });
