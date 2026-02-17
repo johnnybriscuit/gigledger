@@ -41,6 +41,7 @@ import { UpgradeModal } from './UpgradeModal';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
+import { getEffectiveTaxTreatment, getTaxTreatmentLabel, getTaxTreatmentShortLabel, getDefaultAmountType } from '../lib/taxTreatment';
 
 interface AddGigModalProps {
   visible: boolean;
@@ -139,6 +140,11 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     date?: string;
     grossAmount?: string;
   }>({});
+  const [taxTreatmentOverride, setTaxTreatmentOverride] = useState<'w2' | 'contractor_1099' | 'other' | null>(null);
+  const [showTaxTreatmentOverride, setShowTaxTreatmentOverride] = useState(false);
+  const [netAmountW2, setNetAmountW2] = useState('');
+  const [withholdingAmountW2, setWithholdingAmountW2] = useState('');
+  const [showW2Details, setShowW2Details] = useState(false);
 
   const { data: payers } = usePayers();
   const createGig = useCreateGig();
@@ -197,10 +203,10 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     queryFn: async () => {
       const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
       
-      // Get YTD gigs
+      // Get YTD gigs with payer info to determine tax treatment
       const { data: gigs, error: gigsError } = await supabase
         .from('gigs')
-        .select('gross_amount, tips, per_diem, other_income, fees')
+        .select('gross_amount, tips, per_diem, other_income, fees, tax_treatment, payer_id, payers!inner(tax_treatment)')
         .gte('date', yearStart);
       
       if (gigsError) throw gigsError;
@@ -213,10 +219,19 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       
       if (expensesError) throw expensesError;
       
-      const ytdGross = (gigs || []).reduce((sum, gig: any) => 
-        sum + (gig.gross_amount || 0) + (gig.tips || 0) + 
-        (gig.per_diem || 0) + (gig.other_income || 0) - (gig.fees || 0), 0
-      );
+      // Calculate YTD gross, excluding W-2 gigs from tax basis
+      const ytdGross = (gigs || []).reduce((sum, gig: any) => {
+        // Get effective tax treatment (gig override or payer default)
+        const effectiveTreatment = gig.tax_treatment || gig.payers?.tax_treatment || 'contractor_1099';
+        
+        // Exclude W-2 gigs from tax set-aside calculation
+        if (effectiveTreatment === 'w2') {
+          return sum;
+        }
+        
+        return sum + (gig.gross_amount || 0) + (gig.tips || 0) + 
+          (gig.per_diem || 0) + (gig.other_income || 0) - (gig.fees || 0);
+      }, 0);
       
       const ytdExpenses = (expenses || []).reduce((sum, exp: any) => sum + (exp.amount || 0), 0);
       
@@ -560,6 +575,9 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         paid,
         taxes_withheld: taxesWithheld,
         notes: notes || undefined,
+        tax_treatment: taxTreatmentOverride || undefined,
+        net_amount_w2: netAmountW2 ? parseFloat(netAmountW2) : undefined,
+        withholding_amount: withholdingAmountW2 ? parseFloat(withholdingAmountW2) : undefined,
       };
 
       console.log('Form data before validation:', formData);
@@ -795,6 +813,108 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                       </Text>
                     </View>
                   )}
+                  
+                  {payerId && (() => {
+                    const selectedPayer = payers?.find(p => p.id === payerId);
+                    if (!selectedPayer) return null;
+                    
+                    const effectiveTreatment = getEffectiveTaxTreatment(
+                      { tax_treatment: taxTreatmentOverride },
+                      { tax_treatment: selectedPayer.tax_treatment }
+                    );
+                    
+                    return (
+                      <View style={styles.taxTreatmentSection}>
+                        <View style={styles.taxTreatmentBadgeRow}>
+                          <Text style={styles.taxTreatmentLabel}>Tax Treatment:</Text>
+                          <View style={[
+                            styles.taxTreatmentBadge,
+                            effectiveTreatment === 'w2' && styles.taxTreatmentBadgeW2,
+                            effectiveTreatment === 'contractor_1099' && styles.taxTreatmentBadge1099,
+                          ]}>
+                            <Text style={styles.taxTreatmentBadgeText}>
+                              {getTaxTreatmentShortLabel(effectiveTreatment)}
+                            </Text>
+                          </View>
+                          {taxTreatmentOverride && (
+                            <Text style={styles.taxTreatmentOverrideNote}>(Override)</Text>
+                          )}
+                        </View>
+                        
+                        <TouchableOpacity
+                          style={styles.taxTreatmentOverrideToggle}
+                          onPress={() => setShowTaxTreatmentOverride(!showTaxTreatmentOverride)}
+                        >
+                          <Text style={styles.taxTreatmentOverrideToggleText}>
+                            {showTaxTreatmentOverride ? '− Hide override' : '+ Override tax treatment'}
+                          </Text>
+                        </TouchableOpacity>
+                        
+                        {showTaxTreatmentOverride && (
+                          <View style={styles.taxTreatmentOverrideSection}>
+                            <Text style={styles.taxTreatmentOverrideHelp}>
+                              Override the default tax treatment for this gig only
+                            </Text>
+                            <View style={styles.taxTreatmentButtons}>
+                              <TouchableOpacity
+                                style={[
+                                  styles.taxTreatmentButton,
+                                  taxTreatmentOverride === 'w2' && styles.taxTreatmentButtonActive,
+                                ]}
+                                onPress={() => setTaxTreatmentOverride('w2')}
+                              >
+                                <Text style={[
+                                  styles.taxTreatmentButtonText,
+                                  taxTreatmentOverride === 'w2' && styles.taxTreatmentButtonTextActive,
+                                ]}>W-2</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[
+                                  styles.taxTreatmentButton,
+                                  taxTreatmentOverride === 'contractor_1099' && styles.taxTreatmentButtonActive,
+                                ]}
+                                onPress={() => setTaxTreatmentOverride('contractor_1099')}
+                              >
+                                <Text style={[
+                                  styles.taxTreatmentButtonText,
+                                  taxTreatmentOverride === 'contractor_1099' && styles.taxTreatmentButtonTextActive,
+                                ]}>1099</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[
+                                  styles.taxTreatmentButton,
+                                  taxTreatmentOverride === 'other' && styles.taxTreatmentButtonActive,
+                                ]}
+                                onPress={() => setTaxTreatmentOverride('other')}
+                              >
+                                <Text style={[
+                                  styles.taxTreatmentButtonText,
+                                  taxTreatmentOverride === 'other' && styles.taxTreatmentButtonTextActive,
+                                ]}>Other</Text>
+                              </TouchableOpacity>
+                              {taxTreatmentOverride && (
+                                <TouchableOpacity
+                                  style={styles.taxTreatmentClearButton}
+                                  onPress={() => setTaxTreatmentOverride(null)}
+                                >
+                                  <Text style={styles.taxTreatmentClearButtonText}>Clear</Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          </View>
+                        )}
+                        
+                        {effectiveTreatment === 'w2' && (
+                          <View style={styles.w2InfoBox}>
+                            <Text style={styles.w2InfoIcon}>ℹ️</Text>
+                            <Text style={styles.w2InfoText}>
+                              W-2 income is excluded from estimated tax calculations (taxes withheld by employer)
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })()}
                 </>
               )}
             </View>
@@ -2199,5 +2319,125 @@ const styles = StyleSheet.create({
   },
   toggleThumbActive: {
     transform: [{ translateX: 20 }],
+  },
+  // Tax treatment styles
+  taxTreatmentSection: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  taxTreatmentBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  taxTreatmentLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginRight: 8,
+  },
+  taxTreatmentBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#e5e7eb',
+  },
+  taxTreatmentBadgeW2: {
+    backgroundColor: '#dbeafe',
+  },
+  taxTreatmentBadge1099: {
+    backgroundColor: '#fef3c7',
+  },
+  taxTreatmentBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  taxTreatmentOverrideNote: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginLeft: 6,
+  },
+  taxTreatmentOverrideToggle: {
+    marginTop: 4,
+  },
+  taxTreatmentOverrideToggleText: {
+    fontSize: 13,
+    color: '#3b82f6',
+    fontWeight: '500',
+  },
+  taxTreatmentOverrideSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  taxTreatmentOverrideHelp: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 8,
+  },
+  taxTreatmentButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  taxTreatmentButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#fff',
+  },
+  taxTreatmentButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  taxTreatmentButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  taxTreatmentButtonTextActive: {
+    color: '#fff',
+  },
+  taxTreatmentClearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    backgroundColor: '#fff',
+  },
+  taxTreatmentClearButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
+  w2InfoBox: {
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: '#eff6ff',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  w2InfoIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  w2InfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#1e40af',
+    lineHeight: 16,
   },
 });

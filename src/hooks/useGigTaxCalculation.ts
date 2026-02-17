@@ -69,10 +69,10 @@ export function useGigTaxCalculation(
     queryFn: async () => {
       const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
       
-      // Get YTD gigs
+      // Get YTD gigs with payer info to determine tax treatment
       const { data: gigs, error: gigsError } = await supabase
         .from('gigs')
-        .select('gross_amount, tips, per_diem, other_income, fees')
+        .select('gross_amount, tips, per_diem, other_income, fees, tax_treatment, payer_id, payers!inner(tax_treatment)')
         .gte('date', yearStart);
       
       if (gigsError) throw gigsError;
@@ -85,10 +85,19 @@ export function useGigTaxCalculation(
       
       if (expensesError) throw expensesError;
       
-      const ytdGross = (gigs || []).reduce((sum, gig: any) => 
-        sum + (gig.gross_amount || 0) + (gig.tips || 0) + 
-        (gig.per_diem || 0) + (gig.other_income || 0) - (gig.fees || 0), 0
-      );
+      // Calculate YTD gross, excluding W-2 gigs from tax basis
+      const ytdGross = (gigs || []).reduce((sum, gig: any) => {
+        // Get effective tax treatment (gig override or payer default)
+        const effectiveTreatment = gig.tax_treatment || gig.payers?.tax_treatment || 'contractor_1099';
+        
+        // Exclude W-2 gigs from tax set-aside calculation
+        if (effectiveTreatment === 'w2') {
+          return sum;
+        }
+        
+        return sum + (gig.gross_amount || 0) + (gig.tips || 0) + 
+          (gig.per_diem || 0) + (gig.other_income || 0) - (gig.fees || 0);
+      }, 0);
       
       const ytdExpenses = (expenses || []).reduce((sum, exp: any) => sum + (exp.amount || 0), 0);
       

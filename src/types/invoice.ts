@@ -90,7 +90,8 @@ export interface Invoice {
   payment_terms?: string;
   notes?: string;
   private_notes?: string;
-  accepted_payment_methods: PaymentMethodDetail[];
+  accepted_payment_methods: PaymentMethodDetail[]; // Legacy - kept for backward compatibility
+  payment_methods_config?: any; // New structured config - snapshot at invoice creation
   gig_id?: string;
   created_at: string;
   updated_at: string;

@@ -280,6 +280,10 @@ export type Database = {
           tips: number
           title: string | null
           tour_id: string | null
+          tax_treatment: string | null
+          amount_type: string
+          net_amount_w2: number | null
+          withholding_amount: number | null
           updated_at: string
           user_id: string
         }
@@ -308,6 +312,10 @@ export type Database = {
           tips?: number
           title?: string | null
           tour_id?: string | null
+          tax_treatment?: string | null
+          amount_type?: string
+          net_amount_w2?: number | null
+          withholding_amount?: number | null
           updated_at?: string
           user_id: string
         }
@@ -336,6 +344,10 @@ export type Database = {
           tips?: number
           title?: string | null
           tour_id?: string | null
+          tax_treatment?: string | null
+          amount_type?: string
+          net_amount_w2?: number | null
+          withholding_amount?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -814,6 +826,11 @@ export type Database = {
           tax_id: string | null
           tax_id_last4: string | null
           tax_id_type: string | null
+          tax_treatment: string
+          w2_employer_name: string | null
+          w2_employer_ein_last4: string | null
+          payroll_provider: string | null
+          payroll_contact_email: string | null
           updated_at: string
           user_id: string
         }
@@ -830,6 +847,11 @@ export type Database = {
           tax_id?: string | null
           tax_id_last4?: string | null
           tax_id_type?: string | null
+          tax_treatment?: string
+          w2_employer_name?: string | null
+          w2_employer_ein_last4?: string | null
+          payroll_provider?: string | null
+          payroll_contact_email?: string | null
           updated_at?: string
           user_id: string
         }
@@ -846,6 +868,11 @@ export type Database = {
           tax_id?: string | null
           tax_id_last4?: string | null
           tax_id_type?: string | null
+          tax_treatment?: string
+          w2_employer_name?: string | null
+          w2_employer_ein_last4?: string | null
+          payroll_provider?: string | null
+          payroll_contact_email?: string | null
           updated_at?: string
           user_id?: string
         }

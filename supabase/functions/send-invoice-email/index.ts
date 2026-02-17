@@ -96,6 +96,71 @@ serve(async (req) => {
   }
 })
 
+// Helper to format payment methods for display
+function formatPaymentMethodsForEmail(config: any, invoiceNumber: string): string {
+  if (!config || !config.methods || config.methods.length === 0) {
+    return '';
+  }
+
+  const displays: string[] = [];
+  const defaultNote = `Invoice #${invoiceNumber}`;
+
+  for (const method of config.methods) {
+    if (!method.enabled) continue;
+
+    switch (method.type) {
+      case 'cash':
+        displays.push(`<strong>Cash:</strong> ${method.instructions || 'Cash accepted in person.'}`);
+        break;
+      case 'check':
+        const checkParts = [`Check payable to: ${method.payableTo}`];
+        if (method.memo) checkParts.push(`Memo: ${method.memo}`);
+        else if (invoiceNumber) checkParts.push(`Memo: ${invoiceNumber}`);
+        if (method.mailingAddress) checkParts.push(`Mail to: ${method.mailingAddress}`);
+        displays.push(`<strong>Check:</strong> ${checkParts.join(' • ')}`);
+        break;
+      case 'venmo':
+        displays.push(`<strong>Venmo:</strong> ${method.handle} • Note: ${method.note || defaultNote}`);
+        break;
+      case 'zelle':
+        displays.push(`<strong>Zelle:</strong> ${method.contact} • Note: ${method.note || defaultNote}`);
+        break;
+      case 'paypal':
+        displays.push(`<strong>PayPal:</strong> ${method.contact} • Note: ${method.note || defaultNote}`);
+        break;
+      case 'cashapp':
+        displays.push(`<strong>Cash App:</strong> ${method.cashtag} • Note: ${method.note || defaultNote}`);
+        break;
+      case 'wire':
+        if (method.includeBankDetailsOnInvoice && (method.accountHolder || method.bankName)) {
+          const wireParts = [];
+          if (method.accountHolder) wireParts.push(`Account Holder: ${method.accountHolder}`);
+          if (method.bankName) wireParts.push(`Bank: ${method.bankName}`);
+          if (method.routingNumber) wireParts.push(`Routing: ${method.routingNumber}`);
+          if (method.accountNumber) {
+            const masked = method.accountNumber.length > 4 ? '****' + method.accountNumber.slice(-4) : method.accountNumber;
+            wireParts.push(`Account: ${masked}`);
+          }
+          if (method.swift) wireParts.push(`SWIFT: ${method.swift}`);
+          if (method.reference) wireParts.push(`Reference: ${method.reference}`);
+          else if (invoiceNumber) wireParts.push(`Reference: ${invoiceNumber}`);
+          displays.push(`<strong>Wire Transfer:</strong> ${wireParts.join(' • ')}`);
+        } else {
+          displays.push(`<strong>Wire Transfer:</strong> ${method.instructions || 'Contact support@bozzygigs.com for wire instructions.'}`);
+        }
+        break;
+      case 'card':
+        const cardParts = [`Pay here: <a href="${method.paymentUrl}">${method.paymentUrl}</a>`];
+        if (method.acceptedCards) cardParts.push(`Accepted: ${method.acceptedCards}`);
+        if (method.note) cardParts.push(method.note);
+        displays.push(`<strong>Credit/Debit Card:</strong> ${cardParts.join(' • ')}`);
+        break;
+    }
+  }
+
+  return displays.join('<br>');
+}
+
 function generateInvoiceHTML(invoice: any, settings: any, customMessage: string): string {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -110,6 +175,11 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
   const total = subtotal + tax - (invoice.discount_amount || 0)
 
   const publicUrl = Deno.env.get('NEXT_PUBLIC_APP_URL') || 'https://gigledger-ten.vercel.app'
+
+  // Format payment methods using structured config
+  const paymentMethodsHtml = settings.payment_methods_config 
+    ? formatPaymentMethodsForEmail(settings.payment_methods_config, invoice.invoice_number)
+    : '';
 
   return `
     <!DOCTYPE html>
@@ -215,6 +285,15 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
       <div style="text-align: center;">
         <a href="${publicUrl}/invoices/${invoice.id}" class="button">View Invoice Online</a>
       </div>
+
+      ${paymentMethodsHtml ? `
+        <div style="margin-top: 30px; padding: 15px; background: #eff6ff; border-radius: 6px; border: 1px solid #bfdbfe;">
+          <strong style="color: #1e40af; font-size: 16px;">Payment Methods:</strong>
+          <div style="margin-top: 10px; line-height: 1.8;">
+            ${paymentMethodsHtml}
+          </div>
+        </div>
+      ` : ''}
 
       ${invoice.notes ? `
         <div style="margin-top: 30px; padding: 15px; background: #f9fafb; border-radius: 6px;">

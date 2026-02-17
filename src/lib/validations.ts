@@ -8,6 +8,11 @@ export const payerSchema = z.object({
   expect_1099: z.boolean().default(false),
   tax_id_type: z.enum(['ssn', 'ein']).optional(),
   tax_id_last4: z.string().length(4, 'Must be exactly 4 digits').regex(/^\d{4}$/, 'Must be 4 digits').optional(),
+  tax_treatment: z.enum(['w2', 'contractor_1099', 'other']).default('contractor_1099'),
+  w2_employer_name: z.string().optional(),
+  w2_employer_ein_last4: z.string().length(4, 'Must be exactly 4 digits').regex(/^\d{4}$/, 'Must be 4 digits').optional(),
+  payroll_provider: z.string().optional(),
+  payroll_contact_email: z.string().email('Invalid email').optional().or(z.literal('')),
 });
 
 export type PayerFormData = z.infer<typeof payerSchema>;
@@ -33,6 +38,10 @@ export const gigSchema = z.object({
   paid: z.boolean().default(false),
   taxes_withheld: z.boolean().default(false),
   notes: z.string().optional(),
+  tax_treatment: z.enum(['w2', 'contractor_1099', 'other']).optional(),
+  amount_type: z.enum(['gross', 'net']).default('gross'),
+  net_amount_w2: z.number().min(0, 'Must be 0 or greater').optional(),
+  withholding_amount: z.number().min(0, 'Must be 0 or greater').optional(),
 });
 
 export type GigFormData = z.infer<typeof gigSchema>;

@@ -28,6 +28,12 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
   const [expect1099, setExpect1099] = useState(false);
   const [taxIdType, setTaxIdType] = useState<string>('');
   const [taxIdInput, setTaxIdInput] = useState('');
+  const [taxTreatment, setTaxTreatment] = useState<'w2' | 'contractor_1099' | 'other'>('contractor_1099');
+  const [w2EmployerName, setW2EmployerName] = useState('');
+  const [w2EmployerEinLast4, setW2EmployerEinLast4] = useState('');
+  const [payrollProvider, setPayrollProvider] = useState('');
+  const [payrollContactEmail, setPayrollContactEmail] = useState('');
+  const [showW2Details, setShowW2Details] = useState(false);
 
   const createPayer = useCreatePayer();
   const updatePayer = useUpdatePayer();
@@ -38,14 +44,28 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
       setType(editingPayer.payer_type || '');
       setContactEmail(editingPayer.contact_email || '');
       setNotes(editingPayer.notes || '');
+      
+      // Initialize tax treatment from new field or legacy expect_1099
+      const treatment = editingPayer.tax_treatment || 
+        (editingPayer.expect_1099 ? 'contractor_1099' : 'other');
+      setTaxTreatment(treatment as 'w2' | 'contractor_1099' | 'other');
+      
       setExpect1099(editingPayer.expect_1099 || false);
       setTaxIdType(editingPayer.tax_id_type || '');
+      
       // Show masked value if last4 exists
       if (editingPayer.tax_id_last4) {
         setTaxIdInput(`••••••${editingPayer.tax_id_last4}`);
       } else {
         setTaxIdInput('');
       }
+      
+      // W-2 fields
+      setW2EmployerName(editingPayer.w2_employer_name || '');
+      setW2EmployerEinLast4(editingPayer.w2_employer_ein_last4 || '');
+      setPayrollProvider(editingPayer.payroll_provider || '');
+      setPayrollContactEmail(editingPayer.payroll_contact_email || '');
+      setShowW2Details(!!editingPayer.w2_employer_name || !!editingPayer.payroll_provider);
     } else {
       resetForm();
     }
@@ -59,6 +79,12 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
     setExpect1099(false);
     setTaxIdType('');
     setTaxIdInput('');
+    setTaxTreatment('contractor_1099');
+    setW2EmployerName('');
+    setW2EmployerEinLast4('');
+    setPayrollProvider('');
+    setPayrollContactEmail('');
+    setShowW2Details(false);
   };
 
   const handleSubmit = async () => {
@@ -78,28 +104,30 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
     }
 
     try {
+      const payerData = {
+        name: name.trim(),
+        payer_type: (type as any) || undefined,
+        contact_email: contactEmail || undefined,
+        notes: notes || undefined,
+        tax_treatment: taxTreatment,
+        tax_id_type: (taxTreatment === 'contractor_1099' && taxIdType) ? taxIdType : undefined,
+        tax_id_last4: (taxTreatment === 'contractor_1099' && taxIdType && last4.length === 4) ? last4 : undefined,
+        w2_employer_name: (taxTreatment === 'w2' && w2EmployerName) ? w2EmployerName : undefined,
+        w2_employer_ein_last4: (taxTreatment === 'w2' && w2EmployerEinLast4) ? w2EmployerEinLast4 : undefined,
+        payroll_provider: (taxTreatment === 'w2' && payrollProvider) ? payrollProvider : undefined,
+        payroll_contact_email: (taxTreatment === 'w2' && payrollContactEmail) ? payrollContactEmail : undefined,
+      };
+      
       if (editingPayer) {
         await updatePayer.mutateAsync({
           id: editingPayer.id,
-          name: name.trim(),
-          payer_type: (type as any) || undefined,
-          contact_email: contactEmail || undefined,
-          notes: notes || undefined,
-          expect_1099: expect1099,
-          tax_id_type: taxIdType || undefined,
-          tax_id_last4: (taxIdType && last4.length === 4) ? last4 : undefined,
+          ...payerData,
         });
         Alert.alert('Success', 'Payer updated successfully');
       } else {
         const result = await createPayer.mutateAsync({
-          name: name.trim(),
+          ...payerData,
           normalized_name: name.trim().toLowerCase(),
-          payer_type: (type as any) || undefined,
-          contact_email: contactEmail || undefined,
-          notes: notes || undefined,
-          expect_1099: expect1099,
-          tax_id_type: taxIdType || undefined,
-          tax_id_last4: (taxIdType && last4.length === 4) ? last4 : undefined,
         });
         
         // Call onSuccess with the new payer ID
@@ -169,79 +197,170 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Expect 1099?</Text>
-              <TouchableOpacity
-                style={styles.checkboxContainer}
-                onPress={() => setExpect1099(!expect1099)}
-              >
-                <View style={[styles.checkbox, expect1099 && styles.checkboxChecked]}>
-                  {expect1099 && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>
-                  Will receive 1099 form from this payer
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Tax ID Type (Optional)</Text>
-              <Text style={styles.helperText}>For 1099 reconciliation</Text>
-              <View style={styles.taxIdTypeButtons}>
+              <Text style={styles.label}>Tax Treatment *</Text>
+              <View style={styles.taxTreatmentButtons}>
                 <TouchableOpacity
                   style={[
-                    styles.taxIdTypeButton,
-                    taxIdType === 'ssn' && styles.taxIdTypeButtonActive,
+                    styles.taxTreatmentButton,
+                    taxTreatment === 'w2' && styles.taxTreatmentButtonActive,
                   ]}
-                  onPress={() => setTaxIdType('ssn')}
+                  onPress={() => setTaxTreatment('w2')}
                 >
                   <Text style={[
-                    styles.taxIdTypeButtonText,
-                    taxIdType === 'ssn' && styles.taxIdTypeButtonTextActive,
-                  ]}>SSN</Text>
+                    styles.taxTreatmentButtonText,
+                    taxTreatment === 'w2' && styles.taxTreatmentButtonTextActive,
+                  ]}>W-2 (Payroll)</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
-                    styles.taxIdTypeButton,
-                    taxIdType === 'ein' && styles.taxIdTypeButtonActive,
+                    styles.taxTreatmentButton,
+                    taxTreatment === 'contractor_1099' && styles.taxTreatmentButtonActive,
                   ]}
-                  onPress={() => setTaxIdType('ein')}
+                  onPress={() => setTaxTreatment('contractor_1099')}
                 >
                   <Text style={[
-                    styles.taxIdTypeButtonText,
-                    taxIdType === 'ein' && styles.taxIdTypeButtonTextActive,
-                  ]}>EIN</Text>
+                    styles.taxTreatmentButtonText,
+                    taxTreatment === 'contractor_1099' && styles.taxTreatmentButtonTextActive,
+                  ]}>1099 / Contractor</Text>
                 </TouchableOpacity>
-                {taxIdType && (
-                  <TouchableOpacity
-                    style={styles.clearTaxIdButton}
-                    onPress={() => {
-                      setTaxIdType('');
-                      setTaxIdInput('');
-                    }}
-                  >
-                    <Text style={styles.clearTaxIdText}>Clear</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={[
+                    styles.taxTreatmentButton,
+                    taxTreatment === 'other' && styles.taxTreatmentButtonActive,
+                  ]}
+                  onPress={() => setTaxTreatment('other')}
+                >
+                  <Text style={[
+                    styles.taxTreatmentButtonText,
+                    taxTreatment === 'other' && styles.taxTreatmentButtonTextActive,
+                  ]}>Other / Mixed</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
-            {taxIdType && (
+            {taxTreatment === 'contractor_1099' && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Tax ID Type (Optional)</Text>
+                  <Text style={styles.helperText}>For 1099 reconciliation</Text>
+                  <View style={styles.taxIdTypeButtons}>
+                    <TouchableOpacity
+                      style={[
+                        styles.taxIdTypeButton,
+                        taxIdType === 'ssn' && styles.taxIdTypeButtonActive,
+                      ]}
+                      onPress={() => setTaxIdType('ssn')}
+                    >
+                      <Text style={[
+                        styles.taxIdTypeButtonText,
+                        taxIdType === 'ssn' && styles.taxIdTypeButtonTextActive,
+                      ]}>SSN</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.taxIdTypeButton,
+                        taxIdType === 'ein' && styles.taxIdTypeButtonActive,
+                      ]}
+                      onPress={() => setTaxIdType('ein')}
+                    >
+                      <Text style={[
+                        styles.taxIdTypeButtonText,
+                        taxIdType === 'ein' && styles.taxIdTypeButtonTextActive,
+                      ]}>EIN</Text>
+                    </TouchableOpacity>
+                    {taxIdType && (
+                      <TouchableOpacity
+                        style={styles.clearTaxIdButton}
+                        onPress={() => {
+                          setTaxIdType('');
+                          setTaxIdInput('');
+                        }}
+                      >
+                        <Text style={styles.clearTaxIdText}>Clear</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+
+                {taxIdType && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>{taxIdType.toUpperCase()}</Text>
+                    <Text style={styles.helperText}>
+                      {editingPayer?.tax_id_last4 
+                        ? 'We only store the last 4 digits. Enter full ID to replace.'
+                        : 'Enter full ID - we\'ll only store the last 4 digits for security'}
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={taxIdInput}
+                      onChangeText={setTaxIdInput}
+                      placeholder={taxIdType === 'ssn' ? 'XXX-XX-XXXX' : 'XX-XXXXXXX'}
+                      placeholderTextColor="#9ca3af"
+                      keyboardType="number-pad"
+                      autoCapitalize="none"
+                    />
+                  </View>
+                )}
+              </>
+            )}
+
+            {taxTreatment === 'w2' && (
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>{taxIdType.toUpperCase()}</Text>
-                <Text style={styles.helperText}>
-                  {editingPayer?.tax_id_last4 
-                    ? 'We only store the last 4 digits. Enter full ID to replace.'
-                    : 'Enter full ID - we\'ll only store the last 4 digits for security'}
-                </Text>
-                <TextInput
-                  style={styles.input}
-                  value={taxIdInput}
-                  onChangeText={setTaxIdInput}
-                  placeholder={taxIdType === 'ssn' ? 'XXX-XX-XXXX' : 'XX-XXXXXXX'}
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="number-pad"
-                  autoCapitalize="none"
-                />
+                <TouchableOpacity
+                  style={styles.accordionHeader}
+                  onPress={() => setShowW2Details(!showW2Details)}
+                >
+                  <Text style={styles.accordionTitle}>W-2 Details (Optional)</Text>
+                  <Text style={styles.accordionIcon}>{showW2Details ? '▼' : '▶'}</Text>
+                </TouchableOpacity>
+                {showW2Details && (
+                  <View style={styles.accordionContent}>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Employer Name</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={w2EmployerName}
+                        onChangeText={setW2EmployerName}
+                        placeholder="Official employer name on W-2"
+                        placeholderTextColor="#9ca3af"
+                      />
+                    </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Employer EIN (Last 4 digits)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={w2EmployerEinLast4}
+                        onChangeText={setW2EmployerEinLast4}
+                        placeholder="1234"
+                        placeholderTextColor="#9ca3af"
+                        keyboardType="number-pad"
+                        maxLength={4}
+                      />
+                    </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Payroll Provider</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={payrollProvider}
+                        onChangeText={setPayrollProvider}
+                        placeholder="e.g., ADP, Paychex, Gusto"
+                        placeholderTextColor="#9ca3af"
+                      />
+                    </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.label}>Payroll Contact Email</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={payrollContactEmail}
+                        onChangeText={setPayrollContactEmail}
+                        placeholder="payroll@example.com"
+                        placeholderTextColor="#9ca3af"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                      />
+                    </View>
+                  </View>
+                )}
               </View>
             )}
 
@@ -495,5 +614,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#ef4444',
+  },
+  taxTreatmentButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  taxTreatmentButton: {
+    flex: 1,
+    minWidth: 100,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+  },
+  taxTreatmentButtonActive: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  taxTreatmentButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  taxTreatmentButtonTextActive: {
+    color: '#fff',
+  },
+  accordionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  accordionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  accordionIcon: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  accordionContent: {
+    marginTop: 12,
+    paddingLeft: 8,
   },
 });
