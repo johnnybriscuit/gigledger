@@ -40,6 +40,8 @@ function GigCard({
   isSelectionMode,
   isSelected,
   onToggleSelection,
+  tourName,
+  tourId,
 }: { 
   item: GigWithPayer; 
   onEdit: () => void;
@@ -52,6 +54,8 @@ function GigCard({
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelection?: () => void;
+  tourName?: string;
+  tourId?: string;
 }) {
   // Derived money fields
   const gross = item.gross_amount 
@@ -180,26 +184,43 @@ function GigCard({
         </View>
       </View>
 
-      {/* Edit/Delete/Repeat actions */}
+      {/* Edit/Delete/Repeat actions + Tour badge */}
       <View style={styles.cardActions}>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={onEdit}
-        >
-          <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={onRepeat}
-        >
-          <Text semibold style={{ color: colors.brand.DEFAULT }}>Repeat</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={onDelete}
-        >
-          <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
-        </TouchableOpacity>
+        {tourName && tourId && (
+          <TouchableOpacity
+            style={styles.tourBadgeButton}
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                window.location.href = `/tours/${tourId}`;
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <Badge variant="neutral" size="sm">
+              🎸 {tourName}
+            </Badge>
+          </TouchableOpacity>
+        )}
+        <View style={styles.cardActionsRight}>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={onEdit}
+          >
+            <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={onRepeat}
+          >
+            <Text semibold style={{ color: colors.brand.DEFAULT }}>Repeat</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.actionButton}
+            onPress={onDelete}
+          >
+            <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       </Card>
     </TouchableOpacity>
@@ -691,21 +712,26 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
             data={filteredGigs}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => (
-              <GigCard
-                item={item}
-                onEdit={() => handleEdit(item)}
-                onRepeat={() => handleRepeat(item)}
-                onDelete={() => handleDelete(item.id, getGigDisplayName(item))}
-                onTogglePaid={handleTogglePaid}
-                togglingGigId={togglingGigId}
-                formatDate={formatDate}
-                formatCurrency={formatCurrency}
-                isSelectionMode={isSelectionMode}
-                isSelected={selectedGigIds.includes(item.id)}
-                onToggleSelection={() => handleToggleGigSelection(item.id)}
-              />
-            )}
+            renderItem={({ item }) => {
+              const tour = item.tour_id ? tours?.find(t => t.id === item.tour_id) : null;
+              return (
+                <GigCard
+                  item={item}
+                  onEdit={() => handleEdit(item)}
+                  onRepeat={() => handleRepeat(item)}
+                  onDelete={() => handleDelete(item.id, getGigDisplayName(item))}
+                  onTogglePaid={handleTogglePaid}
+                  togglingGigId={togglingGigId}
+                  formatDate={formatDate}
+                  formatCurrency={formatCurrency}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedGigIds.includes(item.id)}
+                  onToggleSelection={() => handleToggleGigSelection(item.id)}
+                  tourName={tour?.name}
+                  tourId={tour?.id}
+                />
+              );
+            }}
           />
         )}
       </View>
@@ -955,11 +981,18 @@ const styles = StyleSheet.create({
   },
   cardActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: parseInt(spacing[4]),
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: parseInt(spacing[3]),
     borderTopWidth: 1,
     borderTopColor: colors.border.muted,
+  },
+  tourBadgeButton: {
+    alignSelf: 'flex-start',
+  },
+  cardActionsRight: {
+    flexDirection: 'row',
+    gap: parseInt(spacing[4]),
   },
   actionButton: {
     paddingHorizontal: parseInt(spacing[2]),
