@@ -42,6 +42,7 @@ function GigCard({
   onToggleSelection,
   tourName,
   tourId,
+  onTourBadgeClick,
 }: { 
   item: GigWithPayer; 
   onEdit: () => void;
@@ -56,6 +57,7 @@ function GigCard({
   onToggleSelection?: () => void;
   tourName?: string;
   tourId?: string;
+  onTourBadgeClick?: () => void;
 }) {
   // Derived money fields
   const gross = item.gross_amount 
@@ -189,11 +191,7 @@ function GigCard({
         {tourName && tourId && (
           <TouchableOpacity
             style={styles.tourBadgeButton}
-            onPress={() => {
-              if (Platform.OS === 'web') {
-                window.location.href = `/tours/${tourId}`;
-              }
-            }}
+            onPress={onTourBadgeClick}
             activeOpacity={0.7}
           >
             <Badge variant="neutral" size="sm">
@@ -729,6 +727,11 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
                   onToggleSelection={() => handleToggleGigSelection(item.id)}
                   tourName={tour?.name}
                   tourId={tour?.id}
+                  onTourBadgeClick={() => {
+                    if (tour?.id) {
+                      setTourFilter(tour.id);
+                    }
+                  }}
                 />
               );
             }}
@@ -988,7 +991,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border.muted,
   },
   tourBadgeButton: {
-    alignSelf: 'flex-start',
+    // Badge will center-align with action buttons due to parent alignItems: 'center'
   },
   cardActionsRight: {
     flexDirection: 'row',
