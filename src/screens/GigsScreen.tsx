@@ -188,7 +188,7 @@ function GigCard({
 
       {/* Edit/Delete/Repeat actions + Tour badge */}
       <View style={styles.cardActions}>
-        {tourName && tourId && (
+        {tourName && tourId ? (
           <TouchableOpacity
             style={styles.tourBadgeButton}
             onPress={onTourBadgeClick}
@@ -198,6 +198,8 @@ function GigCard({
               🎸 {tourName}
             </Badge>
           </TouchableOpacity>
+        ) : (
+          <View style={styles.tourBadgeSpacer} />
         )}
         <View style={styles.cardActionsRight}>
           <TouchableOpacity 
@@ -992,6 +994,9 @@ const styles = StyleSheet.create({
   },
   tourBadgeButton: {
     // Badge will center-align with action buttons due to parent alignItems: 'center'
+  },
+  tourBadgeSpacer: {
+    // Empty spacer to maintain right alignment when no tour badge
   },
   cardActionsRight: {
     flexDirection: 'row',
