@@ -92,7 +92,7 @@ export function CustomDateRangePicker({ onSelectRange, onClose }: CustomDateRang
 
       {/* Date Range Mode */}
       {mode === 'dates' && (
-        <View style={styles.content}>
+        <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.dateInputGroup}>
             <Text style={styles.label}>Start Date</Text>
             {Platform.OS === 'web' ? (
@@ -148,12 +148,12 @@ export function CustomDateRangePicker({ onSelectRange, onClose }: CustomDateRang
           <TouchableOpacity style={styles.applyButton} onPress={handleApplyDates}>
             <Text style={styles.applyButtonText}>Apply Date Range</Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       )}
 
       {/* Year Mode */}
       {mode === 'year' && (
-        <View style={styles.content}>
+        <View style={styles.scrollContent}>
           <Text style={styles.label}>Select Year</Text>
           <ScrollView style={styles.yearList} showsVerticalScrollIndicator={false}>
             {years.map((year) => (
@@ -195,8 +195,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    minWidth: 320,
-    maxWidth: 400,
+    width: 400,
+    maxWidth: '90%',
+    maxHeight: 600,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   header: {
     flexDirection: 'row',
@@ -250,8 +256,12 @@ const styles = StyleSheet.create({
   content: {
     gap: 16,
   },
+  scrollContent: {
+    flex: 1,
+  },
   dateInputGroup: {
     gap: 8,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,

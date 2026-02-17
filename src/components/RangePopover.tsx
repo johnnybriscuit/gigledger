@@ -193,20 +193,18 @@ export function RangePopover({ value, onChange, onCustomRangeChange, options, cu
           animationType="fade"
           onRequestClose={() => setShowCustomPicker(false)}
         >
-          <Pressable
-            style={styles.customPickerBackdrop}
-            onPress={() => setShowCustomPicker(false)}
-          >
-            <View
-              style={styles.customPickerContainer}
-              onStartShouldSetResponder={() => true}
-            >
+          <View style={styles.customPickerBackdrop}>
+            <Pressable
+              style={styles.customPickerBackdropPressable}
+              onPress={() => setShowCustomPicker(false)}
+            />
+            <View style={styles.customPickerContainer}>
               <CustomDateRangePicker
                 onSelectRange={handleCustomRangeSelect}
                 onClose={() => setShowCustomPicker(false)}
               />
             </View>
-          </Pressable>
+          </View>
         </Modal>
       )}
     </>
@@ -317,12 +315,18 @@ const styles = StyleSheet.create({
   },
   customPickerBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  customPickerBackdropPressable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   customPickerContainer: {
-    maxWidth: '90%',
-    maxHeight: '90%',
+    zIndex: 1,
   },
 });
