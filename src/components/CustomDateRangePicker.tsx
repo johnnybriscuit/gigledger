@@ -92,7 +92,7 @@ export function CustomDateRangePicker({ onSelectRange, onClose }: CustomDateRang
 
       {/* Date Range Mode */}
       {mode === 'dates' && (
-        <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollWrapper} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.dateInputGroup}>
             <Text style={styles.label}>Start Date</Text>
             {Platform.OS === 'web' ? (
@@ -153,8 +153,9 @@ export function CustomDateRangePicker({ onSelectRange, onClose }: CustomDateRang
 
       {/* Year Mode */}
       {mode === 'year' && (
-        <View style={styles.scrollContent}>
-          <Text style={styles.label}>Select Year</Text>
+        <View style={styles.scrollWrapper}>
+          <View style={styles.yearModeContent}>
+            <Text style={styles.label}>Select Year</Text>
           <ScrollView style={styles.yearList} showsVerticalScrollIndicator={false}>
             {years.map((year) => (
               <TouchableOpacity
@@ -181,9 +182,10 @@ export function CustomDateRangePicker({ onSelectRange, onClose }: CustomDateRang
             ))}
           </ScrollView>
 
-          <TouchableOpacity style={styles.applyButton} onPress={handleApplyYear}>
-            <Text style={styles.applyButtonText}>Apply Year</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.applyButton} onPress={handleApplyYear}>
+              <Text style={styles.applyButtonText}>Apply Year</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </View>
@@ -194,7 +196,6 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 20,
     width: 400,
     maxWidth: '90%',
     maxHeight: 600,
@@ -203,12 +204,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 18,
@@ -225,7 +229,8 @@ const styles = StyleSheet.create({
   modeSelector: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 20,
+    marginBottom: 16,
+    marginHorizontal: 20,
     backgroundColor: '#f3f4f6',
     borderRadius: 8,
     padding: 4,
@@ -256,8 +261,12 @@ const styles = StyleSheet.create({
   content: {
     gap: 16,
   },
-  scrollContent: {
+  scrollWrapper: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   dateInputGroup: {
     gap: 8,
@@ -276,8 +285,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
   },
+  yearModeContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    flex: 1,
+  },
   yearList: {
     maxHeight: 240,
+    marginVertical: 12,
   },
   yearOption: {
     flexDirection: 'row',
