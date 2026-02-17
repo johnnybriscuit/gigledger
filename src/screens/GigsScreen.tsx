@@ -7,9 +7,13 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useGigs, useDeleteGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs';
+import { useTours, useRemoveGigFromTour } from '../hooks/useTours';
 import { AddGigModal } from '../components/AddGigModal';
+import { CreateTourModal } from '../components/tours/CreateTourModal';
+import { AssignGigsToTourModal } from '../components/tours/AssignGigsToTourModal';
 import { CSVImportWizard } from '../components/csv/CSVImportWizard';
 import { PaywallModal } from '../components/PaywallModal';
 import { UsageLimitBanner } from '../components/UsageLimitBanner';
@@ -32,7 +36,10 @@ function GigCard({
   onTogglePaid,
   togglingGigId,
   formatDate,
-  formatCurrency 
+  formatCurrency,
+  isSelectionMode,
+  isSelected,
+  onToggleSelection,
 }: { 
   item: GigWithPayer; 
   onEdit: () => void;
@@ -42,6 +49,9 @@ function GigCard({
   togglingGigId: string | null;
   formatDate: (date: string) => string;
   formatCurrency: (amount: number) => string;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }) {
   // Derived money fields
   const gross = item.gross_amount 
@@ -63,11 +73,49 @@ function GigCard({
   
   const takeHome = netBeforeTax - taxToSetAside;
   
+  const handleCardPress = () => {
+    if (isSelectionMode && onToggleSelection) {
+      onToggleSelection();
+    } else if (!isSelectionMode) {
+      onEdit();
+    }
+  };
+  
   return (
-    <Card variant="elevated" style={styles.card}>
-      <View style={styles.cardContent}>
-        {/* LEFT: Gig identity */}
-        <View style={styles.gigInfo}>
+    <TouchableOpacity
+      activeOpacity={isSelectionMode ? 0.7 : 1}
+      onPress={isSelectionMode ? handleCardPress : undefined}
+      disabled={!isSelectionMode}
+    >
+      <Card 
+        variant="elevated" 
+        style={
+          isSelected 
+            ? StyleSheet.flatten([styles.card, styles.cardSelected])
+            : styles.card
+        }
+      >
+        <View style={styles.cardContent}>
+          {/* Checkbox in selection mode */}
+          {isSelectionMode && (
+            <TouchableOpacity 
+              onPress={onToggleSelection}
+              style={styles.checkbox}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <View style={[
+                styles.checkboxBox,
+                isSelected && styles.checkboxBoxChecked,
+              ]}>
+                {isSelected && (
+                  <Text style={styles.checkboxCheck}>✓</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* LEFT: Gig identity */}
+          <View style={styles.gigInfo}>
           <H3>{getGigDisplayName(item)}</H3>
           <Text muted>{item.payer?.name || 'Unknown Payer'}</Text>
           <Text subtle>{formatDate(item.date)}</Text>
@@ -153,7 +201,8 @@ function GigCard({
           <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
         </TouchableOpacity>
       </View>
-    </Card>
+      </Card>
+    </TouchableOpacity>
   );
 }
 
@@ -165,17 +214,26 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
+  const [createTourModalVisible, setCreateTourModalVisible] = useState(false);
+  const [assignToTourModalVisible, setAssignToTourModalVisible] = useState(false);
   const [editingGig, setEditingGig] = useState<GigWithPayer | null>(null);
   const [duplicatingGig, setDuplicatingGig] = useState<GigWithPayer | null>(null);
   const [togglingGigId, setTogglingGigId] = useState<string | null>(null);
   
+  // Tour filter state: 'all' | 'none' | tourId (UUID string)
+  const [tourFilter, setTourFilter] = useState<'all' | 'none' | string>('all');
+  
+  // Selection mode state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedGigIds, setSelectedGigIds] = useState<string[]>([]);
+  
   const { data: gigs, isLoading, error } = useGigs();
   const { data: payers } = usePayers();
+  const { data: tours, isLoading: toursLoading } = useTours();
   
-  // Debug logging
-  console.log('[GigsScreen] Gigs data:', gigs?.length, 'isLoading:', isLoading, 'error:', error);
   const deleteGig = useDeleteGig();
   const updateGig = useUpdateGig();
+  const removeGigFromTour = useRemoveGigFromTour();
 
   // Use unified plan limits hook (reads from subscriptions table, same as SubscriptionScreen)
   const gigCount = gigs?.length || 0;
@@ -268,6 +326,77 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     }
   };
 
+  // Selection mode handlers
+  const handleEnterSelectionMode = () => {
+    setIsSelectionMode(true);
+    setSelectedGigIds([]);
+  };
+
+  const handleCancelSelection = () => {
+    setIsSelectionMode(false);
+    setSelectedGigIds([]);
+  };
+
+  const handleToggleGigSelection = (gigId: string) => {
+    setSelectedGigIds(prev => {
+      if (prev.includes(gigId)) {
+        return prev.filter(id => id !== gigId);
+      } else {
+        return [...prev, gigId];
+      }
+    });
+  };
+
+  // Bulk action handlers
+  const handleAddToTour = () => {
+    if (selectedGigIds.length === 0) return;
+    setAssignToTourModalVisible(true);
+  };
+
+  const handleRemoveFromTour = async () => {
+    if (selectedGigIds.length === 0) return;
+
+    const confirmMessage = `Remove ${selectedGigIds.length} gig${selectedGigIds.length !== 1 ? 's' : ''} from their tours? This cannot be undone.`;
+    
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm(confirmMessage)
+      : await new Promise<boolean>(resolve => {
+          Alert.alert(
+            'Remove from Tours',
+            confirmMessage,
+            [
+              { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
+              { text: 'Remove', onPress: () => resolve(true), style: 'destructive' },
+            ]
+          );
+        });
+
+    if (!confirmed) return;
+
+    try {
+      // Remove each gig from its tour
+      for (const gigId of selectedGigIds) {
+        await removeGigFromTour.mutateAsync({ gigId });
+      }
+      // Exit selection mode and clear selections
+      setIsSelectionMode(false);
+      setSelectedGigIds([]);
+    } catch (error) {
+      console.error('Failed to remove gigs from tours:', error);
+      if (Platform.OS === 'web') {
+        window.alert("Couldn't remove gigs from tours. Try again.");
+      } else {
+        Alert.alert('Error', "Couldn't remove gigs from tours. Try again.");
+      }
+    }
+  };
+
+  // Check if all selected gigs have tours
+  const allSelectedHaveTour = selectedGigIds.every(id => {
+    const gig = filteredGigs.find(g => g.id === id);
+    return gig?.tour_id != null;
+  });
+
   const formatDate = (dateString: string) => {
     // Parse date as local date to avoid timezone shifts
     const [year, month, day] = dateString.split('-').map(Number);
@@ -304,9 +433,16 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     );
   }
 
-  const totalGross = gigs?.reduce((sum, gig) => sum + (gig.gross_amount || 0), 0) || 0;
+  // Filter gigs based on tour filter
+  const filteredGigs = gigs?.filter(gig => {
+    if (tourFilter === 'all') return true;
+    if (tourFilter === 'none') return !gig.tour_id;
+    return gig.tour_id === tourFilter;
+  }) || [];
+
+  const totalGross = filteredGigs?.reduce((sum, gig) => sum + (gig.gross_amount || 0), 0) || 0;
   // Calculate total net including gig expenses
-  const totalNet = gigs?.reduce((sum, gig) => {
+  const totalNet = filteredGigs?.reduce((sum, gig) => {
     const gigExpensesTotal = (gig.expenses || []).reduce((expSum, exp) => expSum + exp.amount, 0);
     const actualNet = gig.gross_amount 
       + (gig.tips || 0) 
@@ -320,39 +456,143 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <H1>Gigs</H1>
-          <Text muted>
-            {gigs?.length || 0} gigs • {formatCurrency(totalNet)} net
-          </Text>
-        </View>
-        <View style={styles.headerButtons}>
-          <Button
-            variant="secondary"
-            size="sm"
-            onPress={() => setImportModalVisible(true)}
-          >
-            📥 Import
-          </Button>
-          {hasReachedGigLimit ? (
-            <Button
-              variant="success"
-              size="sm"
-              onPress={handleUpgradeClick}
+        {isSelectionMode ? (
+          <>
+            <View>
+              <H1>{selectedGigIds.length} selected</H1>
+            </View>
+            <View style={styles.headerButtons}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={handleCancelSelection}
+              >
+                Cancel
+              </Button>
+            </View>
+          </>
+        ) : (
+          <>
+            <View>
+              <H1>Gigs</H1>
+              <Text muted>
+                {filteredGigs?.length || 0} gigs • {formatCurrency(totalNet)} net
+              </Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.headerButtons}
             >
-              ⭐ Upgrade to add more
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              onPress={handleAddGigClick}
-            >
-              + Add Gig
-            </Button>
-          )}
-        </View>
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={() => setImportModalVisible(true)}
+              >
+                📥 Import
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={() => setCreateTourModalVisible(true)}
+              >
+                + Tour
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={handleEnterSelectionMode}
+              >
+                Select
+              </Button>
+              {hasReachedGigLimit ? (
+                <Button
+                  variant="success"
+                  size="sm"
+                  onPress={handleUpgradeClick}
+                >
+                  ⭐ Upgrade to add more
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onPress={handleAddGigClick}
+                >
+                  + Add Gig
+                </Button>
+              )}
+            </ScrollView>
+          </>
+        )}
       </View>
+
+      {/* Tour Filter Bar - hidden in selection mode */}
+      {!isSelectionMode && (
+        <View style={styles.filterBar}>
+        <Text style={styles.filterLabel}>Filter by tour:</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterButtons}
+        >
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                tourFilter === 'all' && styles.filterButtonActive,
+              ]}
+              onPress={() => setTourFilter('all')}
+            >
+              <Text
+                style={
+                  tourFilter === 'all'
+                    ? styles.filterButtonTextActive
+                    : styles.filterButtonText
+                }
+              >
+                All Gigs
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                tourFilter === 'none' && styles.filterButtonActive,
+              ]}
+              onPress={() => setTourFilter('none')}
+            >
+              <Text
+                style={
+                  tourFilter === 'none'
+                    ? styles.filterButtonTextActive
+                    : styles.filterButtonText
+                }
+              >
+                No Tour
+              </Text>
+            </TouchableOpacity>
+            {tours?.map((tour) => (
+              <TouchableOpacity
+                key={tour.id}
+                style={[
+                  styles.filterButton,
+                  tourFilter === tour.id && styles.filterButtonActive,
+                ]}
+                onPress={() => setTourFilter(tour.id)}
+              >
+                <Text
+                  style={
+                    tourFilter === tour.id
+                      ? styles.filterButtonTextActive
+                      : styles.filterButtonText
+                  }
+                >
+                  🎸 {tour.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+        </ScrollView>
+        </View>
+      )}
 
       {/* Usage Banner - show for all free plan users */}
       {isFreePlan && (
@@ -366,18 +606,32 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         </View>
       )}
 
-      {gigs && gigs.length === 0 ? (
+      {filteredGigs && filteredGigs.length === 0 ? (
         <EmptyState
-          title="No gigs yet"
-          description="Start tracking your performances and income"
-          action={{
-            label: 'Add Gig',
-            onPress: handleAddGigClick,
-          }}
+          title={
+            tourFilter === 'all'
+              ? "No gigs yet"
+              : tourFilter === 'none'
+              ? "No gigs without a tour"
+              : "No gigs in this tour"
+          }
+          description={
+            tourFilter === 'all'
+              ? "Start tracking your performances and income"
+              : "Try a different filter"
+          }
+          action={
+            tourFilter === 'all'
+              ? {
+                  label: 'Add Gig',
+                  onPress: handleAddGigClick,
+                }
+              : undefined
+          }
         />
       ) : (
         <FlatList
-          data={gigs}
+          data={filteredGigs}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
@@ -390,6 +644,9 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
               togglingGigId={togglingGigId}
               formatDate={formatDate}
               formatCurrency={formatCurrency}
+              isSelectionMode={isSelectionMode}
+              isSelected={selectedGigIds.includes(item.id)}
+              onToggleSelection={() => handleToggleGigSelection(item.id)}
             />
           )}
         />
@@ -432,6 +689,45 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           }}
         />
       )}
+
+      {/* Create Tour Modal */}
+      <CreateTourModal
+        visible={createTourModalVisible}
+        onClose={() => setCreateTourModalVisible(false)}
+      />
+
+      {/* Assign to Tour Modal */}
+      <AssignGigsToTourModal
+        visible={assignToTourModalVisible}
+        gigIds={selectedGigIds}
+        onClose={() => {
+          setAssignToTourModalVisible(false);
+          setIsSelectionMode(false);
+          setSelectedGigIds([]);
+        }}
+      />
+
+      {/* Bulk Actions Bar - shown at bottom when gigs are selected */}
+      {isSelectionMode && selectedGigIds.length > 0 && (
+        <View style={styles.bulkActionsBar}>
+          <Button
+            variant="primary"
+            size="sm"
+            onPress={handleAddToTour}
+          >
+            Add to Tour
+          </Button>
+          {allSelectedHaveTour && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onPress={handleRemoveFromTour}
+            >
+              Remove from Tour
+            </Button>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -462,6 +758,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: parseInt(spacing[2]),
   },
+  filterBar: {
+    paddingLeft: parseInt(spacing[5]),
+    paddingVertical: parseInt(spacing[3]),
+    backgroundColor: colors.surface.DEFAULT,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.DEFAULT,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.muted,
+    marginBottom: parseInt(spacing[2]),
+    paddingRight: parseInt(spacing[5]),
+  },
+  filterButtons: {
+    flexDirection: 'row',
+    gap: parseInt(spacing[2]),
+    paddingRight: parseInt(spacing[5]),
+  },
+  filterButton: {
+    paddingHorizontal: parseInt(spacing[3]),
+    paddingVertical: parseInt(spacing[2]),
+    borderRadius: parseInt(radius.md),
+    backgroundColor: colors.surface.muted,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+  },
+  filterButtonActive: {
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
+  },
+  filterButtonText: {
+    fontSize: 13,
+    color: colors.text.DEFAULT,
+    fontWeight: typography.fontWeight.medium,
+  },
+  filterButtonTextActive: {
+    color: '#ffffff',
+    fontWeight: typography.fontWeight.semibold,
+  },
   listContent: {
     padding: parseInt(spacing[4]),
   },
@@ -474,6 +810,33 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: parseInt(spacing[3]),
+  },
+  cardSelected: {
+    borderWidth: 2,
+    borderColor: colors.brand.DEFAULT,
+  },
+  checkbox: {
+    paddingTop: parseInt(spacing[1]),
+    marginRight: parseInt(spacing[3]),
+  },
+  checkboxBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxBoxChecked: {
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
+  },
+  checkboxCheck: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: typography.fontWeight.bold,
   },
   cardContent: {
     flexDirection: 'row',
@@ -545,5 +908,30 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     alignSelf: 'flex-start',
+  },
+  bulkActionsBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    gap: parseInt(spacing[3]),
+    padding: parseInt(spacing[4]),
+    paddingBottom: parseInt(spacing[6]), // Extra padding for safe area (home indicator)
+    backgroundColor: colors.surface.DEFAULT,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.DEFAULT,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 -4px 6px -1px rgb(0 0 0 / 0.1)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 8,
+      },
+    }),
   },
 });
