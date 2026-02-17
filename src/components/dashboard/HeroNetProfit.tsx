@@ -41,6 +41,11 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
   }
 
   const netProfit = currentData.totals.net;
+  // Calculate gross income from income breakdown
+  const grossIncome = currentData.incomeBreakdown.gross + currentData.incomeBreakdown.tips + 
+                      currentData.incomeBreakdown.perDiem + currentData.incomeBreakdown.other;
+  // Calculate total deductions from expense breakdown and mileage
+  const totalDeductions = currentData.expenseBreakdown.reduce((sum, exp) => sum + exp.amount, 0);
   const last30Net = last30Data.totals.net;
   const delta = netProfit - last30Net;
   const deltaPercent = last30Net !== 0 ? (delta / Math.abs(last30Net)) * 100 : 0;
@@ -107,6 +112,23 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
       {/* Sparkline */}
       <View style={styles.sparklineContainer}>
         <MiniSparkline data={sparklineData} color={netProfit >= 0 ? chartColors.green : chartColors.red} />
+      </View>
+
+      {/* Gross Income & Deductions Summary */}
+      <View style={[styles.summaryRow, { borderTopColor: colors.border }]}>
+        <View style={styles.summaryItem}>
+          <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Gross Income</Text>
+          <Text style={[styles.summaryValue, { color: chartColors.green }]}>
+            {formatCurrency(grossIncome)}
+          </Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Deductions</Text>
+          <Text style={[styles.summaryValue, { color: chartColors.red }]}>
+            {formatCurrency(totalDeductions)}
+          </Text>
+        </View>
       </View>
 
       {/* Set Aside pill */}
@@ -358,5 +380,33 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingTop: 16,
+    marginTop: 16,
+    borderTopWidth: 1,
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  summaryDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#e5e7eb',
   },
 });
