@@ -88,47 +88,60 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
       style={[styles.container, { backgroundColor: colors.cardBg }]}
       {...(Platform.OS === 'web' ? { className: 'dashboard-summary' } : {})}
     >
-      {/* Main Net Profit */}
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.label, { color: colors.textMuted }]}>Net Profit {dateRange.toUpperCase()}</Text>
+        <Text style={[styles.label, { color: colors.textMuted }]}>Financial Overview {dateRange.toUpperCase()}</Text>
       </View>
 
-      <View style={styles.mainValue}>
-        <Text style={[styles.amount, { color: getStatusColor(netProfit) }]}>
-          {formatCurrency(netProfit)}
-        </Text>
-
-        {/* Delta chip */}
-        <View style={[
-          styles.deltaChip,
-          { backgroundColor: delta >= 0 ? 'rgba(22, 163, 74, 0.1)' : 'rgba(239, 68, 68, 0.1)' }
-        ]}>
-          <Text style={[styles.deltaText, { color: getStatusColor(delta, 'change') }]}>
-            {delta >= 0 ? '↑' : '↓'} {formatCurrency(Math.abs(delta))} ({Math.abs(deltaPercent).toFixed(1)}%)
+      {/* Three-column layout: Gross → Deductions → Net Profit */}
+      <View style={styles.metricsRow}>
+        {/* Gross Income */}
+        <View style={styles.metricItem}>
+          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Gross Income</Text>
+          <Text style={[styles.metricAmount, { color: chartColors.green }]}>
+            {formatCurrency(grossIncome)}
           </Text>
+        </View>
+
+        {/* Arrow */}
+        <View style={styles.arrowContainer}>
+          <Text style={[styles.arrow, { color: colors.textMuted }]}>−</Text>
+        </View>
+
+        {/* Deductions */}
+        <View style={styles.metricItem}>
+          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Deductions</Text>
+          <Text style={[styles.metricAmount, { color: chartColors.red }]}>
+            {formatCurrency(totalDeductions)}
+          </Text>
+        </View>
+
+        {/* Equals */}
+        <View style={styles.arrowContainer}>
+          <Text style={[styles.arrow, { color: colors.textMuted }]}>=</Text>
+        </View>
+
+        {/* Net Profit */}
+        <View style={styles.metricItem}>
+          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Net Profit</Text>
+          <Text style={[styles.metricAmount, { color: getStatusColor(netProfit) }]}>
+            {formatCurrency(netProfit)}
+          </Text>
+          {/* Delta chip */}
+          <View style={[
+            styles.deltaChip,
+            { backgroundColor: delta >= 0 ? 'rgba(22, 163, 74, 0.1)' : 'rgba(239, 68, 68, 0.1)' }
+          ]}>
+            <Text style={[styles.deltaText, { color: getStatusColor(delta, 'change') }]}>
+              {delta >= 0 ? '↑' : '↓'} {formatCurrency(Math.abs(delta))}
+            </Text>
+          </View>
         </View>
       </View>
 
       {/* Sparkline */}
       <View style={styles.sparklineContainer}>
         <MiniSparkline data={sparklineData} color={netProfit >= 0 ? chartColors.green : chartColors.red} />
-      </View>
-
-      {/* Gross Income & Deductions Summary */}
-      <View style={[styles.summaryRow, { borderTopColor: colors.border }]}>
-        <View style={styles.summaryItem}>
-          <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Gross Income</Text>
-          <Text style={[styles.summaryValue, { color: chartColors.green }]}>
-            {formatCurrency(grossIncome)}
-          </Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryItem}>
-          <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>Deductions</Text>
-          <Text style={[styles.summaryValue, { color: chartColors.red }]}>
-            {formatCurrency(totalDeductions)}
-          </Text>
-        </View>
       </View>
 
       {/* Set Aside pill */}
@@ -284,7 +297,7 @@ const styles = StyleSheet.create({
     }),
   },
   header: {
-    marginBottom: 8,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
@@ -292,23 +305,46 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  mainValue: {
+  metricsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    gap: 8,
   },
-  amount: {
-    fontSize: 36,
+  metricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  metricLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  metricAmount: {
+    fontSize: 24,
     fontWeight: '700',
+    marginBottom: 4,
+  },
+  arrowContainer: {
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrow: {
+    fontSize: 24,
+    fontWeight: '300',
   },
   deltaChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginTop: 4,
   },
   deltaText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
   },
   sparklineContainer: {
@@ -380,33 +416,5 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingTop: 16,
-    marginTop: 16,
-    borderTopWidth: 1,
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  summaryDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#e5e7eb',
   },
 });
