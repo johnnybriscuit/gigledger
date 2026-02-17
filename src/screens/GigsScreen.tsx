@@ -461,7 +461,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
             <View>
               <H1>{selectedGigIds.length} selected</H1>
             </View>
-            <View style={styles.headerButtons}>
+            <View>
               <Button
                 variant="secondary"
                 size="sm"
@@ -479,50 +479,52 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
                 {filteredGigs?.length || 0} gigs • {formatCurrency(totalNet)} net
               </Text>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.headerButtons}
-            >
-              <Button
-                variant="secondary"
-                size="sm"
-                onPress={() => setImportModalVisible(true)}
+            <View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.headerButtons}
               >
-                📥 Import
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onPress={() => setCreateTourModalVisible(true)}
-              >
-                + Tour
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onPress={handleEnterSelectionMode}
-              >
-                Select
-              </Button>
-              {hasReachedGigLimit ? (
                 <Button
-                  variant="success"
+                  variant="secondary"
                   size="sm"
-                  onPress={handleUpgradeClick}
+                  onPress={() => setImportModalVisible(true)}
                 >
-                  ⭐ Upgrade to add more
+                  📥 Import
                 </Button>
-              ) : (
                 <Button
-                  variant="primary"
+                  variant="secondary"
                   size="sm"
-                  onPress={handleAddGigClick}
+                  onPress={() => setCreateTourModalVisible(true)}
                 >
-                  + Add Gig
+                  + Tour
                 </Button>
-              )}
-            </ScrollView>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onPress={handleEnterSelectionMode}
+                >
+                  Select
+                </Button>
+                {hasReachedGigLimit ? (
+                  <Button
+                    variant="success"
+                    size="sm"
+                    onPress={handleUpgradeClick}
+                  >
+                    ⭐ Upgrade to add more
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onPress={handleAddGigClick}
+                  >
+                    + Add Gig
+                  </Button>
+                )}
+              </ScrollView>
+            </View>
           </>
         )}
       </View>
@@ -541,7 +543,8 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
                 backgroundColor: 'white',
                 fontSize: 14,
                 cursor: 'pointer',
-                minWidth: 200,
+                minWidth: 160,
+                maxWidth: 250,
                 fontFamily: 'system-ui, -apple-system, sans-serif',
               } as any}
             >
@@ -952,6 +955,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.DEFAULT,
     borderTopWidth: 1,
     borderTopColor: colors.border.DEFAULT,
+    zIndex: 100,
     ...Platform.select({
       web: {
         boxShadow: '0 -4px 6px -1px rgb(0 0 0 / 0.1)',
