@@ -529,97 +529,125 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         )}
       </View>
 
-      {/* Tour Filter Dropdown - hidden in selection mode */}
-      {!isSelectionMode && (
-        <View style={styles.filterBar}>
-          {Platform.OS === 'web' ? (
-            <select
-              value={tourFilter}
-              onChange={(e: any) => setTourFilter(e.target.value)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: '1px solid #e5e7eb',
-                backgroundColor: 'white',
-                fontSize: 14,
-                cursor: 'pointer',
-                minWidth: 160,
-                maxWidth: 250,
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-              } as any}
-            >
-              <option value="all">All Gigs</option>
-              <option value="none">No Tour</option>
-              {tours?.map((tour) => (
-                <option key={tour.id} value={tour.id}>
-                  {tour.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterButtons}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  tourFilter === 'all' && styles.filterButtonActive,
-                ]}
-                onPress={() => setTourFilter('all')}
+      {/* Filter/Actions Bar - shows tour filter OR bulk actions */}
+      <View style={styles.filterBar}>
+        {isSelectionMode ? (
+          // Bulk actions when in selection mode
+          <View style={styles.bulkActionsInline}>
+            <Text style={styles.bulkActionsLabel}>
+              {selectedGigIds.length} gig{selectedGigIds.length !== 1 ? 's' : ''} selected
+            </Text>
+            <View style={styles.bulkActionsButtons}>
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={handleAddToTour}
               >
-                <Text
-                  style={
-                    tourFilter === 'all'
-                      ? styles.filterButtonTextActive
-                      : styles.filterButtonText
-                  }
+                Add to Tour
+              </Button>
+              {allSelectedHaveTour && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onPress={handleRemoveFromTour}
                 >
-                  All Gigs
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  tourFilter === 'none' && styles.filterButtonActive,
-                ]}
-                onPress={() => setTourFilter('none')}
+                  Remove from Tour
+                </Button>
+              )}
+            </View>
+          </View>
+        ) : (
+          // Tour filter dropdown when not in selection mode
+          <>
+            {Platform.OS === 'web' ? (
+              <select
+                value={tourFilter}
+                onChange={(e: any) => setTourFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  border: '1px solid #e5e7eb',
+                  backgroundColor: 'white',
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  minWidth: 160,
+                  maxWidth: 250,
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                } as any}
               >
-                <Text
-                  style={
-                    tourFilter === 'none'
-                      ? styles.filterButtonTextActive
-                      : styles.filterButtonText
-                  }
-                >
-                  No Tour
-                </Text>
-              </TouchableOpacity>
-              {tours?.map((tour) => (
+                <option value="all">All Gigs</option>
+                <option value="none">No Tour</option>
+                {tours?.map((tour) => (
+                  <option key={tour.id} value={tour.id}>
+                    {tour.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterButtons}
+              >
                 <TouchableOpacity
-                  key={tour.id}
                   style={[
                     styles.filterButton,
-                    tourFilter === tour.id && styles.filterButtonActive,
+                    tourFilter === 'all' && styles.filterButtonActive,
                   ]}
-                  onPress={() => setTourFilter(tour.id)}
+                  onPress={() => setTourFilter('all')}
                 >
                   <Text
                     style={
-                      tourFilter === tour.id
+                      tourFilter === 'all'
                         ? styles.filterButtonTextActive
                         : styles.filterButtonText
                     }
                   >
-                    🎸 {tour.name}
+                    All Gigs
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-        </View>
-      )}
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    tourFilter === 'none' && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setTourFilter('none')}
+                >
+                  <Text
+                    style={
+                      tourFilter === 'none'
+                        ? styles.filterButtonTextActive
+                        : styles.filterButtonText
+                    }
+                  >
+                    No Tour
+                  </Text>
+                </TouchableOpacity>
+                {tours?.map((tour) => (
+                  <TouchableOpacity
+                    key={tour.id}
+                    style={[
+                      styles.filterButton,
+                      tourFilter === tour.id && styles.filterButtonActive,
+                    ]}
+                    onPress={() => setTourFilter(tour.id)}
+                  >
+                    <Text
+                      style={
+                        tourFilter === tour.id
+                          ? styles.filterButtonTextActive
+                          : styles.filterButtonText
+                      }
+                    >
+                      🎸 {tour.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </>
+        )}
+      </View>
 
       {/* Usage Banner - show for all free plan users */}
       {isFreePlan && (
@@ -662,10 +690,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           <FlatList
             data={filteredGigs}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={[
-              styles.listContent,
-              isSelectionMode && selectedGigIds.length > 0 && styles.listContentWithBar,
-            ]}
+            contentContainerStyle={styles.listContent}
             renderItem={({ item }) => (
               <GigCard
                 item={item}
@@ -682,28 +707,6 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
               />
             )}
           />
-        )}
-
-        {/* Bulk Actions Bar - fixed at bottom when gigs are selected */}
-        {isSelectionMode && selectedGigIds.length > 0 && (
-          <View style={styles.bulkActionsBar}>
-            <Button
-              variant="primary"
-              size="sm"
-              onPress={handleAddToTour}
-            >
-              Add to Tour
-            </Button>
-            {allSelectedHaveTour && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onPress={handleRemoveFromTour}
-              >
-                Remove from Tour
-              </Button>
-            )}
-          </View>
         )}
       </View>
 
@@ -790,6 +793,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.DEFAULT,
+    ...Platform.select({
+      web: {
+        position: 'sticky' as any,
+        top: 0,
+        zIndex: 50,
+      },
+    }),
   },
   headerButtons: {
     flexDirection: 'row',
@@ -802,6 +812,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.DEFAULT,
+    ...Platform.select({
+      web: {
+        position: 'sticky' as any,
+        top: 73, // Height of header
+        zIndex: 40,
+      },
+    }),
+  },
+  bulkActionsInline: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  bulkActionsLabel: {
+    fontSize: 14,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.DEFAULT,
+  },
+  bulkActionsButtons: {
+    flexDirection: 'row',
+    gap: parseInt(spacing[2]),
   },
   filterButtons: {
     flexDirection: 'row',
@@ -831,9 +863,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: parseInt(spacing[4]),
-  },
-  listContentWithBar: {
-    paddingBottom: 100, // Extra padding when bulk actions bar is visible
   },
   bannerWrapper: {
     padding: parseInt(spacing[4]),
@@ -942,31 +971,5 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     alignSelf: 'flex-start',
-  },
-  bulkActionsBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    gap: parseInt(spacing[3]),
-    padding: parseInt(spacing[4]),
-    paddingBottom: parseInt(spacing[6]), // Extra padding for safe area (home indicator)
-    backgroundColor: colors.surface.DEFAULT,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
-    zIndex: 100,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 -4px 6px -1px rgb(0 0 0 / 0.1)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 8,
-      },
-    }),
   },
 });
