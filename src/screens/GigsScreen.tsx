@@ -391,12 +391,6 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     }
   };
 
-  // Check if all selected gigs have tours
-  const allSelectedHaveTour = selectedGigIds.every(id => {
-    const gig = filteredGigs.find(g => g.id === id);
-    return gig?.tour_id != null;
-  });
-
   const formatDate = (dateString: string) => {
     // Parse date as local date to avoid timezone shifts
     const [year, month, day] = dateString.split('-').map(Number);
@@ -439,6 +433,12 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     if (tourFilter === 'none') return !gig.tour_id;
     return gig.tour_id === tourFilter;
   }) || [];
+
+  // Check if all selected gigs have tours (must be AFTER filteredGigs is defined)
+  const allSelectedHaveTour = selectedGigIds.length > 0 && selectedGigIds.every(id => {
+    const gig = filteredGigs?.find(g => g.id === id);
+    return gig?.tour_id != null;
+  });
 
   const totalGross = filteredGigs?.reduce((sum, gig) => sum + (gig.gross_amount || 0), 0) || 0;
   // Calculate total net including gig expenses
@@ -757,6 +757,7 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: 'row',
     gap: parseInt(spacing[2]),
+    flexShrink: 1,
   },
   filterBar: {
     paddingLeft: parseInt(spacing[5]),
