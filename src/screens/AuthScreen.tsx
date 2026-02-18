@@ -15,14 +15,15 @@ interface AuthScreenProps {
   onNavigateToPrivacy?: () => void;
   onNavigateToForgotPassword?: () => void;
   onNavigateToHome?: () => void;
+  initialMode?: 'signin' | 'signup';
 }
 
 type AuthMode = 'signin' | 'signup';
 type AuthMethod = 'magic' | 'password';
 
-export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateToForgotPassword, onNavigateToHome }: AuthScreenProps) {
+export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateToForgotPassword, onNavigateToHome, initialMode = 'signin' }: AuthScreenProps) {
   // Mode: Sign In or Create Account
-  const [mode, setMode] = useState<AuthMode>('signin');
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   
   // Method: Magic Link or Email + Password
   const [method, setMethod] = useState<AuthMethod>('magic');

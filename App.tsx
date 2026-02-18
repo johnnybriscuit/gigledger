@@ -67,6 +67,7 @@ function AppContent() {
   const [authResolved, setAuthResolved] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [onboardingJustCompleted, setOnboardingJustCompleted] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
 
   // Sync URL with current route on web
   useEffect(() => {
@@ -247,8 +248,14 @@ function AppContent() {
       <>
         <StatusBar style="dark" />
         <PublicLandingPage 
-          onGetStarted={() => setCurrentRoute('auth')}
-          onSignIn={() => setCurrentRoute('auth')}
+          onGetStarted={() => {
+            setAuthMode('signup');
+            setCurrentRoute('auth');
+          }}
+          onSignIn={() => {
+            setAuthMode('signin');
+            setCurrentRoute('auth');
+          }}
           onNavigateToTerms={() => setCurrentRoute('terms')}
           onNavigateToPrivacy={() => setCurrentRoute('privacy')}
         />
@@ -369,6 +376,7 @@ function AppContent() {
       <>
         <StatusBar style="dark" />
         <AuthScreen 
+          initialMode={authMode}
           onNavigateToTerms={() => setCurrentRoute('terms')}
           onNavigateToPrivacy={() => setCurrentRoute('privacy')}
           onNavigateToForgotPassword={() => setCurrentRoute('forgot-password')}
