@@ -1222,45 +1222,84 @@ export type Database = {
       subcontractors: {
         Row: {
           address: string | null
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          country: string | null
           created_at: string
+          edelivery_consent: boolean
+          edelivery_email: string | null
           email: string | null
           id: string
+          last_1099_email_sent_at: string | null
+          legal_name: string | null
           name: string
           normalized_name: string
           phone: string | null
+          postal_code: string | null
           role: string | null
+          state: string | null
           tax_id_last4: string | null
           tax_id_type: string | null
+          tin_encrypted: string | null
           updated_at: string
           user_id: string
+          w9_document_url: string | null
+          w9_status: string
         }
         Insert: {
           address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          edelivery_consent?: boolean
+          edelivery_email?: string | null
           email?: string | null
           id?: string
+          last_1099_email_sent_at?: string | null
+          legal_name?: string | null
           name: string
           normalized_name: string
           phone?: string | null
+          postal_code?: string | null
           role?: string | null
+          state?: string | null
           tax_id_last4?: string | null
           tax_id_type?: string | null
+          tin_encrypted?: string | null
           updated_at?: string
           user_id: string
+          w9_document_url?: string | null
+          w9_status?: string
         }
         Update: {
           address?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          edelivery_consent?: boolean
+          edelivery_email?: string | null
           email?: string | null
           id?: string
+          last_1099_email_sent_at?: string | null
+          legal_name?: string | null
           name?: string
           normalized_name?: string
           phone?: string | null
+          postal_code?: string | null
           role?: string | null
+          state?: string | null
           tax_id_last4?: string | null
           tax_id_type?: string | null
+          tin_encrypted?: string | null
           updated_at?: string
           user_id?: string
+          w9_document_url?: string | null
+          w9_status?: string
         }
         Relationships: []
       }
