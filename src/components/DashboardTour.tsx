@@ -16,23 +16,16 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
   useEffect(() => {
     if (show) {
       const checkElements = () => {
-        // Try multiple selectors to find the sidebar
-        const sidebar = document.querySelector('.sidebar') || 
-                       document.querySelector('[class*="sidebar"]') ||
-                       document.querySelector('.nav-gigs')?.closest('div[style*="width"]');
+        const navDashboard = document.querySelector('.nav-dashboard');
+        const navGigs = document.querySelector('.nav-gigs');
         
-        if (sidebar) {
-          console.log('✅ Tour elements ready - found sidebar:', sidebar.className || sidebar.tagName);
+        if (navDashboard && navGigs) {
+          console.log('✅ Tour elements ready');
           setIsReady(true);
         } else {
-          // Debug: log what we can find
-          const navGigs = document.querySelector('.nav-gigs');
-          const allDivs = document.querySelectorAll('div').length;
-          console.log('⏳ Waiting for sidebar...', { 
-            hasSidebar: !!document.querySelector('.sidebar'),
-            hasNavGigs: !!navGigs,
-            totalDivs: allDivs,
-            navGigsParent: navGigs?.parentElement?.className
+          console.log('⏳ Waiting for nav elements...', { 
+            hasNavDashboard: !!navDashboard,
+            hasNavGigs: !!navGigs
           });
           setTimeout(checkElements, 100);
         }
@@ -74,10 +67,10 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
       spotlightClicks: false,
     },
     {
-      target: '.sidebar',
+      target: '.nav-dashboard',
       content: (
         <div>
-          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>� Your Navigation</h3>
+          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>📱 Your Navigation</h3>
           <p style={{ lineHeight: '1.6', marginBottom: '12px' }}>
             Everything you need is in the sidebar: <strong>Dashboard</strong> for your overview, <strong>Contacts</strong> for clients and venues, <strong>Gigs</strong> for income tracking, <strong>Expenses</strong> and <strong>Mileage</strong> for deductions, <strong>Invoices</strong> for billing, and <strong>Exports</strong> for tax time.
           </p>

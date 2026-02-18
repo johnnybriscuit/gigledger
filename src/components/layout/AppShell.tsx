@@ -183,23 +183,6 @@ export function AppShell({
       </View>
     );
 
-    // Wrap in div with className for web to enable tour targeting
-    if (Platform.OS === 'web') {
-      return (
-        <div 
-          className="sidebar" 
-          style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            height: '100%',
-            width: '100%'
-          }}
-        >
-          {sidebarContent}
-        </div>
-      );
-    }
-
     return sidebarContent;
   };
 
