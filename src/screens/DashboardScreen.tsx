@@ -81,6 +81,14 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       const urlParams = new URLSearchParams(window.location.search);
       const tourParam = urlParams.get('tour') === 'true';
       
+      console.log('🎯 Tour decision logic:', {
+        justCompletedOnboarding,
+        shouldShowTour,
+        hasCompletedV2,
+        tourParam,
+        willShowTour: tourParam || (shouldShowTour === 'true' && !hasCompletedV2)
+      });
+      
       if (justCompletedOnboarding === 'true') {
         setShowOnboardingToast(true);
         setActiveTab('dashboard'); // Ensure we're on dashboard after onboarding
@@ -91,6 +99,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       
       // Show tour if: explicitly requested OR (should show AND hasn't completed v2)
       if (tourParam || (shouldShowTour === 'true' && !hasCompletedV2)) {
+        console.log('✅ Starting tour...');
         // Delay tour slightly to ensure DOM is ready
         setTimeout(() => {
           setShowTour(true);
@@ -100,6 +109,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
             window.history.replaceState({}, '', '/dashboard');
           }
         }, 500);
+      } else {
+        console.log('❌ Tour not shown');
       }
     }
   }, []);
