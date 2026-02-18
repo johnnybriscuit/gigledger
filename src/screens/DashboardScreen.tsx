@@ -97,9 +97,11 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         localStorage.removeItem('activeTab');
       }
       
-      // Show tour if: explicitly requested OR (should show AND hasn't completed v2)
-      if (tourParam || (shouldShowTour === 'true' && !hasCompletedV2)) {
-        console.log('✅ Starting tour...');
+      // Show tour if: explicitly requested OR (should show AND hasn't completed v2) OR (new user fallback)
+      const shouldShowForNewUser = !hasCompletedV2 && !shouldShowTour; // New user who bypassed OnboardingFlow
+      
+      if (tourParam || (shouldShowTour === 'true' && !hasCompletedV2) || shouldShowForNewUser) {
+        console.log('✅ Starting tour...', { tourParam, shouldShowTour, hasCompletedV2, shouldShowForNewUser });
         // Delay tour slightly to ensure DOM is ready
         setTimeout(() => {
           setShowTour(true);
