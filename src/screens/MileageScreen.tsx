@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useMileage, useDeleteMileage, calculateMileageDeduction, IRS_MILEAGE_RATE, useCreateMileage } from '../hooks/useMileage';
 import { AddMileageModal } from '../components/AddMileageModal';
+import { OnboardingHelperCard } from '../components/OnboardingHelperCard';
 import { H1, H3, Text, Button, Card, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
@@ -115,14 +116,15 @@ export function MileageScreen() {
       </View>
 
       {mileage && mileage.length === 0 ? (
-        <EmptyState
-          title="No mileage tracked yet"
-          description="Track business miles for tax deductions"
-          action={{
-            label: 'Add Trip',
-            onPress: () => setModalVisible(true),
-          }}
-        />
+        <View style={{ padding: 20 }}>
+          <OnboardingHelperCard
+            icon="🚗"
+            title="Add home address for auto-calc mileage"
+            description="Set your home address in Account Settings to automatically calculate mileage when you add gigs. Or manually add trips here."
+            actionLabel="Add Trip Manually"
+            onAction={() => setModalVisible(true)}
+          />
+        </View>
       ) : (
         <FlatList
           data={mileage}

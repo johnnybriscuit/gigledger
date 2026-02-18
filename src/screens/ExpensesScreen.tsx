@@ -13,6 +13,7 @@ import { AddExpenseModal } from '../components/AddExpenseModal';
 import { RecurringExpenseModal } from '../components/RecurringExpenseModal';
 import { PaywallModal } from '../components/PaywallModal';
 import { UsageLimitBanner } from '../components/UsageLimitBanner';
+import { OnboardingHelperCard } from '../components/OnboardingHelperCard';
 import {
   useRecurringExpenses,
   useActiveRecurringExpenses,
@@ -270,14 +271,15 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
 
       {/* All Expenses Tab */}
       {activeTab === 'all' && (expenses && expenses.length === 0 ? (
-        <EmptyState
-          title="No expenses yet"
-          description="Track your business expenses for tax deductions"
-          action={{
-            label: 'Add Expense',
-            onPress: () => setModalVisible(true),
-          }}
-        />
+        <View style={{ padding: 20 }}>
+          <OnboardingHelperCard
+            icon="💰"
+            title="Log your first expense"
+            description="Track business expenses to maximize your tax deductions. Every dollar counts!"
+            actionLabel="Add Expense"
+            onAction={() => setModalVisible(true)}
+          />
+        </View>
       ) : (
         <FlatList
           data={expenses}

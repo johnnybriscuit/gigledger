@@ -17,6 +17,7 @@ import { AssignGigsToTourModal } from '../components/tours/AssignGigsToTourModal
 import { CSVImportWizard } from '../components/csv/CSVImportWizard';
 import { PaywallModal } from '../components/PaywallModal';
 import { UsageLimitBanner } from '../components/UsageLimitBanner';
+import { OnboardingHelperCard } from '../components/OnboardingHelperCard';
 import { usePayers } from '../hooks/usePayers';
 import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
 import { usePlanLimits } from '../hooks/usePlanLimits';
@@ -685,28 +686,26 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
       {/* Content area with relative positioning for bulk actions bar */}
       <View style={styles.contentArea}>
         {filteredGigs && filteredGigs.length === 0 ? (
-          <EmptyState
-            title={
-              tourFilter === 'all'
-                ? "No gigs yet"
-                : tourFilter === 'none'
-                ? "No gigs without a tour"
-                : "No gigs in this tour"
-            }
-            description={
-              tourFilter === 'all'
-                ? "Start tracking your performances and income"
-                : "Try a different filter"
-            }
-            action={
-              tourFilter === 'all'
-                ? {
-                    label: 'Add Gig',
-                    onPress: handleAddGigClick,
-                  }
-                : undefined
-            }
-          />
+          tourFilter === 'all' ? (
+            <View style={{ padding: 20 }}>
+              <OnboardingHelperCard
+                icon="🎸"
+                title="Log your first gig"
+                description="Start by logging a gig. It powers your income tracking, tax estimates, and everything else in the app."
+                actionLabel="Add Gig"
+                onAction={handleAddGigClick}
+              />
+            </View>
+          ) : (
+            <EmptyState
+              title={
+                tourFilter === 'none'
+                  ? "No gigs without a tour"
+                  : "No gigs in this tour"
+              }
+              description="Try a different filter"
+            />
+          )
         ) : (
           <FlatList
             data={filteredGigs}

@@ -488,6 +488,20 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                   🔒 Change Password
                 </Button>
 
+                {Platform.OS === 'web' && (
+                  <Button
+                    variant="ghost"
+                    onPress={() => {
+                      // Clear the v2 completion flag and navigate to dashboard with tour param
+                      localStorage.removeItem('onboarding_v2_completed');
+                      window.location.href = '/dashboard?tour=true';
+                    }}
+                    style={styles.actionButton}
+                  >
+                    🎓 Replay Tour
+                  </Button>
+                )}
+
                 <Button
                   variant="destructive"
                   onPress={handleSignOut}

@@ -4,9 +4,11 @@ import Joyride, { CallBackProps, STATUS, Step, ACTIONS, EVENTS } from 'react-joy
 interface DashboardTourProps {
   show: boolean;
   onComplete: () => void;
+  onNavigateToGigs?: () => void;
+  onOpenAddGigModal?: () => void;
 }
 
-export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }) => {
+export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, onNavigateToGigs, onOpenAddGigModal }) => {
   const [stepIndex, setStepIndex] = useState(0);
   const [isReady, setIsReady] = useState(false);
 
@@ -14,14 +16,13 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
   useEffect(() => {
     if (show) {
       const checkElements = () => {
-        const navDashboard = document.querySelector('.nav-dashboard');
-        const navPayers = document.querySelector('.nav-payers');
+        const sidebar = document.querySelector('.sidebar');
         
-        if (navDashboard && navPayers) {
+        if (sidebar) {
           console.log('✅ Tour elements ready');
           setIsReady(true);
         } else {
-          console.log('⏳ Waiting for nav elements...', { navDashboard: !!navDashboard, navPayers: !!navPayers });
+          console.log('⏳ Waiting for sidebar...', { sidebar: !!sidebar });
           setTimeout(checkElements, 100);
         }
       };
@@ -33,17 +34,31 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
     }
   }, [show]);
 
+  const handleAddFirstGig = () => {
+    console.log('🎯 Add First Gig clicked from tour');
+    if (onNavigateToGigs) {
+      onNavigateToGigs();
+    }
+    if (onOpenAddGigModal) {
+      // Small delay to ensure navigation completes
+      setTimeout(() => {
+        onOpenAddGigModal();
+      }, 300);
+    }
+    onComplete();
+  };
+
   const steps: Step[] = [
     {
       target: 'body',
       content: (
         <div>
-          <h2 style={{ marginBottom: '12px', fontSize: '20px' }}>🎉 Welcome to GigLedger!</h2>
+          <h2 style={{ marginBottom: '12px', fontSize: '20px' }}>🎉 Welcome to Bozzy!</h2>
           <p style={{ marginBottom: '8px', lineHeight: '1.6' }}>
             Let's take a quick tour so you know where everything is.
           </p>
           <p style={{ fontSize: '14px', color: '#6b7280' }}>
-            This will take about 60 seconds.
+            This will only take 30 seconds.
           </p>
         </div>
       ),
@@ -53,26 +68,12 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       spotlightClicks: false,
     },
     {
-      target: '.nav-dashboard',
+      target: '.sidebar',
       content: (
         <div>
-          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>📊 Dashboard</h3>
-          <p style={{ lineHeight: '1.6' }}>
-            Your financial command center. See your income, expenses, and tax estimates at a glance.
-          </p>
-        </div>
-      ),
-      placement: 'right',
-      disableBeacon: true,
-      spotlightPadding: 10,
-    },
-    {
-      target: '.nav-payers',
-      content: (
-        <div>
-          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>📇 Contacts</h3>
-          <p style={{ lineHeight: '1.6' }}>
-            Manage clients, venues, and platforms. Link them to gigs for easy tracking.
+          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>� Your Navigation</h3>
+          <p style={{ lineHeight: '1.6', marginBottom: '12px' }}>
+            Everything you need is in the sidebar: <strong>Dashboard</strong> for your overview, <strong>Contacts</strong> for clients and venues, <strong>Gigs</strong> for income tracking, <strong>Expenses</strong> and <strong>Mileage</strong> for deductions, <strong>Invoices</strong> for billing, and <strong>Exports</strong> for tax time.
           </p>
         </div>
       ),
@@ -84,96 +85,12 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       target: '.nav-gigs',
       content: (
         <div>
-          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>🎸 Gigs</h3>
-          <p style={{ lineHeight: '1.6' }}>
-            Track all your performances and projects. This is where you log your income.
+          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>🎸 Start with Gigs</h3>
+          <p style={{ lineHeight: '1.6', marginBottom: '8px' }}>
+            Logging gigs is the most important action. It powers your income tracking, tax estimates, and everything else in the app.
           </p>
-        </div>
-      ),
-      placement: 'right',
-      disableBeacon: true,
-      spotlightPadding: 10,
-    },
-    {
-      target: '.nav-expenses',
-      content: (
-        <div>
-          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>💰 Expenses</h3>
-          <p style={{ lineHeight: '1.6' }}>
-            Log business expenses to maximize your tax deductions.
-          </p>
-        </div>
-      ),
-      placement: 'right',
-      disableBeacon: true,
-      spotlightPadding: 10,
-    },
-    {
-      target: '.nav-mileage',
-      content: (
-        <div>
-          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>🚗 Mileage</h3>
-          <p style={{ lineHeight: '1.6', marginBottom: '12px' }}>
-            Track drives to gigs. At $0.67/mile, this adds up to significant tax savings!
-          </p>
-          <div style={{ 
-            backgroundColor: '#fef3c7', 
-            padding: '10px', 
-            borderRadius: '6px',
-            fontSize: '14px'
-          }}>
-            💡 <strong>Tip:</strong> Add your home address in Account Settings for automatic tracking!
-          </div>
-        </div>
-      ),
-      placement: 'right',
-      disableBeacon: true,
-      spotlightPadding: 10,
-    },
-    {
-      target: '.nav-invoices',
-      content: (
-        <div>
-          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>📄 Invoices</h3>
-          <p style={{ lineHeight: '1.6' }}>
-            Create and send professional invoices to clients.
-          </p>
-        </div>
-      ),
-      placement: 'right',
-      disableBeacon: true,
-      spotlightPadding: 10,
-    },
-    {
-      target: '.nav-exports',
-      content: (
-        <div>
-          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>📊 Exports</h3>
-          <p style={{ lineHeight: '1.6' }}>
-            Download reports for your accountant or tax software.
-          </p>
-        </div>
-      ),
-      placement: 'right',
-      disableBeacon: true,
-      spotlightPadding: 10,
-    },
-    {
-      target: '.nav-account',
-      content: (
-        <div>
-          <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>⚙️ Account Settings</h3>
-          <div style={{ 
-            backgroundColor: '#dbeafe', 
-            padding: '12px', 
-            borderRadius: '6px',
-            marginBottom: '10px',
-            fontWeight: '600'
-          }}>
-            ⭐ Important: Add your home address here!
-          </div>
-          <p style={{ lineHeight: '1.6', fontSize: '14px' }}>
-            This enables automatic mileage calculation when you add gigs.
+          <p style={{ fontSize: '14px', color: '#6b7280', fontStyle: 'italic' }}>
+            Click "+ Add Gig" to get started!
           </p>
         </div>
       ),
@@ -190,20 +107,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
             <h2 style={{ margin: '0 0 4px 0', fontSize: '22px' }}>You're Ready to Go!</h2>
           </div>
           
-          <p style={{ fontWeight: '600', marginBottom: '12px', fontSize: '16px' }}>
-            Recommended next steps:
+          <p style={{ lineHeight: '1.6', marginBottom: '16px', fontSize: '15px' }}>
+            The best way to learn is by doing. Start by adding your first gig!
           </p>
-          
-          <ol style={{ 
-            margin: '0 0 20px 0',
-            paddingLeft: '24px',
-            lineHeight: '2',
-            fontSize: '15px'
-          }}>
-            <li>Go to <strong>Account Settings</strong> and add your home address</li>
-            <li>Add your first <strong>contact</strong> (client, venue, or platform)</li>
-            <li>Log your first <strong>gig</strong></li>
-          </ol>
           
           <div style={{ 
             backgroundColor: '#f3f4f6', 
@@ -211,7 +117,8 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
             borderRadius: '8px',
             fontSize: '13px',
             color: '#4b5563',
-            lineHeight: '1.5'
+            lineHeight: '1.5',
+            marginTop: '16px'
           }}>
             💡 You can replay this tour anytime from <strong>Account → Help</strong>
           </div>
@@ -219,6 +126,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       ),
       placement: 'center',
       disableBeacon: true,
+      locale: {
+        last: 'Add your first gig',
+      },
     },
   ];
 
@@ -247,7 +157,13 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       console.log('✅ Tour completed:', { status, action, lifecycle, index, isLastStep });
       setStepIndex(0);
       setIsReady(false);
-      onComplete();
+      
+      // If user clicked "Add your first gig" on final step, navigate and open modal
+      if (isLastStep && action === ACTIONS.NEXT) {
+        handleAddFirstGig();
+      } else {
+        onComplete();
+      }
       return; // Exit early to prevent further processing
     }
 
@@ -335,7 +251,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete }
       locale={{
         back: '← Back',
         close: 'Close',
-        last: 'Done',
+        last: steps[stepIndex]?.locale?.last || 'Done',
         next: 'Next',
         skip: 'Skip Tour',
       }}

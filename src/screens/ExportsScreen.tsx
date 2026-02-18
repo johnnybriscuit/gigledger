@@ -12,6 +12,7 @@ import {
 import { H1, H2, H3, Text, Button, Card, Badge } from '../ui';
 import { ExportCard } from '../components/ExportCard';
 import { HowToImportModal, type TaxSoftware } from '../components/HowToImportModal';
+import { OnboardingHelperCard } from '../components/OnboardingHelperCard';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { useAllExportData, type ExportFilters } from '../hooks/useExports';
 import { generateCSVBundle } from '../lib/exports/csv-bundle-generator';
@@ -677,6 +678,19 @@ export function ExportsScreen() {
           Download tax-ready exports for self-filing or CPA sharing
         </Text>
       </View>
+
+      {/* Show helper card if user has no gigs yet */}
+      {(!gigs.data || gigs.data.length === 0) && (
+        <View style={{ padding: 20, paddingTop: 0 }}>
+          <OnboardingHelperCard
+            icon="📤"
+            title="Export when you're ready for taxes"
+            description="Once you've logged gigs and expenses, come back here to export tax-ready reports for your CPA or tax software."
+            actionLabel="Got it"
+            onAction={() => {}}
+          />
+        </View>
+      )}
 
       {/* Tax Season Prep Checklist */}
       <View style={styles.taxPrepSection}>

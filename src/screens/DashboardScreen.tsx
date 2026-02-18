@@ -75,6 +75,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
     if (Platform.OS === 'web') {
       const justCompletedOnboarding = sessionStorage.getItem('onboarding_just_completed');
       const shouldShowTour = sessionStorage.getItem('show_dashboard_tour');
+      const hasCompletedV2 = localStorage.getItem('onboarding_v2_completed') === 'true';
       
       // Also check URL query params for tour=true
       const urlParams = new URLSearchParams(window.location.search);
@@ -88,7 +89,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         localStorage.removeItem('activeTab');
       }
       
-      if (shouldShowTour === 'true' || tourParam) {
+      // Show tour if: explicitly requested OR (should show AND hasn't completed v2)
+      if (tourParam || (shouldShowTour === 'true' && !hasCompletedV2)) {
         // Delay tour slightly to ensure DOM is ready
         setTimeout(() => {
           setShowTour(true);
@@ -105,7 +107,12 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   const handleTourComplete = async () => {
     setShowTour(false);
     
-    // Mark tour as completed in user settings
+    // Mark tour v2 as completed in localStorage
+    if (Platform.OS === 'web') {
+      localStorage.setItem('onboarding_v2_completed', 'true');
+    }
+    
+    // Also mark in user settings for cross-device tracking (optional)
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -326,6 +333,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         <DashboardTour
           show={showTour}
           onComplete={handleTourComplete}
+          onNavigateToGigs={() => setActiveTab('gigs')}
+          onOpenAddGigModal={() => setShowAddGigModal(true)}
         />
       )}
     </AppShell>

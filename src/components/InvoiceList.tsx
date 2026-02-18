@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, TextInput, useWindowDimensions, Platform } from 'react-native';
 import { Invoice, InvoiceStatus, getStatusColor, getStatusLabel, formatCurrency } from '../types/invoice';
+import { OnboardingHelperCard } from './OnboardingHelperCard';
 
 interface InvoiceListProps {
   invoices: Invoice[];
@@ -303,14 +304,21 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }:
           contentContainerStyle={styles.listContentContainer}
         >
           {filteredInvoices.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No invoices found</Text>
-              {onCreateNew && (
-                <TouchableOpacity style={styles.createButton} onPress={onCreateNew}>
-                  <Text style={styles.createButtonText}>Create Your First Invoice</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            isEmpty && statusFilter === 'all' && !searchQuery ? (
+              <View style={{ padding: 20 }}>
+                <OnboardingHelperCard
+                  icon="🧾"
+                  title="Create your first invoice"
+                  description="Send professional invoices to clients and track payments easily."
+                  actionLabel="Create Invoice"
+                  onAction={onCreateNew || (() => {})}
+                />
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No invoices found</Text>
+              </View>
+            )
           ) : (
             filteredInvoices.map((invoice) => (
               <TouchableOpacity
