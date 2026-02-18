@@ -16,13 +16,24 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
   useEffect(() => {
     if (show) {
       const checkElements = () => {
-        const sidebar = document.querySelector('.sidebar');
+        // Try multiple selectors to find the sidebar
+        const sidebar = document.querySelector('.sidebar') || 
+                       document.querySelector('[class*="sidebar"]') ||
+                       document.querySelector('.nav-gigs')?.closest('div[style*="width"]');
         
         if (sidebar) {
-          console.log('✅ Tour elements ready');
+          console.log('✅ Tour elements ready - found sidebar:', sidebar.className || sidebar.tagName);
           setIsReady(true);
         } else {
-          console.log('⏳ Waiting for sidebar...', { sidebar: !!sidebar });
+          // Debug: log what we can find
+          const navGigs = document.querySelector('.nav-gigs');
+          const allDivs = document.querySelectorAll('div').length;
+          console.log('⏳ Waiting for sidebar...', { 
+            hasSidebar: !!document.querySelector('.sidebar'),
+            hasNavGigs: !!navGigs,
+            totalDivs: allDivs,
+            navGigsParent: navGigs?.parentElement?.className
+          });
           setTimeout(checkElements, 100);
         }
       };
