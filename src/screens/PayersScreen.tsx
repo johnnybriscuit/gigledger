@@ -13,10 +13,11 @@ import { useSubcontractors, useDeleteSubcontractor } from '../hooks/useSubcontra
 import { useGigs } from '../hooks/useGigs';
 import { AddPayerModal } from '../components/AddPayerModal';
 import { SubcontractorFormModal } from '../components/SubcontractorFormModal';
+import { Subcontractor1099Center } from '../components/Subcontractor1099Center';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 
-type TabType = 'payers' | 'subcontractors';
+type TabType = 'payers' | 'subcontractors' | '1099-center';
 
 export function PayersScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('payers');
@@ -30,8 +31,8 @@ export function PayersScreen() {
   const deletePayer = useDeletePayer();
   const deleteSubcontractor = useDeleteSubcontractor();
   
-  const isLoading = activeTab === 'payers' ? payersLoading : subcontractorsLoading;
-  const error = activeTab === 'payers' ? payersError : subcontractorsError;
+  const isLoading = activeTab === 'payers' ? payersLoading : (activeTab === 'subcontractors' ? subcontractorsLoading : false);
+  const error = activeTab === 'payers' ? payersError : (activeTab === 'subcontractors' ? subcontractorsError : null);
 
   const handleDelete = async (id: string, name: string) => {
     console.log('handleDelete called for:', id, name);
@@ -204,6 +205,17 @@ export function PayersScreen() {
             Subcontractors
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === '1099-center' && styles.tabActive]}
+          onPress={() => setActiveTab('1099-center')}
+        >
+          <Text
+            semibold={activeTab === '1099-center'}
+            style={activeTab === '1099-center' ? styles.tabTextActive : styles.tabText}
+          >
+            1099 Center
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Payers Tab Content */}
@@ -322,6 +334,9 @@ export function PayersScreen() {
           />
         )
       )}
+
+      {/* 1099 Center Tab Content */}
+      {activeTab === '1099-center' && <Subcontractor1099Center />}
 
       {activeTab === 'payers' ? (
         <AddPayerModal

@@ -17,7 +17,7 @@ import { useW9Upload } from '../hooks/useW9Upload';
 import { download1099Csv, download1099RequiredCsv } from '../lib/1099/generate1099Csv';
 import { download1099PrepPdf } from '../lib/1099/generate1099PrepPdf';
 import { H2, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
-import { colors, spacing, radius, typography } from '../styles/theme';
+import { colors, spacingNum, radiusNum, typography } from '../styles/theme';
 import type { Subcontractor1099Total } from '../hooks/use1099Totals';
 
 export function Subcontractor1099Center() {
@@ -103,7 +103,7 @@ export function Subcontractor1099Center() {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
       </View>
     );
   }
@@ -178,24 +178,26 @@ export function Subcontractor1099Center() {
       {/* Bulk Actions */}
       <View style={styles.bulkActions}>
         <Button
-          title="Download All CSV"
           onPress={handleDownloadAllCsv}
-          variant="outline"
+          variant="secondary"
           disabled={!totals || totals.length === 0}
-        />
+        >
+          Download All CSV
+        </Button>
         <Button
-          title="Download Required CSV"
           onPress={handleDownloadRequiredCsv}
-          variant="outline"
+          variant="secondary"
           disabled={subcontractorsRequiring1099.length === 0}
-        />
+        >
+          Download Required CSV
+        </Button>
       </View>
 
       {/* Subcontractors List */}
       {!totals || totals.length === 0 ? (
         <EmptyState
           title="No Subcontractor Payments"
-          message={`No payments to subcontractors found for ${selectedYear}. Payments will appear here once you add subcontractor payouts to your gigs.`}
+          description={`No payments to subcontractors found for ${selectedYear}. Payments will appear here once you add subcontractor payouts to your gigs.`}
         />
       ) : (
         <View style={styles.list}>
@@ -253,22 +255,25 @@ function SubcontractorRow({
         <View style={styles.badges}>
           {/* Threshold Badge */}
           <Badge
-            label={subcontractor.requires_1099 ? '≥ $600' : '< $600'}
-            variant={subcontractor.requires_1099 ? 'success' : 'default'}
-          />
+            variant={subcontractor.requires_1099 ? 'success' : 'neutral'}
+          >
+            {subcontractor.requires_1099 ? '≥ $600' : '< $600'}
+          </Badge>
 
           {/* W-9 Status Badge */}
           <Badge
-            label={subcontractor.w9_status === 'received' ? 'W-9 Received' : 'W-9 Missing'}
             variant={subcontractor.w9_status === 'received' ? 'success' : 'warning'}
-          />
+          >
+            {subcontractor.w9_status === 'received' ? 'W-9 Received' : 'W-9 Missing'}
+          </Badge>
 
           {/* Missing Info Warning */}
           {missingInfo.length > 0 && (
             <Badge
-              label={`⚠️ ${missingInfo.length} missing`}
-              variant="error"
-            />
+              variant="danger"
+            >
+              ⚠️ {missingInfo.length} missing
+            </Badge>
           )}
         </View>
 
@@ -335,28 +340,28 @@ function SubcontractorRow({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface.DEFAULT,
   },
   header: {
-    padding: spacing.lg,
-    paddingBottom: spacing.md,
+    padding: spacingNum[6],
+    paddingBottom: spacingNum[4],
   },
   subtitle: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    fontSize: 14,
+    color: colors.text.muted,
+    marginTop: spacingNum[2],
   },
   infoBanner: {
-    margin: spacing.lg,
+    margin: spacingNum[6],
     marginTop: 0,
-    backgroundColor: colors.warning + '10',
-    borderColor: colors.warning,
+    backgroundColor: colors.warning.muted,
+    borderColor: colors.warning.DEFAULT,
     borderWidth: 1,
   },
   infoText: {
-    fontSize: typography.sizes.sm,
-    color: colors.text,
-    marginBottom: spacing.xs,
+    fontSize: 14,
+    color: colors.text.DEFAULT,
+    marginBottom: spacingNum[2],
   },
   infoBold: {
     fontWeight: '600',
@@ -365,143 +370,143 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+    paddingHorizontal: spacingNum[6],
+    marginBottom: spacingNum[4],
   },
   yearSelector: {
     flex: 1,
   },
   label: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
+    fontSize: 14,
+    color: colors.text.muted,
+    marginBottom: spacingNum[2],
   },
   yearButtons: {
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: spacingNum[2],
   },
   yearButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+    paddingHorizontal: spacingNum[4],
+    paddingVertical: spacingNum[3],
+    borderRadius: radiusNum.md,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
   },
   yearButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
   },
   yearButtonText: {
-    fontSize: typography.sizes.sm,
-    color: colors.text,
+    fontSize: 14,
+    color: colors.text.DEFAULT,
   },
   yearButtonTextActive: {
-    color: colors.white,
+    color: colors.brand.foreground,
     fontWeight: '600',
   },
   summary: {
     alignItems: 'flex-end',
   },
   summaryText: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+    fontSize: 14,
+    color: colors.text.muted,
   },
   summaryBold: {
     fontWeight: '600',
-    color: colors.text,
+    color: colors.text.DEFAULT,
   },
   bulkActions: {
     flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    gap: spacingNum[4],
+    paddingHorizontal: spacingNum[6],
+    marginBottom: spacingNum[6],
   },
   list: {
-    padding: spacing.lg,
+    padding: spacingNum[6],
     paddingTop: 0,
-    gap: spacing.md,
+    gap: spacingNum[4],
   },
   row: {
-    padding: spacing.md,
+    padding: spacingNum[4],
   },
   rowHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.sm,
+    marginBottom: spacingNum[3],
   },
   nameSection: {
     flex: 1,
   },
   name: {
-    fontSize: typography.sizes.md,
+    fontSize: 16,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.text.DEFAULT,
   },
   legalName: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
+    fontSize: 14,
+    color: colors.text.muted,
+    marginTop: spacingNum[2],
   },
   amount: {
-    fontSize: typography.sizes.lg,
+    fontSize: 18,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.brand.DEFAULT,
   },
   rowDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacingNum[3],
   },
   badges: {
     flexDirection: 'row',
-    gap: spacing.xs,
+    gap: spacingNum[2],
     flexWrap: 'wrap',
     flex: 1,
   },
   gigCount: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
+    fontSize: 14,
+    color: colors.text.muted,
   },
   missingInfo: {
-    backgroundColor: colors.error + '10',
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginBottom: spacing.sm,
+    backgroundColor: colors.danger.muted,
+    padding: spacingNum[3],
+    borderRadius: radiusNum.sm,
+    marginBottom: spacingNum[3],
   },
   missingInfoText: {
-    fontSize: typography.sizes.xs,
-    color: colors.error,
+    fontSize: 12,
+    color: colors.danger.DEFAULT,
   },
   actions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
+    gap: spacingNum[2],
+    marginTop: spacingNum[3],
   },
   actionButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
+    paddingHorizontal: spacingNum[3],
+    paddingVertical: spacingNum[2],
+    borderRadius: radiusNum.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
   },
   actionButtonDisabled: {
     opacity: 0.5,
   },
   actionButtonText: {
-    fontSize: typography.sizes.xs,
-    color: colors.primary,
+    fontSize: 12,
+    color: colors.brand.DEFAULT,
   },
   actionButtonTextDisabled: {
-    color: colors.textSecondary,
+    color: colors.text.muted,
   },
   errorText: {
-    color: colors.error,
+    color: colors.danger.DEFAULT,
     textAlign: 'center',
-    padding: spacing.lg,
+    padding: spacingNum[6],
   },
 });
