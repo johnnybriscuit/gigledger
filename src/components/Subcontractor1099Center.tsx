@@ -16,6 +16,7 @@ import { use1099Totals, getMissingInfoWarnings, canEmail1099, getEffective1099Em
 import { useW9Upload } from '../hooks/useW9Upload';
 import { download1099Csv, download1099RequiredCsv } from '../lib/1099/generate1099Csv';
 import { download1099PrepPdf } from '../lib/1099/generate1099PrepPdf';
+import { supabase } from '../lib/supabase';
 import { H2, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacingNum, radiusNum, typography } from '../styles/theme';
 import type { Subcontractor1099Total } from '../hooks/use1099Totals';
@@ -86,8 +87,33 @@ export function Subcontractor1099Center() {
       return;
     }
 
-    // TODO: Call edge function to send email
-    alert(`Email 1099 to ${getEffective1099Email(subcontractor)} - Feature coming soon!`);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/send-1099-email`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            subcontractorId: subcontractor.subcontractor_id,
+            taxYear: selectedYear,
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to send email');
+
+      alert(`1099 email sent successfully to ${getEffective1099Email(subcontractor)}`);
+    } catch (error: any) {
+      alert(`Error sending email: ${error.message}`);
+    }
   };
 
   const handleDownloadAllCsv = () => {
