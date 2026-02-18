@@ -50,12 +50,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
     if (onNavigateToGigs) {
       onNavigateToGigs();
     }
-    if (onOpenAddGigModal) {
-      // Small delay to ensure navigation completes
-      setTimeout(() => {
-        onOpenAddGigModal();
-      }, 300);
-    }
+    // Don't open modal - just navigate to Gigs page
     onComplete();
   };
 
@@ -119,7 +114,7 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
           </div>
           
           <p style={{ lineHeight: '1.6', marginBottom: '16px', fontSize: '15px' }}>
-            The best way to learn is by doing. Start by adding your first gig!
+            The best way to learn is by doing. Head to the Gigs page to get started!
           </p>
           
           <div style={{ 
