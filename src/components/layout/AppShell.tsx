@@ -96,7 +96,7 @@ export function AppShell({
   }, [isMobileWeb, width, mobileMenuOpen]);
 
   const renderSidebar = () => (
-    <View style={styles.sidebar}>
+    <View style={styles.sidebar} {...(Platform.OS === 'web' ? { className: 'sidebar' } : {})}>
       {/* Logo */}
       <TouchableOpacity 
         style={styles.logoContainer}
