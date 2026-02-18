@@ -95,92 +95,101 @@ export function AppShell({
     }
   }, [isMobileWeb, width, mobileMenuOpen]);
 
-  const renderSidebar = () => (
-    <View style={styles.sidebar} {...(Platform.OS === 'web' ? { className: 'sidebar' } : {})}>
-      {/* Logo */}
-      <TouchableOpacity 
-        style={styles.logoContainer}
-        onPress={() => onNavigate('dashboard')}
-      >
-        <Image 
-          source={require('../../../assets/logo-mark-64.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.logoText}>Bozzy</Text>
-      </TouchableOpacity>
+  const renderSidebar = () => {
+    const sidebarContent = (
+      <View style={styles.sidebar}>
+        {/* Logo */}
+        <TouchableOpacity 
+          style={styles.logoContainer}
+          onPress={() => onNavigate('dashboard')}
+        >
+          <Image 
+            source={require('../../../assets/logo-mark-64.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>Bozzy</Text>
+        </TouchableOpacity>
 
-      {/* Navigation */}
-      <ScrollView style={styles.navContainer} showsVerticalScrollIndicator={false}>
-        {NAV_ITEMS.map((item) => {
-          const navContent = (
-            <TouchableOpacity
-              style={[
-                styles.navItem,
-                activeRoute === item.id && styles.navItemActive,
-              ]}
-              onPress={() => {
-                onNavigate(item.id);
-                if (isMobile) setMobileMenuOpen(false);
-              }}
-            >
-              {item.icon && <Text style={styles.navIcon}>{item.icon}</Text>}
-              <Text
+        {/* Navigation */}
+        <ScrollView style={styles.navContainer} showsVerticalScrollIndicator={false}>
+          {NAV_ITEMS.map((item) => {
+            const navContent = (
+              <TouchableOpacity
                 style={[
-                  styles.navLabel,
-                  activeRoute === item.id && styles.navLabelActive,
+                  styles.navItem,
+                  activeRoute === item.id && styles.navItemActive,
                 ]}
+                onPress={() => {
+                  onNavigate(item.id);
+                  if (isMobile) setMobileMenuOpen(false);
+                }}
               >
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          );
-
-          if (Platform.OS === 'web') {
-            return (
-              <div
-                key={item.id}
-                data-nav-id={item.id}
-                className={`nav-item nav-${item.id}`}
-              >
-                {navContent}
-              </div>
+                {item.icon && <Text style={styles.navIcon}>{item.icon}</Text>}
+                <Text
+                  style={[
+                    styles.navLabel,
+                    activeRoute === item.id && styles.navLabelActive,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
             );
-          }
 
-          return <View key={item.id}>{navContent}</View>;
-        })}
-      </ScrollView>
+            if (Platform.OS === 'web') {
+              return (
+                <div
+                  key={item.id}
+                  data-nav-id={item.id}
+                  className={`nav-item nav-${item.id}`}
+                >
+                  {navContent}
+                </div>
+              );
+            }
 
-      {/* Mobile: Account + Sign Out at bottom of drawer */}
-      {isMobile && (
-        <View style={styles.drawerFooter}>
-          <TouchableOpacity
-            style={styles.drawerFooterButton}
-            onPress={() => {
-              onNavigate('account');
-              setMobileMenuOpen(false);
-            }}
-          >
-            <Text style={styles.drawerFooterIcon}>⚙️</Text>
-            <Text style={styles.drawerFooterLabel}>Account</Text>
-          </TouchableOpacity>
-          {onSignOut && (
+            return <View key={item.id}>{navContent}</View>;
+          })}
+        </ScrollView>
+
+        {/* Mobile: Account + Sign Out at bottom of drawer */}
+        {isMobile && (
+          <View style={styles.drawerFooter}>
             <TouchableOpacity
               style={styles.drawerFooterButton}
               onPress={() => {
+                onNavigate('account');
                 setMobileMenuOpen(false);
-                onSignOut();
               }}
             >
-              <Text style={styles.drawerFooterIcon}>🚪</Text>
-              <Text style={styles.drawerFooterLabel}>Sign Out</Text>
+              <Text style={styles.drawerFooterIcon}>⚙️</Text>
+              <Text style={styles.drawerFooterLabel}>Account</Text>
             </TouchableOpacity>
-          )}
-        </View>
-      )}
-    </View>
-  );
+            {onSignOut && (
+              <TouchableOpacity
+                style={styles.drawerFooterButton}
+                onPress={() => {
+                  setMobileMenuOpen(false);
+                  onSignOut();
+                }}
+              >
+                <Text style={styles.drawerFooterIcon}>🚪</Text>
+                <Text style={styles.drawerFooterLabel}>Sign Out</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </View>
+    );
+
+    // Wrap in div with className for web to enable tour targeting
+    if (Platform.OS === 'web') {
+      return <div className="sidebar">{sidebarContent}</div>;
+    }
+
+    return sidebarContent;
+  };
 
   return (
     <View 
