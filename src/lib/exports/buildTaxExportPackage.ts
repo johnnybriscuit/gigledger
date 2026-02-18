@@ -18,6 +18,12 @@ import { mapCategoryToScheduleCRef } from './scheduleCRefMapping';
 import { getStandardMileageRate } from './mileageRates';
 import { roundCents } from './rounding';
 import { getScheduleCLineName } from './scheduleCLineNames';
+import { 
+  getEffectiveTaxTreatment, 
+  filterGigsForScheduleC, 
+  splitGigsByTaxTreatment,
+  type TaxTreatment 
+} from '../taxTreatment';
 
 type GigRow = Database['public']['Tables']['gigs']['Row'];
 type ExpenseDbRow = Database['public']['Tables']['expenses']['Row'];
@@ -99,11 +105,17 @@ export function buildTaxExportPackageFromData(input: {
     const fees = gig.fees || 0;
     const netAmount = gross - fees;
 
-    // Resolve payer information
+    // Resolve payer information and tax treatment
     const payer = payerById.get(gig.payer_id);
     const payerName = payer?.name || null;
     const payerEmail = payer?.contact_email || null;
     const payerPhone = null; // Phone not in payers table yet
+    
+    // CRITICAL: Determine effective tax treatment for filtering
+    const effectiveTaxTreatment = getEffectiveTaxTreatment(
+      { tax_treatment: gig.tax_treatment },
+      payer ? { tax_treatment: payer.tax_treatment } : null
+    );
 
     // Build description from gig details (avoid placeholder "Gig")
     let description = 'Income';
@@ -134,6 +146,7 @@ export function buildTaxExportPackageFromData(input: {
       netAmount: roundCents(netAmount),
       currency,
       relatedGigId: gig.id,
+      taxTreatment: effectiveTaxTreatment, // Track tax treatment for filtering
     });
   }
 
@@ -255,13 +268,38 @@ export function buildTaxExportPackageFromData(input: {
   const otherExpensesBreakdownMap: Record<string, number> = {};
   const warnings: string[] = [];
 
-  const grossReceipts = roundCents(incomeRows.reduce((sum, r) => sum + r.amount, 0));
+  // CRITICAL: Filter income rows for Schedule C - ONLY contractor_1099 gigs
+  // W-2 gigs are excluded from Schedule C / self-employment calculations
+  const scheduleCIncomeRows = incomeRows.filter(r => 
+    r.source === 'gig' && r.taxTreatment === 'contractor_1099'
+  );
+  
+  // Separate W-2 income for informational tracking (not included in Schedule C)
+  const w2IncomeRows = incomeRows.filter(r => 
+    r.source === 'gig' && r.taxTreatment === 'w2'
+  );
+  
+  // Invoice payments are included in Schedule C (they're business income)
+  const invoicePaymentRows = incomeRows.filter(r => r.source === 'invoice_payment');
+  
+  // Schedule C gross receipts = 1099 gigs + invoice payments (excludes W-2)
+  const grossReceipts = roundCents(
+    [...scheduleCIncomeRows, ...invoicePaymentRows].reduce((sum, r) => sum + r.amount, 0)
+  );
 
-  const feesTotal = roundCents(incomeRows
-    .filter(r => r.source === 'gig')
-    .reduce((sum, r) => sum + r.fees, 0));
+  // Fees total for Schedule C (only from 1099 gigs)
+  const feesTotal = roundCents(scheduleCIncomeRows.reduce((sum, r) => sum + r.fees, 0));
 
   const returnsAllowances = input.includeFeesAsDeduction ? 0 : feesTotal;
+  
+  // Add warning if W-2 gigs were excluded
+  if (w2IncomeRows.length > 0) {
+    const w2Total = roundCents(w2IncomeRows.reduce((sum, r) => sum + r.amount, 0));
+    warnings.push(
+      `W-2 income (${w2IncomeRows.length} gig${w2IncomeRows.length > 1 ? 's' : ''}, $${w2Total.toFixed(2)}) ` +
+      `excluded from Schedule C. W-2 income is tracked separately for informational purposes only.`
+    );
+  }
 
   const mileageDeductionTotal = roundCents(mileageRows.reduce((sum, r) => sum + r.deductionAmount, 0));
   if (mileageDeductionTotal > 0) {

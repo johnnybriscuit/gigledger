@@ -46,7 +46,13 @@ function buildExpenseDetailRows(pkg: TaxExportPackage) {
 }
 
 function buildIncomeDetailRows(pkg: TaxExportPackage) {
-  return pkg.incomeRows.map((r) => ({
+  // CRITICAL: Filter to only 1099 contractor income for Schedule C
+  // W-2 gigs are excluded from Schedule C exports
+  const scheduleCIncomeRows = pkg.incomeRows.filter(r => 
+    r.source === 'invoice_payment' || r.taxTreatment === 'contractor_1099'
+  );
+  
+  return scheduleCIncomeRows.map((r) => ({
     id: r.id,
     source: r.source,
     received_date: r.receivedDate,
@@ -60,6 +66,24 @@ function buildIncomeDetailRows(pkg: TaxExportPackage) {
     net_amount: r.netAmount,
     related_invoice_id: r.relatedInvoiceId || '',
     related_gig_id: r.relatedGigId || '',
+    tax_treatment: r.taxTreatment || 'contractor_1099',
+  }));
+}
+
+function buildW2IncomeSummaryRows(pkg: TaxExportPackage) {
+  // W-2 income summary - informational only, NOT included in Schedule C
+  const w2IncomeRows = pkg.incomeRows.filter(r => 
+    r.source === 'gig' && r.taxTreatment === 'w2'
+  );
+  
+  return w2IncomeRows.map((r) => ({
+    id: r.id,
+    received_date: r.receivedDate,
+    payer_name: r.payerName || 'Unknown',
+    description: r.description,
+    gross_amount: r.amount,
+    tax_treatment: 'w2',
+    notes: 'W-2 income - taxes withheld by employer. NOT included in Schedule C / self-employment calculations.',
   }));
 }
 
@@ -130,15 +154,23 @@ This pack is designed for MANUAL ENTRY into TurboTax Online.
 
 CONTENTS
 --------
-1. ScheduleC_Summary_${taxYear}.csv - Line-by-line Schedule C totals (expenses shown as POSITIVE)
+1. ScheduleC_Summary_${taxYear}.csv - Line-by-line Schedule C totals (1099 income only, expenses shown as POSITIVE)
 2. Other_Expenses_Breakdown_${taxYear}.csv - Supporting detail for Line 302 (Other expenses)
 3. Payer_Summary_${taxYear}.csv - Payer totals for 1099 reconciliation
 4. Mileage_Summary_${taxYear}.csv - Mileage totals for TurboTax entry
-5. Income_Detail_${taxYear}.csv - Detailed income transactions with payer info
-6. Expense_Detail_${taxYear}.csv - Detailed expenses with asset review flags
-7. Mileage_${taxYear}.csv - Mileage log with standard deduction calculations
-8. PDF_Summary_${taxYear}.pdf - Visual summary for verification
-9. This README file
+5. Income_Detail_${taxYear}.csv - Detailed 1099 contractor income transactions (Schedule C)
+6. W2_Income_Summary_${taxYear}.csv - W-2 income summary (INFORMATIONAL ONLY - not included in Schedule C)
+7. Expense_Detail_${taxYear}.csv - Detailed expenses with asset review flags
+8. Mileage_${taxYear}.csv - Mileage log with standard deduction calculations
+9. PDF_Summary_${taxYear}.pdf - Visual summary for verification
+10. This README file
+
+CRITICAL: W-2 vs 1099 Income Treatment
+---------------------------------------
+✓ Schedule C exports include ONLY 1099 contractor income
+✓ W-2 income is tracked separately in W2_Income_Summary (if present)
+✓ W-2 income is NOT included in Schedule C totals (taxes already withheld by employer)
+✓ Enter only the Schedule C amounts in TurboTax - do NOT manually add W-2 income to Schedule C
 
 IMPORTANT: Other_Expenses_Breakdown is supporting detail for line 302 (Other expenses).
 Enter ONLY the 302 total from ScheduleC_Summary. Do NOT enter the breakdown items separately.
@@ -236,7 +268,14 @@ export async function generateTurboTaxOnlinePack(pkg: TaxExportPackage): Promise
   const mileageSummaryCsv = stringifyCsv(mileageSummaryRows);
   zip.file(`Mileage_Summary_${taxYear}.csv`, mileageSummaryCsv);
 
-  // Add Income Detail CSV (with payer info)
+  // Add W-2 Income Summary CSV (informational only - NOT included in Schedule C)
+  const w2Rows = buildW2IncomeSummaryRows(pkg);
+  if (w2Rows.length > 0) {
+    const w2Csv = stringifyCsv(w2Rows);
+    zip.file(`W2_Income_Summary_${taxYear}.csv`, w2Csv);
+  }
+
+  // Add Income Detail CSV (1099 contractor income only for Schedule C)
   const incomeRows = buildIncomeDetailRows(pkg);
   const incomeCsv = stringifyCsv(incomeRows);
   zip.file(`Income_Detail_${taxYear}.csv`, incomeCsv);

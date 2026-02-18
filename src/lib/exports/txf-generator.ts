@@ -13,9 +13,16 @@
  * - This is a simplified implementation for Schedule C income/expenses
  * - Does not include all possible tax forms
  * - Users should review all imported data in TurboTax
+ * 
+ * CRITICAL: W-2 vs 1099 Income Treatment
+ * - TXF exports include ONLY 1099 contractor income (Schedule C)
+ * - W-2 income is EXCLUDED from TXF (taxes already withheld by employer)
+ * - W-2 income is provided in separate CSV summary for informational purposes
+ * - Do NOT manually add W-2 income to Schedule C in TurboTax
  */
 
 import type { GigExportRow, ExpenseExportRow, ScheduleCSummaryRow } from './schemas';
+import type { TaxExportPackage } from './taxExportPackage';
 
 // TXF Transaction Codes for Schedule C
 // Source: TurboTax TXF specification

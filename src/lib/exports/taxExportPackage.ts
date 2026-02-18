@@ -78,6 +78,7 @@ export interface IncomeRow {
   currency: TaxExportCurrency;
   relatedInvoiceId?: string | null;
   relatedGigId?: string | null;
+  taxTreatment?: 'w2' | 'contractor_1099' | 'other' | null; // Tax treatment for filtering W-2 from Schedule C
 }
 
 export interface ExpenseRow {
