@@ -469,7 +469,17 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                 <H2>Account Actions</H2>
               </View>
               <Card variant="flat" style={styles.card}>
-                <View {...(Platform.OS === 'web' && !profile?.home_address_full ? { className: 'edit-profile-cta' } : {})}>
+                {Platform.OS === 'web' && !profile?.home_address_full ? (
+                  <div className="edit-profile-cta">
+                    <Button
+                      variant="ghost"
+                      onPress={() => setIsEditingProfile(true)}
+                      style={styles.actionButton}
+                    >
+                      ✏️ Edit Profile
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     variant="ghost"
                     onPress={() => setIsEditingProfile(true)}
@@ -477,9 +487,19 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                   >
                     ✏️ Edit Profile
                   </Button>
-                </View>
+                )}
 
-                <View {...(Platform.OS === 'web' && needsTaxSetup ? { className: 'edit-tax-settings-cta' } : {})}>
+                {Platform.OS === 'web' && needsTaxSetup ? (
+                  <div className="edit-tax-settings-cta">
+                    <Button
+                      variant="ghost"
+                      onPress={() => setIsEditingTaxSettings(true)}
+                      style={styles.actionButton}
+                    >
+                      📊 Edit Tax Settings
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     variant="ghost"
                     onPress={() => setIsEditingTaxSettings(true)}
@@ -487,7 +507,7 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                   >
                     📊 Edit Tax Settings
                   </Button>
-                </View>
+                )}
 
                 <Button
                   variant="ghost"
