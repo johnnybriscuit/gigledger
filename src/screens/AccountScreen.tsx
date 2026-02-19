@@ -488,17 +488,7 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                 <H2>Account Actions</H2>
               </View>
               <Card variant="flat" style={styles.card}>
-                {Platform.OS === 'web' && !profile?.home_address_full ? (
-                  <div className="edit-profile-cta" style={{ display: 'contents' }}>
-                    <Button
-                      variant="ghost"
-                      onPress={() => setIsEditingProfile(true)}
-                      style={styles.actionButton}
-                    >
-                      ✏️ Edit Profile
-                    </Button>
-                  </div>
-                ) : (
+                <div className={Platform.OS === 'web' && !profile?.home_address_full ? 'edit-profile-cta' : ''}>
                   <Button
                     variant="ghost"
                     onPress={() => setIsEditingProfile(true)}
@@ -506,19 +496,9 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                   >
                     ✏️ Edit Profile
                   </Button>
-                )}
+                </div>
 
-                {Platform.OS === 'web' && needsTaxSetup ? (
-                  <div className="edit-tax-settings-cta" style={{ display: 'contents' }}>
-                    <Button
-                      variant="ghost"
-                      onPress={() => setIsEditingTaxSettings(true)}
-                      style={styles.actionButton}
-                    >
-                      📊 Edit Tax Settings
-                    </Button>
-                  </div>
-                ) : (
+                <div className={Platform.OS === 'web' && needsTaxSetup ? 'edit-tax-settings-cta' : ''}>
                   <Button
                     variant="ghost"
                     onPress={() => setIsEditingTaxSettings(true)}
@@ -526,7 +506,7 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                   >
                     📊 Edit Tax Settings
                   </Button>
-                )}
+                </div>
 
                 <Button
                   variant="ghost"
