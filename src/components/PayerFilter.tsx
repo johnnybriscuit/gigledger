@@ -207,6 +207,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     maxWidth: 320,
     maxHeight: 400,
+    zIndex: 9999,
   },
   popoverHeader: {
     paddingHorizontal: 16,
