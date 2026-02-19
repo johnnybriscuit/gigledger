@@ -77,16 +77,35 @@ export function AccountSetupPrompts({
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, action, index, type } = data;
 
+    console.log('🎯 AccountSetupPrompts callback:', { status, action, index, type });
+
     // Handle tour completion
-    if (status === STATUS.FINISHED || status === STATUS.SKIPPED || action === 'close') {
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+      console.log('✅ Tour completed, calling onComplete');
+      setRun(false);
+      onComplete();
+      return;
+    }
+
+    // Handle close button
+    if (action === ACTIONS.CLOSE) {
+      console.log('❌ Tour closed');
       setRun(false);
       onComplete();
       return;
     }
 
     // Handle step progression
-    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+    if (type === EVENTS.STEP_AFTER) {
       const nextStepIndex = index + (action === ACTIONS.PREV ? -1 : 1);
+      
+      // If clicking next on the last step, finish the tour
+      if (action === ACTIONS.NEXT && nextStepIndex >= steps.length) {
+        console.log('✅ Last step completed');
+        setRun(false);
+        onComplete();
+        return;
+      }
       
       if (action === ACTIONS.NEXT && nextStepIndex < steps.length) {
         setStepIndex(nextStepIndex);
