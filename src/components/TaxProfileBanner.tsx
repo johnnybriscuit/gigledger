@@ -65,9 +65,9 @@ export function TaxProfileBanner({ onNavigateToTaxSettings }: TaxProfileBannerPr
         style={styles.actionButton}
         onPress={onNavigateToTaxSettings}
         accessibilityRole="button"
-        accessibilityLabel="Set up tax profile"
+        accessibilityLabel="Edit tax settings"
       >
-        <Text style={styles.actionText}>Set up →</Text>
+        <Text style={styles.actionText}>📊 Edit Tax Settings</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.dismissButton}
