@@ -30,6 +30,11 @@ import { enableQueryDebug } from './src/lib/queryDebug';
 import { trackPageView } from './src/lib/analytics';
 import type { Session } from '@supabase/supabase-js';
 
+// Import spotlight CSS for Account page CTA highlighting
+if (Platform.OS === 'web') {
+  require('./src/styles/spotlight.css');
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

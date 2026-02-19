@@ -10,6 +10,7 @@ import {
   Switch,
   useWindowDimensions,
 } from 'react-native';
+import { useTaxProfile } from '../hooks/useTaxProfile';
 import { supabase } from '../lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaxSettingsSection } from '../components/TaxSettingsSection';
@@ -94,6 +95,10 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingTaxSettings, setIsEditingTaxSettings] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Get tax profile to check if user needs to set up state
+  const { data: taxProfile } = useTaxProfile();
+  const needsTaxSetup = taxProfile && !taxProfile.state;
 
   // Form states
   const [fullName, setFullName] = useState('');
@@ -464,21 +469,25 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                 <H2>Account Actions</H2>
               </View>
               <Card variant="flat" style={styles.card}>
-                <Button
-                  variant="ghost"
-                  onPress={() => setIsEditingProfile(true)}
-                  style={styles.actionButton}
-                >
-                  ✏️ Edit Profile
-                </Button>
+                <View {...(Platform.OS === 'web' && !profile?.home_address_full ? { className: 'edit-profile-cta' } : {})}>
+                  <Button
+                    variant="ghost"
+                    onPress={() => setIsEditingProfile(true)}
+                    style={styles.actionButton}
+                  >
+                    ✏️ Edit Profile
+                  </Button>
+                </View>
 
-                <Button
-                  variant="ghost"
-                  onPress={() => setIsEditingTaxSettings(true)}
-                  style={styles.actionButton}
-                >
-                  📊 Edit Tax Settings
-                </Button>
+                <View {...(Platform.OS === 'web' && needsTaxSetup ? { className: 'edit-tax-settings-cta' } : {})}>
+                  <Button
+                    variant="ghost"
+                    onPress={() => setIsEditingTaxSettings(true)}
+                    style={styles.actionButton}
+                  >
+                    📊 Edit Tax Settings
+                  </Button>
+                </View>
 
                 <Button
                   variant="ghost"
