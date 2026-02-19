@@ -101,24 +101,12 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
   const { data: taxProfile } = useTaxProfile();
   const needsTaxSetup = !!(taxProfile && !taxProfile.state);
   
-  // Track if setup prompts have been dismissed
+  // Track if setup prompts have been dismissed (only for current page view)
   const [setupPromptsDismissed, setSetupPromptsDismissed] = useState(false);
   
-  useEffect(() => {
-    // Check if prompts were previously dismissed
-    if (Platform.OS === 'web') {
-      const dismissed = sessionStorage.getItem('account_setup_prompts_dismissed');
-      if (dismissed === 'true') {
-        setSetupPromptsDismissed(true);
-      }
-    }
-  }, []);
-  
   const handlePromptsComplete = () => {
+    // Only dismiss for current page view - will show again on next visit until actions are completed
     setSetupPromptsDismissed(true);
-    if (Platform.OS === 'web') {
-      sessionStorage.setItem('account_setup_prompts_dismissed', 'true');
-    }
   };
 
   // Form states
