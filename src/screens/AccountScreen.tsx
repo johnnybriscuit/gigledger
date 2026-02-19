@@ -101,12 +101,24 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
   const { data: taxProfile } = useTaxProfile();
   const needsTaxSetup = !!(taxProfile && !taxProfile.state);
   
-  // Track if setup prompts have been dismissed (only for current page view)
+  // Track if setup prompts have been dismissed
   const [setupPromptsDismissed, setSetupPromptsDismissed] = useState(false);
   
+  useEffect(() => {
+    // Check if prompts were previously dismissed in this session
+    if (Platform.OS === 'web') {
+      const dismissed = sessionStorage.getItem('account_setup_prompts_dismissed');
+      if (dismissed === 'true') {
+        setSetupPromptsDismissed(true);
+      }
+    }
+  }, []);
+  
   const handlePromptsComplete = () => {
-    // Only dismiss for current page view - will show again on next visit until actions are completed
     setSetupPromptsDismissed(true);
+    if (Platform.OS === 'web') {
+      sessionStorage.setItem('account_setup_prompts_dismissed', 'true');
+    }
   };
 
   // Form states
@@ -156,6 +168,14 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
       setHomeAddressLng(profile.home_address_lng);
     }
   }, [profile]);
+
+  // Clear dismissal flag when user completes the required actions
+  useEffect(() => {
+    if (Platform.OS === 'web' && !needsTaxSetup && profile?.home_address_full) {
+      // User has completed both actions - clear the dismissal flag so prompts can show again if needed
+      sessionStorage.removeItem('account_setup_prompts_dismissed');
+    }
+  }, [needsTaxSetup, profile?.home_address_full]);
 
   // Change password mutation
   const changePasswordMutation = useMutation({
