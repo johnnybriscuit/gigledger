@@ -508,26 +508,30 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                   </Button>
                 </div>
 
-                <Button
-                  variant="ghost"
-                  onPress={() => setIsChangingPassword(true)}
-                  style={styles.actionButton}
-                >
-                  🔒 Change Password
-                </Button>
-
-                {Platform.OS === 'web' && (
+                <div>
                   <Button
                     variant="ghost"
-                    onPress={() => {
-                      // Clear the v2 completion flag and navigate to dashboard with tour param
-                      localStorage.removeItem('onboarding_v2_completed');
-                      window.location.href = '/dashboard?tour=true';
-                    }}
+                    onPress={() => setIsChangingPassword(true)}
                     style={styles.actionButton}
                   >
-                    🎓 Replay Tour
+                    🔒 Change Password
                   </Button>
+                </div>
+
+                {Platform.OS === 'web' && (
+                  <div>
+                    <Button
+                      variant="ghost"
+                      onPress={() => {
+                        // Clear the v2 completion flag and navigate to dashboard with tour param
+                        localStorage.removeItem('onboarding_v2_completed');
+                        window.location.href = '/dashboard?tour=true';
+                      }}
+                      style={styles.actionButton}
+                    >
+                      🎓 Replay Tour
+                    </Button>
+                  </div>
                 )}
 
                 <Button
