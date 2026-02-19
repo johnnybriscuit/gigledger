@@ -501,7 +501,7 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
               </View>
               <Card variant="flat" style={styles.card}>
                 {Platform.OS === 'web' && !profile?.home_address_full ? (
-                  <div className="edit-profile-cta">
+                  <div className="edit-profile-cta" style={{ display: 'contents' }}>
                     <Button
                       variant="ghost"
                       onPress={() => setIsEditingProfile(true)}
@@ -521,7 +521,7 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                 )}
 
                 {Platform.OS === 'web' && needsTaxSetup ? (
-                  <div className="edit-tax-settings-cta">
+                  <div className="edit-tax-settings-cta" style={{ display: 'contents' }}>
                     <Button
                       variant="ghost"
                       onPress={() => setIsEditingTaxSettings(true)}
