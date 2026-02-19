@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useTaxProfile } from '../hooks/useTaxProfile';
+import { AccountSetupPrompts } from '../components/AccountSetupPrompts';
 import { supabase } from '../lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TaxSettingsSection } from '../components/TaxSettingsSection';
@@ -98,7 +99,27 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
 
   // Get tax profile to check if user needs to set up state
   const { data: taxProfile } = useTaxProfile();
-  const needsTaxSetup = taxProfile && !taxProfile.state;
+  const needsTaxSetup = !!(taxProfile && !taxProfile.state);
+  
+  // Track if setup prompts have been dismissed
+  const [setupPromptsDismissed, setSetupPromptsDismissed] = useState(false);
+  
+  useEffect(() => {
+    // Check if prompts were previously dismissed
+    if (Platform.OS === 'web') {
+      const dismissed = sessionStorage.getItem('account_setup_prompts_dismissed');
+      if (dismissed === 'true') {
+        setSetupPromptsDismissed(true);
+      }
+    }
+  }, []);
+  
+  const handlePromptsComplete = () => {
+    setSetupPromptsDismissed(true);
+    if (Platform.OS === 'web') {
+      sessionStorage.setItem('account_setup_prompts_dismissed', 'true');
+    }
+  };
 
   // Form states
   const [fullName, setFullName] = useState('');
@@ -250,12 +271,22 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={[
-        styles.content,
-        isMobileWeb && styles.contentMobile,
-        isDesktopWeb && styles.contentDesktop,
-      ]}>
+    <>
+      {/* Account Setup Prompts - Joyride-style overlays */}
+      {Platform.OS === 'web' && !setupPromptsDismissed && (
+        <AccountSetupPrompts
+          needsTaxSetup={needsTaxSetup}
+          needsHomeAddress={!profile?.home_address_full}
+          onComplete={handlePromptsComplete}
+        />
+      )}
+      
+      <ScrollView style={styles.container}>
+        <View style={[
+          styles.content,
+          isMobileWeb && styles.contentMobile,
+          isDesktopWeb && styles.contentDesktop,
+        ]}>
         {/* Debug indicator - DEV ONLY */}
         {__DEV__ && (
           <View style={styles.debugBadge}>
@@ -603,7 +634,8 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
           </View>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
