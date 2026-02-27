@@ -13,6 +13,7 @@ import { track } from '../lib/tracking';
 interface AuthScreenProps {
   onNavigateToTerms?: () => void;
   onNavigateToPrivacy?: () => void;
+  onNavigateToSupport?: () => void;
   onNavigateToForgotPassword?: () => void;
   onNavigateToHome?: () => void;
   initialMode?: 'signin' | 'signup';
@@ -21,7 +22,7 @@ interface AuthScreenProps {
 type AuthMode = 'signin' | 'signup';
 type AuthMethod = 'magic' | 'password';
 
-export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateToForgotPassword, onNavigateToHome, initialMode = 'signin' }: AuthScreenProps) {
+export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateToSupport, onNavigateToForgotPassword, onNavigateToHome, initialMode = 'signin' }: AuthScreenProps) {
   // Mode: Sign In or Create Account
   const [mode, setMode] = useState<AuthMode>(initialMode);
   
@@ -557,8 +558,8 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
         {/* Auth Form */}
         <View style={styles.authForm}>
-          {/* Google SSO Button - Only show if enabled */}
-          {GOOGLE_OAUTH_ENABLED && (
+          {/* Google SSO Button - Only show on web (not working on mobile) */}
+          {GOOGLE_OAUTH_ENABLED && Platform.OS === 'web' && (
             <>
               <TouchableOpacity
                 style={[styles.googleButton, loading && styles.buttonDisabled]}
@@ -752,6 +753,13 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           <Text style={styles.footerText}>
             🔒 Secure authentication • Two-factor authentication available
           </Text>
+          <View style={styles.footerLinks}>
+            <Text style={styles.link} onPress={onNavigateToTerms}>Terms</Text>
+            <Text style={styles.footerDivider}> • </Text>
+            <Text style={styles.link} onPress={onNavigateToPrivacy}>Privacy</Text>
+            <Text style={styles.footerDivider}> • </Text>
+            <Text style={styles.link} onPress={onNavigateToSupport}>Support</Text>
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -1018,6 +1026,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerDivider: {
+    fontSize: 12,
+    color: '#9ca3af',
   },
   successContainer: {
     alignItems: 'center',

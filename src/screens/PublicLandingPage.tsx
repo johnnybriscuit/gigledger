@@ -6,28 +6,33 @@ import {
   ScrollView,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface PublicLandingPageProps {
   onGetStarted: () => void;
   onSignIn: () => void;
   onNavigateToTerms?: () => void;
   onNavigateToPrivacy?: () => void;
+  onNavigateToSupport?: () => void;
 }
 
 /**
  * Public marketing landing page - Dropbox-style, mobile-first, no AppShell
  * This is the first impression for new users
  */
-export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, onNavigateToPrivacy }: PublicLandingPageProps) {
+export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, onNavigateToPrivacy, onNavigateToSupport }: PublicLandingPageProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const maxWidth = 1200;
+  const insets = useSafeAreaInsets();
+  const navBarTopPadding = Platform.OS !== 'web' ? insets.top : 0;
 
   return (
     <View style={styles.container}>
       {/* Top Navigation Bar */}
-      <View style={[styles.navBar, isMobile && styles.navBarMobile]}>
+      <View style={[styles.navBar, isMobile && styles.navBarMobile, { paddingTop: (isMobile ? 12 : 16) + navBarTopPadding }]}>
         <View style={[styles.navContent, { maxWidth }, isMobile && styles.navContentMobile]}>
           <Text style={styles.navLogo}>💼 Bozzy</Text>
           <View style={[styles.navButtons, isMobile && styles.navButtonsMobile]}>
@@ -273,6 +278,10 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
             <TouchableOpacity onPress={onNavigateToPrivacy} activeOpacity={0.7}>
               <Text style={styles.footerLink}>Privacy Policy</Text>
             </TouchableOpacity>
+            <Text style={styles.footerDivider}>•</Text>
+            <TouchableOpacity onPress={onNavigateToSupport} activeOpacity={0.7}>
+              <Text style={styles.footerLink}>Support</Text>
+            </TouchableOpacity>
           </View>
           <Text style={styles.footerText}>© 2025 Bozzy. All rights reserved.</Text>
           <Text style={styles.footerDisclaimer}>Estimates only. Not tax advice.</Text>
@@ -419,8 +428,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: 'auto',
     width: '100%',
+    alignSelf: 'center',
   },
   navContentMobile: {
     maxWidth: '100%',
@@ -680,7 +689,8 @@ const styles = StyleSheet.create({
   },
   socialProofContent: {
     maxWidth: 700,
-    marginHorizontal: 'auto',
+    width: '100%',
+    alignSelf: 'center',
   },
   socialProofContentMobile: {
     maxWidth: '100%',
@@ -707,10 +717,12 @@ const styles = StyleSheet.create({
   // FAQ Section
   faqContainer: {
     maxWidth: 800,
-    marginHorizontal: 'auto',
+    width: '100%',
+    alignSelf: 'center',
   },
   faqContainerMobile: {
     maxWidth: '100%',
+    width: '100%',
   },
   faqItem: {
     borderBottomWidth: 1,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -18,6 +19,7 @@ import { DashboardScreen } from './src/screens/DashboardScreen';
 import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { TermsScreen } from './src/screens/TermsScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
+import { SupportScreen } from './src/screens/SupportScreen';
 import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen';
 import { PublicLandingPage } from './src/screens/PublicLandingPage';
 import { initializeUserData } from './src/services/profileService';
@@ -62,17 +64,19 @@ function AppContent() {
       const pathname = window.location.pathname;
       if (pathname === '/terms') return 'terms';
       if (pathname === '/privacy') return 'privacy';
+      if (pathname === '/support') return 'support';
       if (pathname === '/forgot-password') return 'forgot-password';
       if (pathname === '/reset-password') return 'reset-password';
     }
     return 'landing';
   };
   
-  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>(getInitialRoute());
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>(getInitialRoute());
   const [authResolved, setAuthResolved] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [onboardingJustCompleted, setOnboardingJustCompleted] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [oauthCallbackUrl, setOauthCallbackUrl] = useState<string | null>(null);
 
   // Sync URL with current route on web
   useEffect(() => {
@@ -82,6 +86,7 @@ function AppContent() {
         'auth': '/',
         'terms': '/terms',
         'privacy': '/privacy',
+        'support': '/support',
         'forgot-password': '/forgot-password',
         'reset-password': '/reset-password',
       };
@@ -217,7 +222,8 @@ function AppContent() {
       
       // Handle auth callback from OAuth (Google)
       if (path === 'auth/callback' || path === '/auth/callback') {
-        console.log('[DeepLink] Auth callback detected, navigating to auth-callback screen');
+        console.log('[DeepLink] Auth callback detected, storing URL and navigating to auth-callback screen');
+        setOauthCallbackUrl(url);
         setCurrentRoute('auth-callback');
       }
     };
@@ -263,6 +269,7 @@ function AppContent() {
           }}
           onNavigateToTerms={() => setCurrentRoute('terms')}
           onNavigateToPrivacy={() => setCurrentRoute('privacy')}
+          onNavigateToSupport={() => setCurrentRoute('support')}
         />
       </>
     );
@@ -284,6 +291,16 @@ function AppContent() {
       <>
         <StatusBar style="dark" />
         <PrivacyScreen onNavigateBack={() => setCurrentRoute('landing')} />
+      </>
+    );
+  }
+
+  // Allow Support page to be accessed without authentication (NO bootstrap required)
+  if (currentRoute === 'support') {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <SupportScreen onNavigateBack={() => setCurrentRoute('landing')} />
       </>
     );
   }
@@ -384,6 +401,7 @@ function AppContent() {
           initialMode={authMode}
           onNavigateToTerms={() => setCurrentRoute('terms')}
           onNavigateToPrivacy={() => setCurrentRoute('privacy')}
+          onNavigateToSupport={() => setCurrentRoute('support')}
           onNavigateToForgotPassword={() => setCurrentRoute('forgot-password')}
           onNavigateToHome={() => setCurrentRoute('landing')}
         />
@@ -430,6 +448,7 @@ function AppContent() {
       <>
         <StatusBar style="dark" />
         <AuthCallbackScreen 
+          oauthCallbackUrl={oauthCallbackUrl}
           onNavigateToMFASetup={() => setCurrentRoute('mfa-setup')}
           onNavigateToDashboard={() => setCurrentRoute('dashboard')}
           onNavigateToAuth={() => setCurrentRoute('auth')}
@@ -475,11 +494,13 @@ function AppContent() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
-    </QueryClientProvider>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }
 
