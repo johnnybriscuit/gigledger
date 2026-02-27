@@ -45,24 +45,21 @@ export function SupportScreen({ onNavigateBack }: SupportScreenProps) {
             title="Terms of Service"
             description="Read our terms and usage policies"
             href="/terms"
+            onNavigateBack={onNavigateBack}
           />
           <QuickCard
             icon="🔒"
             title="Privacy Policy"
             description="How we handle and protect your data"
             href="/privacy"
-          />
-          <QuickCard
-            icon="✉️"
-            title="Email Support"
-            description="support@bozzygigs.com"
-            href="mailto:support@bozzygigs.com"
+            onNavigateBack={onNavigateBack}
           />
           <QuickCard
             icon="🔑"
             title="Sign In"
             description="Go back to your Bozzy account"
             href="/signin"
+            onNavigateBack={onNavigateBack}
           />
         </View>
 
@@ -148,11 +145,15 @@ interface QuickCardProps {
   title: string;
   description: string;
   href: string;
+  onNavigateBack?: () => void;
 }
 
-function QuickCard({ icon, title, description, href }: QuickCardProps) {
+function QuickCard({ icon, title, description, href, onNavigateBack }: QuickCardProps) {
   const handlePress = () => {
-    if (href.startsWith('mailto:')) {
+    if (href === '/signin' && onNavigateBack) {
+      // Navigate to auth screen instead of landing page
+      onNavigateBack();
+    } else if (href.startsWith('mailto:')) {
       Linking.openURL(href);
     } else if (Platform.OS === 'web') {
       window.location.href = href;
