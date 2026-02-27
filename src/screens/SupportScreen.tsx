@@ -3,9 +3,10 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform, Linking
 
 interface SupportScreenProps {
   onNavigateBack?: () => void;
+  onNavigateToSignIn?: () => void;
 }
 
-export function SupportScreen({ onNavigateBack }: SupportScreenProps) {
+export function SupportScreen({ onNavigateBack, onNavigateToSignIn }: SupportScreenProps) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.content}>
@@ -59,7 +60,7 @@ export function SupportScreen({ onNavigateBack }: SupportScreenProps) {
             title="Sign In"
             description="Go back to your Bozzy account"
             href="/signin"
-            onNavigateBack={onNavigateBack}
+            onNavigateToSignIn={onNavigateToSignIn}
           />
         </View>
 
@@ -146,13 +147,14 @@ interface QuickCardProps {
   description: string;
   href: string;
   onNavigateBack?: () => void;
+  onNavigateToSignIn?: () => void;
 }
 
-function QuickCard({ icon, title, description, href, onNavigateBack }: QuickCardProps) {
+function QuickCard({ icon, title, description, href, onNavigateBack, onNavigateToSignIn }: QuickCardProps) {
   const handlePress = () => {
-    if (href === '/signin' && onNavigateBack) {
-      // Navigate to auth screen instead of landing page
-      onNavigateBack();
+    if (href === '/signin' && onNavigateToSignIn) {
+      // Navigate to auth screen
+      onNavigateToSignIn();
     } else if (href.startsWith('mailto:')) {
       Linking.openURL(href);
     } else if (Platform.OS === 'web') {

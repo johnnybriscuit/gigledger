@@ -300,7 +300,13 @@ function AppContent() {
     return (
       <>
         <StatusBar style="dark" />
-        <SupportScreen onNavigateBack={() => setCurrentRoute('landing')} />
+        <SupportScreen 
+          onNavigateBack={() => setCurrentRoute('landing')} 
+          onNavigateToSignIn={() => {
+            setAuthMode('signin');
+            setCurrentRoute('auth');
+          }}
+        />
       </>
     );
   }
