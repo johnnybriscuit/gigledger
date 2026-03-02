@@ -24,6 +24,7 @@ import { RangePopover } from '../components/RangePopover';
 import type { DateRange } from '../hooks/useDashboardData';
 import { perf } from '../lib/performance';
 import { H1, Text, Button } from '../ui';
+import { DateRangeFilter } from '../components/DateRangeFilter';
 import { colors, spacing, typography, radius } from '../styles/theme';
 import { AppShell } from '../components/layout/AppShell';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -40,7 +41,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   const isDesktopWidth = Platform.OS === 'web' && width >= 768;
   
   // Use shared user context instead of individual queries
-  const { profile, taxProfile } = useUser();
+  const { profile, taxProfile, user } = useUser();
   
   // Mark dashboard mount
   useEffect(() => {
@@ -73,47 +74,77 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   // Check if we should show onboarding completion toast and tour
   useEffect(() => {
     if (Platform.OS === 'web') {
-      const justCompletedOnboarding = sessionStorage.getItem('onboarding_just_completed');
-      const shouldShowTour = sessionStorage.getItem('show_dashboard_tour');
-      const hasCompletedV2 = localStorage.getItem('onboarding_v2_completed') === 'true';
-      
-      // Also check URL query params for tour=true
-      const urlParams = new URLSearchParams(window.location.search);
-      const tourParam = urlParams.get('tour') === 'true';
-      
-      console.log('🎯 Tour decision logic:', {
-        justCompletedOnboarding,
-        shouldShowTour,
-        hasCompletedV2,
-        tourParam,
-        willShowTour: tourParam || (shouldShowTour === 'true' && !hasCompletedV2)
-      });
-      
-      if (justCompletedOnboarding === 'true') {
-        setShowOnboardingToast(true);
-        setActiveTab('dashboard'); // Ensure we're on dashboard after onboarding
-        sessionStorage.removeItem('onboarding_just_completed');
-        // Clear the saved tab so we start fresh on dashboard
-        localStorage.removeItem('activeTab');
-      }
-      
-      // Show tour if: explicitly requested OR (should show AND hasn't completed v2) OR (new user fallback)
-      const shouldShowForNewUser = !hasCompletedV2 && !shouldShowTour; // New user who bypassed OnboardingFlow
-      
-      if (tourParam || (shouldShowTour === 'true' && !hasCompletedV2) || shouldShowForNewUser) {
-        console.log('✅ Starting tour...', { tourParam, shouldShowTour, hasCompletedV2, shouldShowForNewUser });
-        // Delay tour slightly to ensure DOM is ready
-        setTimeout(() => {
-          setShowTour(true);
-          sessionStorage.removeItem('show_dashboard_tour');
-          // Clean up URL if tour param was used
-          if (tourParam) {
+      const checkTourStatus = async () => {
+        const justCompletedOnboarding = sessionStorage.getItem('onboarding_just_completed');
+        const shouldShowTour = sessionStorage.getItem('show_dashboard_tour');
+        
+        // Check URL query params for tour=true (manual replay)
+        const urlParams = new URLSearchParams(window.location.search);
+        const tourParam = urlParams.get('tour') === 'true';
+        
+        if (justCompletedOnboarding === 'true') {
+          setShowOnboardingToast(true);
+          setActiveTab('dashboard');
+          sessionStorage.removeItem('onboarding_just_completed');
+          localStorage.removeItem('activeTab');
+        }
+        
+        // If tour is manually requested via URL param, show it
+        if (tourParam) {
+          console.log('✅ Starting tour (manual request)...');
+          setTimeout(() => {
+            setShowTour(true);
             window.history.replaceState({}, '', '/dashboard');
+          }, 500);
+          return;
+        }
+        
+        // Check database for tour completion status
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+          
+          const { data: settings } = await supabase
+            .from('user_settings')
+            .select('dashboard_tour_completed')
+            .eq('user_id', user.id)
+            .single();
+          
+          // If tour already completed in database, don't show
+          if (settings?.dashboard_tour_completed) {
+            console.log('❌ Tour not shown - already completed in database');
+            return;
           }
-        }, 500);
-      } else {
-        console.log('❌ Tour not shown');
-      }
+          
+          // Check if user has any existing gigs (indicates they're not truly new)
+          const { count: gigCount } = await supabase
+            .from('gigs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+          
+          console.log('🎯 Tour decision logic:', {
+            tourCompleted: settings?.dashboard_tour_completed,
+            gigCount,
+            shouldShowTour,
+            isNewUser: gigCount === 0
+          });
+          
+          // Only show tour for truly new users (no gigs) OR if explicitly requested
+          if (shouldShowTour === 'true' && gigCount === 0) {
+            console.log('✅ Starting tour for new user...');
+            setTimeout(() => {
+              setShowTour(true);
+              sessionStorage.removeItem('show_dashboard_tour');
+            }, 500);
+          } else {
+            console.log('❌ Tour not shown - user has existing data or tour not requested');
+          }
+        } catch (error) {
+          console.error('Error checking tour status:', error);
+        }
+      };
+      
+      checkTourStatus();
     }
   }, []);
 
@@ -158,7 +189,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   function getPageTitle() {
     switch (activeTab) {
       case 'dashboard': return 'Dashboard';
-      case 'payers': return 'Payers';
+      case 'payers': return 'Contacts';
       case 'gigs': return 'Gigs';
       case 'expenses': return 'Expenses';
       case 'mileage': return 'Mileage';
@@ -170,23 +201,58 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
     }
   }
 
+  const TABS_WITH_DATE_FILTER: Tab[] = ['dashboard', 'gigs', 'expenses', 'mileage', 'invoices', 'exports'];
+  const showDateFilter = TABS_WITH_DATE_FILTER.includes(activeTab);
+
   const renderContent = () => {
     switch (activeTab) {
       case 'payers':
         return <PayersScreen />;
       case 'gigs':
-        return <GigsScreen onNavigateToSubscription={() => setActiveTab('subscription')} />;
+        return (
+          <GigsScreen
+            onNavigateToSubscription={() => setActiveTab('subscription')}
+            dateRange={range}
+            customStart={customStart}
+            customEnd={customEnd}
+          />
+        );
       case 'expenses':
-        return <ExpensesScreen onNavigateToSubscription={() => setActiveTab('subscription')} />;
+        return (
+          <ExpensesScreen
+            onNavigateToSubscription={() => setActiveTab('subscription')}
+            dateRange={range}
+            customStart={customStart}
+            customEnd={customEnd}
+          />
+        );
       case 'mileage':
-        return <MileageScreen />;
+        return (
+          <MileageScreen
+            dateRange={range}
+            customStart={customStart}
+            customEnd={customEnd}
+            onNavigateToAccount={() => setActiveTab('account')}
+          />
+        );
       case 'invoices':
-        return <InvoicesScreen 
-          onNavigateToAccount={() => setActiveTab('account')} 
-          onNavigateToSubscription={() => setActiveTab('subscription')}
-        />;
+        return (
+          <InvoicesScreen
+            onNavigateToAccount={() => setActiveTab('account')}
+            onNavigateToSubscription={() => setActiveTab('subscription')}
+            dateRange={range}
+            customStart={customStart}
+            customEnd={customEnd}
+          />
+        );
       case 'exports':
-        return <ExportsScreen />;
+        return (
+          <ExportsScreen
+            dateRange={range}
+            customStart={customStart}
+            customEnd={customEnd}
+          />
+        );
       case 'subscription':
         return <SubscriptionScreen />;
       case 'account':
@@ -209,6 +275,9 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
               // TODO: Pass payer filter to GigsScreen
               setActiveTab('gigs');
             }}
+            onAddGig={() => setShowAddGigModal(true)}
+            onAddExpense={() => setShowAddExpenseModal(true)}
+            onExport={() => setActiveTab('exports')}
           />
         );
     }
@@ -226,13 +295,29 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
     }
   };
 
+  const LIST_TABS = ['gigs', 'expenses', 'mileage', 'payers'];
+  const isListTab = LIST_TABS.includes(activeTab);
+
   return (
     <AppShell
       activeRoute={activeTab}
       onNavigate={(route) => setActiveTab(route)}
       pageTitle={pageTitle}
       userName={profile?.full_name || undefined}
+      userEmail={user?.email || undefined}
       onSignOut={handleSignOut}
+      disableScroll={isListTab}
+      headerRight={
+        showDateFilter ? (
+          <DateRangeFilter
+            selected={range}
+            onSelect={setRange}
+            customStart={customStart}
+            customEnd={customEnd}
+            onCustomRangeChange={setCustomRange}
+          />
+        ) : undefined
+      }
       pageActions={
         activeTab === 'dashboard' ? (
           <>
@@ -283,15 +368,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         ) : undefined
       }
       headerActions={
-        isMobile ? (
-          <Button 
-            variant="ghost"
-            size="sm"
-            onPress={handleSignOut}
-          >
-            Sign Out
-          </Button>
-        ) : (
+        !isMobile ? (
           <>
             <Button 
               variant="secondary"
@@ -308,7 +385,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
               Sign Out
             </Button>
           </>
-        )
+        ) : undefined
       }
     >
       {/* Show tax profile banner on dashboard tab if state is null */}
@@ -413,7 +490,7 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     backgroundColor: '#1e40af',
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     marginTop: 20,
     marginBottom: 16,
     borderRadius: 16,
@@ -433,7 +510,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   heroValue: {
-    fontSize: 48,
+    fontSize: Platform.OS === 'web' ? 48 : 32,
     fontWeight: '700',
     color: '#fff',
     marginBottom: 8,
@@ -453,12 +530,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
     marginBottom: 12,
-    marginHorizontal: 20,
+    marginHorizontal: 10,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     gap: 12,
   },
   statCard: {
@@ -508,7 +585,7 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: '#fff',
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -536,7 +613,7 @@ const styles = StyleSheet.create({
   },
   taxCard: {
     backgroundColor: '#fff',
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     borderRadius: 12,
     padding: 20,
     shadowColor: '#000',
@@ -617,7 +694,7 @@ const styles = StyleSheet.create({
   },
   taxPlanningNote: {
     backgroundColor: '#dbeafe',
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     marginTop: 16,
     marginBottom: 32,
     borderRadius: 12,
