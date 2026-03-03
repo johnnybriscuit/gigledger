@@ -92,8 +92,15 @@ export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion, city
                     outline: 'none',
                   },
                 }}
-                onMouseEnter={(e: any) => onRegionHover?.(stateCode, e)}
-                onMouseLeave={(e: any) => onRegionHover?.(null, e)}
+                onMouseEnter={(e: any) => {
+                  // react-simple-maps passes a synthetic event, we need the native event
+                  const nativeEvent = e?.nativeEvent || e;
+                  onRegionHover?.(stateCode, nativeEvent);
+                }}
+                onMouseLeave={(e: any) => {
+                  const nativeEvent = e?.nativeEvent || e;
+                  onRegionHover?.(null, nativeEvent);
+                }}
                 onClick={() => hasGigs && onRegionClick?.(stateCode)}
                 tabIndex={hasGigs ? 0 : -1}
                 role="button"

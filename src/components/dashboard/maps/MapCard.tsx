@@ -84,9 +84,12 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd, payerId }: 
   }
 
   const handleRegionHover = (code: string | null, event?: React.MouseEvent) => {
+    console.log('🗺️ [MapCard] handleRegionHover called:', { code, hasEvent: !!event, platform: Platform.OS });
     setHoveredRegion(code);
     if (code && event && Platform.OS === 'web') {
-      setTooltipPosition({ x: event.clientX, y: event.clientY });
+      const pos = { x: event.clientX, y: event.clientY };
+      console.log('🗺️ [MapCard] Setting tooltip position:', pos);
+      setTooltipPosition(pos);
     } else {
       setTooltipPosition(undefined);
     }
