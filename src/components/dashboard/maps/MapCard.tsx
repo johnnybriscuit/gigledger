@@ -35,6 +35,19 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd, payerId }: 
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | undefined>();
   const [showInfo, setShowInfo] = useState(false);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
+
+  // Track mouse position globally for tooltips
+  React.useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   // Fetch map data (skipped on native via enabled flag)
   const { data: statsMap, isLoading, error } = useMapStats({
@@ -86,10 +99,9 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd, payerId }: 
   const handleRegionHover = (code: string | null, event?: React.MouseEvent) => {
     console.log('🗺️ [MapCard] handleRegionHover called:', { code, hasEvent: !!event, platform: Platform.OS });
     setHoveredRegion(code);
-    if (code && event && Platform.OS === 'web') {
-      const pos = { x: event.clientX, y: event.clientY };
-      console.log('🗺️ [MapCard] Setting tooltip position:', pos);
-      setTooltipPosition(pos);
+    if (code && mousePosition && Platform.OS === 'web') {
+      console.log('🗺️ [MapCard] Setting tooltip position:', mousePosition);
+      setTooltipPosition(mousePosition);
     } else {
       setTooltipPosition(undefined);
     }
