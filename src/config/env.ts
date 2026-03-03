@@ -28,16 +28,10 @@ function requireEnv(name: string, value: string | undefined): string {
 
 /**
  * Helper function to get an environment variable with fallback.
- * On web, prioritize process.env (for Vercel builds).
- * On native, use Constants.expoConfig.extra.
+ * Reads from Constants.expoConfig.extra which is populated from process.env at build time.
  */
 function getEnvVar(key: string): string | undefined {
-  // For web builds (Vercel), process.env is injected at build time
-  if (typeof window !== 'undefined') {
-    return process.env[key] || Constants.expoConfig?.extra?.[key];
-  }
-  // For native builds, use expo config
-  return Constants.expoConfig?.extra?.[key] || process.env[key];
+  return Constants.expoConfig?.extra?.[key];
 }
 
 /**
