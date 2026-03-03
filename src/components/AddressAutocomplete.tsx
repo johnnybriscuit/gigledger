@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   },
   item: {
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',

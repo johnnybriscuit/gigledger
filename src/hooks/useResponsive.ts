@@ -4,7 +4,8 @@ export function useResponsive() {
   const { width, height } = useWindowDimensions();
   
   const isMobileWeb = Platform.OS === 'web' && width < 768;
-  const isTablet = Platform.OS === 'web' && width >= 768 && width < 1024;
+  // isTablet / isDesktop work on native too (iPad, large Android tablets)
+  const isTablet = width >= 768 && width < 1024;
   const isDesktop = Platform.OS === 'web' && width >= 1024;
   const isMobile = width < 768; // Generic mobile (includes native apps)
   

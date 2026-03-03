@@ -40,7 +40,7 @@ export function Container({
 const styles = StyleSheet.create({
   base: {
     width: '100%',
-    marginHorizontal: 'auto',
+    alignSelf: 'center',
   },
   
   padding: {

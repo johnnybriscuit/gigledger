@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   Platform,
   ScrollView,
+  Modal,
+  Text as NativeText,
 } from 'react-native';
 import { useGigs, useDeleteGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs';
 import { useTours, useRemoveGigFromTour } from '../hooks/useTours';
@@ -26,6 +27,28 @@ import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 import { getGigDisplayName } from '../lib/gigDisplayName';
+import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
+import { generateICSFile, downloadICSFile, generateICSFilename } from '../utils/calendar';
+import { addGigToCalendar } from '../utils/nativeCalendar';
+
+// Design tokens
+const T = {
+  bg: '#F5F4F0',
+  surface: '#FFFFFF',
+  surface2: '#EEECEA',
+  border: '#E5E3DE',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#7A7671',
+  textMuted: '#B0ADA8',
+  green: '#1D9B5E',
+  greenLight: '#E8F7F0',
+  amber: '#D97706',
+  amberLight: '#FEF3C7',
+  accent: '#2D5BE3',
+  accentLight: '#F0F4FF',
+  red: '#DC2626',
+  mono: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+};
 
 // Gig card: shows a single gig in the Gigs list
 // Emphasizes take-home pay and tax set-aside
@@ -44,6 +67,7 @@ function GigCard({
   tourName,
   tourId,
   onTourBadgeClick,
+  onAddToCalendar,
 }: { 
   item: GigWithPayer; 
   onEdit: () => void;
@@ -59,6 +83,7 @@ function GigCard({
   tourName?: string;
   tourId?: string;
   onTourBadgeClick?: () => void;
+  onAddToCalendar?: () => void;
 }) {
   // Derived money fields
   const gross = item.gross_amount 
@@ -66,20 +91,20 @@ function GigCard({
     + (item.per_diem || 0) 
     + (item.other_income || 0);
   
-  const subcontractorPaymentsTotal = (item.subcontractor_payments || []).reduce((sum, p) => sum + p.amount, 0);
-  const expensesOnly = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0) 
+  const subcontractorPaymentsTotal = (item.subcontractor_payments || []).reduce((sum: number, p: any) => sum + p.amount, 0);
+  const expensesOnly = (item.expenses || []).reduce((sum: number, exp: any) => sum + exp.amount, 0) 
     + (item.fees || 0)
-    + ((item.mileage || []).reduce((sum, m) => sum + (m.miles * 0.67), 0)); // Standard mileage rate
+    + ((item.mileage || []).reduce((sum: number, m: any) => sum + (m.miles * 0.67), 0));
   const expensesTotal = expensesOnly + subcontractorPaymentsTotal;
-  
   const netBeforeTax = gross - expensesTotal;
   
   const { taxResult } = useGigTaxCalculation(gross, expensesTotal);
   const taxToSetAside = taxResult?.setAside || 0;
-  const isNoSeTaxMode = taxResult?.mode === 'no_se_tax';
-  
   const takeHome = netBeforeTax - taxToSetAside;
-  
+
+  const displayName = getGigDisplayName(item);
+  const venueCity = item.location || (item.payer?.name || 'Unknown Payer');
+
   const handleCardPress = () => {
     if (isSelectionMode && onToggleSelection) {
       onToggleSelection();
@@ -87,157 +112,173 @@ function GigCard({
       onEdit();
     }
   };
-  
+
   return (
     <TouchableOpacity
-      activeOpacity={isSelectionMode ? 0.7 : 1}
-      onPress={isSelectionMode ? handleCardPress : undefined}
-      disabled={!isSelectionMode}
+      activeOpacity={0.85}
+      onPress={handleCardPress}
+      style={[
+        cardS.card,
+        isSelected && cardS.cardSelected,
+      ]}
     >
-      <Card 
-        variant="elevated" 
-        style={
-          isSelected 
-            ? StyleSheet.flatten([styles.card, styles.cardSelected])
-            : styles.card
-        }
-      >
-        <View style={styles.cardContent}>
-          {/* Checkbox in selection mode */}
-          {isSelectionMode && (
-            <TouchableOpacity 
-              onPress={onToggleSelection}
-              style={styles.checkbox}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      {/* Main body */}
+      <View style={cardS.main}>
+        {/* Checkbox in selection mode */}
+        {isSelectionMode && (
+          <TouchableOpacity
+            onPress={onToggleSelection}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={cardS.checkboxWrap}
+          >
+            <View style={[cardS.checkbox, isSelected && cardS.checkboxChecked]}>
+              {isSelected && <NativeText style={cardS.checkboxTick}>✓</NativeText>}
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* LEFT: identity */}
+        <View style={cardS.left}>
+          <NativeText style={cardS.bandName} numberOfLines={1}>{displayName}</NativeText>
+          <NativeText style={cardS.venue} numberOfLines={1}>📍 {venueCity}</NativeText>
+          <View style={cardS.metaRow}>
+            <View style={cardS.dateChip}>
+              <NativeText style={cardS.dateText}>{formatDate(item.date)}</NativeText>
+            </View>
+            <TouchableOpacity
+              onPress={() => onTogglePaid(item)}
+              disabled={togglingGigId === item.id}
+              activeOpacity={0.7}
+              style={[cardS.badge, item.paid ? cardS.badgePaid : cardS.badgeUnpaid]}
             >
-              <View style={[
-                styles.checkboxBox,
-                isSelected && styles.checkboxBoxChecked,
-              ]}>
-                {isSelected && (
-                  <Text style={styles.checkboxCheck}>✓</Text>
-                )}
-              </View>
+              <NativeText style={[cardS.badgeText, item.paid ? cardS.badgeTextPaid : cardS.badgeTextUnpaid]}>
+                {togglingGigId === item.id ? 'SAVING...' : item.paid ? 'PAID' : 'UNPAID'}
+              </NativeText>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* RIGHT: money */}
+        <View style={cardS.right}>
+          <NativeText style={cardS.takeHomeLabel}>TAKE-HOME</NativeText>
+          <NativeText style={cardS.takeHomeValue}>{formatCurrency(takeHome)}</NativeText>
+          <NativeText style={cardS.taxAside}>
+            {'set aside '}
+            <NativeText style={cardS.taxAsideAmt}>{formatCurrency(taxToSetAside)}</NativeText>
+          </NativeText>
+        </View>
+      </View>
+
+      {/* Footer */}
+      <View style={[cardS.footer, isSelected && cardS.footerSelected]}>
+        <TouchableOpacity onPress={onTourBadgeClick} activeOpacity={tourId ? 0.7 : 1} disabled={!tourId}>
+          <NativeText style={cardS.tourTag}>{tourName ? `🎸 ${tourName}` : ''}</NativeText>
+        </TouchableOpacity>
+        <View style={cardS.footerActions}>
+          {onAddToCalendar && (
+            <TouchableOpacity onPress={onAddToCalendar} style={cardS.footerBtn}>
+              <NativeText style={cardS.footerBtnText}>📅 Calendar</NativeText>
             </TouchableOpacity>
           )}
-
-          {/* LEFT: Gig identity */}
-          <View style={styles.gigInfo}>
-          <H3>{getGigDisplayName(item)}</H3>
-          <Text muted>{item.payer?.name || 'Unknown Payer'}</Text>
-          <Text subtle>{formatDate(item.date)}</Text>
-          {item.location && (
-            <Text muted style={styles.location}>📍 {item.location}</Text>
-          )}
-          <TouchableOpacity
-            onPress={() => onTogglePaid(item)}
-            disabled={togglingGigId === item.id}
-            style={[
-              styles.statusBadgeWrapper,
-              Platform.OS === 'web' && { cursor: togglingGigId === item.id ? 'wait' : 'pointer' } as any,
-            ]}
-            activeOpacity={0.7}
-          >
-            <Badge 
-              variant={item.paid ? 'success' : 'warning'} 
-              size="sm"
-              style={styles.statusBadge}
-            >
-              {togglingGigId === item.id ? '⏳ Saving...' : item.paid ? '✓ Paid' : '⏳ Unpaid'}
-            </Badge>
+          <TouchableOpacity onPress={onEdit} style={cardS.footerBtn}>
+            <NativeText style={cardS.footerBtnText}>Edit</NativeText>
           </TouchableOpacity>
-        </View>
-
-        {/* RIGHT: Money summary */}
-        <View style={styles.moneySummary}>
-          <View style={styles.moneyRow}>
-            <View style={styles.moneyBlock}>
-              <Text style={styles.moneyLabel}>Estimated take-home</Text>
-              <Text style={styles.moneyValueGreen}>
-                {formatCurrency(takeHome)}
-              </Text>
-              <Text style={styles.moneyHint}>after expenses & taxes</Text>
-            </View>
-
-            <View style={styles.moneyBlock}>
-              <Text style={styles.moneyLabel}>
-                {isNoSeTaxMode ? 'Tax tracking' : 'Set aside for taxes'}
-              </Text>
-              <Text style={styles.moneyValueAmber}>
-                {formatCurrency(taxToSetAside)}
-              </Text>
-              <Text style={styles.moneyHint}>
-                {isNoSeTaxMode
-                  ? 'SE tax not calculated'
-                  : netBeforeTax > 0 
-                  ? `~${Math.round((taxToSetAside / netBeforeTax) * 100)}% rate`
-                  : 'estimated'}
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.breakdownText}>
-            {formatCurrency(gross)} gross
-            {expensesOnly > 0 && <> − {formatCurrency(expensesOnly)} expenses</>}
-            {subcontractorPaymentsTotal > 0 && <> − {formatCurrency(subcontractorPaymentsTotal)} subs</>}
-            {taxToSetAside > 0 && <> − {formatCurrency(taxToSetAside)} taxes</>}
-            {' = '}
-            {formatCurrency(takeHome)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Edit/Delete/Repeat actions + Tour badge */}
-      <View style={styles.cardActions}>
-        {tourName && tourId ? (
-          <TouchableOpacity
-            style={styles.tourBadgeButton}
-            onPress={onTourBadgeClick}
-            activeOpacity={0.7}
-          >
-            <Badge variant="neutral" size="sm">
-              🎸 {tourName}
-            </Badge>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.tourBadgeSpacer} />
-        )}
-        <View style={styles.cardActionsRight}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={onEdit}
-          >
-            <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={onRepeat}
-          >
-            <Text semibold style={{ color: colors.brand.DEFAULT }}>Repeat</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={onDelete}
-          >
-            <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
+          <TouchableOpacity onPress={onRepeat} style={cardS.footerBtn}>
+            <NativeText style={cardS.footerBtnText}>Repeat</NativeText>
           </TouchableOpacity>
         </View>
       </View>
-      </Card>
     </TouchableOpacity>
   );
 }
 
+const cardS = StyleSheet.create({
+  card: {
+    backgroundColor: T.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+    marginBottom: 10,
+    marginHorizontal: 10,
+    overflow: 'hidden',
+  },
+  cardSelected: {
+    borderColor: T.accent,
+    backgroundColor: T.accentLight,
+  },
+  main: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    gap: 12,
+  },
+  checkboxWrap: { paddingTop: 2, marginRight: 2 },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: T.border,
+    backgroundColor: T.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: { backgroundColor: T.accent, borderColor: T.accent },
+  checkboxTick: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 14 },
+  left: { flex: 1, minWidth: 0 },
+  bandName: { fontSize: 15, fontWeight: '700', color: T.textPrimary, marginBottom: 3 },
+  venue: { fontSize: 13, color: T.textSecondary, marginBottom: 10 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  dateChip: { backgroundColor: T.surface2, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  dateText: { fontSize: 12, fontWeight: '600', color: T.textSecondary },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  badgePaid: { backgroundColor: T.greenLight },
+  badgeUnpaid: { backgroundColor: T.amberLight },
+  badgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+  badgeTextPaid: { color: T.green },
+  badgeTextUnpaid: { color: T.amber },
+  right: { alignItems: 'flex-end', flexShrink: 0 },
+  takeHomeLabel: { fontSize: 10, fontWeight: '600', color: T.textMuted, letterSpacing: 0.5, marginBottom: 2 },
+  takeHomeValue: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: T.green,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    lineHeight: 30,
+  },
+  taxAside: { fontSize: 11, color: T.textMuted, marginTop: 3 },
+  taxAsideAmt: { color: T.amber, fontWeight: '600' },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+    backgroundColor: T.bg,
+  },
+  footerSelected: { backgroundColor: '#EBF0FF' },
+  tourTag: { fontSize: 12, fontWeight: '600', color: T.textSecondary },
+  footerActions: { flexDirection: 'row', gap: 12 },
+  footerBtn: { paddingVertical: 2 },
+  footerBtnText: { fontSize: 13, fontWeight: '600', color: T.accent },
+});
+
 interface GigsScreenProps {
   onNavigateToSubscription?: () => void;
+  dateRange?: DateRange;
+  customStart?: Date;
+  customEnd?: Date;
 }
 
-export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
+export function GigsScreen({ onNavigateToSubscription, dateRange, customStart, customEnd }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [createTourModalVisible, setCreateTourModalVisible] = useState(false);
   const [assignToTourModalVisible, setAssignToTourModalVisible] = useState(false);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [editingGig, setEditingGig] = useState<GigWithPayer | null>(null);
   const [duplicatingGig, setDuplicatingGig] = useState<GigWithPayer | null>(null);
   const [togglingGigId, setTogglingGigId] = useState<string | null>(null);
@@ -249,7 +290,15 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedGigIds, setSelectedGigIds] = useState<string[]>([]);
   
-  const { data: gigs, isLoading, error } = useGigs();
+  const { data: allGigs, isLoading, error } = useGigs();
+
+  // Client-side date filtering — useGigs fetches all, we filter here
+  const gigs = dateRange
+    ? (() => {
+        const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
+        return filterByDateRange(allGigs, startDate, endDate);
+      })()
+    : allGigs;
   const { data: payers } = usePayers();
   const { data: tours, isLoading: toursLoading } = useTours();
   
@@ -413,6 +462,50 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     }
   };
 
+  const handleAddToCalendar = async (gig: GigWithPayer) => {
+    const displayName = getGigDisplayName(gig);
+    const location = [gig.location, gig.city, gig.state].filter(Boolean).join(', ');
+    
+    const eventData = {
+      id: gig.id,
+      title: displayName,
+      date: gig.date,
+      location,
+      payerName: gig.payer?.name,
+      payAmount: gig.gross_amount,
+      notes: gig.notes || undefined,
+    };
+
+    if (Platform.OS === 'web') {
+      // Generate and download .ics file for web
+      const icsContent = generateICSFile(eventData);
+      const filename = generateICSFilename(displayName, gig.date);
+      downloadICSFile(icsContent, filename);
+      
+      if (window.confirm('Calendar event file downloaded. Would you like to open it?')) {
+        // The file is already downloaded, user can open it from downloads
+      }
+    } else {
+      // Use native calendar for mobile
+      try {
+        const calendarEventId = await addGigToCalendar(eventData);
+        
+        if (calendarEventId) {
+          // Update the gig with the calendar event ID
+          await updateGig.mutateAsync({
+            id: gig.id,
+            calendar_event_id: calendarEventId,
+          });
+          
+          Alert.alert('Success', 'Gig added to your calendar!');
+        }
+      } catch (error) {
+        console.error('Error adding to calendar:', error);
+        Alert.alert('Error', 'Failed to add gig to calendar. Please try again.');
+      }
+    }
+  };
+
   const formatDate = (dateString: string) => {
     // Parse date as local date to avoid timezone shifts
     const [year, month, day] = dateString.split('-').map(Number);
@@ -425,9 +518,9 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <H1>Gigs</H1>
-          <Text muted>Loading...</Text>
+        <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
+          <NativeText style={{ fontSize: 28, fontWeight: '700', color: T.textPrimary }}>Gigs</NativeText>
+          <NativeText style={{ fontSize: 14, color: T.textMuted, marginTop: 2 }}>Loading...</NativeText>
         </View>
         <View style={styles.listContent}>
           <SkeletonGigCard />
@@ -443,8 +536,8 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   if (error) {
     return (
       <View style={styles.centerContainer}>
-        <H3 style={{ color: colors.danger.DEFAULT }}>Error loading gigs</H3>
-        <Text muted>{(error as Error).message}</Text>
+        <NativeText style={{ fontSize: 16, fontWeight: '600', color: T.red }}>Error loading gigs</NativeText>
+        <NativeText style={{ fontSize: 14, color: T.textMuted }}>{(error as Error).message}</NativeText>
       </View>
     );
   }
@@ -475,203 +568,129 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     return sum + actualNet;
   }, 0) || 0;
 
+  // Derived filter label for dropdown button
+  const filterLabel = tourFilter === 'all' ? 'All Gigs'
+    : tourFilter === 'none' ? 'No Tour'
+    : (tours?.find(t => t.id === tourFilter)?.name || 'Tour');
+  const filterIcon = tourFilter === 'all' ? '📋' : tourFilter === 'none' ? '🗂️' : '🎸';
+
+  // Total tax aside estimate across filtered gigs (rough: 16% of net)
+  const totalTaxAside = Math.round(totalNet * 0.16);
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        {isSelectionMode ? (
-          <>
-            <View>
-              <H1>{selectedGigIds.length} selected</H1>
-            </View>
-            <View>
-              <Button
-                variant="secondary"
-                size="sm"
-                onPress={handleCancelSelection}
-              >
-                Cancel
-              </Button>
-            </View>
-          </>
-        ) : (
-          <>
-            <View>
-              <H1>Gigs</H1>
-              <Text muted>
-                {filteredGigs?.length || 0} gigs • {formatCurrency(totalNet)} net
-              </Text>
-            </View>
-            <View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.headerButtons}
-              >
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => setImportModalVisible(true)}
-                >
-                  📥 Import
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => setCreateTourModalVisible(true)}
-                >
-                  + Tour
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onPress={handleEnterSelectionMode}
-                >
-                  Select
-                </Button>
-                {hasReachedGigLimit ? (
-                  <Button
-                    variant="success"
-                    size="sm"
-                    onPress={handleUpgradeClick}
-                  >
-                    ⭐ Upgrade to add more
-                  </Button>
-                ) : (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onPress={handleAddGigClick}
-                  >
-                    + Add Gig
-                  </Button>
-                )}
-              </ScrollView>
-            </View>
-          </>
-        )}
+
+      {/* ── SUMMARY BAR ── */}
+      <View style={styles.summaryBar}>
+        <View style={styles.summaryStat}>
+          <NativeText style={styles.summaryLabel}>TOTAL GIGS</NativeText>
+          <NativeText style={styles.summaryValue}>{filteredGigs?.length || 0}</NativeText>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryStat}>
+          <NativeText style={styles.summaryLabel}>NET EARNINGS</NativeText>
+          <NativeText style={styles.summaryValue}>{formatCurrency(totalNet)}</NativeText>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryStat}>
+          <NativeText style={styles.summaryLabel}>TAX ASIDE</NativeText>
+          <NativeText style={[styles.summaryValue, styles.summaryValueAmber]}>{formatCurrency(totalTaxAside)}</NativeText>
+        </View>
       </View>
 
-      {/* Filter/Actions Bar - shows tour filter OR bulk actions */}
-      <View style={styles.filterBar}>
-        {isSelectionMode ? (
-          // Bulk actions when in selection mode
-          <View style={styles.bulkActionsInline}>
-            <Text style={styles.bulkActionsLabel}>
-              {selectedGigIds.length} gig{selectedGigIds.length !== 1 ? 's' : ''} selected
-            </Text>
-            <View style={styles.bulkActionsButtons}>
-              <Button
-                variant="primary"
-                size="sm"
-                onPress={handleAddToTour}
-              >
-                Add to Tour
-              </Button>
-              {allSelectedHaveTour && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onPress={handleRemoveFromTour}
-                >
-                  Remove from Tour
-                </Button>
-              )}
-            </View>
-          </View>
-        ) : (
-          // Tour filter dropdown when not in selection mode
-          <>
-            {Platform.OS === 'web' ? (
-              <select
-                value={tourFilter}
-                onChange={(e: any) => setTourFilter(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  border: '1px solid #e5e7eb',
-                  backgroundColor: 'white',
-                  fontSize: 14,
-                  cursor: 'pointer',
-                  minWidth: 160,
-                  maxWidth: 250,
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                } as any}
-              >
-                <option value="all">All Gigs</option>
-                <option value="none">No Tour</option>
-                {tours?.map((tour) => (
-                  <option key={tour.id} value={tour.id}>
-                    {tour.name}
-                  </option>
-                ))}
-              </select>
+      {/* ── SECTION HEADER + ACTION BUTTONS ── */}
+      {!isSelectionMode && (
+        <View style={styles.sectionHeader}>
+          <NativeText style={styles.sectionTitle}>ALL GIGS</NativeText>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.btnGhost} onPress={() => setImportModalVisible(true)}>
+              <NativeText style={styles.btnGhostText}>📥 Import</NativeText>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnGhost} onPress={() => setCreateTourModalVisible(true)}>
+              <NativeText style={styles.btnGhostText}>+ Tour</NativeText>
+            </TouchableOpacity>
+            {hasReachedGigLimit ? (
+              <TouchableOpacity style={styles.btnPrimary} onPress={handleUpgradeClick}>
+                <NativeText style={styles.btnPrimaryText}>⭐ Upgrade</NativeText>
+              </TouchableOpacity>
             ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterButtons}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.filterButton,
-                    tourFilter === 'all' && styles.filterButtonActive,
-                  ]}
-                  onPress={() => setTourFilter('all')}
-                >
-                  <Text
-                    style={
-                      tourFilter === 'all'
-                        ? styles.filterButtonTextActive
-                        : styles.filterButtonText
-                    }
-                  >
-                    All Gigs
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.filterButton,
-                    tourFilter === 'none' && styles.filterButtonActive,
-                  ]}
-                  onPress={() => setTourFilter('none')}
-                >
-                  <Text
-                    style={
-                      tourFilter === 'none'
-                        ? styles.filterButtonTextActive
-                        : styles.filterButtonText
-                    }
-                  >
-                    No Tour
-                  </Text>
-                </TouchableOpacity>
-                {tours?.map((tour) => (
+              <TouchableOpacity style={styles.btnPrimary} onPress={handleAddGigClick}>
+                <NativeText style={styles.btnPrimaryText}>+ Gig</NativeText>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* ── FILTER + SELECT ROW / SELECT MODE BAR ── */}
+      {isSelectionMode ? (
+        <View style={styles.selectModeBar}>
+          <TouchableOpacity onPress={handleCancelSelection}>
+            <NativeText style={styles.cancelSelectText}>Cancel</NativeText>
+          </TouchableOpacity>
+          <NativeText style={styles.selectCount}>
+            {selectedGigIds.length} gig{selectedGigIds.length !== 1 ? 's' : ''} selected
+          </NativeText>
+          <TouchableOpacity
+            style={[styles.assignBtn, selectedGigIds.length > 0 && styles.assignBtnEnabled]}
+            onPress={handleAddToTour}
+            disabled={selectedGigIds.length === 0}
+          >
+            <NativeText style={styles.assignBtnText}>Assign to Tour →</NativeText>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.filterRow}>
+          {/* Filter dropdown */}
+          <View style={styles.filterDropdownWrap}>
+            <TouchableOpacity
+              style={styles.filterDropdownBtn}
+              onPress={() => setFilterDropdownOpen(o => !o)}
+              activeOpacity={0.8}
+            >
+              <NativeText style={styles.filterIcon}>{filterIcon}</NativeText>
+              <NativeText style={styles.filterLabelText} numberOfLines={1}>{filterLabel}</NativeText>
+              <NativeText style={styles.filterChevron}>{filterDropdownOpen ? '▲' : '▼'}</NativeText>
+            </TouchableOpacity>
+            {filterDropdownOpen && (
+              <View style={styles.filterMenu}>
+                {[
+                  { value: 'all', label: 'All Gigs', icon: '📋' },
+                  { value: 'none', label: 'No Tour', icon: '🗂️' },
+                  ...(tours?.map(t => ({ value: t.id, label: t.name, icon: '🎸' })) || []),
+                ].map((opt) => (
                   <TouchableOpacity
-                    key={tour.id}
-                    style={[
-                      styles.filterButton,
-                      tourFilter === tour.id && styles.filterButtonActive,
-                    ]}
-                    onPress={() => setTourFilter(tour.id)}
+                    key={opt.value}
+                    style={[styles.filterMenuItem, tourFilter === opt.value && styles.filterMenuItemActive]}
+                    onPress={() => { setTourFilter(opt.value); setFilterDropdownOpen(false); }}
                   >
-                    <Text
-                      style={
-                        tourFilter === tour.id
-                          ? styles.filterButtonTextActive
-                          : styles.filterButtonText
-                      }
-                    >
-                      🎸 {tour.name}
-                    </Text>
+                    <NativeText style={styles.filterMenuIcon}>{opt.icon}</NativeText>
+                    <NativeText style={[styles.filterMenuLabel, tourFilter === opt.value && styles.filterMenuLabelActive]} numberOfLines={1}>
+                      {opt.label}
+                    </NativeText>
+                    {tourFilter === opt.value && (
+                      <View style={styles.filterCheck}>
+                        <NativeText style={styles.filterCheckMark}>✓</NativeText>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 ))}
-              </ScrollView>
+              </View>
             )}
-          </>
-        )}
-      </View>
+          </View>
 
-      {/* Usage Banner - show for all free plan users */}
+          {/* Select pill */}
+          <TouchableOpacity
+            style={styles.selectPill}
+            onPress={handleEnterSelectionMode}
+            activeOpacity={0.8}
+          >
+            <NativeText style={styles.selectPillText}>Select</NativeText>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Usage Banner */}
       {isFreePlan && (
         <View style={styles.bannerWrapper}>
           <UsageLimitBanner
@@ -683,11 +702,11 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         </View>
       )}
 
-      {/* Content area with relative positioning for bulk actions bar */}
+      {/* ── GIG LIST ── */}
       <View style={styles.contentArea}>
         {filteredGigs && filteredGigs.length === 0 ? (
           tourFilter === 'all' ? (
-            <View style={{ padding: 20 }}>
+            <View style={{ padding: 16 }}>
               <OnboardingHelperCard
                 icon="🎸"
                 title="Log your first gig"
@@ -698,11 +717,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
             </View>
           ) : (
             <EmptyState
-              title={
-                tourFilter === 'none'
-                  ? "No gigs without a tour"
-                  : "No gigs in this tour"
-              }
+              title={tourFilter === 'none' ? 'No gigs without a tour' : 'No gigs in this tour'}
               description="Try a different filter"
             />
           )
@@ -712,7 +727,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             renderItem={({ item }) => {
-              const tour = item.tour_id ? tours?.find(t => t.id === item.tour_id) : null;
+              const tour = item.tour_id ? tours?.find((t: any) => t.id === item.tour_id) : null;
               return (
                 <GigCard
                   item={item}
@@ -728,11 +743,8 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
                   onToggleSelection={() => handleToggleGigSelection(item.id)}
                   tourName={tour?.name}
                   tourId={tour?.id}
-                  onTourBadgeClick={() => {
-                    if (tour?.id) {
-                      setTourFilter(tour.id);
-                    }
-                  }}
+                  onTourBadgeClick={() => { if (tour?.id) setTourFilter(tour.id); }}
+                  onAddToCalendar={() => handleAddToCalendar(item)}
                 />
               );
             }}
@@ -799,217 +811,261 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
 }
 
 const styles = StyleSheet.create({
+  // ── Screen ──
   container: {
     flex: 1,
-    backgroundColor: colors.surface.muted,
+    backgroundColor: T.bg,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.surface.muted,
-    gap: parseInt(spacing[2]),
+    backgroundColor: T.bg,
+    gap: 8,
   },
   contentArea: {
     flex: 1,
-    position: 'relative',
   },
-  header: {
+
+  // ── Summary bar ──
+  summaryBar: {
+    backgroundColor: T.textPrimary,
+    marginHorizontal: 10,
+    marginBottom: 12,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: parseInt(spacing[5]),
-    paddingVertical: parseInt(spacing[4]),
-    backgroundColor: colors.surface.DEFAULT,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-    ...Platform.select({
-      web: {
-        position: 'sticky' as any,
-        top: 0,
-        zIndex: 50,
-      },
-    }),
   },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: parseInt(spacing[2]),
-    flexShrink: 1,
-  },
-  filterBar: {
-    paddingHorizontal: parseInt(spacing[5]),
-    paddingVertical: parseInt(spacing[3]),
-    backgroundColor: colors.surface.DEFAULT,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-    ...Platform.select({
-      web: {
-        position: 'sticky' as any,
-        top: 73, // Height of header
-        zIndex: 40,
-      },
-    }),
-  },
-  bulkActionsInline: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-  },
-  bulkActionsLabel: {
-    fontSize: 14,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.DEFAULT,
-  },
-  bulkActionsButtons: {
-    flexDirection: 'row',
-    gap: parseInt(spacing[2]),
-  },
-  filterButtons: {
-    flexDirection: 'row',
-    gap: parseInt(spacing[2]),
-    paddingRight: parseInt(spacing[5]),
-  },
-  filterButton: {
-    paddingHorizontal: parseInt(spacing[3]),
-    paddingVertical: parseInt(spacing[2]),
-    borderRadius: parseInt(radius.md),
-    backgroundColor: colors.surface.muted,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-  },
-  filterButtonActive: {
-    backgroundColor: colors.brand.DEFAULT,
-    borderColor: colors.brand.DEFAULT,
-  },
-  filterButtonText: {
-    fontSize: 13,
-    color: colors.text.DEFAULT,
-    fontWeight: typography.fontWeight.medium,
-  },
-  filterButtonTextActive: {
-    color: '#ffffff',
-    fontWeight: typography.fontWeight.semibold,
-  },
-  listContent: {
-    padding: parseInt(spacing[4]),
-  },
-  bannerWrapper: {
-    padding: parseInt(spacing[4]),
-    paddingBottom: 0,
-  },
-  bannerContainer: {
-    marginBottom: parseInt(spacing[4]),
-  },
-  card: {
-    marginBottom: parseInt(spacing[3]),
-  },
-  cardSelected: {
-    borderWidth: 2,
-    borderColor: colors.brand.DEFAULT,
-  },
-  checkbox: {
-    paddingTop: parseInt(spacing[1]),
-    marginRight: parseInt(spacing[3]),
-  },
-  checkboxBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.border.DEFAULT,
-    backgroundColor: colors.surface.DEFAULT,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxBoxChecked: {
-    backgroundColor: colors.brand.DEFAULT,
-    borderColor: colors.brand.DEFAULT,
-  },
-  checkboxCheck: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: typography.fontWeight.bold,
-  },
-  cardContent: {
-    flexDirection: 'row',
-    gap: parseInt(spacing[4]),
-    marginBottom: parseInt(spacing[3]),
-  },
-  gigInfo: {
-    flex: 1,
-    gap: parseInt(spacing[1]),
-  },
-  moneySummary: {
-    flex: 1.2,
-    gap: parseInt(spacing[2]),
-  },
-  moneyRow: {
-    flexDirection: 'row',
-    gap: parseInt(spacing[3]),
-  },
-  moneyBlock: {
-    flex: 1,
-    gap: parseInt(spacing[1]),
-  },
-  moneyLabel: {
+  summaryStat: {},
+  summaryLabel: {
     fontSize: 11,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.muted,
-    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
-  moneyValueGreen: {
-    fontSize: 28,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.success.DEFAULT,
-    lineHeight: 32,
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    marginTop: 2,
   },
-  moneyValueAmber: {
-    fontSize: 28,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.warning.DEFAULT,
-    lineHeight: 32,
+  summaryValueAmber: {
+    color: '#FBBF24',
   },
-  moneyHint: {
-    fontSize: 10,
-    color: colors.text.subtle,
+  summaryDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  breakdownText: {
-    fontSize: 12,
-    color: colors.text.muted,
-    lineHeight: 18,
-  },
-  location: {
-    marginTop: parseInt(spacing[1]),
-  },
-  cardActions: {
+
+  // ── Section header ──
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: parseInt(spacing[3]),
-    borderTopWidth: 1,
-    borderTopColor: colors.border.muted,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    paddingTop: 4,
   },
-  tourBadgeButton: {
-    // Badge will center-align with action buttons due to parent alignItems: 'center'
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: T.textSecondary,
+    letterSpacing: 0.6,
   },
-  tourBadgeSpacer: {
-    // Empty spacer to maintain right alignment when no tour badge
-  },
-  cardActionsRight: {
+  headerActions: {
     flexDirection: 'row',
-    gap: parseInt(spacing[4]),
+    gap: 8,
+    alignItems: 'center',
   },
-  actionButton: {
-    paddingHorizontal: parseInt(spacing[2]),
-    paddingVertical: parseInt(spacing[1]),
+  btnGhost: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
-  statusBadgeWrapper: {
-    alignSelf: 'flex-start',
-    marginTop: parseInt(spacing[2]),
+  btnGhostText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: T.textPrimary,
   },
-  statusBadge: {
-    alignSelf: 'flex-start',
+  btnPrimary: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: T.accent,
+  },
+  btnPrimaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+
+  // ── Filter + Select row ──
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 14,
+    alignItems: 'center',
+  },
+  filterDropdownWrap: {
+    flex: 1,
+    position: 'relative',
+    zIndex: 10,
+  },
+  filterDropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    backgroundColor: T.surface,
+    gap: 8,
+  },
+  filterIcon: {
+    fontSize: 16,
+    width: 22,
+    textAlign: 'center',
+  },
+  filterLabelText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: T.textPrimary,
+  },
+  filterChevron: {
+    fontSize: 10,
+    color: T.textMuted,
+  },
+  filterMenu: {
+    position: 'absolute',
+    top: 46,
+    left: 0,
+    right: 0,
+    backgroundColor: T.surface,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    borderRadius: 14,
+    overflow: 'hidden',
+    zIndex: 50,
+    marginTop: 6,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+      android: { elevation: 8 },
+      web: { boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } as any,
+    }),
+  },
+  filterMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: T.border,
+  },
+  filterMenuItemActive: {
+    backgroundColor: T.accentLight,
+  },
+  filterMenuIcon: {
+    fontSize: 16,
+    width: 22,
+    textAlign: 'center',
+  },
+  filterMenuLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: T.textPrimary,
+  },
+  filterMenuLabelActive: {
+    color: T.accent,
+    fontWeight: '700',
+  },
+  filterCheck: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: T.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCheckMark: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 13,
+  },
+  selectPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    backgroundColor: T.surface,
+  },
+  selectPillText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: T.textPrimary,
+  },
+
+  // ── Select mode bar ──
+  selectModeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: T.textPrimary,
+    marginHorizontal: 10,
+    marginBottom: 12,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  cancelSelectText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  selectCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  assignBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: T.accent,
+    opacity: 0.4,
+  },
+  assignBtnEnabled: {
+    opacity: 1,
+  },
+  assignBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  // ── List ──
+  listContent: {
+    paddingHorizontal: 0,
+    paddingTop: 4,
+    paddingBottom: 24,
+  },
+  bannerWrapper: {
+    paddingHorizontal: 10,
+    paddingBottom: 8,
   },
 });

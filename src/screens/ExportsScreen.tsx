@@ -4,16 +4,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Alert,
   Modal,
-  Platform,
 } from 'react-native';
-import { H1, H2, H3, Text, Button, Card, Badge } from '../ui';
-import { ExportCard } from '../components/ExportCard';
+import { Text } from '../ui';
 import { HowToImportModal, type TaxSoftware } from '../components/HowToImportModal';
-import { OnboardingHelperCard } from '../components/OnboardingHelperCard';
-import { colors, spacing, radius, typography } from '../styles/theme';
 import { useAllExportData, type ExportFilters } from '../hooks/useExports';
 import { generateCSVBundle } from '../lib/exports/csv-bundle-generator';
 import { downloadExcelFromPackage } from '../lib/exports/excel-generator-canonical';
@@ -35,8 +30,6 @@ import {
   downloadTXF,
   getTXFImportInstructions,
 } from '../lib/exports/txf-generator';
-import { downloadExcel } from '../lib/exports/excel-generator';
-import { openScheduleCPDF } from '../lib/exports/pdf-generator';
 import type { GigExportRow, ExpenseExportRow, MileageExportRow } from '../lib/exports/schemas';
 import { useWithholding } from '../hooks/useWithholding';
 import { useTaxExportPackage } from '../hooks/useTaxExportPackage';
@@ -45,13 +38,39 @@ import { generateTaxActPackZip } from '../lib/exports/taxact-pack';
 import { generateTurboTaxOnlinePack } from '../lib/exports/turbotax-online-pack';
 import { downloadTXF as downloadTXFWeb, downloadZip } from '../lib/exports/webDownloadHelpers';
 import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
+import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
 
-export function ExportsScreen() {
+interface ExportsScreenProps {
+  dateRange?: DateRange;
+  customStart?: Date;
+  customEnd?: Date;
+}
+
+export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScreenProps = {}) {
   const currentYear = new Date().getFullYear();
   const [taxYear, setTaxYear] = useState(currentYear);
   const [customDateRange, setCustomDateRange] = useState(false);
-  const [startDate, setStartDate] = useState(`${currentYear}-01-01`);
-  const [endDate, setEndDate] = useState(`${currentYear}-12-31`);
+
+  // Derive startDate/endDate from shared dateRange prop when provided,
+  // otherwise fall back to the taxYear-based defaults.
+  const derivedDates = dateRange
+    ? dateRangeToStrings(dateRange, customStart, customEnd)
+    : null;
+  const [startDate, setStartDate] = useState(
+    derivedDates?.startDate ?? `${currentYear}-01-01`
+  );
+  const [endDate, setEndDate] = useState(
+    derivedDates?.endDate ?? `${currentYear}-12-31`
+  );
+
+  // Sync startDate/endDate when the shared dateRange prop changes
+  useEffect(() => {
+    if (dateRange) {
+      const { startDate: s, endDate: e } = dateRangeToStrings(dateRange, customStart, customEnd);
+      setStartDate(s);
+      setEndDate(e);
+    }
+  }, [dateRange, customStart, customEnd]);
   const [includeTips, setIncludeTips] = useState(true);
   const [includeFees, setIncludeFees] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -102,11 +121,15 @@ export function ExportsScreen() {
   // Fetch all export data (legacy)
   const { gigs, expenses, mileage, payers, scheduleC, isLoading, isError } = useAllExportData(filters);
 
-  // Fetch canonical tax export package (new)
+  // Fetch canonical tax export package (new) — respects all filter state
   const taxPackage = useTaxExportPackage({
     userId: currentUserId,
     taxYear,
     timezone: 'America/New_York',
+    includeTips,
+    includeFees,
+    dateStart: customDateRange ? startDate : undefined,
+    dateEnd: customDateRange ? endDate : undefined,
     enabled: !!currentUserId,
   });
   
@@ -316,14 +339,8 @@ export function ExportsScreen() {
         appVersion: 'Bozzy v1.0',
       });
 
-      // Download PDF
-      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `ScheduleC_Summary_${taxYear}.pdf`;
-      link.click();
-      URL.revokeObjectURL(url);
+      const { downloadBinaryFile } = await import('../lib/exports/webDownloadHelpers');
+      await downloadBinaryFile(pdfBytes, `ScheduleC_Summary_${taxYear}.pdf`, 'application/pdf');
 
       Alert.alert('Success', 'PDF has been downloaded!');
     } catch (error: any) {
@@ -495,7 +512,7 @@ export function ExportsScreen() {
       });
       
       // Download the file
-      downloadTXF(txfContent, taxYear);
+      await downloadTXF(txfContent, taxYear);
       
       console.log('TXF file downloaded successfully');
       
@@ -670,390 +687,265 @@ export function ExportsScreen() {
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
+  const warningCount = validationResult?.warnings?.length ?? 0;
+  const hasWarnings = warningCount > 0;
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <H1>Export Center</H1>
-        <Text muted>
-          Download tax-ready exports for self-filing or CPA sharing
-        </Text>
-      </View>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
 
-      {/* Show helper card if user has no gigs yet */}
-      {(!gigs.data || gigs.data.length === 0) && (
-        <View style={{ padding: 20, paddingTop: 0 }}>
-          <OnboardingHelperCard
-            icon="📤"
-            title="Export when you're ready for taxes"
-            description="Once you've logged gigs and expenses, come back here to export tax-ready reports for your CPA or tax software."
-            actionLabel="Got it"
-            onAction={() => {}}
-          />
+      {/* ── Summary bar ─────────────────────────────── */}
+      <View style={styles.summaryBar}>
+        <View style={styles.summaryStatCol}>
+          <Text style={styles.summaryLabel}>GIGS</Text>
+          <Text style={styles.summaryValue}>{isLoading ? '—' : (gigs.data?.length ?? 0)}</Text>
         </View>
-      )}
-
-      {/* Tax Season Prep Checklist */}
-      <View style={styles.taxPrepSection}>
-        <TouchableOpacity 
-          style={styles.taxPrepHeader}
-          onPress={() => setShowTaxPrepChecklist(!showTaxPrepChecklist)}
-        >
-          <Text style={styles.taxPrepTitle}>🧾 Tax Season Prep Checklist</Text>
-          <Text style={styles.taxPrepToggle}>{showTaxPrepChecklist ? '▼' : '▶'}</Text>
-        </TouchableOpacity>
-        
-        {showTaxPrepChecklist && (
-          <View style={styles.taxPrepContent}>
-            <Text style={styles.taxPrepIntro}>
-              Before exporting, take a couple minutes to make sure your data is ready. This helps avoid back-and-forth later with your CPA or tax software.
-            </Text>
-            
-            <View style={styles.checklistItems}>
-              <View style={styles.checklistItem}>
-                <Text style={styles.checklistIcon}>✓</Text>
-                <Text style={styles.checklistText}>All gigs for the year are entered</Text>
-              </View>
-              <View style={styles.checklistItem}>
-                <Text style={styles.checklistIcon}>✓</Text>
-                <Text style={styles.checklistText}>Expenses are added (estimates are OK)</Text>
-              </View>
-              <View style={styles.checklistItem}>
-                <Text style={styles.checklistIcon}>✓</Text>
-                <Text style={styles.checklistText}>Mileage is logged if applicable</Text>
-              </View>
-              <View style={styles.checklistItem}>
-                <Text style={styles.checklistIcon}>✓</Text>
-                <Text style={styles.checklistText}>Business structure is set correctly (Account → Tax Profile)</Text>
-              </View>
-            </View>
-            
-            <View style={styles.taxPrepReassurance}>
-              <Text style={styles.taxPrepReassuranceText}>
-                Don't worry — perfection isn't required. Clean, honest data beats perfect data entered late.
-              </Text>
-            </View>
-          </View>
-        )}
-      </View>
-
-      {/* Filters Section */}
-      <View style={styles.filtersSection}>
-        <H2>Filters</H2>
-
-        {/* Tax Year Selector */}
-        <View style={styles.filterGroup}>
-          <Text semibold>Tax Year</Text>
-          <View style={styles.yearButtons}>
-            {yearOptions.map((year) => (
-              <TouchableOpacity
-                key={year}
-                style={[
-                  styles.yearButton,
-                  taxYear === year && !customDateRange && styles.yearButtonActive,
-                ]}
-                onPress={() => {
-                  setTaxYear(year);
-                  setCustomDateRange(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.yearButtonText,
-                    taxYear === year && !customDateRange && styles.yearButtonTextActive,
-                  ]}
-                >
-                  {year}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryStatCol}>
+          <Text style={styles.summaryLabel}>EXPENSES</Text>
+          <Text style={styles.summaryValue}>{isLoading ? '—' : (expenses.data?.length ?? 0)}</Text>
         </View>
-
-        {/* Custom Date Range Toggle */}
-        <TouchableOpacity
-          style={styles.customRangeToggle}
-          onPress={() => setCustomDateRange(!customDateRange)}
-        >
-          <View style={[styles.checkbox, customDateRange && styles.checkboxActive]}>
-            {customDateRange && <Text style={styles.checkmark}>✓</Text>}
-          </View>
-          <Text>Use custom date range</Text>
-        </TouchableOpacity>
-
-        {/* Include Options */}
-        <View style={styles.includeOptions}>
-          <TouchableOpacity
-            style={styles.optionRow}
-            onPress={() => setIncludeTips(!includeTips)}
-          >
-            <View style={[styles.checkbox, includeTips && styles.checkboxActive]}>
-              {includeTips && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text>Include Tips in Income</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.optionRow}
-            onPress={() => setIncludeFees(!includeFees)}
-          >
-            <View style={[styles.checkbox, includeFees && styles.checkboxActive]}>
-              {includeFees && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text>Include Fees as Deduction</Text>
-          </TouchableOpacity>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryStatCol}>
+          <Text style={styles.summaryLabel}>MILEAGE</Text>
+          <Text style={styles.summaryValue}>{isLoading ? '—' : (mileage.data?.length ?? 0)}</Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryStatCol}>
+          <Text style={styles.summaryLabel}>PAYERS</Text>
+          <Text style={styles.summaryValue}>{isLoading ? '—' : (payers.data?.length ?? 0)}</Text>
         </View>
       </View>
 
-      {/* Data Summary */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
-          <Text muted>Loading export data...</Text>
-        </View>
-      ) : isError ? (
-        <View style={styles.errorContainer}>
-          <H3 style={{ color: colors.danger.DEFAULT }}>Error loading data</H3>
-          <Text muted>
-            {gigs.error?.message || expenses.error?.message || mileage.error?.message || 
-             payers.error?.message || scheduleC.error?.message || 'Please try again later'}
-          </Text>
-        </View>
-      ) : (
-        <>
-          <View style={styles.summarySection}>
-            <H2>Data Summary</H2>
-            <View style={styles.summaryGrid}>
-              <Card variant="flat" style={styles.summaryCard}>
-                <Text style={styles.summaryValue}>{gigs.data?.length || 0}</Text>
-                <Text subtle>Gigs</Text>
-              </Card>
-              <Card variant="flat" style={styles.summaryCard}>
-                <Text style={styles.summaryValue}>{expenses.data?.length || 0}</Text>
-                <Text subtle>Expenses</Text>
-              </Card>
-              <Card variant="flat" style={styles.summaryCard}>
-                <Text style={styles.summaryValue}>{mileage.data?.length || 0}</Text>
-                <Text subtle>Mileage Entries</Text>
-              </Card>
-              <Card variant="flat" style={styles.summaryCard}>
-                <Text style={styles.summaryValue}>{payers.data?.length || 0}</Text>
-                <Text subtle>Payers</Text>
-              </Card>
-            </View>
-            
-            {/* No data warning */}
-            {(gigs.data?.length === 0 && expenses.data?.length === 0 && mileage.data?.length === 0) && (
-              <Card variant="flat" style={styles.noDataWarning}>
-                <Text style={styles.noDataIcon}>📭</Text>
-                <Text semibold>
-                  No data found for {customDateRange ? 'selected date range' : taxYear}
-                </Text>
-                <Text subtle>
-                  Try selecting a different year or date range above
-                </Text>
-              </Card>
-            )}
-          </View>
-
-          {/* Validation Status Card */}
-          {validationResult && (
-            <View style={[
-              styles.validationCard,
-              !validationResult.isValid && styles.validationCardError,
-              validationResult.warnings.length > 0 && validationResult.isValid && styles.validationCardWarning
-            ]}>
-              <Text style={styles.validationIcon}>
-                {validationResult.isValid 
-                  ? (validationResult.warnings.length > 0 ? '⚠️' : '✅')
-                  : '❌'}
-              </Text>
-              <Text style={styles.validationTitle}>
-                {validationResult.isValid 
-                  ? (validationResult.warnings.length > 0 
-                      ? 'Ready to Export (with warnings)' 
-                      : 'All Checks Passed')
-                  : `${validationResult.summary.blockingErrors} Issue(s) Must Be Fixed`}
-              </Text>
-              <Text style={styles.validationText}>
-                {validationResult.isValid 
-                  ? (validationResult.warnings.length > 0
-                      ? `${validationResult.warnings.length} warning(s) found. These won't block your export, but you should review them for accuracy.`
-                      : 'Your data is ready to export. No issues found.')
-                  : getValidationSummary(validationResult)}
-              </Text>
-              {(validationResult.warnings.length > 0 || !validationResult.isValid) && (
-                <TouchableOpacity onPress={() => setShowValidationDetails(true)}>
-                  <Text style={styles.validationLink}>
-                    {validationResult.warnings.length > 0 && validationResult.isValid
-                      ? 'View Warnings →'
-                      : 'View Issues →'}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-
-          {/* Tax Software Section */}
-          <View style={styles.exportSection}>
-            <H2>Tax Software</H2>
-            <Text muted style={styles.sectionSubtitle}>Import or manually enter into tax software</Text>
-            
-            <View style={styles.exportGrid}>
-
-              <ExportCard
-                title="TurboTax Online Manual Entry Pack"
-                subtitle="Best for TurboTax Online self-filing. Includes Schedule C summary + detail CSVs + PDF + import guide."
-                icon={<Text style={{ fontSize: 20 }}>📦</Text>}
-                badge="recommended"
-                onPress={handleDownloadTurboTaxOnlinePack}
-                onHelpPress={() => {
-                  setSelectedSoftware('turbotax-online');
-                  setShowHowToImport(true);
-                }}
-                loading={taxPackage.isLoading}
-                disabled={!taxPackage.data || taxPackage.isLoading}
-              />
-
-              <ExportCard
-                title="TurboTax Desktop (TXF)"
-                subtitle="Import into TurboTax Desktop (NOT Online)."
-                icon={<Text style={{ fontSize: 20 }}>🧾</Text>}
-                onPress={handleDownloadTurboTaxTXF}
-                onHelpPress={() => {
-                  setSelectedSoftware('turbotax-desktop');
-                  setShowHowToImport(true);
-                }}
-                loading={taxPackage.isLoading}
-                disabled={!taxPackage.data || taxPackage.isLoading}
-              />
-
-              <ExportCard
-                title="H&R Block Desktop (TXF)"
-                subtitle="Import into H&R Block Desktop."
-                icon={<Text style={{ fontSize: 20 }}>📋</Text>}
-                onPress={handleDownloadHRBlockTXF}
-                onHelpPress={() => {
-                  setSelectedSoftware('hrblock-desktop');
-                  setShowHowToImport(true);
-                }}
-                loading={taxPackage.isLoading}
-                disabled={!taxPackage.data || taxPackage.isLoading}
-              />
-
-              <ExportCard
-                title="TaxAct Tax Prep Pack (ZIP)"
-                subtitle="For TaxAct manual entry and CPA sharing."
-                icon={<Text style={{ fontSize: 20 }}>📄</Text>}
-                onPress={handleDownloadTaxActPack}
-                onHelpPress={() => {
-                  setSelectedSoftware('taxact');
-                  setShowHowToImport(true);
-                }}
-                loading={taxPackage.isLoading}
-                disabled={!taxPackage.data || taxPackage.isLoading}
-              />
-            </View>
-          </View>
-
-          {/* CPA Sharing Section */}
-          <View style={styles.exportSection}>
-            <H2>Share with a CPA</H2>
-            <Text muted style={styles.sectionSubtitle}>Professional-ready formats for tax preparers</Text>
-            
-            <View style={styles.exportGrid}>
-              <ExportCard
-                title="CSV Bundle (ZIP)"
-                subtitle="7 CSVs in a single ZIP file for CPA sharing."
-                icon={<Text style={{ fontSize: 20 }}>📊</Text>}
-                onPress={handleDownloadCSVs}
-                disabled={!validationResult?.isValid}
-              />
-
-              <ExportCard
-                title="Excel (.xlsx)"
-                subtitle="One .xlsx file with separate sheets."
-                icon={<Text style={{ fontSize: 20 }}>📘</Text>}
-                onPress={handleDownloadExcel}
-              />
-
-              <ExportCard
-                title="PDF Summary"
-                subtitle="Tax-ready summary for your CPA."
-                icon={<Text style={{ fontSize: 20 }}>📄</Text>}
-                onPress={handleDownloadPDF}
-              />
-            </View>
-          </View>
-
-          {/* Backup Section */}
-          <View style={styles.exportSection}>
-            <H2>Backup</H2>
-            <Text muted style={styles.sectionSubtitle}>Archive your data</Text>
-            
-            <View style={styles.exportGrid}>
-              <ExportCard
-                title="JSON Backup"
-                subtitle="Complete data backup in JSON format."
-                icon={<Text style={{ fontSize: 20 }}>💾</Text>}
-                onPress={handleDownloadJSON}
-              />
-            </View>
-          </View>
-
-          {/* Legacy Section (Collapsed) */}
-          <View style={styles.legacySection}>
-            <TouchableOpacity
-              style={styles.legacyHeader}
-              onPress={() => setShowLegacySection(!showLegacySection)}
-            >
-              <Text style={styles.legacyTitle}>Legacy / Troubleshooting</Text>
-              <Text style={styles.legacyToggle}>{showLegacySection ? '▼' : '▶'}</Text>
+      {/* ── Warning callout (conditional) ───────────── */}
+      {hasWarnings && (
+        <View style={styles.warningCallout}>
+          <Text style={styles.warningCalloutIcon}>⚠️</Text>
+          <View style={styles.warningCalloutBody}>
+            <Text style={styles.warningCalloutTitle}>{warningCount} warnings found</Text>
+            <Text style={styles.warningCalloutDesc}>Won't block your export, but review for accuracy before filing.</Text>
+            <TouchableOpacity onPress={() => setShowValidationDetails(true)}>
+              <Text style={styles.warningCalloutLink}>View Warnings →</Text>
             </TouchableOpacity>
-            
-            {showLegacySection && (
-              <View style={styles.legacyContent}>
-                <Text style={styles.legacyDescription}>
-                  These are older export formats kept for compatibility. Most users should use the options above.
-                </Text>
-                <View style={styles.exportGrid}>
-
-                  <ExportCard
-                    title="TXF (Legacy)"
-                    subtitle="Old TXF format for TurboTax Desktop. Use the newer TXF option above instead."
-                    icon={<Text style={{ fontSize: 20 }}>💼</Text>}
-                    onPress={handleDownloadTXF}
-                    disabled={!validationResult?.isValid}
-                  />
-                </View>
-              </View>
-            )}
           </View>
-
-          {/* Finish Line Section */}
-          <View style={styles.finishLineSection}>
-            <Text style={styles.finishLineIcon}>✅</Text>
-            <Text style={styles.finishLineTitle}>
-              You now have everything you need to share with a CPA or complete manual entry in tax software.
-            </Text>
-            <Text style={styles.finishLineText}>
-              Please review and verify totals before filing. These exports organize your data for tax preparation but are not tax advice.
-            </Text>
-            <Text style={styles.finishLineNote}>
-              When in doubt, consult a tax professional for guidance specific to your situation.
-            </Text>
-          </View>
-
-          {/* How To Import Modal */}
-          <HowToImportModal
-            visible={showHowToImport}
-            software={selectedSoftware}
-            onClose={() => {
-              setShowHowToImport(false);
-              setSelectedSoftware(null);
-            }}
-          />
-        </>
+        </View>
       )}
+
+      {/* ── Filters ─────────────────────────────────── */}
+      <Text style={styles.sectionLabel}>FILTERS</Text>
+      <View style={styles.filtersCard}>
+        <Text style={styles.yearSubLabel}>TAX YEAR</Text>
+        <View style={styles.yearRow}>
+          {yearOptions.map((year) => (
+            <TouchableOpacity
+              key={year}
+              style={[styles.yearBtn, taxYear === year && !customDateRange && styles.yearBtnActive]}
+              onPress={() => { setTaxYear(year); setCustomDateRange(false); }}
+            >
+              <Text style={taxYear === year && !customDateRange ? { ...styles.yearBtnText, ...styles.yearBtnTextActive } : styles.yearBtnText}>
+                {year}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {/* Toggle: Use Custom Date Range */}
+        <TouchableOpacity style={styles.toggleRow} onPress={() => setCustomDateRange(!customDateRange)} activeOpacity={0.8}>
+          <Text style={styles.toggleLabel}>Use Custom Date Range</Text>
+          <View style={[styles.toggleTrack, customDateRange ? styles.toggleTrackOn : styles.toggleTrackOff]}>
+            <View style={[styles.toggleThumb, customDateRange ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+          </View>
+        </TouchableOpacity>
+        {/* Toggle: Include Tips */}
+        <TouchableOpacity style={[styles.toggleRow, styles.toggleRowBorder]} onPress={() => setIncludeTips(!includeTips)} activeOpacity={0.8}>
+          <Text style={styles.toggleLabel}>Include Tips in Income</Text>
+          <View style={[styles.toggleTrack, includeTips ? styles.toggleTrackOn : styles.toggleTrackOff]}>
+            <View style={[styles.toggleThumb, includeTips ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+          </View>
+        </TouchableOpacity>
+        {/* Toggle: Include Fees */}
+        <TouchableOpacity style={[styles.toggleRow, styles.toggleRowBorder]} onPress={() => setIncludeFees(!includeFees)} activeOpacity={0.8}>
+          <Text style={styles.toggleLabel}>Include Fees as Deduction</Text>
+          <View style={[styles.toggleTrack, includeFees ? styles.toggleTrackOn : styles.toggleTrackOff]}>
+            <View style={[styles.toggleThumb, includeFees ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Tax Software ────────────────────────────── */}
+      <Text style={styles.sectionLabel}>TAX SOFTWARE</Text>
+      <View style={styles.exportGroupCard}>
+        {/* TurboTax Online */}
+        <View style={styles.exportRow}>
+          <View style={[styles.exportIconWrap, { backgroundColor: '#ECFDF5' }]}>
+            <Text style={styles.exportIconEmoji}>📊</Text>
+          </View>
+          <View style={styles.exportInfo}>
+            <View style={styles.exportNameRow}>
+              <Text style={styles.exportName}>TurboTax Online</Text>
+              <View style={styles.badgeRecommended}><Text style={styles.badgeRecommendedText}>RECOMMENDED</Text></View>
+            </View>
+            <Text style={styles.exportDesc}>Schedule C summary + detail. Best for self-filing online.</Text>
+          </View>
+          <View style={styles.exportActions}>
+            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadTurboTaxOnlinePack} disabled={!taxPackage.data || taxPackage.isLoading}>
+              <Text style={styles.downloadBtnText}>↓ Download</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setSelectedSoftware('turbotax-online'); setShowHowToImport(true); }}>
+              <Text style={styles.howToLink}>How to import</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {/* TurboTax Desktop */}
+        <View style={[styles.exportRow, styles.exportRowBorder]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: '#EEF2FF' }]}>
+            <Text style={styles.exportIconEmoji}>🖥️</Text>
+          </View>
+          <View style={styles.exportInfo}>
+            <Text style={styles.exportName}>TurboTax Desktop</Text>
+            <Text style={styles.exportDesc}>TXF format. For desktop app only, not Online.</Text>
+          </View>
+          <View style={styles.exportActions}>
+            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadTurboTaxTXF} disabled={!taxPackage.data || taxPackage.isLoading}>
+              <Text style={styles.downloadBtnText}>↓ Download</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setSelectedSoftware('turbotax-desktop'); setShowHowToImport(true); }}>
+              <Text style={styles.howToLink}>How to import</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {/* H&R Block */}
+        <View style={[styles.exportRow, styles.exportRowBorder]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: '#FFF7ED' }]}>
+            <Text style={styles.exportIconEmoji}>🧾</Text>
+          </View>
+          <View style={styles.exportInfo}>
+            <Text style={styles.exportName}>H&R Block Desktop</Text>
+            <Text style={styles.exportDesc}>Import into H&R Block Desktop software.</Text>
+          </View>
+          <View style={styles.exportActions}>
+            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadHRBlockTXF} disabled={!taxPackage.data || taxPackage.isLoading}>
+              <Text style={styles.downloadBtnText}>↓ Download</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setSelectedSoftware('hrblock-desktop'); setShowHowToImport(true); }}>
+              <Text style={styles.howToLink}>How to import</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {/* TaxAct */}
+        <View style={[styles.exportRow, styles.exportRowBorder]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: '#F3F0FF' }]}>
+            <Text style={styles.exportIconEmoji}>📋</Text>
+          </View>
+          <View style={styles.exportInfo}>
+            <Text style={styles.exportName}>TaxAct Tax Prep Pack</Text>
+            <Text style={styles.exportDesc}>ZIP bundle for TaxAct manual entry or CPA sharing.</Text>
+          </View>
+          <View style={styles.exportActions}>
+            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadTaxActPack} disabled={!taxPackage.data || taxPackage.isLoading}>
+              <Text style={styles.downloadBtnText}>↓ Download</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setSelectedSoftware('taxact'); setShowHowToImport(true); }}>
+              <Text style={styles.howToLink}>How to import</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* ── Share with a CPA ─────────────────────── */}
+      <Text style={styles.sectionLabel}>SHARE WITH A CPA</Text>
+      <View style={styles.exportGroupCard}>
+        {/* CSV Bundle */}
+        <View style={styles.exportRow}>
+          <View style={[styles.exportIconWrap, { backgroundColor: '#ECFDF5' }]}>
+            <Text style={styles.exportIconEmoji}>📦</Text>
+          </View>
+          <View style={styles.exportInfo}>
+            <Text style={styles.exportName}>CSV Bundle (ZIP)</Text>
+            <Text style={styles.exportDesc}>7 CSVs in one ZIP — complete data for any preparer.</Text>
+          </View>
+          <View style={styles.exportActions}>
+            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadCSVs}>
+              <Text style={styles.downloadBtnText}>↓ Download</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {/* Excel */}
+        <View style={[styles.exportRow, styles.exportRowBorder]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: '#FFF1F2' }]}>
+            <Text style={styles.exportIconEmoji}>📗</Text>
+          </View>
+          <View style={styles.exportInfo}>
+            <Text style={styles.exportName}>Excel (.xlsx)</Text>
+            <Text style={styles.exportDesc}>Single file with separate sheets per data type.</Text>
+          </View>
+          <View style={styles.exportActions}>
+            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadExcel}>
+              <Text style={styles.downloadBtnText}>↓ Download</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {/* PDF Summary */}
+        <View style={[styles.exportRow, styles.exportRowBorder]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: '#FEF3C7' }]}>
+            <Text style={styles.exportIconEmoji}>📄</Text>
+          </View>
+          <View style={styles.exportInfo}>
+            <Text style={styles.exportName}>PDF Summary</Text>
+            <Text style={styles.exportDesc}>Tax-ready summary formatted for your CPA.</Text>
+          </View>
+          <View style={styles.exportActions}>
+            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadPDF}>
+              <Text style={styles.downloadBtnText}>↓ Download</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* ── Backup ───────────────────────────────── */}
+      <Text style={styles.sectionLabel}>BACKUP</Text>
+      <View style={styles.exportGroupCard}>
+        <View style={styles.exportRow}>
+          <View style={[styles.exportIconWrap, { backgroundColor: '#F5F5F4' }]}>
+            <Text style={styles.exportIconEmoji}>💾</Text>
+          </View>
+          <View style={styles.exportInfo}>
+            <Text style={styles.exportName}>JSON Backup</Text>
+            <Text style={styles.exportDesc}>Complete data archive in JSON format.</Text>
+          </View>
+          <View style={styles.exportActions}>
+            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadJSON}>
+              <Text style={styles.downloadBtnText}>↓ Download</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* ── Tax Season Checklist ─────────────────── */}
+      <TouchableOpacity style={styles.checklistRow} onPress={() => setShowTaxPrepChecklist(!showTaxPrepChecklist)} activeOpacity={0.8}>
+        <Text style={styles.checklistIcon}>📋</Text>
+        <Text style={styles.checklistText}>Tax Season Prep Checklist</Text>
+        <Text style={styles.checklistArrow}>›</Text>
+      </TouchableOpacity>
+
+      {/* ── Legacy / Troubleshooting ─────────────── */}
+      <TouchableOpacity style={styles.legacyRow} onPress={() => setShowLegacySection(!showLegacySection)} activeOpacity={0.8}>
+        <Text style={styles.legacyRowLabel}>Legacy / Troubleshooting</Text>
+        <Text style={styles.legacyRowArrow}>›</Text>
+      </TouchableOpacity>
+
+      {/* ── Disclaimer ───────────────────────────── */}
+      <View style={styles.disclaimer}>
+        <Text style={styles.disclaimerIcon}>✅</Text>
+        <Text style={styles.disclaimerTitle}>You have everything you need</Text>
+        <Text style={styles.disclaimerBody}>These exports organize your data for tax preparation. Review and verify all totals before filing.</Text>
+        <Text style={styles.disclaimerFine}>When in doubt, consult a tax professional for guidance specific to your situation.</Text>
+      </View>
+
+      {/* ── How To Import Modal ───────────────────── */}
+      <HowToImportModal
+        visible={showHowToImport}
+        software={selectedSoftware}
+        onClose={() => { setShowHowToImport(false); setSelectedSoftware(null); }}
+      />
 
       {/* TXF Info Modal */}
       <Modal visible={showTXFInfo} transparent animationType="fade">
@@ -1155,529 +1047,403 @@ export function ExportsScreen() {
   );
 }
 
+const T = {
+  bg: '#F5F4F0',
+  surface: '#FFFFFF',
+  surface2: '#EEECEA',
+  border: '#E5E3DE',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#7A7671',
+  textMuted: '#B0ADA8',
+  green: '#1D9B5E',
+  greenLight: '#E8F7F0',
+  amber: '#D97706',
+  amberLight: '#FEF3C7',
+  accent: '#2D5BE3',
+  accentLight: '#EEF2FF',
+};
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.muted,
-  },
-  header: {
-    backgroundColor: colors.surface.DEFAULT,
-    padding: parseInt(spacing[5]),
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-  },
-  filtersSection: {
-    backgroundColor: colors.surface.DEFAULT,
-    padding: parseInt(spacing[5]),
-    marginTop: parseInt(spacing[3]),
-    borderRadius: parseInt(radius.md),
-    marginHorizontal: parseInt(spacing[4]),
-  },
-  filterGroup: {
-    marginBottom: parseInt(spacing[5]),
-  },
-  yearButtons: {
+  container: { flex: 1, backgroundColor: T.bg },
+  contentContainer: { paddingBottom: 40 },
+
+  // ── Summary bar ──────────────────────────────────
+  summaryBar: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: parseInt(spacing[2]),
-  },
-  yearButton: {
-    paddingVertical: parseInt(spacing[3]),
-    paddingHorizontal: parseInt(spacing[5]),
-    borderRadius: parseInt(radius.sm),
-    backgroundColor: colors.surface.muted,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-  },
-  yearButtonActive: {
-    backgroundColor: colors.brand.DEFAULT,
-    borderColor: colors.brand.DEFAULT,
-  },
-  yearButtonText: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.muted,
-  },
-  yearButtonTextActive: {
-    color: colors.brand.foreground,
-  },
-  customRangeToggle: {
-    flexDirection: 'row',
+    backgroundColor: T.textPrimary,
+    marginHorizontal: 10,
+    marginBottom: 14,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     alignItems: 'center',
-    marginBottom: parseInt(spacing[4]),
+    justifyContent: 'space-between',
   },
-  includeOptions: {
-    gap: parseInt(spacing[3]),
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: parseInt(radius.sm),
-    borderWidth: 2,
-    borderColor: colors.border.muted,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: parseInt(spacing[3]),
-  },
-  checkboxActive: {
-    backgroundColor: colors.brand.DEFAULT,
-    borderColor: colors.brand.DEFAULT,
-  },
-  checkmark: {
-    color: colors.brand.foreground,
-    fontSize: 16,
-    fontWeight: typography.fontWeight.bold,
-  },
-  loadingContainer: {
-    padding: parseInt(spacing[10]),
-    alignItems: 'center',
-    gap: parseInt(spacing[3]),
-  },
-  errorContainer: {
-    padding: parseInt(spacing[10]),
-    alignItems: 'center',
-    gap: parseInt(spacing[2]),
-  },
-  summarySection: {
-    backgroundColor: colors.surface.DEFAULT,
-    padding: parseInt(spacing[5]),
-    marginTop: parseInt(spacing[3]),
-    marginHorizontal: parseInt(spacing[4]),
-    borderRadius: parseInt(radius.md),
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: parseInt(spacing[3]),
-  },
-  summaryCard: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-    gap: parseInt(spacing[1]),
+  summaryStatCol: { alignItems: 'center' },
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   summaryValue: {
-    fontSize: 32,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.brand.DEFAULT,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 2,
   },
-  exportSection: {
-    backgroundColor: colors.surface.DEFAULT,
-    padding: parseInt(spacing[5]),
-    marginTop: parseInt(spacing[3]),
-    marginHorizontal: parseInt(spacing[4]),
-    borderRadius: parseInt(radius.md),
+  summaryDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  exportGrid: {
+
+  // ── Warning callout ──────────────────────────────
+  warningCallout: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: parseInt(spacing[3]),
+    alignItems: 'flex-start',
+    gap: 12,
+    marginHorizontal: 10,
+    marginBottom: 16,
+    backgroundColor: T.amberLight,
+    borderRadius: 14,
+    padding: 14,
   },
-  exportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface.muted,
-    padding: parseInt(spacing[4]),
-    borderRadius: parseInt(radius.md),
-    marginBottom: parseInt(spacing[3]),
+  warningCalloutIcon: { fontSize: 18, flexShrink: 0, marginTop: 1 },
+  warningCalloutBody: { flex: 1 },
+  warningCalloutTitle: { fontSize: 13, fontWeight: '700', color: T.amber },
+  warningCalloutDesc: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: T.amber,
+    opacity: 0.85,
+    marginTop: 3,
+    lineHeight: 17,
+  },
+  warningCalloutLink: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: T.accent,
+    marginTop: 8,
+  },
+
+  // ── Section label ────────────────────────────────
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: T.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    paddingHorizontal: 10,
+    paddingBottom: 8,
+  },
+
+  // ── Filters card ─────────────────────────────────
+  filtersCard: {
+    backgroundColor: T.surface,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
+    borderColor: T.border,
+    marginHorizontal: 10,
+    marginBottom: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 14,
   },
-  exportButtonDisabled: {
-    opacity: 0.5,
+  yearSubLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: T.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
-  exportButtonIcon: {
-    fontSize: 32,
-    marginRight: parseInt(spacing[4]),
+  yearRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
   },
-  exportButtonContent: {
+  yearBtn: {
     flex: 1,
-  },
-  exportButtonTitle: {
-    fontSize: parseInt(typography.fontSize.body.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.DEFAULT,
-    marginBottom: parseInt(spacing[1]),
-  },
-  exportButtonDescription: {
-    fontSize: parseInt(typography.fontSize.caption.size),
-    color: colors.text.muted,
-  },
-  taxHelperSection: {
-    backgroundColor: '#fef3c7',
-    padding: 12,
-    marginTop: 16,
-    marginHorizontal: 20,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#fbbf24',
-  },
-  taxHelperText: {
-    fontSize: 13,
-    color: '#92400e',
-    lineHeight: 18,
-    textAlign: 'center',
-  },
-  helpSection: {
-    backgroundColor: '#eff6ff',
-    padding: 20,
-    marginTop: 12,
-    marginHorizontal: 16,
-    marginBottom: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  helpTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e40af',
-    marginBottom: 12,
-  },
-  helpText: {
-    fontSize: 14,
-    color: '#1e40af',
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  helpBold: {
-    fontWeight: '600',
-  },
-  helpNote: {
-    fontSize: 13,
-    color: '#3b82f6',
-    fontStyle: 'italic',
-  },
-  // Phase E: Validation & TXF styles
-  validationCard: {
-    backgroundColor: colors.surface.DEFAULT,
-    padding: parseInt(spacing[5]),
-    marginTop: parseInt(spacing[3]),
-    marginHorizontal: parseInt(spacing[4]),
-    borderRadius: parseInt(radius.md),
-    borderWidth: 2,
-    borderColor: colors.success.DEFAULT,
+    paddingVertical: 9,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    backgroundColor: T.surface,
     alignItems: 'center',
   },
-  validationCardError: {
-    borderColor: colors.danger.DEFAULT,
+  yearBtnActive: {
+    backgroundColor: T.accent,
+    borderColor: T.accent,
   },
-  validationCardWarning: {
-    borderColor: colors.warning.DEFAULT,
-    backgroundColor: colors.warning.muted,
+  yearBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: T.textSecondary,
   },
-  validationIcon: {
-    fontSize: 48,
-    marginBottom: parseInt(spacing[3]),
+  yearBtnTextActive: {
+    color: '#FFFFFF',
   },
-  validationTitle: {
-    fontSize: parseInt(typography.fontSize.h3.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.DEFAULT,
-    marginBottom: parseInt(spacing[2]),
-  },
-  validationText: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: colors.text.muted,
-    textAlign: 'center',
-    marginBottom: parseInt(spacing[3]),
-  },
-  validationLink: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.brand.DEFAULT,
-  },
-  sectionSubtitle: {
-    marginBottom: parseInt(spacing[4]),
-    marginTop: parseInt(spacing[1]) * -1,
-  },
-  exportButtonHeader: {
+
+  // ── iOS-style toggle ─────────────────────────────
+  toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: parseInt(spacing[1]),
+    paddingVertical: 10,
   },
-  exportButtonBadge: {
+  toggleRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  toggleLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: T.textPrimary,
+  },
+  toggleTrack: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+  },
+  toggleTrackOn: { backgroundColor: T.accent },
+  toggleTrackOff: { backgroundColor: T.surface2 },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+    position: 'absolute',
+  },
+  toggleThumbOn: { right: 3 },
+  toggleThumbOff: { left: 3 },
+
+  // ── Export group card ────────────────────────────
+  exportGroupCard: {
+    backgroundColor: T.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+    marginHorizontal: 10,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  exportRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 14,
+  },
+  exportRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  exportIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  exportIconEmoji: { fontSize: 20 },
+  exportInfo: { flex: 1, minWidth: 0 },
+  exportNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  exportName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: T.textPrimary,
+  },
+  exportDesc: {
+    fontSize: 12,
+    color: T.textMuted,
+    marginTop: 2,
+    lineHeight: 17,
+  },
+  exportActions: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 6,
+    flexShrink: 0,
+  },
+  downloadBtn: {
+    backgroundColor: T.greenLight,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  downloadBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: T.green,
+  },
+  howToLink: {
     fontSize: 11,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.warning.DEFAULT,
+    fontWeight: '500',
+    color: T.textMuted,
+    textDecorationLine: 'underline',
+  },
+
+  // ── Recommended badge ────────────────────────────
+  badgeRecommended: {
+    backgroundColor: T.greenLight,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  badgeRecommendedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: T.green,
     textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
-  infoIconButton: {
-    padding: parseInt(spacing[1]),
-    marginLeft: parseInt(spacing[2]),
+
+  // ── Checklist row ────────────────────────────────
+  checklistRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 10,
+    marginBottom: 16,
+    backgroundColor: T.accentLight,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 14,
   },
-  infoIcon: {
-    fontSize: 18,
-    color: colors.brand.DEFAULT,
+  checklistIcon: { fontSize: 20, flexShrink: 0 },
+  checklistText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: T.accent,
   },
+  checklistArrow: { fontSize: 18, color: T.accent },
+
+  // ── Legacy row ───────────────────────────────────
+  legacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 10,
+    marginBottom: 16,
+    backgroundColor: T.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: T.border,
+    paddingHorizontal: 10,
+    paddingVertical: 14,
+  },
+  legacyRowLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: T.textMuted,
+  },
+  legacyRowArrow: { fontSize: 18, color: T.textMuted },
+
+  // ── Disclaimer ───────────────────────────────────
+  disclaimer: {
+    marginHorizontal: 10,
+    marginBottom: 16,
+    backgroundColor: T.greenLight,
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+  },
+  disclaimerIcon: { fontSize: 24, marginBottom: 8 },
+  disclaimerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: T.green,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  disclaimerBody: {
+    fontSize: 12,
+    color: T.green,
+    lineHeight: 18,
+    textAlign: 'center',
+    opacity: 0.85,
+  },
+  disclaimerFine: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: T.green,
+    opacity: 0.7,
+    marginTop: 8,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+
+  // ── Modals (kept for existing modal JSX) ─────────
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: parseInt(spacing[5]),
+    padding: 20,
   },
   modalContent: {
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: parseInt(radius.lg),
-    padding: parseInt(spacing[6]),
+    backgroundColor: T.surface,
+    borderRadius: 16,
+    padding: 24,
     maxWidth: 500,
     width: '100%',
     maxHeight: '80%',
   },
   modalTitle: {
-    fontSize: parseInt(typography.fontSize.h2.size),
-    fontWeight: typography.fontWeight.bold,
-    color: colors.text.DEFAULT,
-    marginBottom: parseInt(spacing[4]),
+    fontSize: 20,
+    fontWeight: '700',
+    color: T.textPrimary,
+    marginBottom: 16,
   },
-  modalScroll: {
-    maxHeight: 400,
-    marginBottom: parseInt(spacing[5]),
-  },
-  modalText: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: colors.text.muted,
-    lineHeight: 20,
-  },
+  modalScroll: { maxHeight: 400, marginBottom: 20 },
+  modalText: { fontSize: 14, color: T.textSecondary, lineHeight: 20 },
   modalButton: {
-    backgroundColor: colors.brand.DEFAULT,
-    padding: parseInt(spacing[4]),
-    borderRadius: parseInt(radius.sm),
+    backgroundColor: T.accent,
+    padding: 14,
+    borderRadius: 10,
     alignItems: 'center',
   },
-  modalButtonText: {
-    fontSize: parseInt(typography.fontSize.body.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.brand.foreground,
-  },
+  modalButtonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
   issuesSectionTitle: {
-    fontSize: parseInt(typography.fontSize.body.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.DEFAULT,
-    marginTop: parseInt(spacing[4]),
-    marginBottom: parseInt(spacing[3]),
+    fontSize: 15,
+    fontWeight: '600',
+    color: T.textPrimary,
+    marginTop: 16,
+    marginBottom: 10,
   },
   issueCard: {
-    backgroundColor: colors.danger.muted,
-    padding: parseInt(spacing[3]),
-    borderRadius: parseInt(radius.sm),
-    marginBottom: parseInt(spacing[2]),
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
     borderLeftWidth: 3,
-    borderLeftColor: colors.danger.DEFAULT,
+    borderLeftColor: '#DC2626',
   },
   issueCardWarning: {
-    backgroundColor: colors.warning.muted,
-    borderLeftColor: colors.warning.DEFAULT,
+    backgroundColor: T.amberLight,
+    borderLeftColor: T.amber,
   },
   issueCategory: {
-    fontSize: parseInt(typography.fontSize.caption.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.danger.DEFAULT,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#DC2626',
     textTransform: 'uppercase',
-    marginBottom: parseInt(spacing[1]),
+    marginBottom: 4,
   },
-  issueMessage: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: colors.text.muted,
-    lineHeight: 20,
-  },
-  noDataWarning: {
-    marginTop: parseInt(spacing[4]),
-    alignItems: 'center',
-    gap: parseInt(spacing[2]),
-  },
-  noDataIcon: {
-    fontSize: 48,
-  },
-  taxPrepSection: {
-    backgroundColor: colors.surface.DEFAULT,
-    marginTop: parseInt(spacing[3]),
-    marginHorizontal: parseInt(spacing[4]),
-    borderRadius: parseInt(radius.md),
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    overflow: 'hidden',
-  },
-  taxPrepHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: parseInt(spacing[4]),
-    backgroundColor: '#eff6ff',
-  },
-  taxPrepTitle: {
-    fontSize: parseInt(typography.fontSize.body.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.DEFAULT,
-  },
-  taxPrepToggle: {
-    fontSize: 14,
-    color: colors.text.muted,
-  },
-  taxPrepContent: {
-    padding: parseInt(spacing[4]),
-  },
-  taxPrepIntro: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: colors.text.muted,
-    lineHeight: 20,
-    marginBottom: parseInt(spacing[4]),
-  },
-  checklistItems: {
-    gap: parseInt(spacing[3]),
-    marginBottom: parseInt(spacing[4]),
-  },
-  checklistItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: parseInt(spacing[2]),
-  },
-  checklistIcon: {
-    fontSize: 16,
-    color: colors.success.DEFAULT,
-    fontWeight: typography.fontWeight.bold,
-  },
-  checklistText: {
-    flex: 1,
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: colors.text.DEFAULT,
-    lineHeight: 20,
-  },
-  taxPrepReassurance: {
-    backgroundColor: '#fef3c7',
-    padding: parseInt(spacing[3]),
-    borderRadius: parseInt(radius.sm),
-    borderLeftWidth: 3,
-    borderLeftColor: '#fbbf24',
-  },
-  taxPrepReassuranceText: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: '#92400e',
-    lineHeight: 20,
-    fontStyle: 'italic',
-  },
-  exportCard: {
-    marginBottom: parseInt(spacing[3]),
-  },
-  guidanceDrawer: {
-    backgroundColor: '#f8f9fa',
-    padding: parseInt(spacing[4]),
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
-    gap: parseInt(spacing[3]),
-  },
-  guidanceTitle: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.DEFAULT,
-    marginTop: parseInt(spacing[2]),
-  },
-  guidanceText: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: colors.text.muted,
-    lineHeight: 20,
-  },
-  guidanceReassurance: {
-    backgroundColor: '#e0f2fe',
-    padding: parseInt(spacing[3]),
-    borderRadius: parseInt(radius.sm),
-    borderLeftWidth: 3,
-    borderLeftColor: colors.brand.DEFAULT,
-    marginTop: parseInt(spacing[2]),
-  },
-  guidanceReassuranceText: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: '#0369a1',
-    lineHeight: 20,
-    fontStyle: 'italic',
-  },
-  finishLineSection: {
-    backgroundColor: '#f0fdf4',
-    padding: parseInt(spacing[5]),
-    marginTop: parseInt(spacing[4]),
-    marginHorizontal: parseInt(spacing[4]),
-    marginBottom: parseInt(spacing[6]),
-    borderRadius: parseInt(radius.md),
-    borderWidth: 1,
-    borderColor: '#86efac',
-  },
-  finishLineIcon: {
-    fontSize: 32,
-    textAlign: 'center',
-    marginBottom: parseInt(spacing[3]),
-  },
-  finishLineTitle: {
-    fontSize: parseInt(typography.fontSize.h3.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: '#166534',
-    textAlign: 'center',
-    marginBottom: parseInt(spacing[3]),
-  },
-  finishLineText: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: '#166534',
-    lineHeight: 22,
-    marginBottom: parseInt(spacing[3]),
-  },
-  finishLineNote: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: '#15803d',
-    lineHeight: 20,
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  legacySection: {
-    backgroundColor: colors.surface.DEFAULT,
-    marginTop: parseInt(spacing[3]),
-    marginHorizontal: parseInt(spacing[4]),
-    borderRadius: parseInt(radius.md),
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    overflow: 'hidden',
-  },
-  legacyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: parseInt(spacing[4]),
-    backgroundColor: '#f9fafb',
-  },
-  legacyTitle: {
-    fontSize: parseInt(typography.fontSize.body.size),
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.text.muted,
-  },
-  legacyToggle: {
-    fontSize: 14,
-    color: colors.text.muted,
-  },
-  legacyContent: {
-    padding: parseInt(spacing[4]),
-  },
-  legacyDescription: {
-    fontSize: parseInt(typography.fontSize.subtle.size),
-    color: colors.text.muted,
-    lineHeight: 20,
-    marginBottom: parseInt(spacing[4]),
-  },
-  errorBanner: {
-    backgroundColor: colors.danger.muted,
-    padding: parseInt(spacing[4]),
-    marginHorizontal: parseInt(spacing[4]),
-    marginTop: parseInt(spacing[3]),
-    borderRadius: parseInt(radius.md),
-    borderLeftWidth: 4,
-    borderLeftColor: colors.danger.DEFAULT,
-  },
-  errorText: {
-    fontSize: parseInt(typography.fontSize.body.size),
-    color: colors.danger.DEFAULT,
-    fontWeight: typography.fontWeight.semibold,
-  },
+  issueMessage: { fontSize: 13, color: T.textSecondary, lineHeight: 18 },
 });

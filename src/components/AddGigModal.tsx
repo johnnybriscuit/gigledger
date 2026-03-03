@@ -145,6 +145,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   const [netAmountW2, setNetAmountW2] = useState('');
   const [withholdingAmountW2, setWithholdingAmountW2] = useState('');
   const [showW2Details, setShowW2Details] = useState(false);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
 
   const { data: payers } = usePayers();
   const createGig = useCreateGig();
@@ -379,6 +381,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       setPaid(editingGig.paid || false);
       setTaxesWithheld(editingGig.taxes_withheld || false);
       setNotes(editingGig.notes || '');
+      setStartTime((editingGig as any).start_time || '');
+      setEndTime((editingGig as any).end_time || '');
       
       // Load gig-related expenses
       const loadGigExpenses = async () => {
@@ -463,6 +467,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     setPaid(false);
     setTaxesWithheld(false);
     setNotes('');
+    setStartTime('');
+    setEndTime('');
     setInlineExpenses([]);
     setInlineMileage(null);
     setInlineSubcontractorPayments([]);
@@ -578,6 +584,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         tax_treatment: taxTreatmentOverride || undefined,
         net_amount_w2: netAmountW2 ? parseFloat(netAmountW2) : undefined,
         withholding_amount: withholdingAmountW2 ? parseFloat(withholdingAmountW2) : undefined,
+        start_time: startTime || undefined,
+        end_time: endTime || undefined,
       };
 
       console.log('Form data before validation:', formData);
@@ -951,6 +959,30 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   </Text>
                   <Text style={styles.pickerButtonIcon}>📅</Text>
                 </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, styles.flex1]}>
+                <Text style={styles.label}>Start Time</Text>
+                <TextInput
+                  style={styles.input}
+                  value={startTime}
+                  onChangeText={setStartTime}
+                  placeholder="19:00"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+
+              <View style={[styles.inputGroup, styles.flex1]}>
+                <Text style={styles.label}>End Time</Text>
+                <TextInput
+                  style={styles.input}
+                  value={endTime}
+                  onChangeText={setEndTime}
+                  placeholder="21:00"
+                  placeholderTextColor="#9ca3af"
+                />
               </View>
             </View>
 
@@ -1529,7 +1561,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     marginBottom: 20,
   },
   modalTitle: {
@@ -1550,7 +1582,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   form: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   quickAddSection: {
     marginBottom: 24,
@@ -1615,7 +1647,7 @@ const styles = StyleSheet.create({
   },
   payerChip: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#e5e7eb',
@@ -1757,7 +1789,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2563eb',
     borderRadius: 8,
-    marginHorizontal: 16,
+    marginHorizontal: 10,
     marginBottom: 12,
     overflow: 'hidden',
   },
@@ -1945,7 +1977,7 @@ const styles = StyleSheet.create({
   quickDateButtons: {
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingBottom: 20,
   },
   quickDateButton: {
@@ -1968,7 +2000,7 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
     borderRadius: 8,
     paddingHorizontal: 12,
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     marginBottom: 10,
   },
   searchIcon: {
@@ -1991,7 +2023,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingTop: 20,
     paddingBottom: 12,
   },
@@ -2016,7 +2048,7 @@ const styles = StyleSheet.create({
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 8,
   },
   calendarDayHeader: {
@@ -2062,7 +2094,7 @@ const styles = StyleSheet.create({
   calendarFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingTop: 16,
     gap: 12,
   },
@@ -2201,7 +2233,7 @@ const styles = StyleSheet.create({
   },
   addPayerButton: {
     backgroundColor: '#3b82f6',
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 8,
   },
@@ -2279,7 +2311,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   sectionHeaderRow: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 12,
     backgroundColor: '#f9fafb',
     borderTopWidth: 1,

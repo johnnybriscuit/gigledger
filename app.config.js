@@ -1,7 +1,8 @@
 module.exports = {
   expo: {
+    owner: 'jkburkh23',
     name: 'Bozzy',
-    slug: 'bozzy',
+    slug: 'gigledger',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -15,7 +16,7 @@ module.exports = {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.bozzy.app',
+      bundleIdentifier: 'com.bozzygigs.bozzy',
       buildNumber: '1',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -26,7 +27,7 @@ module.exports = {
         foregroundImage: './assets/adaptive-icon.png',
         backgroundColor: '#ffffff',
       },
-      package: 'com.bozzy.app',
+      package: 'com.bozzygigs.bozzy',
       versionCode: 1,
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
@@ -35,7 +36,30 @@ module.exports = {
       favicon: './assets/favicon.png',
       bundler: 'metro',
     },
-    plugins: ['expo-secure-store'],
+    plugins: [
+      'expo-secure-store',
+      'expo-web-browser',
+      [
+        'expo-image-picker',
+        {
+          photosPermission: 'Allow Bozzy to access your photos to set a profile picture.',
+          cameraPermission: 'Allow Bozzy to use your camera to take a profile photo.',
+        },
+      ],
+      [
+        'expo-calendar',
+        {
+          calendarPermission: 'Bozzy uses your calendar to add gig reminders.',
+        },
+      ],
+      [
+        '@react-native-google-signin/google-signin',
+        {
+          iosClientId: '366405399265-c543egs7vgjpo30kh1ijqaq0j6gdd9s.apps.googleusercontent.com',
+          iosUrlScheme: 'com.googleusercontent.apps.366405399265-c543egs7vgjpo30kh1ijqaq0j6gdd9s',
+        },
+      ],
+    ],
     extra: {
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
@@ -17,8 +18,6 @@ import { useW9Upload } from '../hooks/useW9Upload';
 import { download1099Csv, download1099RequiredCsv } from '../lib/1099/generate1099Csv';
 import { download1099PrepPdf } from '../lib/1099/generate1099PrepPdf';
 import { supabase } from '../lib/supabase';
-import { H2, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
-import { colors, spacingNum, radiusNum, typography } from '../styles/theme';
 import type { Subcontractor1099Total } from '../hooks/use1099Totals';
 
 export function Subcontractor1099Center() {
@@ -128,15 +127,15 @@ export function Subcontractor1099Center() {
 
   if (isLoading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2D5BE3" />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
+      <View style={styles.loadingContainer}>
         <Text style={styles.errorText}>Error loading 1099 data: {error.message}</Text>
       </View>
     );
@@ -144,88 +143,80 @@ export function Subcontractor1099Center() {
 
   const subcontractorsRequiring1099 = totals?.filter(s => s.requires_1099) || [];
   const totalAmount = totals?.reduce((sum, s) => sum + s.total_paid, 0) || 0;
-  const totalRequiredAmount = subcontractorsRequiring1099.reduce((sum, s) => sum + s.total_paid, 0);
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <H2>1099-NEC Center</H2>
-        <Text style={styles.subtitle}>
-          Prepare and manage 1099-NEC forms for subcontractors
-        </Text>
-      </View>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
-      {/* Info Banner */}
-      <Card style={styles.infoBanner}>
-        <Text style={styles.infoText}>
-          📋 <Text style={styles.infoBold}>1099-NEC</Text> is commonly issued for $600+ paid to contractors in a calendar year.
-        </Text>
-        <Text style={styles.infoText}>
-          ⚠️ Filing with IRS not included in Bozzy yet. Use these exports to prepare forms manually or share with your CPA.
-        </Text>
-      </Card>
-
-      {/* Year Selector & Summary */}
-      <View style={styles.controlsRow}>
-        <View style={styles.yearSelector}>
-          <Text style={styles.label}>Tax Year:</Text>
-          <View style={styles.yearButtons}>
-            {yearOptions.map(year => (
-              <TouchableOpacity
-                key={year}
-                style={[
-                  styles.yearButton,
-                  selectedYear === year && styles.yearButtonActive,
-                ]}
-                onPress={() => setSelectedYear(year)}
-              >
-                <Text style={[
-                  styles.yearButtonText,
-                  selectedYear === year && styles.yearButtonTextActive,
-                ]}>
-                  {year}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.summary}>
-          <Text style={styles.summaryText}>
-            <Text style={styles.summaryBold}>{subcontractorsRequiring1099.length}</Text> requiring 1099
+      {/* Amber info callout */}
+      <View style={styles.callout}>
+        <View style={styles.calloutRow}>
+          <Text style={styles.calloutIcon}>📋</Text>
+          <Text style={styles.calloutText}>
+            1099-NEC is required for contractors paid $600+ in a calendar year.
           </Text>
-          <Text style={styles.summaryText}>
-            <Text style={styles.summaryBold}>${totalRequiredAmount.toFixed(2)}</Text> total
+        </View>
+        <View style={styles.calloutRow}>
+          <Text style={styles.calloutIcon}>⚠️</Text>
+          <Text style={styles.calloutText}>
+            IRS filing not included in Bozzy yet — use exports to prepare forms or share with your CPA.
           </Text>
         </View>
       </View>
 
-      {/* Bulk Actions */}
-      <View style={styles.bulkActions}>
-        <Button
+      {/* Tax Year selector */}
+      <Text style={styles.sectionLabel}>Tax Year</Text>
+      <View style={styles.yearRow}>
+        {yearOptions.map(year => (
+          <TouchableOpacity
+            key={year}
+            style={[styles.yearBtn, selectedYear === year && styles.yearBtnActive]}
+            onPress={() => setSelectedYear(year)}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.yearBtnText, selectedYear === year && styles.yearBtnTextActive]}>
+              {year}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Stats row */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Requiring 1099</Text>
+          <Text style={styles.statValue}>{subcontractorsRequiring1099.length}</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Paid</Text>
+          <Text style={styles.statValue}>
+            ${totalAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+          </Text>
+        </View>
+      </View>
+
+      {/* Export section */}
+      <Text style={styles.sectionLabel}>Export</Text>
+      <View style={styles.exportRow}>
+        <TouchableOpacity
+          style={[styles.exportBtn, (!totals || totals.length === 0) && styles.exportBtnDisabled]}
           onPress={handleDownloadAllCsv}
-          variant="secondary"
+          activeOpacity={0.75}
           disabled={!totals || totals.length === 0}
         >
-          Download All CSV
-        </Button>
-        <Button
+          <Text style={styles.exportBtnText}>↓ All CSV</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.exportBtn, subcontractorsRequiring1099.length === 0 && styles.exportBtnDisabled]}
           onPress={handleDownloadRequiredCsv}
-          variant="secondary"
+          activeOpacity={0.75}
           disabled={subcontractorsRequiring1099.length === 0}
         >
-          Download Required CSV
-        </Button>
+          <Text style={styles.exportBtnText}>↓ Required Only</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Subcontractors List */}
-      {!totals || totals.length === 0 ? (
-        <EmptyState
-          title="No Subcontractor Payments"
-          description={`No payments to subcontractors found for ${selectedYear}. Payments will appear here once you add subcontractor payouts to your gigs.`}
-        />
-      ) : (
+      {/* Subcontractors list (if any) */}
+      {totals && totals.length > 0 && (
         <View style={styles.list}>
           {totals.map(subcontractor => (
             <SubcontractorRow
@@ -240,6 +231,8 @@ export function Subcontractor1099Center() {
           ))}
         </View>
       )}
+
+      <View style={styles.bottomPad} />
     </ScrollView>
   );
 }
@@ -266,7 +259,7 @@ function SubcontractorRow({
   const canEmail = canEmail1099(subcontractor);
 
   return (
-    <Card style={styles.row}>
+    <View style={styles.row}>
       <View style={styles.rowHeader}>
         <View style={styles.nameSection}>
           <Text style={styles.name}>{subcontractor.name}</Text>
@@ -279,27 +272,20 @@ function SubcontractorRow({
 
       <View style={styles.rowDetails}>
         <View style={styles.badges}>
-          {/* Threshold Badge */}
-          <Badge
-            variant={subcontractor.requires_1099 ? 'success' : 'neutral'}
-          >
-            {subcontractor.requires_1099 ? '≥ $600' : '< $600'}
-          </Badge>
-
-          {/* W-9 Status Badge */}
-          <Badge
-            variant={subcontractor.w9_status === 'received' ? 'success' : 'warning'}
-          >
-            {subcontractor.w9_status === 'received' ? 'W-9 Received' : 'W-9 Missing'}
-          </Badge>
-
-          {/* Missing Info Warning */}
+          <View style={[styles.inlineBadge, subcontractor.requires_1099 ? styles.badgeGreen : styles.badgeNeutral]}>
+            <Text style={[styles.inlineBadgeText, subcontractor.requires_1099 ? styles.badgeGreenText : styles.badgeNeutralText]}>
+              {subcontractor.requires_1099 ? '≥ $600' : '< $600'}
+            </Text>
+          </View>
+          <View style={[styles.inlineBadge, subcontractor.w9_status === 'received' ? styles.badgeGreen : styles.badgeAmber]}>
+            <Text style={[styles.inlineBadgeText, subcontractor.w9_status === 'received' ? styles.badgeGreenText : styles.badgeAmberText]}>
+              {subcontractor.w9_status === 'received' ? 'W-9 Received' : 'W-9 Missing'}
+            </Text>
+          </View>
           {missingInfo.length > 0 && (
-            <Badge
-              variant="danger"
-            >
-              ⚠️ {missingInfo.length} missing
-            </Badge>
+            <View style={[styles.inlineBadge, styles.badgeRed]}>
+              <Text style={[styles.inlineBadgeText, styles.badgeRedText]}>⚠️ {missingInfo.length} missing</Text>
+            </View>
           )}
         </View>
 
@@ -354,185 +340,233 @@ function SubcontractorRow({
           onPress={() => canEmail && onEmailPdf(subcontractor)}
           disabled={!canEmail}
         >
-          <Text style={[styles.actionButtonText, !canEmail && styles.actionButtonTextDisabled]}>
+          <Text style={canEmail ? styles.actionButtonText : styles.actionButtonTextDisabled}>
             Email PDF {!canEmail && '(consent required)'}
           </Text>
         </TouchableOpacity>
       </View>
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
+    backgroundColor: '#F5F4F0',
   },
-  header: {
-    padding: spacingNum[6],
-    paddingBottom: spacingNum[4],
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginTop: spacingNum[2],
-  },
-  infoBanner: {
-    margin: spacingNum[6],
-    marginTop: 0,
-    backgroundColor: colors.warning.muted,
-    borderColor: colors.warning.DEFAULT,
-    borderWidth: 1,
-  },
-  infoText: {
-    fontSize: 14,
-    color: colors.text.DEFAULT,
-    marginBottom: spacingNum[2],
-  },
-  infoBold: {
-    fontWeight: '600',
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacingNum[6],
-    marginBottom: spacingNum[4],
-  },
-  yearSelector: {
+  loadingContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F4F0',
   },
-  label: {
+  errorText: {
     fontSize: 14,
-    color: colors.text.muted,
-    marginBottom: spacingNum[2],
+    color: '#DC2626',
+    textAlign: 'center',
+    padding: 24,
   },
-  yearButtons: {
+
+  // Amber callout
+  callout: {
+    margin: 16,
+    marginBottom: 14,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 14,
+    padding: 14,
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  calloutRow: {
     flexDirection: 'row',
-    gap: spacingNum[2],
+    alignItems: 'flex-start',
+    gap: 10,
   },
-  yearButton: {
-    paddingHorizontal: spacingNum[4],
-    paddingVertical: spacingNum[3],
-    borderRadius: radiusNum.md,
+  calloutIcon: {
+    fontSize: 14,
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  calloutText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#D97706',
+    lineHeight: 18,
+  },
+
+  // Section label
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B0ADA8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    paddingHorizontal: 10,
+    paddingBottom: 8,
+  },
+
+  // Year selector
+  yearRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 14,
+  },
+  yearBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E3DE',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  yearBtnActive: {
+    backgroundColor: '#2D5BE3',
+    borderColor: '#2D5BE3',
+  },
+  yearBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7A7671',
+  },
+  yearBtnTextActive: {
+    color: '#FFFFFF',
+  },
+
+  // Stats row
+  statsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 14,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    backgroundColor: colors.surface.DEFAULT,
+    borderColor: '#E5E3DE',
+    borderRadius: 14,
+    padding: 12,
+    paddingHorizontal: 14,
   },
-  yearButtonActive: {
-    backgroundColor: colors.brand.DEFAULT,
-    borderColor: colors.brand.DEFAULT,
-  },
-  yearButtonText: {
-    fontSize: 14,
-    color: colors.text.DEFAULT,
-  },
-  yearButtonTextActive: {
-    color: colors.brand.foreground,
+  statLabel: {
+    fontSize: 11,
     fontWeight: '600',
+    color: '#B0ADA8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-  summary: {
-    alignItems: 'flex-end',
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginTop: 4,
   },
-  summaryText: {
-    fontSize: 14,
-    color: colors.text.muted,
-  },
-  summaryBold: {
-    fontWeight: '600',
-    color: colors.text.DEFAULT,
-  },
-  bulkActions: {
+
+  // Export row
+  exportRow: {
     flexDirection: 'row',
-    gap: spacingNum[4],
-    paddingHorizontal: spacingNum[6],
-    marginBottom: spacingNum[6],
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 14,
   },
+  exportBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E3DE',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exportBtnDisabled: {
+    opacity: 0.45,
+  },
+  exportBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+
+  // Subcontractor list (detail rows kept for SubcontractorRow)
   list: {
-    padding: spacingNum[6],
-    paddingTop: 0,
-    gap: spacingNum[4],
+    paddingHorizontal: 10,
+    gap: 10,
   },
   row: {
-    padding: spacingNum[4],
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E5E3DE',
+    padding: 16,
+    marginBottom: 10,
   },
   rowHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacingNum[3],
+    marginBottom: 10,
   },
-  nameSection: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.DEFAULT,
-  },
-  legalName: {
-    fontSize: 14,
-    color: colors.text.muted,
-    marginTop: spacingNum[2],
-  },
-  amount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.brand.DEFAULT,
-  },
+  nameSection: { flex: 1 },
+  name: { fontSize: 15, fontWeight: '700', color: '#1A1A1A' },
+  legalName: { fontSize: 12, color: '#B0ADA8', marginTop: 2 },
+  amount: { fontSize: 16, fontWeight: '700', color: '#2D5BE3' },
   rowDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacingNum[3],
+    marginBottom: 10,
   },
-  badges: {
-    flexDirection: 'row',
-    gap: spacingNum[2],
-    flexWrap: 'wrap',
-    flex: 1,
-  },
-  gigCount: {
-    fontSize: 14,
-    color: colors.text.muted,
-  },
+  badges: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', flex: 1 },
+  gigCount: { fontSize: 12, color: '#B0ADA8' },
   missingInfo: {
-    backgroundColor: colors.danger.muted,
-    padding: spacingNum[3],
-    borderRadius: radiusNum.sm,
-    marginBottom: spacingNum[3],
+    backgroundColor: '#FEE2E2',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 10,
   },
-  missingInfoText: {
-    fontSize: 12,
-    color: colors.danger.DEFAULT,
-  },
+  missingInfoText: { fontSize: 12, color: '#DC2626' },
   actions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacingNum[2],
-    marginTop: spacingNum[3],
+    gap: 8,
+    marginTop: 10,
   },
   actionButton: {
-    paddingHorizontal: spacingNum[3],
-    paddingVertical: spacingNum[2],
-    borderRadius: radiusNum.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    backgroundColor: colors.surface.DEFAULT,
+    borderColor: '#E5E3DE',
+    backgroundColor: '#FFFFFF',
   },
-  actionButtonDisabled: {
-    opacity: 0.5,
+  actionButtonDisabled: { opacity: 0.5 },
+  actionButtonText: { fontSize: 12, color: '#2D5BE3' },
+  actionButtonTextDisabled: { color: '#B0ADA8' },
+
+  // Inline badges for SubcontractorRow
+  inlineBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  actionButtonText: {
-    fontSize: 12,
-    color: colors.brand.DEFAULT,
+  inlineBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
-  actionButtonTextDisabled: {
-    color: colors.text.muted,
-  },
-  errorText: {
-    color: colors.danger.DEFAULT,
-    textAlign: 'center',
-    padding: spacingNum[6],
-  },
+  badgeGreen: { backgroundColor: '#D1FAE5' },
+  badgeGreenText: { color: '#065F46' },
+  badgeNeutral: { backgroundColor: '#EEECEA' },
+  badgeNeutralText: { color: '#7A7671' },
+  badgeAmber: { backgroundColor: '#FEF3C7' },
+  badgeAmberText: { color: '#D97706' },
+  badgeRed: { backgroundColor: '#FEE2E2' },
+  badgeRedText: { color: '#DC2626' },
+
+  bottomPad: { height: 32 },
 });

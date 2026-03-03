@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   paymentMethodButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 2,

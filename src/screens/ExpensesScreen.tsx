@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Text as RNText,
+  Modal,
 } from 'react-native';
 import { useExpenses, useDeleteExpense } from '../hooks/useExpenses';
 import { AddExpenseModal } from '../components/AddExpenseModal';
@@ -15,23 +17,25 @@ import { PaywallModal } from '../components/PaywallModal';
 import { UsageLimitBanner } from '../components/UsageLimitBanner';
 import { OnboardingHelperCard } from '../components/OnboardingHelperCard';
 import {
-  useRecurringExpenses,
   useActiveRecurringExpenses,
-  useDeleteRecurringExpense,
   useQuickAddExpense,
   type RecurringExpense,
 } from '../hooks/useRecurringExpenses';
 import { usePlanLimits } from '../hooks/usePlanLimits';
-import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
-import { colors, spacing, radius, typography } from '../styles/theme';
+import { H3, Text } from '../ui';
+import { colors } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 import { DeductionInfoCard } from '../components/DeductionInfoCard';
+import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
 
 interface ExpensesScreenProps {
   onNavigateToSubscription?: () => void;
+  dateRange?: DateRange;
+  customStart?: Date;
+  customEnd?: Date;
 }
 
-export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps = {}) {
+export function ExpensesScreen({ onNavigateToSubscription, dateRange, customStart, customEnd }: ExpensesScreenProps = {}) {
   
   const handleNavigateToSubscription = () => {
     if (onNavigateToSubscription) {
@@ -44,7 +48,9 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
       window.dispatchEvent(new CustomEvent('tabChange', { detail: 'subscription' }));
     }
   };
-  const [activeTab, setActiveTab] = useState<'all' | 'recurring'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('All Categories');
+  const [categoryFilterOpen, setCategoryFilterOpen] = useState(false);
+  const [recurringFilter, setRecurringFilter] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [recurringModalVisible, setRecurringModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
@@ -52,17 +58,23 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
   const [duplicatingExpense, setDuplicatingExpense] = useState<any>(null);
   const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | undefined>(undefined);
   
-  const { data: expenses, isLoading, error } = useExpenses();
-  const { data: recurringExpenses, isLoading: recurringLoading } = useRecurringExpenses();
+  const { data: allExpenses, isLoading, error } = useExpenses();
+
+  // Client-side date filtering — useExpenses fetches all, we filter here
+  const expenses = dateRange
+    ? (() => {
+        const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
+        return filterByDateRange(allExpenses, startDate, endDate);
+      })()
+    : allExpenses;
   const { data: activeRecurring } = useActiveRecurringExpenses();
   const deleteExpense = useDeleteExpense();
-  const deleteRecurring = useDeleteRecurringExpense();
   const quickAdd = useQuickAddExpense();
 
   // Use unified plan limits hook
   const expenseCount = expenses?.length || 0;
   const planLimits = usePlanLimits(0, expenseCount);
-  const { isFreePlan, hasReachedExpenseLimit, maxExpenses, expensesRemaining } = planLimits;
+  const { isFreePlan, hasReachedExpenseLimit } = planLimits;
 
   const handleDelete = async (id: string, description: string) => {
     const confirmed = Platform.OS === 'web'
@@ -98,41 +110,9 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
     setDuplicatingExpense(null);
   };
 
-  const handleEditRecurring = (recurring: RecurringExpense) => {
-    setEditingRecurring(recurring);
-    setRecurringModalVisible(true);
-  };
-
   const handleCloseRecurringModal = () => {
     setRecurringModalVisible(false);
     setEditingRecurring(undefined);
-  };
-
-  const handleDeleteRecurring = async (id: string, name: string) => {
-    const confirmed = Platform.OS === 'web'
-      ? window.confirm(`Are you sure you want to delete "${name}"?`)
-      : await new Promise((resolve) => {
-          Alert.alert(
-            'Delete Recurring Expense',
-            `Are you sure you want to delete "${name}"?`,
-            [
-              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
-            ]
-          );
-        });
-
-    if (!confirmed) return;
-
-    try {
-      await deleteRecurring.mutateAsync(id);
-    } catch (error: any) {
-      if (Platform.OS === 'web') {
-        window.alert(`Error: ${error.message || 'Failed to delete recurring expense'}`);
-      } else {
-        Alert.alert('Error', error.message || 'Failed to delete recurring expense');
-      }
-    }
   };
 
   const handleQuickAdd = async (recurringId: string, name: string) => {
@@ -178,87 +158,128 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
   }
 
   const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+  const deductibleTotal = totalExpenses;
+
+  // Clean display name: strip "Receipt: " prefix and " - YYYY-MM-DD" suffix
+  const cleanName = (raw: string) => {
+    let name = raw.replace(/^Receipt:\s*/i, '');
+    name = name.replace(/\s*-\s*\d{4}-\d{2}-\d{2}$/, '');
+    return name.trim();
+  };
+
+  const CATEGORY_OPTIONS = [
+    { label: 'All Categories', icon: '📋' },
+    { label: 'Equipment/Gear', icon: '🎸' },
+    { label: 'Meals & Entertainment', icon: '🍽️' },
+    { label: 'Mileage', icon: '🚗' },
+    { label: 'Other', icon: '📦' },
+  ];
+  const activeCategoryOption = CATEGORY_OPTIONS.find(o => o.label === categoryFilter) || CATEGORY_OPTIONS[0];
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <H1>Expenses</H1>
-          <Text muted>
-            {expenses?.length || 0} expenses • {formatCurrency(totalExpenses)} total
-          </Text>
+
+      {/* ── Summary Bar ── */}
+      <View style={styles.summaryBar}>
+        <View style={styles.summaryStat}>
+          <RNText style={styles.summaryLabel}>TOTAL EXPENSES</RNText>
+          <RNText style={styles.summaryValue}>{expenses?.length || 0}</RNText>
         </View>
-        {hasReachedExpenseLimit && activeTab === 'all' ? (
-          <Button
-            variant="success"
-            size="sm"
-            onPress={handleNavigateToSubscription}
-          >
-            ⭐ Upgrade to add more
-          </Button>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryStat}>
+          <RNText style={styles.summaryLabel}>TOTAL SPENT</RNText>
+          <RNText style={styles.summaryValue}>{formatCurrency(totalExpenses)}</RNText>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryStat}>
+          <RNText style={styles.summaryLabel}>DEDUCTIBLE</RNText>
+          <RNText style={[styles.summaryValue, styles.summaryValueGreen]}>{formatCurrency(deductibleTotal)}</RNText>
+        </View>
+      </View>
+
+      {/* ── Section Header ── */}
+      <View style={styles.sectionHeader}>
+        <RNText style={styles.sectionTitle}>ALL EXPENSES</RNText>
+        {hasReachedExpenseLimit ? (
+          <TouchableOpacity style={styles.addBtn} onPress={handleNavigateToSubscription}>
+            <RNText style={styles.addBtnText}>⭐ Upgrade</RNText>
+          </TouchableOpacity>
         ) : (
-          <Button
-            variant="primary"
-            size="sm"
+          <TouchableOpacity
+            style={styles.addBtn}
             onPress={() => {
-              if (activeTab === 'all') {
-                if (hasReachedExpenseLimit) {
-                  // Show paywall modal instead of silently failing
-                  setShowPaywallModal(true);
-                  return;
-                }
-                setModalVisible(true);
-              } else {
-                setRecurringModalVisible(true);
-              }
+              if (hasReachedExpenseLimit) { setShowPaywallModal(true); return; }
+              setModalVisible(true);
             }}
           >
-            {activeTab === 'all' ? '+ Add Expense' : '+ New Template'}
-          </Button>
+            <RNText style={styles.addBtnText}>+ Add Expense</RNText>
+          </TouchableOpacity>
         )}
       </View>
 
-      {/* Tabs */}
-      <View style={styles.tabs}>
+      {/* ── Filter Row ── */}
+      <View style={styles.filterRow}>
+        {/* Category dropdown */}
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'all' && styles.tabActive]}
-          onPress={() => setActiveTab('all')}
+          style={styles.filterDropdownBtn}
+          onPress={() => setCategoryFilterOpen(v => !v)}
+          activeOpacity={0.8}
         >
-          <Text semibold style={activeTab === 'all' ? { color: colors.brand.DEFAULT } : { color: colors.text.muted }}>
-            All Expenses
-          </Text>
+          <RNText style={styles.filterIcon}>{activeCategoryOption.icon}</RNText>
+          <RNText style={styles.filterLabel}>{activeCategoryOption.label}</RNText>
+          <RNText style={styles.filterChevron}>▼</RNText>
         </TouchableOpacity>
+
+        {/* Recurring toggle */}
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'recurring' && styles.tabActive]}
-          onPress={() => setActiveTab('recurring')}
+          style={[styles.recurringPill, recurringFilter && styles.recurringPillActive]}
+          onPress={() => setRecurringFilter(v => !v)}
+          activeOpacity={0.8}
         >
-          <Text semibold style={activeTab === 'recurring' ? { color: colors.brand.DEFAULT } : { color: colors.text.muted }}>
-            Recurring
-          </Text>
+          <RNText style={[styles.recurringPillText, recurringFilter && styles.recurringPillTextActive]}>Recurring</RNText>
         </TouchableOpacity>
       </View>
 
-      {/* Quick-add buttons for active recurring expenses */}
-      {activeTab === 'all' && activeRecurring && activeRecurring.length > 0 && (
-        <View style={styles.quickAddSection}>
-          <Text semibold muted>Quick Add</Text>
-          <View style={styles.quickAddButtons}>
-            {activeRecurring.map((recurring) => (
+      {/* Category dropdown menu (Modal overlay) */}
+      <Modal
+        visible={categoryFilterOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCategoryFilterOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.filterMenuBackdrop}
+          activeOpacity={1}
+          onPress={() => setCategoryFilterOpen(false)}
+        >
+          <View style={styles.filterMenu}>
+            {CATEGORY_OPTIONS.map(opt => (
               <TouchableOpacity
-                key={recurring.id}
-                style={styles.quickAddButton}
-                onPress={() => handleQuickAdd(recurring.id, recurring.name)}
+                key={opt.label}
+                style={[
+                  styles.filterMenuItem,
+                  categoryFilter === opt.label && styles.filterMenuItemActive,
+                ]}
+                onPress={() => { setCategoryFilter(opt.label); setCategoryFilterOpen(false); }}
               >
-                <Text semibold style={{ color: '#1e40af' }}>{recurring.name}</Text>
-                <Text style={{ color: colors.brand.DEFAULT, fontSize: parseInt(typography.fontSize.subtle.size) }}>{formatCurrency(recurring.amount)}</Text>
+                <RNText style={styles.filterMenuIcon}>{opt.icon}</RNText>
+                <RNText style={[
+                  styles.filterMenuLabel,
+                  categoryFilter === opt.label && styles.filterMenuLabelActive,
+                ]}>{opt.label}</RNText>
+                {categoryFilter === opt.label && (
+                  <View style={styles.filterCheck}>
+                    <RNText style={styles.filterCheckMark}>✓</RNText>
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
           </View>
-        </View>
-      )}
+        </TouchableOpacity>
+      </Modal>
 
-      {/* Usage Banner - show for all free plan users on All Expenses tab */}
-      {activeTab === 'all' && isFreePlan && (
+      {/* Usage Banner */}
+      {isFreePlan && (
         <View style={styles.bannerWrapper}>
           <UsageLimitBanner
             label="expenses"
@@ -269,8 +290,8 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
         </View>
       )}
 
-      {/* All Expenses Tab */}
-      {activeTab === 'all' && (expenses && expenses.length === 0 ? (
+      {/* Main list */}
+      {expenses && expenses.length === 0 ? (
         <View style={{ padding: 20 }}>
           <OnboardingHelperCard
             icon="💰"
@@ -286,144 +307,76 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            <DeductionInfoCard />
+            <>
+              {/* Quick Add strip */}
+              {activeRecurring && activeRecurring.length > 0 && (
+                <View style={styles.quickAddStrip}>
+                  <RNText style={styles.quickAddLabel}>QUICK ADD</RNText>
+                  <View style={styles.quickAddChips}>
+                    {activeRecurring.map((recurring) => (
+                      <TouchableOpacity
+                        key={recurring.id}
+                        style={styles.quickAddChip}
+                        onPress={() => handleQuickAdd(recurring.id, recurring.name)}
+                        activeOpacity={0.7}
+                      >
+                        <RNText style={styles.quickAddChipRecurIcon}>🔄</RNText>
+                        <RNText style={styles.quickAddChipName}>{recurring.name}</RNText>
+                        <RNText style={styles.quickAddChipAmount}>{formatCurrency(recurring.amount)}</RNText>
+                        <RNText style={styles.quickAddChipPlus}>＋</RNText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Edu card */}
+              <DeductionInfoCard />
+            </>
           }
           renderItem={({ item }) => (
-            <Card variant="elevated" style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardInfo}>
-                  <H3>{item.description}</H3>
-                  <View style={styles.metaRow}>
-                    <Badge variant="neutral" size="sm">{item.category}</Badge>
-                    <Text subtle>{formatDate(item.date)}</Text>
+            <View style={styles.expenseCard}>
+              <View style={styles.expenseCardMain}>
+                {/* Left */}
+                <View style={styles.expenseLeft}>
+                  <RNText style={styles.expenseName} numberOfLines={1}>{cleanName(item.description)}</RNText>
+                  {item.vendor ? (
+                    <RNText style={styles.expenseVendor} numberOfLines={1}>📍 {item.vendor}</RNText>
+                  ) : null}
+                  <View style={styles.expenseMeta}>
+                    <View style={styles.expenseDateChip}>
+                      <RNText style={styles.expenseDateText}>{formatDate(item.date)}</RNText>
+                    </View>
+                    {item.category ? (
+                      <View style={styles.expenseCategoryChip}>
+                        <RNText style={styles.expenseCategoryText}>{item.category.toUpperCase()}</RNText>
+                      </View>
+                    ) : null}
                   </View>
-                  {item.vendor && (
-                    <Text muted>📍 {item.vendor}</Text>
-                  )}
                 </View>
-                <View style={styles.amountContainer}>
-                  <Text style={styles.amount}>{formatCurrency(item.amount)}</Text>
-                  {item.receipt_url && (
-                    <Text style={styles.receiptBadge}>📎</Text>
-                  )}
+                {/* Right */}
+                <View style={styles.expenseRight}>
+                  <RNText style={styles.expenseAmountLabel}>AMOUNT</RNText>
+                  <RNText style={styles.expenseAmount}>{formatCurrency(item.amount)}</RNText>
+                  <RNText style={styles.expenseDeductible}>✓ deductible</RNText>
                 </View>
               </View>
-
-              {item.notes && (
-                <Text muted numberOfLines={2} style={styles.notes}>
-                  {item.notes}
-                </Text>
-              )}
-
-              <View style={styles.cardActions}>
-                <TouchableOpacity
-                  onPress={() => handleEdit(item)}
-                  style={styles.actionButton}
-                >
-                  <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
+              {/* Footer actions */}
+              <View style={styles.expenseCardFooter}>
+                <TouchableOpacity onPress={() => handleEdit(item)}>
+                  <RNText style={styles.footerActionBlue}>Edit</RNText>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleRepeat(item)}
-                  style={styles.actionButton}
-                >
-                  <Text semibold style={{ color: colors.brand.DEFAULT }}>Repeat</Text>
+                <TouchableOpacity onPress={() => handleRepeat(item)}>
+                  <RNText style={styles.footerActionBlue}>Repeat</RNText>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDelete(item.id, item.description)}
-                  style={styles.actionButton}
-                >
-                  <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
+                <TouchableOpacity onPress={() => handleDelete(item.id, item.description)}>
+                  <RNText style={styles.footerActionRed}>Delete</RNText>
                 </TouchableOpacity>
               </View>
-            </Card>
+            </View>
           )}
         />
-      ))}
-
-      {/* Recurring Expenses Tab */}
-      {activeTab === 'recurring' && (recurringLoading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.brand.DEFAULT} />
-        </View>
-      ) : recurringExpenses && recurringExpenses.length === 0 ? (
-        <EmptyState
-          title="No recurring expenses yet"
-          description="Create templates for expenses like rent, subscriptions, or storage"
-          action={{
-            label: 'New Template',
-            onPress: () => setRecurringModalVisible(true),
-          }}
-        />
-      ) : (
-        <FlatList
-          data={recurringExpenses}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <Card variant="elevated" style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardInfo}>
-                  <View style={styles.recurringHeader}>
-                    <H3>{item.name}</H3>
-                    {!item.is_active && (
-                      <Badge variant="warning" size="sm">Paused</Badge>
-                    )}
-                  </View>
-                  <View style={styles.metaRow}>
-                    <Badge variant="neutral" size="sm">{item.category}</Badge>
-                    <Text muted>
-                      {item.frequency === 'weekly' ? '📅 Weekly' : 
-                       item.frequency === 'monthly' ? '📅 Monthly' : 
-                       '📅 Yearly'}
-                    </Text>
-                  </View>
-                  {item.vendor && (
-                    <Text muted>📍 {item.vendor}</Text>
-                  )}
-                  {item.next_due_date && (
-                    <Text semibold style={{ color: colors.brand.DEFAULT, fontSize: parseInt(typography.fontSize.caption.size), marginTop: parseInt(spacing[1]) }}>
-                      Next: {formatDate(item.next_due_date)}
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.amountContainer}>
-                  <Text style={styles.amount}>{formatCurrency(item.amount)}</Text>
-                </View>
-              </View>
-
-              {item.notes && (
-                <Text muted numberOfLines={2} style={styles.notes}>
-                  {item.notes}
-                </Text>
-              )}
-
-              <View style={styles.cardActions}>
-                <TouchableOpacity
-                  onPress={() => handleQuickAdd(item.id, item.name)}
-                  style={styles.actionButton}
-                  disabled={!item.is_active}
-                >
-                  <Text semibold style={{ color: item.is_active ? colors.brand.DEFAULT : colors.text.subtle }}>
-                    Quick Add
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleEditRecurring(item)}
-                  style={styles.actionButton}
-                >
-                  <Text semibold style={{ color: colors.brand.DEFAULT }}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeleteRecurring(item.id, item.name)}
-                  style={styles.actionButton}
-                >
-                  <Text semibold style={{ color: colors.danger.DEFAULT }}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </Card>
-          )}
-        />
-      ))}
+      )}
 
       <AddExpenseModal
         visible={modalVisible}
@@ -457,121 +410,359 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.surface.muted,
+    backgroundColor: '#F5F4F0',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.surface.muted,
-    gap: parseInt(spacing[2]),
+    backgroundColor: '#F5F4F0',
+    gap: 8,
   },
-  header: {
+
+  // ── Summary Bar ──
+  summaryBar: {
+    backgroundColor: '#1A1A1A',
+    marginHorizontal: 10,
+    marginBottom: 12,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: parseInt(spacing[5]),
-    paddingVertical: parseInt(spacing[4]),
-    backgroundColor: colors.surface.DEFAULT,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-  },
-  listContent: {
-    padding: parseInt(spacing[5]),
-  },
-  card: {
-    marginBottom: parseInt(spacing[3]),
-  },
-  cardHeader: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: parseInt(spacing[2]),
   },
-  cardInfo: {
+  summaryStat: {
     flex: 1,
-    gap: parseInt(spacing[1]),
+    alignItems: 'center',
   },
-  metaRow: {
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.5)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    marginTop: 2,
+  },
+  summaryValueGreen: {
+    color: '#4ADE80',
+  },
+  summaryDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+
+  // ── Section Header ──
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    paddingTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#7A7671',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  addBtn: {
+    backgroundColor: '#2D5BE3',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  addBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // ── Filter Row ──
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 14,
+    alignItems: 'center',
+  },
+  filterDropdownBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: parseInt(spacing[3]),
+    gap: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E3DE',
+    backgroundColor: '#FFFFFF',
   },
-  amountContainer: {
-    alignItems: 'flex-end',
-    gap: parseInt(spacing[1]),
+  filterIcon: {
+    fontSize: 15,
   },
-  amount: {
-    fontSize: 20,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.danger.DEFAULT,
+  filterLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
   },
-  receiptBadge: {
+  filterChevron: {
+    fontSize: 10,
+    color: '#B0ADA8',
+  },
+  recurringPill: {
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E3DE',
+    backgroundColor: '#FFFFFF',
+  },
+  recurringPillActive: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#1A1A1A',
+  },
+  recurringPillText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  recurringPillTextActive: {
+    color: '#FFFFFF',
+  },
+
+  // ── Filter Menu ──
+  filterMenuBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-start',
+    paddingTop: 160,
+    paddingHorizontal: 10,
+  },
+  filterMenu: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E5E3DE',
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 24 },
+      android: { elevation: 8 },
+    }),
+  },
+  filterMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E3DE',
+  },
+  filterMenuItemActive: {
+    backgroundColor: '#F5F4F0',
+  },
+  filterMenuIcon: {
     fontSize: 16,
   },
-  notes: {
-    marginBottom: parseInt(spacing[3]),
+  filterMenuLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1A1A1A',
   },
-  cardActions: {
+  filterMenuLabelActive: {
+    fontWeight: '700',
+    color: '#2D5BE3',
+  },
+  filterCheck: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#2D5BE3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCheckMark: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+
+  // ── Quick Add Strip ──
+  quickAddStrip: {
+    paddingHorizontal: 10,
+    paddingBottom: 14,
+  },
+  quickAddLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#B0ADA8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+  },
+  quickAddChips: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  quickAddChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E3DE',
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+  },
+  quickAddChipRecurIcon: {
+    fontSize: 14,
+  },
+  quickAddChipName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  quickAddChipAmount: {
+    fontSize: 13,
+    color: '#B0ADA8',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  quickAddChipPlus: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2D5BE3',
+  },
+
+  // ── List ──
+  listContent: {
+    paddingHorizontal: 0,
+    paddingBottom: 32,
+  },
+
+  // ── Expense Card ──
+  expenseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E3DE',
+    overflow: 'hidden',
+    marginBottom: 10,
+    marginHorizontal: 10,
+  },
+  expenseCardMain: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 16,
+    gap: 12,
+  },
+  expenseLeft: {
+    flex: 1,
+    minWidth: 0,
+  },
+  expenseName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  expenseVendor: {
+    fontSize: 13,
+    color: '#7A7671',
+    marginTop: 3,
+  },
+  expenseMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    flexWrap: 'wrap',
+  },
+  expenseDateChip: {
+    backgroundColor: '#EEECEA',
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  expenseDateText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#7A7671',
+  },
+  expenseCategoryChip: {
+    backgroundColor: '#EEECEA',
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  expenseCategoryText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7A7671',
+    letterSpacing: 0.3,
+  },
+  expenseRight: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+  },
+  expenseAmountLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#B0ADA8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  expenseAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#DC2626',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    lineHeight: 28,
+  },
+  expenseDeductible: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1D9B5E',
+    marginTop: 3,
+  },
+  expenseCardFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: parseInt(spacing[4]),
-    paddingTop: parseInt(spacing[3]),
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.border.muted,
+    borderTopColor: '#E5E3DE',
+    backgroundColor: '#F5F4F0',
   },
-  actionButton: {
-    paddingHorizontal: parseInt(spacing[2]),
-    paddingVertical: parseInt(spacing[1]),
+  footerActionBlue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2D5BE3',
   },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface.DEFAULT,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
+  footerActionRed: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#DC2626',
   },
-  tab: {
-    flex: 1,
-    paddingVertical: parseInt(spacing[4]),
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: colors.brand.DEFAULT,
-  },
-  quickAddSection: {
-    backgroundColor: colors.surface.DEFAULT,
-    padding: parseInt(spacing[4]),
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-    gap: parseInt(spacing[3]),
-  },
-  quickAddButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: parseInt(spacing[2]),
-  },
-  quickAddButton: {
-    backgroundColor: '#eff6ff',
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-    borderRadius: parseInt(radius.sm),
-    paddingVertical: parseInt(spacing[2]),
-    paddingHorizontal: parseInt(spacing[3]),
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: parseInt(spacing[2]),
-  },
-  recurringHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: parseInt(spacing[2]),
-  },
+
+  // ── Misc ──
   bannerWrapper: {
-    padding: parseInt(spacing[4]),
-    paddingBottom: 0,
-  },
-  bannerContainer: {
-    marginBottom: parseInt(spacing[4]),
+    paddingHorizontal: 10,
+    paddingBottom: 8,
   },
 });

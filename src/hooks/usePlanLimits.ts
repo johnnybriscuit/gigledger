@@ -17,6 +17,7 @@ import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
 import type { SubscriptionTier, SubscriptionStatus } from './useSubscription';
 import { PLAN_LIMITS as PLAN_LIMITS_CONSTANTS } from '../constants/plans';
+import { useIsBetaTester } from './useBetaTester';
 
 // Plan limits configuration
 // Free plan: Uses PLAN_LIMITS from constants/plans.ts
@@ -39,6 +40,7 @@ export interface PlanLimits {
   isFreePlan: boolean;
   isPaidPlan: boolean;
   isActive: boolean;
+  isBetaTester: boolean;
   
   // Gig limits
   maxGigs: number;
@@ -59,6 +61,7 @@ export interface PlanLimits {
 
 export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): PlanLimits {
   const [userId, setUserId] = useState<string | null>(null);
+  const isBetaTester = useIsBetaTester();
   
   // Get userId from auth
   useEffect(() => {
@@ -118,13 +121,16 @@ export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): P
   const status = subscription?.status || null;
   const isActive = status === 'active' || status === 'trialing';
   const isPaidPlan = isActive && (tier === 'monthly' || tier === 'yearly');
-  const isFreePlan = !isPaidPlan;
+  
+  // Beta testers bypass subscription limits - treat them as paid users
+  const effectivelyPaid = isPaidPlan || isBetaTester;
+  const isFreePlan = !effectivelyPaid;
 
-  // Calculate limits based on plan
+  // Calculate limits based on plan (beta testers get paid limits)
   const maxGigs = isFreePlan ? PLAN_LIMITS.free.maxGigs : PLAN_LIMITS.paid.maxGigs;
   const maxExpenses = isFreePlan ? PLAN_LIMITS.free.maxExpenses : PLAN_LIMITS.paid.maxExpenses;
 
-  // Calculate usage
+  // Calculate usage (beta testers never hit limits)
   const hasReachedGigLimit = isFreePlan && gigCount >= maxGigs;
   const hasReachedExpenseLimit = isFreePlan && expenseCount >= maxExpenses;
   const gigsRemaining = Math.max(0, maxGigs - gigCount);
@@ -135,9 +141,11 @@ export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): P
   console.log('User ID:', userId);
   console.log('Plan from DB:', subscription?.tier);
   console.log('Status from DB:', subscription?.status);
+  console.log('Is beta tester?:', isBetaTester);
   console.log('Resolved userPlan:', tier);
   console.log('Is free plan?:', isFreePlan);
   console.log('Is paid plan?:', isPaidPlan);
+  console.log('Effectively paid (inc. beta)?:', effectivelyPaid);
   console.log('Gig count:', gigCount);
   console.log('Max gigs:', maxGigs);
   console.log('Has reached gig limit?:', hasReachedGigLimit);
@@ -153,6 +161,7 @@ export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): P
     isFreePlan,
     isPaidPlan,
     isActive,
+    isBetaTester,
     
     // Gig limits
     maxGigs,

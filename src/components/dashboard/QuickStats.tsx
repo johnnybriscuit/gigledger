@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   value: {
-    fontSize: 28,
+    fontSize: Platform.OS === 'web' ? 28 : 22,
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.5,

@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 14.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -12,6 +12,28 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jvostkeswuhfwntbrfzl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-supabase-anon-key-here",
+        "EXPO_PUBLIC_SITE_URL": "http://localhost:8090",
+        "EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED": "true"
+      }
+    },
+    "development-device": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jvostkeswuhfwntbrfzl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-supabase-anon-key-here",
+        "EXPO_PUBLIC_SITE_URL": "https://bozzygigs.com",
+        "EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED": "true"
       }
     },
     "preview": {
@@ -22,6 +44,12 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jvostkeswuhfwntbrfzl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-supabase-anon-key-here",
+        "EXPO_PUBLIC_SITE_URL": "https://bozzygigs.com",
+        "EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED": "true"
       }
     },
     "production": {
@@ -32,15 +60,21 @@
       },
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jvostkeswuhfwntbrfzl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-supabase-anon-key-here",
+        "EXPO_PUBLIC_SITE_URL": "https://bozzygigs.com",
+        "EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED": "true"
       }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "appleId": "your-apple-id@example.com",
-        "ascAppId": "placeholder",
-        "appleTeamId": "placeholder"
+        "appleId": "jkburkhardt1@gmail.com",
+        "ascAppId": "6759465450",
+        "appleTeamId": "78RUR6YD4K"
       },
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",

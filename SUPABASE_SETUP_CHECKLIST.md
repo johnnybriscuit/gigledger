@@ -84,8 +84,8 @@
 ### Check if credentials work:
 ```bash
 # Test connection
-curl https://jvostkeswhfwntbrfzl.supabase.co/rest/v1/ \
-  -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2b3N0a2Vzd3VoZndudGJyZnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2Mjg4NDksImV4cCI6MjA3NjIwNDg0OX0.tzh6vU2bfxMk-rqUTtX9JaYwzp_DAaVaU_5G-VPEchg"
+curl https://your-project-id.supabase.co/rest/v1/ \
+  -H "apikey: your-supabase-anon-key-here"
 ```
 
 Expected: Should return a JSON response (not an error)

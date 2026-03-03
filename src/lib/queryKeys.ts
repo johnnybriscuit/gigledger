@@ -74,6 +74,9 @@ export const queryKeys = {
   settlements: (userId: string, tourId?: string) => 
     tourId ? ['settlements', userId, tourId] as const : ['settlements', userId] as const,
   settlement: (userId: string, settlementId: string) => ['settlements', userId, settlementId] as const,
+  
+  // Beta testers
+  betaTester: (email: string) => ['beta-tester', email] as const,
 } as const;
 
 /**

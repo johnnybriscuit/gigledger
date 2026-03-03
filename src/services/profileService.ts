@@ -122,6 +122,15 @@ export async function ensureUserSettings(userId: string) {
         console.log('[ensureUserSettings] Settings were created by another process (race condition)');
         return { success: true, created: false };
       }
+      
+      // Check if it's an RLS policy error
+      if (insertError.code === '42501') {
+        console.error('[ensureUserSettings] RLS policy blocking insert - database configuration issue');
+        console.error('[ensureUserSettings] User can still use the app, but settings won\'t be saved');
+        // Return success to prevent blocking the user, but log the issue
+        return { success: true, created: false, rlsError: true };
+      }
+      
       console.error('[ensureUserSettings] Error creating settings:', insertError);
       throw insertError;
     }

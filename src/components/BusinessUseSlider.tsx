@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: '#e5e7eb',
     borderRadius: 3,
-    marginHorizontal: 16,
+    marginHorizontal: 10,
     overflow: 'hidden',
   },
   sliderTrack: {

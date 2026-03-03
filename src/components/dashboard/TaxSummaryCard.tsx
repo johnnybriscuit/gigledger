@@ -66,108 +66,88 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
 
       {hasIncome ? (
         <>
-          {/* Estimated Tax Rate */}
-          <View style={styles.mainMetric}>
-            <Text style={styles.label}>YTD Estimated Tax Rate</Text>
-            <Text style={styles.bigNumber}>
+          {/* Rate hero box */}
+          <View style={styles.rateHero}>
+            <Text style={styles.rateLabel}>YTD ESTIMATED TAX RATE</Text>
+            <Text style={styles.rateValue}>
               {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)}
             </Text>
-            <Text style={styles.subtitle}>
-              {formatTaxAmount(dashboardData.totals.taxes)} set aside on net income (before taxes)
+            <Text style={styles.rateSub}>
+              {formatTaxAmount(dashboardData.totals.taxes)} set aside on net income
             </Text>
           </View>
 
-          {/* Breakdown */}
-          <View style={styles.breakdown}>
-            <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>Federal</Text>
-              <Text style={styles.breakdownValue}>
-                {formatTaxAmount(taxBreakdown.federal)}
-              </Text>
+          {/* Divider rows */}
+          <View style={styles.taxRow}>
+            <Text style={styles.taxRowLabel}>Federal</Text>
+            <Text style={styles.taxRowValue}>{formatTaxAmount(taxBreakdown.federal)}</Text>
+          </View>
+          <View style={styles.taxRow}>
+            <Text style={styles.taxRowLabel}>State</Text>
+            <Text style={styles.taxRowValue}>{formatTaxAmount(taxBreakdown.state)}</Text>
+          </View>
+          {taxBreakdown.local > 0 && (
+            <View style={styles.taxRow}>
+              <Text style={styles.taxRowLabel}>Local</Text>
+              <Text style={styles.taxRowValue}>{formatTaxAmount(taxBreakdown.local)}</Text>
             </View>
-            <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>State</Text>
-              <Text style={styles.breakdownValue}>
-                {formatTaxAmount(taxBreakdown.state)}
-              </Text>
-            </View>
-            {taxBreakdown.local > 0 && (
-              <View style={styles.breakdownRow}>
-                <Text style={styles.breakdownLabel}>Local</Text>
-                <Text style={styles.breakdownValue}>
-                  {formatTaxAmount(taxBreakdown.local)}
-                </Text>
-              </View>
-            )}
-            <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>SE Tax</Text>
-              <Text style={styles.breakdownValue}>
-                {formatTaxAmount(taxBreakdown.seTax)}
-              </Text>
-            </View>
+          )}
+          <View style={styles.taxRow}>
+            <Text style={styles.taxRowLabel}>SE Tax</Text>
+            <Text style={styles.taxRowValue}>{formatTaxAmount(taxBreakdown.seTax)}</Text>
           </View>
 
-          {/* Recommendation with Explanation */}
-          <View style={styles.recommendation}>
-            <TouchableOpacity 
-              style={styles.recommendationHeader}
-              onPress={() => setShowExplanation(!showExplanation)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.recommendationText}>
-                💡 Set aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} of net income for taxes
+          {/* Amber tip — fold-out trigger */}
+          <TouchableOpacity
+            style={styles.tip}
+            onPress={() => setShowExplanation(!showExplanation)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.tipText}>
+              💡 Set aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} of each net payment for taxes ›
+            </Text>
+          </TouchableOpacity>
+
+          {showExplanation && (
+            <View style={styles.explanation}>
+              <Text style={styles.explanationTitle}>How is this calculated?</Text>
+              <Text style={styles.explanationText}>
+                Your estimated tax rate is based on your year-to-date income and your tax profile settings. Net income = income after expenses, before taxes.
               </Text>
-              <Text style={styles.expandIcon}>
-                {showExplanation ? '▼' : '▶'}
-              </Text>
-            </TouchableOpacity>
-            
-            {showExplanation && (
-              <View style={styles.explanation}>
-                <Text style={styles.explanationTitle}>How is this calculated?</Text>
-                
-                <Text style={styles.explanationText}>
-                  Your estimated tax rate is based on your year-to-date income and your tax profile settings. Net income = income after expenses, before taxes.
+              <View style={styles.explanationSection}>
+                <Text style={styles.explanationSubtitle}>📊 What's included:</Text>
+                <Text style={styles.explanationBullet}>
+                  • <Text style={styles.bold}>Federal Income Tax:</Text> Based on 2025 IRS tax brackets for your filing status
                 </Text>
-                
-                <View style={styles.explanationSection}>
-                  <Text style={styles.explanationSubtitle}>📊 What's included:</Text>
+                <Text style={styles.explanationBullet}>
+                  • <Text style={styles.bold}>State Tax:</Text> {taxProfile.state === 'TN' || taxProfile.state === 'TX' ? 'No state income tax in your state' : `Based on ${taxProfile.state} state tax rates`}
+                </Text>
+                {taxBreakdown.local > 0 && (
                   <Text style={styles.explanationBullet}>
-                    • <Text style={styles.bold}>Federal Income Tax:</Text> Based on 2025 IRS tax brackets for your filing status
+                    • <Text style={styles.bold}>Local Tax:</Text> Additional local taxes for your area
                   </Text>
-                  <Text style={styles.explanationBullet}>
-                    • <Text style={styles.bold}>State Tax:</Text> {taxProfile.state === 'TN' || taxProfile.state === 'TX' ? 'No state income tax in your state' : `Based on ${taxProfile.state} state tax rates`}
-                  </Text>
-                  {taxBreakdown.local > 0 && (
-                    <Text style={styles.explanationBullet}>
-                      • <Text style={styles.bold}>Local Tax:</Text> Additional local taxes for your area
-                    </Text>
-                  )}
-                  <Text style={styles.explanationBullet}>
-                    • <Text style={styles.bold}>Self-Employment Tax:</Text> 15.3% (Social Security + Medicare) on net earnings
-                  </Text>
-                </View>
-                
-                <View style={styles.explanationSection}>
-                  <Text style={styles.explanationSubtitle}>💰 Why set aside this amount?</Text>
-                  <Text style={styles.explanationText}>
-                    As a self-employed musician, taxes aren't automatically withheld from your gigs. Setting aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} of net income ensures you'll have enough saved when quarterly estimated taxes are due.
-                  </Text>
-                </View>
-                
-                <View style={styles.explanationSection}>
-                  <Text style={styles.explanationSubtitle}>📅 When to pay:</Text>
-                  <Text style={styles.explanationText}>
-                    Quarterly estimated taxes are due April 15, June 15, September 15, and January 15. You can also pay annually when filing your tax return.
-                  </Text>
-                </View>
-                
-                <Text style={styles.disclaimer}>
-                  💡 This is an estimate based on your profile. Consult a tax professional for personalized advice.
+                )}
+                <Text style={styles.explanationBullet}>
+                  • <Text style={styles.bold}>Self-Employment Tax:</Text> 15.3% (Social Security + Medicare) on net earnings
                 </Text>
               </View>
-            )}
-          </View>
+              <View style={styles.explanationSection}>
+                <Text style={styles.explanationSubtitle}>💰 Why set aside this amount?</Text>
+                <Text style={styles.explanationText}>
+                  As a self-employed musician, taxes aren't automatically withheld from your gigs. Setting aside {formatTaxRate(dashboardData.totals.effectiveTaxRate / 100)} of net income ensures you'll have enough saved when quarterly estimated taxes are due.
+                </Text>
+              </View>
+              <View style={styles.explanationSection}>
+                <Text style={styles.explanationSubtitle}>📅 When to pay:</Text>
+                <Text style={styles.explanationText}>
+                  Quarterly estimated taxes are due April 15, June 15, September 15, and January 15. You can also pay annually when filing your tax return.
+                </Text>
+              </View>
+              <Text style={styles.disclaimer}>
+                💡 This is an estimate based on your profile. Consult a tax professional for personalized advice.
+              </Text>
+            </View>
+          )}
         </>
       ) : (
         <View style={styles.noData}>
@@ -181,151 +161,134 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-      web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      },
-    }),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E3DE',
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 10,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   title: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#111827',
+    color: '#1A1A1A',
   },
   updateLink: {
-    fontSize: 14,
-    color: '#2563eb',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#2D5BE3',
+    fontWeight: '600',
   },
   loading: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#B0ADA8',
     textAlign: 'center',
     paddingVertical: 20,
+    paddingHorizontal: 10,
   },
   noProfile: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#B0ADA8',
     textAlign: 'center',
     marginBottom: 16,
+    paddingHorizontal: 10,
   },
   setupButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#2D5BE3',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
+    marginHorizontal: 10,
+    marginBottom: 16,
   },
   setupButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
-  error: {
-    fontSize: 14,
-    color: '#dc2626',
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  mainMetric: {
+  rateHero: {
+    backgroundColor: '#EEF2FF',
+    marginHorizontal: 10,
+    marginBottom: 14,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
     alignItems: 'center',
-    marginBottom: 24,
-    paddingVertical: 16,
-    backgroundColor: '#eff6ff',
-    borderRadius: 8,
   },
-  label: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 8,
+  rateLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#2D5BE3',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  bigNumber: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: '#1e40af',
     marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 13,
-    color: '#6b7280',
+  rateValue: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: '#2D5BE3',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    lineHeight: 40,
   },
-  breakdown: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    gap: 12,
+  rateSub: {
+    fontSize: 12,
+    color: '#B0ADA8',
+    marginTop: 2,
   },
-  breakdownRow: {
+  taxRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E3DE',
   },
-  breakdownLabel: {
+  taxRowLabel: {
     fontSize: 14,
-    color: '#374151',
+    color: '#7A7671',
   },
-  breakdownValue: {
+  taxRowValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    color: '#1A1A1A',
   },
-  recommendation: {
-    backgroundColor: '#fef3c7',
-    borderRadius: 8,
-    overflow: 'hidden',
+  tip: {
+    margin: 12,
+    marginTop: 12,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
-  recommendationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-  },
-  recommendationText: {
-    fontSize: 13,
-    color: '#92400e',
-    flex: 1,
-  },
-  expandIcon: {
+  tipText: {
     fontSize: 12,
-    color: '#92400e',
-    marginLeft: 8,
+    fontWeight: '600',
+    color: '#D97706',
   },
   explanation: {
     borderTopWidth: 1,
-    borderTopColor: '#fde68a',
+    borderTopColor: '#FDE68A',
     padding: 16,
     paddingTop: 12,
+    backgroundColor: '#FFFBEB',
   },
   explanationTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#92400e',
+    color: '#92400E',
     marginBottom: 12,
   },
   explanationText: {
     fontSize: 13,
-    color: '#78350f',
+    color: '#78350F',
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -335,12 +298,12 @@ const styles = StyleSheet.create({
   explanationSubtitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#92400e',
+    color: '#92400E',
     marginBottom: 8,
   },
   explanationBullet: {
     fontSize: 13,
-    color: '#78350f',
+    color: '#78350F',
     lineHeight: 20,
     marginBottom: 6,
     paddingLeft: 8,
@@ -350,21 +313,22 @@ const styles = StyleSheet.create({
   },
   disclaimer: {
     fontSize: 11,
-    color: '#a16207',
+    color: '#A16207',
     fontStyle: 'italic',
     marginTop: 8,
   },
   noData: {
     paddingVertical: 32,
+    paddingHorizontal: 10,
     alignItems: 'center',
   },
   noDataText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#7A7671',
     marginBottom: 4,
   },
   noDataSubtext: {
     fontSize: 13,
-    color: '#9ca3af',
+    color: '#B0ADA8',
   },
 });

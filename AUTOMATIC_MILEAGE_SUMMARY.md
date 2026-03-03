@@ -126,7 +126,7 @@ ELSE:
 
 Create/update `.env` file:
 ```bash
-EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBNJRJ7kKDS1bGHaKmbpQf9D9nFc51wZqw
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your-google-maps-api-key-here
 ```
 
 ### Step 3: Enable in Code

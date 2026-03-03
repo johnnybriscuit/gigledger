@@ -8,6 +8,10 @@ import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
 import { getSharedUserId } from '../lib/sharedAuth';
+import Constants from 'expo-constants';
+
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || Constants.expoConfig?.extra?.supabaseUrl;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || Constants.expoConfig?.extra?.supabaseAnonKey;
 
 export type SubscriptionTier = 'free' | 'monthly' | 'yearly';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
@@ -71,22 +75,27 @@ export function useCreateCheckoutSession() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const response = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const url = `${SUPABASE_URL}/functions/v1/create-stripe-checkout`;
+      console.log('[Stripe] Creating checkout session at:', url);
+
+      const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
+        body: {
           priceId,
           userId: user.id,
           userEmail: user.email,
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create checkout session');
+      if (error) {
+        console.error('[Stripe] Checkout error:', error);
+        throw new Error(error.message || 'Failed to create checkout session');
       }
 
-      return response.json();
+      if (!data?.url) {
+        throw new Error('No checkout URL returned');
+      }
+
+      return data;
     },
   });
 }
@@ -97,18 +106,29 @@ export function useCreatePortalSession() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const response = await fetch('/api/create-portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
+      const url = `${SUPABASE_URL}/functions/v1/create-stripe-portal`;
+      console.log('[Stripe] Creating portal session at:', url);
+
+      const { data, error } = await supabase.functions.invoke('create-stripe-portal', {
+        body: {
+          userId: user.id,
+        },
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create portal session');
+      if (error) {
+        console.error('[Stripe] Portal error:', JSON.stringify(error, null, 2));
+        console.error('[Stripe] Portal error context:', error.context);
+        throw new Error(error.context?.error || error.message || 'Failed to create portal session');
       }
 
-      return response.json();
+      console.log('[Stripe] Portal response data:', data);
+
+      if (!data?.url) {
+        console.error('[Stripe] No URL in response. Full data:', JSON.stringify(data, null, 2));
+        throw new Error('No portal URL returned');
+      }
+
+      return data;
     },
   });
 }

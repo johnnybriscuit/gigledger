@@ -126,93 +126,111 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
     );
   }
 
-  // Mobile fallback - simple list view
+  // Mobile view — compute cumulative net per month
+  const cumulativeData = data.map((point, index) => {
+    const cumulative = data.slice(0, index + 1).reduce((sum, p) => sum + p.net, 0);
+    return { ...point, cumulative };
+  });
+
   return (
-    <ChartCard title="Monthly Overview" subtitle="Income, expenses, and taxes by month">
-      <View style={styles.mobileList}>
-        {data.map((point, index) => (
+    <View style={moStyles.card}>
+      <View style={moStyles.header}>
+        <Text style={moStyles.title}>📅 Monthly Overview</Text>
+      </View>
+      {cumulativeData.map((point, index) => {
+        const isZero = point.net === 0;
+        return (
           <TouchableOpacity
             key={index}
-            style={[styles.mobileRow, { borderBottomColor: colors.border }]}
+            style={moStyles.monthRow}
             onPress={() => onMonthClick?.(point.month)}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.mobileMonth, { color: colors.text }]}>{point.month}</Text>
-            <View style={styles.mobileValues}>
-              <Text style={[styles.mobileValue, { color: chartColors.green }]}>
+            <Text style={moStyles.monthLabel}>{point.month}</Text>
+            <View style={moStyles.monthRight}>
+              <Text style={[moStyles.monthNet, isZero && moStyles.monthNetZero]}>
                 {formatCurrency(point.net)}
               </Text>
-              <Text style={[styles.mobileLabel, { color: colors.textMuted }]}>net</Text>
+              <Text style={moStyles.monthSub}>
+                {isZero ? 'net' : `net · +${formatCurrency(point.cumulative)} cumulative`}
+              </Text>
             </View>
           </TouchableOpacity>
-        ))}
-      </View>
-    </ChartCard>
+        );
+      })}
+    </View>
   );
 }
 
+const moStyles = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E3DE',
+    overflow: 'hidden',
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  monthRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E3DE',
+  },
+  monthLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1A1A1A',
+  },
+  monthRight: {
+    alignItems: 'flex-end',
+  },
+  monthNet: {
+    fontSize: 15,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    color: '#1D9B5E',
+  },
+  monthNetZero: {
+    color: '#B0ADA8',
+  },
+  monthSub: {
+    fontSize: 11,
+    color: '#B0ADA8',
+    marginTop: 1,
+  },
+});
+
+// Keep old styles for web ChartCard / tooltip usage
 const styles = StyleSheet.create({
   tooltip: {
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-      },
-    }),
+    ...Platform.select({ web: { boxShadow: '0 2px 8px rgba(0,0,0,0.15)' } as any }),
   },
-  tooltipTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  tooltipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 4,
-  },
-  tooltipDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  tooltipLabel: {
-    fontSize: 13,
-    flex: 1,
-  },
-  tooltipValue: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  tooltipTotal: {
-    marginTop: 4,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  mobileList: {
-    gap: 0,
-  },
-  mobileRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  mobileMonth: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  mobileValues: {
-    alignItems: 'flex-end',
-  },
-  mobileValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  mobileLabel: {
-    fontSize: 12,
-  },
+  tooltipTitle: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
+  tooltipRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  tooltipDot: { width: 8, height: 8, borderRadius: 4 },
+  tooltipLabel: { fontSize: 13, flex: 1 },
+  tooltipValue: { fontSize: 13, fontWeight: '500' },
+  tooltipTotal: { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
+  mobileList: { gap: 0 },
+  mobileRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
+  mobileMonth: { fontSize: 14, fontWeight: '500' },
+  mobileValues: { alignItems: 'flex-end' },
+  mobileValue: { fontSize: 16, fontWeight: '600' },
+  mobileLabel: { fontSize: 12 },
 });

@@ -12,8 +12,8 @@ export function DeductionInfoCard() {
         activeOpacity={0.7}
       >
         <Text style={styles.headerIcon}>📘</Text>
-        <Text style={styles.headerText}>How Deductions Work (1-min read)</Text>
-        <Text style={styles.chevron}>{expanded ? '▼' : '▶'}</Text>
+        <Text style={styles.headerText}>How Deductions Work — 1 min read</Text>
+        <Text style={styles.chevron}>›</Text>
       </TouchableOpacity>
       
       {expanded && (
@@ -59,72 +59,74 @@ export function DeductionInfoCard() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 16,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 14,
+    marginBottom: 14,
     overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     gap: 12,
   },
   headerIcon: {
     fontSize: 20,
+    flexShrink: 0,
   },
   headerText: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2D5BE3',
   },
   chevron: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
+    fontSize: 18,
+    color: '#2D5BE3',
+    fontWeight: '400',
+    flexShrink: 0,
   },
   content: {
     paddingHorizontal: 16,
     paddingBottom: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: 'rgba(45,91,227,0.15)',
   },
   paragraph: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#374151',
+    color: '#1A1A1A',
     marginBottom: 16,
+    marginTop: 12,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#111827',
+    color: '#1A1A1A',
     marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   list: {
     marginBottom: 12,
   },
   listItem: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 22,
     color: '#374151',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   bold: {
     fontWeight: '600',
-    color: '#111827',
+    color: '#1A1A1A',
   },
   disclaimer: {
-    backgroundColor: '#fef3c7',
+    backgroundColor: '#FEF3C7',
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#fde68a',
+    borderColor: '#FDE68A',
   },
   disclaimerText: {
     fontSize: 13,

@@ -125,13 +125,12 @@ export function generateExcelFromPackage(pkg: TaxExportPackage): Uint8Array {
   return new Uint8Array(excelBuffer);
 }
 
-export function downloadExcelFromPackage(pkg: TaxExportPackage): void {
+export async function downloadExcelFromPackage(pkg: TaxExportPackage): Promise<void> {
+  const { downloadBinaryFile } = await import('./webDownloadHelpers');
   const excelBytes = generateExcelFromPackage(pkg);
-  const blob = new Blob([excelBytes as any], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `Bozzy_Export_${pkg.metadata.taxYear}.xlsx`;
-  link.click();
-  URL.revokeObjectURL(url);
+  await downloadBinaryFile(
+    excelBytes,
+    `Bozzy_Export_${pkg.metadata.taxYear}.xlsx`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  );
 }

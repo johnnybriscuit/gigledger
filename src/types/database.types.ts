@@ -284,6 +284,9 @@ export type Database = {
           amount_type: string
           net_amount_w2: number | null
           withholding_amount: number | null
+          start_time: string | null
+          end_time: string | null
+          calendar_event_id: string | null
           updated_at: string
           user_id: string
         }
@@ -316,6 +319,9 @@ export type Database = {
           amount_type?: string
           net_amount_w2?: number | null
           withholding_amount?: number | null
+          start_time?: string | null
+          end_time?: string | null
+          calendar_event_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -348,6 +354,9 @@ export type Database = {
           amount_type?: string
           net_amount_w2?: number | null
           withholding_amount?: number | null
+          start_time?: string | null
+          end_time?: string | null
+          calendar_event_id?: string | null
           updated_at?: string
           user_id?: string
         }

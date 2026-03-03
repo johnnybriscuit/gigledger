@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import {
   View,
+  Text as RNText,
   TextInput,
   StyleSheet,
   ScrollView,
   Alert,
   ActivityIndicator,
   Platform,
-  Switch,
-  useWindowDimensions,
+  TouchableOpacity,
+  Modal,
+  Image,
+  ActionSheetIOS,
 } from 'react-native';
 import { useTaxProfile } from '../hooks/useTaxProfile';
 import { AccountSetupPrompts } from '../components/AccountSetupPrompts';
@@ -18,63 +22,17 @@ import { TaxSettingsSection } from '../components/TaxSettingsSection';
 import { AddressPlacesInput } from '../components/AddressPlacesInput';
 import { useProfile, useUpdateProfile } from '../hooks/useProfile';
 import { formatRelativeTime } from '../lib/profile';
-import { H1, H2, Text, Button, Card } from '../ui';
-import { colors, spacing, radius, typography } from '../styles/theme';
-import { usePaymentMethodDetails, PaymentMethod } from '../hooks/usePaymentMethodDetails';
+import { colors } from '../styles/theme';
+import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
+import { getStateName } from '../tax/engine';
 
-const US_STATES = [
-  { code: 'AL', name: 'Alabama' },
-  { code: 'AK', name: 'Alaska' },
-  { code: 'AZ', name: 'Arizona' },
-  { code: 'AR', name: 'Arkansas' },
-  { code: 'CA', name: 'California' },
-  { code: 'CO', name: 'Colorado' },
-  { code: 'CT', name: 'Connecticut' },
-  { code: 'DE', name: 'Delaware' },
-  { code: 'FL', name: 'Florida' },
-  { code: 'GA', name: 'Georgia' },
-  { code: 'HI', name: 'Hawaii' },
-  { code: 'ID', name: 'Idaho' },
-  { code: 'IL', name: 'Illinois' },
-  { code: 'IN', name: 'Indiana' },
-  { code: 'IA', name: 'Iowa' },
-  { code: 'KS', name: 'Kansas' },
-  { code: 'KY', name: 'Kentucky' },
-  { code: 'LA', name: 'Louisiana' },
-  { code: 'ME', name: 'Maine' },
-  { code: 'MD', name: 'Maryland' },
-  { code: 'MA', name: 'Massachusetts' },
-  { code: 'MI', name: 'Michigan' },
-  { code: 'MN', name: 'Minnesota' },
-  { code: 'MS', name: 'Mississippi' },
-  { code: 'MO', name: 'Missouri' },
-  { code: 'MT', name: 'Montana' },
-  { code: 'NE', name: 'Nebraska' },
-  { code: 'NV', name: 'Nevada' },
-  { code: 'NH', name: 'New Hampshire' },
-  { code: 'NJ', name: 'New Jersey' },
-  { code: 'NM', name: 'New Mexico' },
-  { code: 'NY', name: 'New York' },
-  { code: 'NC', name: 'North Carolina' },
-  { code: 'ND', name: 'North Dakota' },
-  { code: 'OH', name: 'Ohio' },
-  { code: 'OK', name: 'Oklahoma' },
-  { code: 'OR', name: 'Oregon' },
-  { code: 'PA', name: 'Pennsylvania' },
-  { code: 'RI', name: 'Rhode Island' },
-  { code: 'SC', name: 'South Carolina' },
-  { code: 'SD', name: 'South Dakota' },
-  { code: 'TN', name: 'Tennessee' },
-  { code: 'TX', name: 'Texas' },
-  { code: 'UT', name: 'Utah' },
-  { code: 'VT', name: 'Vermont' },
-  { code: 'VA', name: 'Virginia' },
-  { code: 'WA', name: 'Washington' },
-  { code: 'WV', name: 'West Virginia' },
-  { code: 'WI', name: 'Wisconsin' },
-  { code: 'WY', name: 'Wyoming' },
-  { code: 'DC', name: 'District of Columbia' },
+const ALL_PAYMENT_METHODS: { key: string; label: string }[] = [
+  { key: 'venmo', label: 'Venmo' },
+  { key: 'zelle', label: 'Zelle' },
+  { key: 'cashapp', label: 'Cash App' },
+  { key: 'paypal', label: 'PayPal' },
 ];
+
 
 
 interface AccountScreenProps {
@@ -84,42 +42,13 @@ interface AccountScreenProps {
 
 export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvoices }: AccountScreenProps = {}) {
   const queryClient = useQueryClient();
-  const { width } = useWindowDimensions();
-  const isWeb = Platform.OS === 'web';
-  const isDesktopWeb = isWeb && width >= 768;
-  const isMobileWeb = isWeb && width < 768;
-
-  // Dev logging for breakpoint verification
-  if (__DEV__) {
-    console.log('[AccountScreen] width:', width, 'isDesktopWeb:', isDesktopWeb, 'isMobileWeb:', isMobileWeb);
-  }
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingTaxSettings, setIsEditingTaxSettings] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  // Get tax profile to check if user needs to set up state
-  const { data: taxProfile } = useTaxProfile();
-  const needsTaxSetup = !!(taxProfile && !taxProfile.state);
-  
-  // Track if setup prompts have been dismissed
-  const [setupPromptsDismissed, setSetupPromptsDismissed] = useState(false);
-  
-  useEffect(() => {
-    // Check if prompts were previously dismissed in this session
-    if (Platform.OS === 'web') {
-      const dismissed = sessionStorage.getItem('account_setup_prompts_dismissed');
-      if (dismissed === 'true') {
-        setSetupPromptsDismissed(true);
-      }
-    }
-  }, []);
-  
-  const handlePromptsComplete = () => {
-    setSetupPromptsDismissed(true);
-    if (Platform.OS === 'web') {
-      sessionStorage.setItem('account_setup_prompts_dismissed', 'true');
-    }
-  };
+  const [photoSheetVisible, setPhotoSheetVisible] = useState(false);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef<any>(null);
 
   // Form states
   const [fullName, setFullName] = useState('');
@@ -150,6 +79,11 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
   // Update profile mutation with new hook
   const updateProfileMutation = useUpdateProfile(user?.id || '');
 
+  useEffect(() => {
+    const url = (profile as any)?.avatar_url;
+    if (url) setAvatarUri(url);
+  }, [profile]);
+
   // Initialize form values when profile loads
   useEffect(() => {
     if (profile) {
@@ -169,13 +103,138 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
     }
   }, [profile]);
 
+  // Get tax profile to check if user needs to set up state
+  const { data: taxProfile } = useTaxProfile();
+  const needsTaxSetup = !!(taxProfile && !taxProfile.state);
+  
+  // Track if setup prompts have been dismissed
+  const [setupPromptsDismissed, setSetupPromptsDismissed] = useState(false);
+  
+  useEffect(() => {
+    // Check if prompts were previously dismissed in this session
+    if (Platform.OS === 'web') {
+      const dismissed = sessionStorage.getItem('account_setup_prompts_dismissed');
+      if (dismissed === 'true') {
+        setSetupPromptsDismissed(true);
+      }
+    }
+  }, []);
+
   // Clear dismissal flag when user completes the required actions
   useEffect(() => {
     if (Platform.OS === 'web' && !needsTaxSetup && profile?.home_address_full) {
-      // User has completed both actions - clear the dismissal flag so prompts can show again if needed
       sessionStorage.removeItem('account_setup_prompts_dismissed');
     }
   }, [needsTaxSetup, profile?.home_address_full]);
+  
+  const handlePromptsComplete = () => {
+    setSetupPromptsDismissed(true);
+    if (Platform.OS === 'web') {
+      sessionStorage.setItem('account_setup_prompts_dismissed', 'true');
+    }
+  };
+
+  const handleAvatarUpload = async (file: File) => {
+    if (!user?.id) return;
+    setAvatarUploading(true);
+    const optimisticUri = URL.createObjectURL(file);
+    setAvatarUri(optimisticUri);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      await supabase.from('profiles').update({ avatar_url: publicUrl } as any).eq('id', user.id);
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+      setAvatarUri(publicUrl);
+    } catch (err: any) {
+      setAvatarUri((profile as any)?.avatar_url || null);
+      Alert.alert('Error', err.message || 'Failed to upload photo');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user?.id) return;
+    setAvatarUri(null);
+    setPhotoSheetVisible(false);
+    await supabase.from('profiles').update({ avatar_url: null } as any).eq('id', user.id);
+    queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+  };
+
+  const handleNativeImageResult = async (result: ImagePicker.ImagePickerResult) => {
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    if (!user?.id) return;
+    const asset = result.assets[0];
+    const uri = asset.uri;
+    const ext = uri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = asset.mimeType || `image/${ext}`;
+    const path = `${user.id}/avatar.${ext}`;
+
+    setAvatarUploading(true);
+    setAvatarUri(uri); // optimistic
+    try {
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, arrayBuffer, { upsert: true, contentType: mimeType });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      await supabase.from('profiles').update({ avatar_url: publicUrl } as any).eq('id', user.id);
+      queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+      setAvatarUri(publicUrl);
+    } catch (err: any) {
+      setAvatarUri((profile as any)?.avatar_url || null);
+      Alert.alert('Upload failed', err.message || 'Failed to upload photo');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handlePickFromLibrary = async () => {
+    setPhotoSheetVisible(false);
+    if (Platform.OS === 'web') {
+      setTimeout(() => fileInputRef.current?.click(), 100);
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please allow access to your photo library in Settings.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      await handleNativeImageResult(result);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    setPhotoSheetVisible(false);
+    if (Platform.OS === 'web') {
+      setTimeout(() => fileInputRef.current?.click(), 100);
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 400));
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please allow camera access in Settings.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      await handleNativeImageResult(result);
+    }
+  };
+
 
   // Change password mutation
   const changePasswordMutation = useMutation({
@@ -270,6 +329,33 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
   };
 
 
+  // Derive initials
+  const initials = (() => {
+    const name = profile?.full_name || user?.email || '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  })();
+
+  const filingStatusLabel = (() => {
+    const map: Record<string, string> = {
+      single: 'Single', married_joint: 'Married Filing Jointly',
+      married_separate: 'Married Filing Separately', head: 'Head of Household',
+    };
+    return map[taxProfile?.filingStatus || ''] || taxProfile?.filingStatus || '—';
+  })();
+
+  const businessStructureLabel = (() => {
+    const map: Record<string, string> = {
+      individual: 'Individual / Sole Proprietor', llc_single_member: 'LLC (Single Member)',
+      llc_scorp: 'LLC (S-Corp Election)', llc_multi_member: 'LLC (Multi-Member)',
+    };
+    return map[profile?.business_structure || ''] || '—';
+  })();
+
+  const stateLabel = taxProfile?.state ? (getStateName(taxProfile.state as any) || taxProfile.state) : '—';
+  const deductionLabel = taxProfile?.deductionMethod === 'itemized' ? 'Itemized' : 'Standard';
+
   if (profileLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -280,651 +366,331 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
 
   return (
     <>
-      {/* Account Setup Prompts - Joyride-style overlays */}
       {Platform.OS === 'web' && !setupPromptsDismissed && (
-        <AccountSetupPrompts
-          needsTaxSetup={needsTaxSetup}
-          needsHomeAddress={!profile?.home_address_full}
-          onComplete={handlePromptsComplete}
-        />
+        <AccountSetupPrompts needsTaxSetup={needsTaxSetup} needsHomeAddress={!profile?.home_address_full} onComplete={handlePromptsComplete} />
       )}
-      
-      <ScrollView style={styles.container}>
-        <View style={[
-          styles.content,
-          isMobileWeb && styles.contentMobile,
-          isDesktopWeb && styles.contentDesktop,
-        ]}>
-        {/* Debug indicator - DEV ONLY */}
-        {__DEV__ && (
-          <View style={styles.debugBadge}>
-            <Text style={styles.debugText}>
-              {Platform.OS} | width={width} | isDesktopWeb={isDesktopWeb ? 'true' : 'false'} | {isDesktopWeb ? 'DESKTOP' : 'MOBILE'}
-            </Text>
-          </View>
-        )}
-        
-        <H1>Account Settings</H1>
+      {Platform.OS === 'web' && (
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' } as any}
+          onChange={(e: any) => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f); }} />
+      )}
 
-        {/* Two-column layout on desktop, stacked on mobile */}
-        <View style={[
-          styles.gridContainer,
-          isDesktopWeb && styles.gridContainerDesktop,
-        ]}>
-          {/* Left Column: Profile + Tax Settings */}
-          <View style={[
-            styles.leftColumn,
-            isDesktopWeb && styles.leftColumnDesktop,
-          ]}>
-            {/* Profile Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <H2>Profile</H2>
-              </View>
+      {/* Photo Picker Sheet — Android only Modal (iOS uses ActionSheetIOS natively) */}
+      {photoSheetVisible && Platform.OS === 'android' && (
+        <Modal visible={photoSheetVisible} transparent animationType="slide" onRequestClose={() => setPhotoSheetVisible(false)}>
+          <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={() => setPhotoSheetVisible(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.sheet}>
+              <View style={styles.sheetHandle} />
+              <RNText style={styles.sheetTitle}>Profile Photo</RNText>
+              <TouchableOpacity style={styles.sheetOption} onPress={handlePickFromLibrary}>
+                <View style={styles.sheetOptionIcon}><RNText style={styles.sheetOptionEmoji}>🖼️</RNText></View>
+                <RNText style={styles.sheetOptionLabel}>Choose from Library</RNText>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sheetOption} onPress={handleTakePhoto}>
+                <View style={styles.sheetOptionIcon}><RNText style={styles.sheetOptionEmoji}>📷</RNText></View>
+                <RNText style={styles.sheetOptionLabel}>Take Photo</RNText>
+              </TouchableOpacity>
+              {avatarUri ? (
+                <TouchableOpacity style={[styles.sheetOption, styles.sheetOptionRemove]} onPress={handleRemoveAvatar}>
+                  <View style={[styles.sheetOptionIcon, styles.sheetOptionIconRemove]}><RNText style={styles.sheetOptionEmoji}>🗑️</RNText></View>
+                  <RNText style={[styles.sheetOptionLabel, styles.sheetOptionLabelRemove]}>Remove Photo</RNText>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity style={styles.sheetCancel} onPress={() => setPhotoSheetVisible(false)}>
+                <RNText style={styles.sheetCancelText}>Cancel</RNText>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+      )}
 
-          <Card variant="flat" style={styles.card}>
-            <View style={styles.fieldCompact}>
-              <Text semibold style={styles.fieldLabel}>Email</Text>
-              <Text>{user?.email}</Text>
-              <Text subtle style={styles.fieldHintCompact}>Cannot be changed</Text>
-            </View>
-
-            <View style={styles.fieldCompact}>
-              <Text semibold style={styles.fieldLabel}>Full Name</Text>
-              {isEditingProfile ? (
-                <TextInput
-                  style={styles.input}
-                  value={fullName}
-                  onChangeText={setFullName}
-                  placeholder="Enter your name"
-                />
-              ) : (
-                <Text>{profile?.full_name || 'Not set'}</Text>
-              )}
-            </View>
-
-            {isEditingProfile ? (
-              <AddressPlacesInput
-                label="Home Address"
-                placeholder="123 Main St, City, State ZIP"
-                value={homeAddressFull}
-                onChange={setHomeAddressFull}
-                onSelect={async (item: { description: string; place_id: string }) => {
-                  setHomeAddressFull(item.description);
-                  setHomeAddressPlaceId(item.place_id);
-                  
-                  // Fetch place details to get lat/lng
-                  try {
-                    const response = await fetch(`/api/places/details?place_id=${item.place_id}`, {
-                      credentials: 'include',
-                    });
-                    
-                    if (response.ok) {
-                      const details = await response.json();
-                      if (details.location) {
-                        setHomeAddressLat(details.location.lat);
-                        setHomeAddressLng(details.location.lng);
-                      }
-                    }
-                  } catch (error) {
-                    console.error('Error fetching place details:', error);
-                  }
-                }}
-              />
-            ) : (
-              <View style={styles.fieldCompact}>
-                <Text semibold style={styles.fieldLabel}>Home Address</Text>
-                <Text>{profile?.home_address_full || 'Not set'}</Text>
-                <Text subtle style={styles.fieldHintCompact}>For mileage auto-calculation</Text>
-              </View>
-            )}
-
-            {/* Last Saved Indicator */}
-            {!isEditingProfile && profile?.updated_at && (
-              <View style={styles.lastSavedContainer}>
-                <Text subtle style={{ fontStyle: 'italic' }}>
-                  Last saved {formatRelativeTime(profile.updated_at)}
-                </Text>
-              </View>
-            )}
-
-            {isEditingProfile && (
-              <View style={styles.buttonRow}>
-                <Button
-                  variant="secondary"
-                  onPress={() => {
-                    setIsEditingProfile(false);
-                    setFullName(profile?.full_name || '');
-                  }}
-                  style={{ flex: 1 }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  onPress={handleSaveProfile}
-                  disabled={updateProfileMutation.isPending}
-                  style={{ flex: 1 }}
-                >
-                  {updateProfileMutation.isPending ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    'Save'
-                  )}
-                </Button>
-              </View>
-            )}
-          </Card>
-            </View>
-
-            {/* Tax Settings Section */}
-            <TaxSettingsSection 
-              isEditing={isEditingTaxSettings}
-              onEditChange={setIsEditingTaxSettings}
-              hideEditButton={true}
-              onNavigateToBusinessStructures={onNavigateToBusinessStructures}
-            />
-
-            {/* Payment Methods Section - Informational summary only */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <H2>Invoice Payment Methods</H2>
-              </View>
-              <Card variant="flat" style={styles.card}>
-                <Text subtle style={styles.sectionDescription}>
-                  Managed in Invoices → Settings. These appear on your invoices so clients know where to pay.
-                </Text>
-
-                {/* Read-only summary - grouped by enabled/disabled */}
-                {(() => {
-                  const enabled = paymentMethods.filter(pm => pm.enabled);
-                  const disabled = paymentMethods.filter(pm => !pm.enabled);
-                  const hasAnyMethods = paymentMethods.length > 0;
-
-                  if (!hasAnyMethods) {
-                    return (
-                      <Text subtle style={styles.noPaymentMethodsText}>
-                        No payment methods configured yet.
-                      </Text>
-                    );
-                  }
-
-                  return (
-                    <View style={styles.paymentMethodsSummary}>
-                      {/* Enabled methods */}
-                      {enabled.length > 0 && (
-                        <View style={styles.enabledMethodsSection}>
-                          <Text semibold style={styles.methodsGroupLabel}>Enabled:</Text>
-                          {enabled.map((pm) => {
-                            const methodName = pm.method.charAt(0).toUpperCase() + pm.method.slice(1);
-                            const displayText = pm.details ? `${methodName} — ${pm.details}` : methodName;
-                            return (
-                              <View key={pm.method} style={styles.enabledMethodRow}>
-                                <Text style={styles.enabledMethodText}>
-                                  ✅ {displayText}
-                                </Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                      )}
-
-                      {/* Disabled methods - muted inline text */}
-                      {disabled.length > 0 && (
-                        <View style={styles.disabledMethodsSection}>
-                          <Text subtle style={styles.disabledMethodsText}>
-                            Not enabled: {disabled.map(pm => pm.method.charAt(0).toUpperCase() + pm.method.slice(1)).join(', ')}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })()}
-
-                <Button
-                  variant="primary"
-                  onPress={() => {
-                    if (onNavigateToInvoices) {
-                      onNavigateToInvoices();
-                    } else {
-                      Alert.alert('Navigation', 'Please navigate to Invoices → Settings to manage payment methods.');
-                    }
-                  }}
-                  style={styles.goToInvoiceSettingsButton}
-                >
-                  Go to Invoice Settings
-                </Button>
-              </Card>
+      {/* Tax Settings Edit Modal */}
+      {isEditingTaxSettings && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setIsEditingTaxSettings(false)}>
+          <View style={styles.editModalOverlay}>
+            <View style={styles.editModalContent}>
+              <TaxSettingsSection isEditing={true} onEditChange={(v) => { if (!v) setIsEditingTaxSettings(false); }}
+                hideEditButton={false} onNavigateToBusinessStructures={onNavigateToBusinessStructures} />
             </View>
           </View>
+        </Modal>
+      )}
 
-          {/* Right Column: Account Actions */}
-          <View style={[
-            styles.rightColumn,
-            isDesktopWeb && styles.rightColumnDesktop,
-          ]}>
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <H2>Account Actions</H2>
-              </View>
-              <Card variant="flat" style={styles.card}>
-                <div className={Platform.OS === 'web' && !profile?.home_address_full ? 'edit-profile-cta' : ''}>
-                  <Button
-                    variant="ghost"
-                    onPress={() => setIsEditingProfile(true)}
-                    style={styles.actionButton}
-                  >
-                    ✏️ Edit Profile
-                  </Button>
-                </div>
-
-                <div className={Platform.OS === 'web' && needsTaxSetup ? 'edit-tax-settings-cta' : ''}>
-                  <Button
-                    variant="ghost"
-                    onPress={() => setIsEditingTaxSettings(true)}
-                    style={styles.actionButton}
-                  >
-                    📊 Edit Tax Settings
-                  </Button>
-                </div>
-
-                <div>
-                  <Button
-                    variant="ghost"
-                    onPress={() => setIsChangingPassword(true)}
-                    style={styles.actionButton}
-                  >
-                    🔒 Change Password
-                  </Button>
-                </div>
-
-                {Platform.OS === 'web' && (
-                  <div>
-                    <Button
-                      variant="ghost"
-                      onPress={() => {
-                        // Clear the v2 completion flag and navigate to dashboard with tour param
-                        localStorage.removeItem('onboarding_v2_completed');
-                        window.location.href = '/dashboard?tour=true';
-                      }}
-                      style={styles.actionButton}
-                    >
-                      🎓 Replay Tour
-                    </Button>
-                  </div>
-                )}
-
-                <Button
-                  variant="destructive"
-                  onPress={handleSignOut}
-                  style={styles.actionButton}
-                >
-                  🚪 Sign Out
-                </Button>
-              </Card>
-            </View>
-
-            {/* Change Password Modal (when active) */}
-            {isChangingPassword && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <H2>Change Password</H2>
+      {/* Profile Edit Modal */}
+      {isEditingProfile && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setIsEditingProfile(false)}>
+          <View style={styles.editModalOverlay}>
+            <View style={styles.editModalContent}>
+              <ScrollView>
+                <RNText style={styles.editModalTitle}>Edit Profile</RNText>
+                <RNText style={styles.editFieldLabel}>Full Name</RNText>
+                <TextInput style={styles.editInput} value={fullName} onChangeText={setFullName} placeholder="Enter your name" />
+                <RNText style={styles.editFieldLabel}>Home Address</RNText>
+                <AddressPlacesInput label="" placeholder="123 Main St, City, State ZIP" value={homeAddressFull} onChange={setHomeAddressFull}
+                  onSelect={async (item: { description: string; place_id: string }) => {
+                    setHomeAddressFull(item.description); setHomeAddressPlaceId(item.place_id);
+                    try {
+                      const r = await fetch(`/api/places/details?place_id=${item.place_id}`, { credentials: 'include' });
+                      if (r.ok) { const d = await r.json(); if (d.location) { setHomeAddressLat(d.location.lat); setHomeAddressLng(d.location.lng); } }
+                    } catch (e) { console.error(e); }
+                  }} />
+                <View style={styles.editButtonRow}>
+                  <TouchableOpacity style={styles.editCancelBtn} onPress={() => { setIsEditingProfile(false); setFullName(profile?.full_name || ''); }}>
+                    <RNText style={styles.editCancelBtnText}>Cancel</RNText>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.editSaveBtn} onPress={handleSaveProfile} disabled={updateProfileMutation.isPending}>
+                    {updateProfileMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <RNText style={styles.editSaveBtnText}>Save</RNText>}
+                  </TouchableOpacity>
                 </View>
-                <Card variant="flat" style={styles.card}>
-                  <View style={styles.fieldCompact}>
-                    <Text semibold style={styles.fieldLabel}>New Password</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      placeholder="Enter new password"
-                      secureTextEntry
-                      autoCapitalize="none"
-                    />
-                  </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
 
-                  <View style={styles.fieldCompact}>
-                    <Text semibold style={styles.fieldLabel}>Confirm Password</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      placeholder="Confirm new password"
-                      secureTextEntry
-                      autoCapitalize="none"
-                    />
-                  </View>
-
-                  <View style={styles.buttonRow}>
-                    <Button
-                      variant="secondary"
-                      onPress={() => {
-                        setIsChangingPassword(false);
-                        setNewPassword('');
-                        setConfirmPassword('');
-                      }}
-                      style={{ flex: 1 }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="primary"
-                      onPress={handleChangePassword}
-                      disabled={changePasswordMutation.isPending}
-                      style={{ flex: 1 }}
-                    >
-                      {changePasswordMutation.isPending ? (
-                        <ActivityIndicator color="#fff" size="small" />
-                      ) : (
-                        'Update'
-                      )}
-                    </Button>
-                  </View>
-                </Card>
+      {/* Change Password Modal */}
+      {isChangingPassword && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setIsChangingPassword(false)}>
+          <View style={styles.editModalOverlay}>
+            <View style={styles.editModalContent}>
+              <RNText style={styles.editModalTitle}>Change Password</RNText>
+              <RNText style={styles.editFieldLabel}>New Password</RNText>
+              <TextInput style={styles.editInput} value={newPassword} onChangeText={setNewPassword} placeholder="Enter new password" secureTextEntry autoCapitalize="none" />
+              <RNText style={styles.editFieldLabel}>Confirm Password</RNText>
+              <TextInput style={styles.editInput} value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirm new password" secureTextEntry autoCapitalize="none" />
+              <View style={styles.editButtonRow}>
+                <TouchableOpacity style={styles.editCancelBtn} onPress={() => { setIsChangingPassword(false); setNewPassword(''); setConfirmPassword(''); }}>
+                  <RNText style={styles.editCancelBtnText}>Cancel</RNText>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.editSaveBtn} onPress={handleChangePassword} disabled={changePasswordMutation.isPending}>
+                  {changePasswordMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <RNText style={styles.editSaveBtnText}>Update</RNText>}
+                </TouchableOpacity>
               </View>
-            )}
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+
+        {/* ── User Hero Card ── */}
+        <View style={styles.heroCard}>
+          <TouchableOpacity style={styles.avatarWrap} onPress={() => {
+            if (Platform.OS === 'ios') {
+              const options = avatarUri
+                ? ['Choose from Library', 'Take Photo', 'Remove Photo', 'Cancel']
+                : ['Choose from Library', 'Take Photo', 'Cancel'];
+              const destructiveIndex = avatarUri ? 2 : -1;
+              const cancelIndex = avatarUri ? 3 : 2;
+              ActionSheetIOS.showActionSheetWithOptions(
+                { options, cancelButtonIndex: cancelIndex, destructiveButtonIndex: destructiveIndex, title: 'Profile Photo' },
+                (index) => {
+                  if (index === 0) handlePickFromLibrary();
+                  else if (index === 1) handleTakePhoto();
+                  else if (avatarUri && index === 2) handleRemoveAvatar();
+                }
+              );
+            } else {
+              setPhotoSheetVisible(true);
+            }
+          }} activeOpacity={0.85}>
+            {avatarUri
+              ? <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+              : <View style={styles.avatarPlaceholder}><RNText style={styles.avatarInitials}>{initials}</RNText></View>}
+            {avatarUploading && <View style={styles.avatarLoadingOverlay}><ActivityIndicator color="#fff" size="small" /></View>}
+            <View style={styles.avatarBadge}><RNText style={styles.avatarBadgeIcon}>✎</RNText></View>
+          </TouchableOpacity>
+          <View style={styles.heroInfo}>
+            <RNText style={styles.heroName}>{profile?.full_name || 'Your Name'}</RNText>
+            <RNText style={styles.heroEmail} numberOfLines={1}>{user?.email || ''}</RNText>
+          </View>
+          <TouchableOpacity style={styles.heroEditBtn} onPress={() => setIsEditingProfile(true)}>
+            <RNText style={styles.heroEditBtnText}>Edit ›</RNText>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Profile Section ── */}
+        <RNText style={styles.sectionLabel}>Profile</RNText>
+        <View style={styles.settingsCard}>
+          {/* Email row */}
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldLeft}>
+              <RNText style={styles.fieldLabel}>EMAIL</RNText>
+              <RNText style={styles.fieldValue}>{user?.email || '—'}</RNText>
+            </View>
+            <View style={styles.lockedChip}><RNText style={styles.lockedChipText}>Locked</RNText></View>
+          </View>
+          {/* Home Address row */}
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldLeft}>
+              <RNText style={styles.fieldLabel}>HOME ADDRESS</RNText>
+              <RNText style={styles.fieldValue}>{profile?.home_address_full || 'Not set'}</RNText>
+            </View>
+            <TouchableOpacity onPress={() => setIsEditingProfile(true)}>
+              <RNText style={styles.fieldAction}>Edit</RNText>
+            </TouchableOpacity>
+          </View>
+          {/* Password row */}
+          <View style={[styles.fieldRow, styles.fieldRowLast]}>
+            <View style={styles.fieldLeft}>
+              <RNText style={styles.fieldLabel}>PASSWORD</RNText>
+              <RNText style={styles.fieldValue}>••••••••</RNText>
+            </View>
+            <TouchableOpacity onPress={() => setIsChangingPassword(true)}>
+              <RNText style={styles.fieldAction}>Change</RNText>
+            </TouchableOpacity>
           </View>
         </View>
-      </View>
+        {profile?.updated_at && (
+          <RNText style={styles.lastSaved}>Last saved {formatRelativeTime(profile.updated_at)}</RNText>
+        )}
+
+        {/* ── Tax Settings Section ── */}
+        <RNText style={styles.sectionLabel}>Tax Settings</RNText>
+        <View style={styles.settingsCard}>
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldLeft}>
+              <RNText style={styles.fieldLabel}>BUSINESS STRUCTURE</RNText>
+              <RNText style={styles.fieldValue}>{businessStructureLabel}</RNText>
+            </View>
+            <TouchableOpacity onPress={() => setIsEditingTaxSettings(true)}>
+              <RNText style={styles.fieldAction}>Edit</RNText>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldLeft}>
+              <RNText style={styles.fieldLabel}>FILING STATUS</RNText>
+              <RNText style={styles.fieldValue}>{filingStatusLabel}</RNText>
+            </View>
+          </View>
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldLeft}>
+              <RNText style={styles.fieldLabel}>STATE OF RESIDENCE</RNText>
+              <RNText style={styles.fieldValue}>{stateLabel}</RNText>
+            </View>
+          </View>
+          <View style={[styles.fieldRow, styles.fieldRowLast]}>
+            <View style={styles.fieldLeft}>
+              <RNText style={styles.fieldLabel}>DEDUCTION METHOD</RNText>
+              <RNText style={styles.fieldValue}>{deductionLabel}</RNText>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Invoice Payment Methods ── */}
+        <RNText style={styles.sectionLabel}>Invoice Payment Methods</RNText>
+        <View style={styles.settingsCard}>
+          {ALL_PAYMENT_METHODS.map((method, idx) => {
+            const pm = paymentMethods.find(p => p.method === method.key);
+            const enabled = pm?.enabled && pm?.details;
+            const isLast = idx === ALL_PAYMENT_METHODS.length - 1;
+            return (
+              <View key={method.key} style={[styles.paymentRow, isLast && styles.paymentRowLast]}>
+                <View style={[styles.paymentStatus, enabled ? styles.paymentStatusEnabled : styles.paymentStatusDisabled]}>
+                  <RNText style={[styles.paymentStatusIcon, enabled ? styles.paymentStatusIconEnabled : styles.paymentStatusIconDisabled]}>
+                    {enabled ? '✓' : '—'}
+                  </RNText>
+                </View>
+                <RNText style={[styles.paymentName, !enabled && styles.paymentNameDisabled]}>{method.label}</RNText>
+                <RNText style={styles.paymentHandle}>{enabled ? pm!.details : 'Not set up'}</RNText>
+              </View>
+            );
+          })}
+          <TouchableOpacity
+            style={styles.navActionRow}
+            onPress={() => onNavigateToInvoices ? onNavigateToInvoices() : Alert.alert('Navigation', 'Go to Invoices → Settings.')}
+          >
+            <View style={styles.navActionIcon}><RNText style={{ fontSize: 18 }}>🧾</RNText></View>
+            <RNText style={styles.navActionLabel}>Go to Invoice Settings</RNText>
+            <RNText style={styles.navActionArrow}>›</RNText>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Sign Out — Danger Zone ── */}
+        <RNText style={styles.sectionLabel}>Account</RNText>
+        <View style={styles.dangerCard}>
+          <TouchableOpacity style={styles.dangerRow} onPress={handleSignOut}>
+            <View style={styles.dangerIcon}><RNText style={{ fontSize: 18 }}>🚪</RNText></View>
+            <RNText style={styles.dangerLabel}>Sign Out</RNText>
+            <RNText style={styles.dangerArrow}>›</RNText>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 32 }} />
       </ScrollView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.surface.muted,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface.muted,
-  },
-  content: {
-    padding: parseInt(spacing[5]),
-    paddingBottom: parseInt(spacing[10]),
-    width: '100%',
-  },
-  contentMobile: {
-    padding: parseInt(spacing[4]),
-    paddingBottom: parseInt(spacing[8]),
-    maxWidth: '100%',
-    alignSelf: 'stretch',
-  },
-  contentDesktop: {
-    maxWidth: 1200,
-    alignSelf: 'center',
-  },
-  // Mobile-first: base styles apply to ALL (mobile default)
-  gridContainer: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-  gridContainerDesktop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  // Mobile-first column styles
-  leftColumn: {
-    width: '100%',
-    maxWidth: '100%',
-    minWidth: 0,
-    flexShrink: 1,
-    alignSelf: 'stretch',
-    marginRight: 0,
-    marginBottom: parseInt(spacing[6]),
-    position: 'relative',
-  },
-  leftColumnDesktop: {
-    flex: 1,
-    width: undefined,
-    maxWidth: undefined,
-    marginRight: parseInt(spacing[6]),
-    marginBottom: 0,
-  },
-  rightColumn: {
-    width: '100%',
-    maxWidth: '100%',
-    minWidth: 0,
-    flexShrink: 1,
-    alignSelf: 'stretch',
-    marginRight: 0,
-    marginBottom: parseInt(spacing[6]),
-    position: 'relative',
-  },
-  rightColumnDesktop: {
-    width: 320,
-    maxWidth: 320,
-    flexShrink: 0,
-    marginBottom: 0,
-  },
-  // Debug badge styles
-  debugBadge: {
-    backgroundColor: '#fef3c7',
-    borderWidth: 1,
-    borderColor: '#f59e0b',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: parseInt(spacing[4]),
-  },
-  debugText: {
-    fontSize: 12,
-    fontFamily: Platform.OS === 'web' ? 'monospace' : 'Courier',
-    color: '#92400e',
-  },
-  section: {
-    marginBottom: parseInt(spacing[4]),
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: parseInt(spacing[3]),
-  },
-  card: {
-    gap: parseInt(spacing[3]),
-  },
-  fieldCompact: {
-    gap: parseInt(spacing[1]),
-  },
-  fieldHintCompact: {
-    marginTop: parseInt(spacing[1]),
-  },
-  fieldLabel: {
-    marginBottom: parseInt(spacing[2]),
-  },
-  input: {
-    backgroundColor: colors.surface.muted,
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    borderRadius: parseInt(radius.sm),
-    padding: parseInt(spacing[3]),
-    fontSize: parseInt(typography.fontSize.body.size),
-    color: colors.text.DEFAULT,
-  },
-  selectButton: {
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-    padding: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  selectButtonText: {
-    fontSize: 16,
-    color: '#111827',
-  },
-  placeholder: {
-    color: '#9ca3af',
-  },
-  selectButtonIcon: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  radioGroup: {
-    gap: 8,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f9fafb',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
-  },
-  radioOptionSelected: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#3b82f6',
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioCircleInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#3b82f6',
-  },
-  radioLabel: {
-    fontSize: 16,
-    color: '#111827',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: parseInt(spacing[3]),
-    marginTop: parseInt(spacing[2]),
-  },
-  actionButton: {
-    marginBottom: parseInt(spacing[3]),
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '70%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  modalClose: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3b82f6',
-  },
-  stateList: {
-    maxHeight: 400,
-  },
-  stateOption: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  stateOptionText: {
-    fontSize: 16,
-    color: '#374151',
-  },
-  stateOptionTextSelected: {
-    color: '#3b82f6',
-    fontWeight: '600',
-  },
-  lastSavedContainer: {
-    marginTop: parseInt(spacing[2]),
-    paddingTop: parseInt(spacing[2]),
-    borderTopWidth: 1,
-    borderTopColor: colors.border.muted,
-  },
-  sectionDescription: {
-    marginBottom: parseInt(spacing[4]),
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  paymentMethodRow: {
-    marginBottom: parseInt(spacing[4]),
-    paddingBottom: parseInt(spacing[4]),
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.muted,
-  },
-  paymentMethodHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: parseInt(spacing[2]),
-  },
-  paymentMethodLabel: {
-    fontSize: 16,
-  },
-  warningText: {
-    marginTop: parseInt(spacing[2]),
-    fontSize: 13,
-    color: colors.warning.DEFAULT,
-  },
-  paymentMethodsSummary: {
-    marginTop: parseInt(spacing[2]),
-    marginBottom: parseInt(spacing[4]),
-  },
-  enabledMethodsSection: {
-    marginBottom: parseInt(spacing[3]),
-  },
-  methodsGroupLabel: {
-    fontSize: 14,
-    marginBottom: parseInt(spacing[2]),
-    color: colors.text.DEFAULT,
-  },
-  enabledMethodRow: {
-    paddingVertical: parseInt(spacing[1]),
-    paddingLeft: parseInt(spacing[2]),
-  },
-  enabledMethodText: {
-    fontSize: 14,
-    color: colors.text.DEFAULT,
-    lineHeight: 20,
-  },
-  disabledMethodsSection: {
-    marginTop: parseInt(spacing[2]),
-  },
-  disabledMethodsText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
-  noPaymentMethodsText: {
-    marginTop: parseInt(spacing[2]),
-    marginBottom: parseInt(spacing[4]),
-    fontSize: 14,
-    fontStyle: 'italic',
-  },
-  goToInvoiceSettingsButton: {
-    marginTop: parseInt(spacing[4]),
-  },
+  container: { flex: 1, backgroundColor: '#F5F4F0' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F4F0' },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 48 },
+  heroCard: { backgroundColor: '#1C1C1E', borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  avatarWrap: { position: 'relative', marginRight: 14 },
+  avatarImg: { width: 64, height: 64, borderRadius: 32 },
+  avatarPlaceholder: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#3A3A3C', justifyContent: 'center', alignItems: 'center' },
+  avatarInitials: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
+  avatarLoadingOverlay: { position: 'absolute', top: 0, left: 0, width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  avatarBadge: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: '#3B82F6', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#1C1C1E' },
+  avatarBadgeIcon: { fontSize: 11, color: '#fff', lineHeight: 14 },
+  heroInfo: { flex: 1 },
+  heroName: { fontSize: 17, fontWeight: '700', color: '#FFFFFF', marginBottom: 2 },
+  heroEmail: { fontSize: 13, color: '#8E8E93' },
+  heroEditBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20 },
+  heroEditBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  sectionLabel: { fontSize: 12, fontWeight: '600', color: '#8E8E93', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginTop: 4, paddingHorizontal: 4 },
+  settingsCard: { backgroundColor: '#FFFFFF', borderRadius: 14, marginBottom: 20, overflow: 'hidden' },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E5E5EA' },
+  fieldRowLast: { borderBottomWidth: 0 },
+  fieldLeft: { flex: 1 },
+  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#8E8E93', letterSpacing: 0.4, marginBottom: 3 },
+  fieldValue: { fontSize: 15, color: '#1C1C1E' },
+  fieldAction: { fontSize: 15, color: '#3B82F6', fontWeight: '500' },
+  lockedChip: { backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  lockedChipText: { fontSize: 12, color: '#8E8E93', fontWeight: '500' },
+  lastSaved: { fontSize: 12, color: '#8E8E93', fontStyle: 'italic', marginTop: -14, marginBottom: 20, paddingHorizontal: 4 },
+  paymentRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E5E5EA' },
+  paymentRowLast: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E5E5EA' },
+  paymentStatus: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  paymentStatusEnabled: { backgroundColor: '#D1FAE5' },
+  paymentStatusDisabled: { backgroundColor: '#F2F2F7' },
+  paymentStatusIcon: { fontSize: 14, fontWeight: '700' },
+  paymentStatusIconEnabled: { color: '#059669' },
+  paymentStatusIconDisabled: { color: '#C7C7CC' },
+  paymentName: { flex: 1, fontSize: 15, color: '#1C1C1E', fontWeight: '500' },
+  paymentNameDisabled: { color: '#8E8E93' },
+  paymentHandle: { fontSize: 13, color: '#8E8E93' },
+  navActionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E5E5EA' },
+  navActionIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#EEF2FF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  navActionLabel: { flex: 1, fontSize: 15, color: '#3B82F6', fontWeight: '500' },
+  navActionArrow: { fontSize: 20, color: '#C7C7CC' },
+  dangerCard: { backgroundColor: '#FFFFFF', borderRadius: 14, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#FEE2E2' },
+  dangerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 },
+  dangerIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#FEE2E2', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  dangerLabel: { flex: 1, fontSize: 16, fontWeight: '600', color: '#DC2626' },
+  dangerArrow: { fontSize: 20, color: '#FCA5A5' },
+  sheetBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end', zIndex: 999 },
+  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 34, paddingTop: 12 },
+  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E5EA', alignSelf: 'center', marginBottom: 16 },
+  sheetTitle: { fontSize: 17, fontWeight: '700', color: '#1C1C1E', textAlign: 'center', marginBottom: 8 },
+  sheetOption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E5E5EA' },
+  sheetOptionRemove: {},
+  sheetOptionIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#F2F2F7', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  sheetOptionIconRemove: { backgroundColor: '#FEE2E2' },
+  sheetOptionEmoji: { fontSize: 20 },
+  sheetOptionLabel: { fontSize: 16, color: '#1C1C1E', fontWeight: '500' },
+  sheetOptionLabelRemove: { color: '#DC2626' },
+  sheetCancel: { marginHorizontal: 10, marginTop: 12, backgroundColor: '#F2F2F7', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  sheetCancelText: { fontSize: 16, fontWeight: '600', color: '#1C1C1E' },
+  editModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  editModalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, maxHeight: '85%' as any },
+  editModalTitle: { fontSize: 20, fontWeight: '700', color: '#1C1C1E', marginBottom: 20 },
+  editFieldLabel: { fontSize: 13, fontWeight: '600', color: '#6B7280', marginBottom: 6, marginTop: 14 },
+  editInput: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#1C1C1E' },
+  editButtonRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  editCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#F2F2F7', alignItems: 'center' },
+  editCancelBtnText: { fontSize: 15, fontWeight: '600', color: '#1C1C1E' },
+  editSaveBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#3B82F6', alignItems: 'center' },
+  editSaveBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });
+

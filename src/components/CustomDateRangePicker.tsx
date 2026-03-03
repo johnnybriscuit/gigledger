@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingTop: 20,
     marginBottom: 16,
   },
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginBottom: 16,
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     backgroundColor: '#f3f4f6',
     borderRadius: 8,
     padding: 4,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   modeButton: {
     flex: 1,
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderRadius: 6,
     alignItems: 'center',
   },
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingBottom: 20,
   },
   dateInputGroup: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   yearModeContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingBottom: 20,
     flex: 1,
   },
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderRadius: 8,
     marginBottom: 4,
   },
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   applyButton: {
     backgroundColor: '#3b82f6',
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 10,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,

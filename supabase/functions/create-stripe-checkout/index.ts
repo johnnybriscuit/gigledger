@@ -1,0 +1,57 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import Stripe from 'https://esm.sh/stripe@14.21.0'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY_PROD') || Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  apiVersion: '2023-10-16',
+})
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const { priceId, userId, userEmail } = await req.json()
+
+    if (!priceId || !userId || !userEmail) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer_email: userEmail,
+      client_reference_id: userId,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${Deno.env.get('SITE_URL') || 'https://bozzygigs.com'}/subscription?success=true`,
+      cancel_url: `${Deno.env.get('SITE_URL') || 'https://bozzygigs.com'}/subscription?canceled=true`,
+      metadata: {
+        userId,
+      },
+    })
+
+    return new Response(
+      JSON.stringify({ url: session.url }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error: any) {
+    console.error('Error creating checkout session:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+})

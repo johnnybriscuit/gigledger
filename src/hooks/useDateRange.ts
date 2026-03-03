@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 
-export type DateRange = 'ytd' | 'last30' | 'last90' | 'lastYear' | 'custom';
+export type DateRange = 'ytd' | 'thisYear' | 'last30' | 'last90' | 'lastYear' | 'custom';
 
 interface DateRangeState {
   range: DateRange;
@@ -36,7 +36,7 @@ export function useDateRange(): UseDateRangeReturn {
         };
       }
 
-      if (urlRange && ['ytd', 'last30', 'last90', 'lastYear'].includes(urlRange)) {
+      if (urlRange && ['ytd', 'thisYear', 'last30', 'last90', 'lastYear'].includes(urlRange)) {
         return { range: urlRange };
       }
 
@@ -86,7 +86,6 @@ export function useDateRange(): UseDateRangeReturn {
 
   const setRange = (range: DateRange) => {
     if (range === 'custom') {
-      // Don't change to custom without dates
       return;
     }
     setState({ range });

@@ -1,17 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
+import * as Linking from 'expo-linking';
 import { supabase } from '../lib/supabase';
 import { logSecurityEvent } from '../lib/mfa';
 import { trackLogin, trackSignUp } from '../lib/analytics';
 import { track } from '../lib/tracking';
 
 interface AuthCallbackScreenProps {
+  oauthCallbackUrl?: string | null;
   onNavigateToMFASetup?: () => void;
   onNavigateToDashboard?: () => void;
   onNavigateToAuth?: () => void;
 }
 
 export function AuthCallbackScreen({ 
+  oauthCallbackUrl,
   onNavigateToMFASetup, 
   onNavigateToDashboard,
   onNavigateToAuth 
@@ -21,11 +24,49 @@ export function AuthCallbackScreen({
 
   useEffect(() => {
     handleCallback();
-  }, []);
+  }, [oauthCallbackUrl]);
 
   const handleCallback = async () => {
     try {
-      // Get the current session
+      // For native platforms, check if we have a deep link URL with OAuth params
+      if (Platform.OS !== 'web') {
+        // Use the URL passed from App.tsx (from deep link handler)
+        const url = oauthCallbackUrl || await Linking.getInitialURL();
+        console.log('[AuthCallback] OAuth callback URL:', url);
+        
+        if (url) {
+          const { queryParams } = Linking.parse(url);
+          console.log('[AuthCallback] Query params:', Object.keys(queryParams || {}));
+          
+          // Handle OAuth tokens from deep link
+          const accessToken = queryParams?.access_token as string | undefined;
+          const refreshToken = queryParams?.refresh_token as string | undefined;
+          const code = queryParams?.code as string | undefined;
+          
+          if (accessToken && refreshToken) {
+            console.log('[AuthCallback] Setting session from access_token + refresh_token');
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (sessionError) {
+              console.error('[AuthCallback] Failed to set session:', sessionError);
+              throw sessionError;
+            }
+          } else if (code) {
+            console.log('[AuthCallback] Exchanging code for session');
+            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            if (exchangeError) {
+              console.error('[AuthCallback] Failed to exchange code:', exchangeError);
+              throw exchangeError;
+            }
+          } else {
+            console.log('[AuthCallback] No OAuth params found in deep link, checking existing session');
+          }
+        }
+      }
+      
+      // Get the current session (either just set above, or existing from web OAuth)
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {

@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { validatePassword } from '../lib/passwordValidation';
 import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
@@ -194,19 +195,20 @@ export function ResetPasswordScreen({ onSuccess, onBack }: ResetPasswordScreenPr
   }
 
   return (
-    <ScrollView 
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.card}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Set new password</Text>
-          <Text style={styles.subtitle}>
-            Choose a strong password for your account.
-          </Text>
-        </View>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.card}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Set new password</Text>
+            <Text style={styles.subtitle}>
+              Choose a strong password for your account.
+            </Text>
+          </View>
 
         {/* Password Input */}
         <View style={styles.inputGroup}>
@@ -301,10 +303,15 @@ export function ResetPasswordScreen({ onSuccess, onBack }: ResetPasswordScreenPr
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
@@ -321,7 +328,7 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 32,
+    padding: Platform.OS === 'web' ? 32 : 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

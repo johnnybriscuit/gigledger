@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: '#2563eb',

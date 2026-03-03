@@ -42,7 +42,7 @@ Create `app.json` production config:
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "googleMapsApiKey": "AIzaSyBNJRJ7kKDS1bGHaKmbpQf9D9nFc51wZqw"
+      "googleMapsApiKey": "your-google-maps-api-key-here"
     }
   }
 }

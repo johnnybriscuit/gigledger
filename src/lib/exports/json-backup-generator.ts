@@ -1,4 +1,5 @@
 import type { TaxExportPackage } from './taxExportPackage';
+import { downloadJSON } from './webDownloadHelpers';
 
 /**
  * JSON Backup Generator (from canonical TaxExportPackage)
@@ -9,13 +10,7 @@ export function generateJSONBackup(pkg: TaxExportPackage): string {
   return JSON.stringify(pkg, null, 2);
 }
 
-export function downloadJSONBackup(pkg: TaxExportPackage): void {
+export async function downloadJSONBackup(pkg: TaxExportPackage): Promise<void> {
   const jsonString = generateJSONBackup(pkg);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `Bozzy_Backup_${pkg.metadata.taxYear}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
+  await downloadJSON(jsonString, `Bozzy_Backup_${pkg.metadata.taxYear}.json`);
 }

@@ -556,7 +556,8 @@ export async function buildTaxExportPackage(options: BuildTaxExportPackageOption
       .lte('invoice_date', dateEnd),
     supabase
       .from('invoice_payments')
-      .select('*')
+      .select('*, invoice:invoices!inner(id, invoice_number, client_name, currency, user_id)')
+      .eq('invoice.user_id', options.userId)
       .gte('payment_date', dateStart)
       .lte('payment_date', dateEnd),
     supabase
@@ -582,28 +583,17 @@ export async function buildTaxExportPackage(options: BuildTaxExportPackageOption
 
   for (const inv of invoices) assertUsdCurrency(inv.currency);
 
-  const invoiceById = new Map<string, InvoiceDbRow>(invoices.map((i) => [i.id, i]));
-  const invoicePaymentsAll = (invoicePaymentsRes.data || []) as InvoicePaymentRow[];
-  const invoicePayments = invoicePaymentsAll
-    .filter((p) => invoiceById.has(p.invoice_id))
-    .map((p) => {
-      const inv = invoiceById.get(p.invoice_id);
-      assertUsdCurrency(inv?.currency);
-
-      return {
-        ...p,
-        invoice: inv
-          ? {
-              id: inv.id,
-              invoice_number: inv.invoice_number,
-              client_name: inv.client_name,
-              currency: inv.currency,
-            }
-          : null,
-      } as InvoicePaymentRow & {
-        invoice?: Pick<InvoiceDbRow, 'id' | 'invoice_number' | 'client_name' | 'currency'> | null;
-      };
-    });
+  // invoice_payments already joined to invoices (with user_id filter) via the query above
+  const invoicePayments = ((invoicePaymentsRes.data || []) as any[]).map((p) => {
+    const inv = p.invoice as Pick<InvoiceDbRow, 'id' | 'invoice_number' | 'client_name' | 'currency'> | null;
+    assertUsdCurrency(inv?.currency);
+    return {
+      ...p,
+      invoice: inv ?? null,
+    } as InvoicePaymentRow & {
+      invoice?: Pick<InvoiceDbRow, 'id' | 'invoice_number' | 'client_name' | 'currency'> | null;
+    };
+  });
 
   const subcontractorPayments = (subcontractorPaymentsRes.data || []) as any[];
   const payers = (payersRes.data || []) as PayerRow[];

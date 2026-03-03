@@ -27,12 +27,13 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
   const colors = getThemeColors(theme);
   const isDark = theme === 'dark';
 
+  // All hooks must be called before any early returns (React rules of hooks)
   const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | undefined>();
   const [showInfo, setShowInfo] = useState(false);
 
-  // Fetch map data
+  // Fetch map data (skipped on native via enabled flag)
   const { data: statsMap, isLoading, error } = useMapStats({
     scope: 'US',
     dateRange,
@@ -40,7 +41,7 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
     customEnd,
   });
 
-  // Get non-zero gig counts for legend (must be before conditional returns)
+  // Get non-zero gig counts for legend
   const nonZeroCounts = useMemo(() => {
     if (!statsMap) return [];
     return Object.values(statsMap)
@@ -48,6 +49,20 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
       .filter(c => c > 0)
       .sort((a, b) => a - b);
   }, [statsMap]);
+
+  // On native, show a compact placeholder — the SVG map is web-only
+  if (Platform.OS !== 'web') {
+    return (
+      <Kard title="Gig Map" icon="🗺️">
+        <View style={styles.nativePlaceholder}>
+          <Text style={styles.nativePlaceholderIcon}>📍</Text>
+          <Text style={[styles.nativePlaceholderText, { color: colors.textMuted }]}>
+            Map view available on web
+          </Text>
+        </View>
+      </Kard>
+    );
+  }
 
   const handleRegionHover = (code: string | null, event?: React.MouseEvent) => {
     setHoveredRegion(code);
@@ -213,6 +228,18 @@ const styles = StyleSheet.create({
   mobileNoticeText: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  nativePlaceholder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  nativePlaceholderIcon: {
+    fontSize: 20,
+  },
+  nativePlaceholderText: {
+    fontSize: 14,
   },
   loading: {
     alignItems: 'center',

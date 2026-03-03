@@ -908,7 +908,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     marginBottom: 20,
   },
   modalTitle: {
@@ -929,7 +929,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   form: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
   },
   inputGroup: {
     marginBottom: 16,
@@ -1057,7 +1057,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingTop: 20,
     paddingBottom: 12,
   },
@@ -1082,7 +1082,7 @@ const styles = StyleSheet.create({
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 8,
   },
   calendarDayHeader: {
@@ -1128,7 +1128,7 @@ const styles = StyleSheet.create({
   calendarFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingTop: 16,
     gap: 12,
   },
@@ -1247,7 +1247,7 @@ const styles = StyleSheet.create({
   mealsToggleButton: {
     flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: '#e5e7eb',
@@ -1350,7 +1350,7 @@ const styles = StyleSheet.create({
   applySuggestionsButton: {
     backgroundColor: '#3b82f6',
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderRadius: 6,
     alignItems: 'center',
     marginBottom: 8,
@@ -1380,7 +1380,7 @@ const styles = StyleSheet.create({
   retryButton: {
     backgroundColor: '#3b82f6',
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderRadius: 6,
     alignItems: 'center',
   },
@@ -1413,7 +1413,7 @@ const styles = StyleSheet.create({
   receiptUploadButton: {
     backgroundColor: '#3b82f6',
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 8,

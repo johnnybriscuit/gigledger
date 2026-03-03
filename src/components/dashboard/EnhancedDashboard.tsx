@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useResponsive } from '../../hooks/useResponsive';
 import { HeroNetProfit } from './HeroNetProfit';
 import { QuickStats } from './QuickStats';
@@ -35,6 +35,9 @@ interface EnhancedDashboardProps {
   onPayerChange?: (payerId: string | null) => void;
   onNavigateToExpenses?: () => void;
   onNavigateToGigs?: (payerFilter?: string) => void;
+  onAddGig?: () => void;
+  onAddExpense?: () => void;
+  onExport?: () => void;
 }
 
 export function EnhancedDashboard({
@@ -46,8 +49,13 @@ export function EnhancedDashboard({
   onPayerChange,
   onNavigateToExpenses,
   onNavigateToGigs,
+  onAddGig,
+  onAddExpense,
+  onExport,
 }: EnhancedDashboardProps) {
-  const { isDesktop } = useResponsive();
+  const { isDesktop, isTablet } = useResponsive();
+  const { width } = useWindowDimensions();
+  const isPhone = width < 768;
   const [drillThroughMonth, setDrillThroughMonth] = useState<string | null>(null);
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
 
@@ -94,8 +102,8 @@ export function EnhancedDashboard({
         }
       }}
     >
-      {/* Date Range Filter - Mobile only (desktop shows in action bar) */}
-      {!isDesktop && <DateRangeFilter selected={dateRange} onSelect={onDateRangeChange} />}
+      {/* Date Range Filter - tablet only (phone gets it inline in scroll, desktop shows in action bar) */}
+      {!isDesktop && !isPhone && <DateRangeFilter selected={dateRange} onSelect={onDateRangeChange} />}
 
       <ScrollView
         style={styles.scrollView}
@@ -104,87 +112,111 @@ export function EnhancedDashboard({
           styles.scrollContent,
           isDesktop && styles.scrollContentDesktop,
         ]}
-        onLayout={(e) => {
-          if (__DEV__) {
-            console.log('📐 [EnhancedDashboard] ScrollView width:', e.nativeEvent.layout.width);
-          }
-        }}
       >
-        {/* Usage Widget - Temporarily disabled due to navigation context issues */}
-        {/* <UsageWidget /> */}
+        {isPhone ? (
+          /* ── PHONE LAYOUT ── */
+          <View style={styles.phoneStack}>
+            {/* Hero card */}
+            <View style={styles.phoneCard}>
+              {!data.isReady || !data.totals ? (
+                <SkeletonDashboardCard />
+              ) : (
+                <HeroNetProfit
+                  dateRange={dateRange}
+                  customStart={customStart}
+                  customEnd={customEnd}
+                  payerId={payerId}
+                />
+              )}
+            </View>
 
-        {/* Hero Row: Net Profit + Quick Stats */}
-        <View style={[styles.heroRow, isDesktop && styles.heroRowDesktop]}>
-          <View style={[styles.heroCard, isDesktop && styles.heroCardDesktop]}>
-            {!data.isReady || !data.totals ? (
-              <SkeletonDashboardCard />
-            ) : (
-              <HeroNetProfit
-                dateRange={dateRange}
-                customStart={customStart}
-                customEnd={customEnd}
-                payerId={payerId}
-              />
-            )}
-          </View>
-          
-          <View style={[styles.quickStatsCard, isDesktop && styles.quickStatsCardDesktop]}>
-            {!data.isReady || !data.totals ? (
-              <SkeletonDashboardCard />
-            ) : (
-              <QuickStats
-                ytdGigsCount={data.ytdGigsCount}
-                paidGigsCount={data.paidGigsCount}
-                totalGrossIncome={data.totalGrossIncome}
-                estimatedTaxRate={data.totals.effectiveTaxRate}
-              />
-            )}
-          </View>
-        </View>
+            {/* Tax Summary */}
+            <View style={styles.phoneCard}>
+              {!data.isReady || !data.taxBreakdown ? (
+                <SkeletonDashboardCard />
+              ) : (
+                <TaxSummaryCard dateRange={dateRange} />
+              )}
+            </View>
 
-        {/* Charts Grid */}
-        <View style={[styles.chartsGrid, isDesktop && styles.chartsGridDesktop]}>
-          {/* Monthly Overview - Full Width */}
-          <View style={styles.fullWidth}>
-            <MonthlyOverview data={data.monthly} onMonthClick={handleMonthClick} />
-          </View>
-
-          {/* Cumulative Net - Full Width */}
-          <View style={styles.fullWidth}>
-            <CumulativeNet data={data.cumulativeNet} />
-          </View>
-
-          {/* Tax Summary - Full Width */}
-          <View style={styles.fullWidth}>
-            {!data.isReady || !data.taxBreakdown ? (
-              <SkeletonDashboardCard />
-            ) : (
-              <TaxSummaryCard dateRange={dateRange} />
-            )}
-          </View>
-
-          {/* Two Column Layout: Expense Breakdown + Top Payers */}
-          <View style={[styles.twoColumn, isDesktop && styles.twoColumnDesktop]}>
-            <View style={[styles.column, isDesktop && styles.columnDesktop]}>
+            {/* Expense Breakdown */}
+            <View style={styles.phoneCard}>
               <ExpenseBreakdown
                 data={data.expenseBreakdown}
                 onViewAll={handleViewAllExpenses}
               />
             </View>
-            <View style={[styles.column, isDesktop && styles.columnDesktop]}>
+
+            {/* Top Payers */}
+            <View style={styles.phoneCard}>
               <TopPayers data={data.payerBreakdown} onPayerClick={handlePayerClick} />
             </View>
-          </View>
 
-          {/* Map - Full Width */}
-          <View style={styles.fullWidth}>
-            <MapCard 
-              dateRange={dateRange}
-              customStart={customStart}
-              customEnd={customEnd}
-            />
+            {/* Monthly Overview */}
+            <View style={styles.phoneCard}>
+              <MonthlyOverview data={data.monthly} onMonthClick={handleMonthClick} />
+            </View>
           </View>
-        </View>
+        ) : (
+          /* ── TABLET / DESKTOP LAYOUT ── */
+          <>
+            {/* Hero Row: Net Profit + Quick Stats */}
+            <View style={[styles.heroRow, isDesktop && styles.heroRowDesktop]}>
+              <View style={[styles.heroCard, isDesktop && styles.heroCardDesktop]}>
+                {!data.isReady || !data.totals ? (
+                  <SkeletonDashboardCard />
+                ) : (
+                  <HeroNetProfit
+                    dateRange={dateRange}
+                    customStart={customStart}
+                    customEnd={customEnd}
+                    payerId={payerId}
+                  />
+                )}
+              </View>
+              <View style={[styles.quickStatsCard, isDesktop && styles.quickStatsCardDesktop]}>
+                {!data.isReady || !data.totals ? (
+                  <SkeletonDashboardCard />
+                ) : (
+                  <QuickStats
+                    ytdGigsCount={data.ytdGigsCount}
+                    paidGigsCount={data.paidGigsCount}
+                    totalGrossIncome={data.totalGrossIncome}
+                    estimatedTaxRate={data.totals.effectiveTaxRate}
+                  />
+                )}
+              </View>
+            </View>
+
+            {/* Charts Grid */}
+            <View style={[styles.chartsGrid, isDesktop && styles.chartsGridDesktop]}>
+              <View style={styles.fullWidth}>
+                <MonthlyOverview data={data.monthly} onMonthClick={handleMonthClick} />
+              </View>
+              <View style={styles.fullWidth}>
+                <CumulativeNet data={data.cumulativeNet} />
+              </View>
+              <View style={styles.fullWidth}>
+                {!data.isReady || !data.taxBreakdown ? (
+                  <SkeletonDashboardCard />
+                ) : (
+                  <TaxSummaryCard dateRange={dateRange} />
+                )}
+              </View>
+              <View style={styles.twoColumnSideBySide}>
+                <View style={styles.columnSideBySide}>
+                  <ExpenseBreakdown data={data.expenseBreakdown} onViewAll={handleViewAllExpenses} />
+                </View>
+                <View style={styles.columnSideBySide}>
+                  <TopPayers data={data.payerBreakdown} onPayerClick={handlePayerClick} />
+                </View>
+              </View>
+              <View style={styles.fullWidth}>
+                <MapCard dateRange={dateRange} customStart={customStart} customEnd={customEnd} />
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
 
       {/* Month Drill-Through Panel */}
@@ -219,8 +251,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: parseInt(spacing[4]),
-    paddingBottom: parseInt(spacing[12]),
+    padding: 0,
+    paddingBottom: 32,
   },
   scrollContentDesktop: {
     padding: parseInt(spacing[6]),
@@ -248,7 +280,6 @@ const styles = StyleSheet.create({
   },
   heroCardDesktop: {
     flex: 2,
-    minWidth: 520,
     width: undefined,
   },
   quickStatsCard: {
@@ -256,7 +287,6 @@ const styles = StyleSheet.create({
   },
   quickStatsCardDesktop: {
     flex: 1,
-    minWidth: 320,
     width: undefined,
   },
   chartsGrid: {
@@ -269,18 +299,59 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   twoColumn: {
+    flexDirection: 'column',
+    gap: parseInt(spacing[5]),
+  },
+  twoColumnSideBySide: {
     flexDirection: 'row',
     gap: parseInt(spacing[5]),
-    flexWrap: 'wrap',
-  },
-  twoColumnDesktop: {
-    gap: parseInt(spacing[8]),
+    flexWrap: 'nowrap',
   },
   column: {
-    flex: 1,
-    minWidth: 320,
+    width: '100%',
   },
-  columnDesktop: {
-    flexBasis: `calc(50% - ${parseInt(spacing[4])}px)` as any,
+  columnSideBySide: {
+    flex: 1,
+    width: undefined,
+  },
+  // Phone-specific layout
+  phoneStack: {
+    gap: 10,
+    paddingBottom: 24,
+  },
+  phoneCard: {
+    marginHorizontal: 10,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  qaBtn: {
+    flex: 1,
+    backgroundColor: '#2D5BE3',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qaBtnPrimaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  qaBtnGhost: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E3DE',
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qaBtnGhostText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1A1A1A',
   },
 });

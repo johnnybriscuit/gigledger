@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { useIsSmallScreen } from '../../hooks/useIsSmallScreen';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemeColors, chartColors, getStatusColor } from '../../lib/charts/colors';
 import { useDashboardData } from '../../hooks/useDashboardData';
@@ -23,6 +24,8 @@ interface HeroNetProfitProps {
 export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payerId }: HeroNetProfitProps) {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
+  const isSmallScreen = useIsSmallScreen();
+  const stackLayout = Platform.OS !== 'web' && isSmallScreen;
   const [showTaxBreakdown, setShowTaxBreakdown] = useState(false);
 
   // Get current period data
@@ -82,79 +85,59 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
 
 
   return (
-    <View 
-      style={[styles.container, { backgroundColor: colors.cardBg }]}
+    <View
+      style={styles.container}
       {...(Platform.OS === 'web' ? { className: 'dashboard-summary' } : {})}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.label, { color: colors.textMuted }]}>Financial Overview {dateRange.toUpperCase()}</Text>
-      </View>
+      {/* Decorative circle */}
+      <View style={styles.decorCircle} />
 
-      {/* Three-column layout: Gross → Deductions → Net Profit */}
-      <View style={styles.metricsRow}>
-        {/* Gross Income */}
-        <View style={styles.metricItem}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Gross Income</Text>
-          <Text style={[styles.metricAmount, { color: chartColors.green }]}>
-            {formatCurrency(grossIncome)}
-          </Text>
+      {/* Period label */}
+      <Text style={styles.periodLabel}>YEAR TO DATE · NET PROFIT</Text>
+
+      {/* Large net profit number */}
+      <Text style={styles.netValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+        {formatCurrency(netProfit)}
+      </Text>
+      <Text style={styles.netSubtitle}>after expenses & deductions</Text>
+
+      {/* Divider + 3-col row */}
+      <View style={styles.divider} />
+      <View style={styles.statsRow}>
+        <View style={styles.statCol}>
+          <Text style={styles.statLabel}>Gross Income</Text>
+          <Text style={[styles.statValue, styles.statGreen]}>{formatCurrency(grossIncome)}</Text>
         </View>
-
-        {/* Arrow */}
-        <View style={styles.arrowContainer}>
-          <Text style={[styles.arrow, { color: colors.textMuted }]}>−</Text>
+        <View style={styles.statDivider} />
+        <View style={styles.statCol}>
+          <Text style={styles.statLabel}>Deductions</Text>
+          <Text style={[styles.statValue, styles.statRed]}>−{formatCurrency(totalDeductions)}</Text>
         </View>
-
-        {/* Deductions */}
-        <View style={styles.metricItem}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Deductions</Text>
-          <Text style={[styles.metricAmount, { color: chartColors.red }]}>
-            {formatCurrency(totalDeductions)}
-          </Text>
-        </View>
-
-        {/* Equals */}
-        <View style={styles.arrowContainer}>
-          <Text style={[styles.arrow, { color: colors.textMuted }]}>=</Text>
-        </View>
-
-        {/* Net Profit */}
-        <View style={styles.metricItem}>
-          <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Net Profit</Text>
-          <Text style={[styles.metricAmount, { color: getStatusColor(netProfit) }]}>
-            {formatCurrency(netProfit)}
-          </Text>
-          {/* Delta chip */}
-          <View style={[
-            styles.deltaChip,
-            { backgroundColor: delta >= 0 ? 'rgba(22, 163, 74, 0.1)' : 'rgba(239, 68, 68, 0.1)' }
-          ]}>
-            <Text style={[styles.deltaText, { color: getStatusColor(delta, 'change') }]}>
-              {delta >= 0 ? '↑' : '↓'} {formatCurrency(Math.abs(delta))}
-            </Text>
-          </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statCol}>
+          <Text style={styles.statLabel}>Tax Aside</Text>
+          <Text style={[styles.statValue, styles.statAmber]}>{formatCurrency(currentData.totals.taxes)}</Text>
         </View>
       </View>
 
-      {/* Set Aside pill */}
+      {/* Callout bar — fold-out trigger */}
       <TouchableOpacity
-        style={[styles.setAsidePill, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}
+        style={styles.calloutBar}
         onPress={() => setShowTaxBreakdown(!showTaxBreakdown)}
+        activeOpacity={0.8}
       >
-        <Text style={[styles.setAsideText, { color: chartColors.amber }]}>
-          💰 Set Aside: {formatCurrency(currentData.totals.taxes)} • {currentData.totals.effectiveTaxRate.toFixed(1)}% of net income
-        </Text>
+        <Text style={styles.calloutIcon}>💰</Text>
+        <Text style={styles.calloutText}>See how your taxes are broken down ›</Text>
       </TouchableOpacity>
 
-      {/* Tax Breakdown (expandable) */}
+      {/* Tax Breakdown (expandable) — preserved behavior */}
       {showTaxBreakdown && taxBreakdown && (
-        <View style={[styles.breakdown, { backgroundColor: colors.chartBg, borderColor: colors.border }]}>
-          <Text style={[styles.breakdownTitle, { color: colors.text }]}>Tax Breakdown</Text>
+        <View style={styles.breakdown}>
+          <Text style={styles.breakdownTitle}>Tax Breakdown</Text>
           <View style={styles.breakdownRow}>
             <View style={styles.breakdownLabelContainer}>
               <View style={styles.breakdownLabelRow}>
-                <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Self-Employment (15.3%)</Text>
+                <Text style={styles.breakdownLabel}>Self-Employment (15.3%)</Text>
                 <TouchableOpacity
                   style={styles.infoIcon}
                   onPress={() => {
@@ -166,44 +149,36 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
                   <Text style={styles.infoIconText}>ⓘ</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={[styles.breakdownSubLabel, { color: colors.textMuted }]}>
+              <Text style={styles.breakdownSubLabel}>
                 Applies to 92.35% of net earnings (~{((taxBreakdown.seTax / currentData.totals.net) * 100).toFixed(1)}% of net)
               </Text>
             </View>
-            <Text style={[styles.breakdownValue, { color: colors.text }]}>
-              {formatCurrency(taxBreakdown.seTax)}
-            </Text>
+            <Text style={styles.breakdownValue}>{formatCurrency(taxBreakdown.seTax)}</Text>
           </View>
           <View style={styles.breakdownRow}>
-            <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Federal Income</Text>
-            <Text style={[styles.breakdownValue, { color: colors.text }]}>
-              {formatCurrency(taxBreakdown.federal)}
-            </Text>
+            <Text style={styles.breakdownLabel}>Federal Income</Text>
+            <Text style={styles.breakdownValue}>{formatCurrency(taxBreakdown.federal)}</Text>
           </View>
           <View style={styles.breakdownRow}>
-            <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>State Income</Text>
-            <Text style={[styles.breakdownValue, { color: colors.text }]}>
-              {formatCurrency(taxBreakdown.state)}
-            </Text>
+            <Text style={styles.breakdownLabel}>State Income</Text>
+            <Text style={styles.breakdownValue}>{formatCurrency(taxBreakdown.state)}</Text>
           </View>
           {taxBreakdown.local > 0 && (
             <View style={styles.breakdownRow}>
-              <Text style={[styles.breakdownLabel, { color: colors.textMuted }]}>Local Income</Text>
-              <Text style={[styles.breakdownValue, { color: colors.text }]}>
-                {formatCurrency(taxBreakdown.local)}
-              </Text>
+              <Text style={styles.breakdownLabel}>Local Income</Text>
+              <Text style={styles.breakdownValue}>{formatCurrency(taxBreakdown.local)}</Text>
             </View>
           )}
           <View style={[styles.breakdownRow, styles.breakdownTotal]}>
-            <Text style={[styles.breakdownLabel, { color: colors.text, fontWeight: '600' }]}>Total</Text>
-            <Text style={[styles.breakdownValue, { color: chartColors.amber, fontWeight: '600' }]}>
+            <Text style={[styles.breakdownLabel, { fontWeight: '600', color: '#fff' }]}>Total</Text>
+            <Text style={[styles.breakdownValue, { color: '#FCD34D', fontWeight: '600' }]}>
               {formatCurrency(totalTaxes)}
             </Text>
           </View>
         </View>
       )}
 
-      {/* Federal Tax Explanation (when breakdown is shown) */}
+      {/* Federal + State Tax Explanations (when breakdown is shown) */}
       {showTaxBreakdown && taxBreakdown && taxProfile && (
         <>
           <FederalTaxInfo
@@ -212,8 +187,6 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
             federalTaxEstimate={taxBreakdown.federal}
             filingStatus={taxProfile.filingStatus}
           />
-          
-          {/* State Tax Explanation */}
           <StateTaxInfo
             netProfitYtd={currentData.totals.net}
             estimatedSelfEmploymentTaxYtd={taxBreakdown.seTax}
@@ -229,94 +202,108 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
-    padding: 24,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-      },
-    }),
+    backgroundColor: '#1A1A1A',
+    borderRadius: 20,
+    padding: 20,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  header: {
-    marginBottom: 16,
+  decorCircle: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 8,
-  },
-  metricItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  metricLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  metricAmount: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  arrowContainer: {
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrow: {
-    fontSize: 24,
-    fontWeight: '300',
-  },
-  deltaChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    marginTop: 4,
-  },
-  deltaText: {
+  periodLabel: {
     fontSize: 11,
     fontWeight: '600',
+    color: 'rgba(255,255,255,0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 6,
   },
-  setAsidePill: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
+  netValue: {
+    fontSize: 42,
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    lineHeight: 46,
+    letterSpacing: -1,
   },
-  setAsideText: {
-    fontSize: 14,
+  netSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.45)',
+    marginTop: 4,
+    marginBottom: 18,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  statCol: {
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginHorizontal: 12,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.4)',
+    fontWeight: '500',
+    marginBottom: 3,
+  },
+  statValue: {
+    fontSize: 17,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  statGreen: { color: '#4ADE80' },
+  statRed: { color: '#F87171' },
+  statAmber: { color: '#FCD34D' },
+  calloutBar: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  calloutIcon: {
+    fontSize: 20,
+  },
+  calloutText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#D97706',
+    flex: 1,
   },
   breakdown: {
-    marginTop: 16,
+    marginTop: 12,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   breakdownTitle: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#fff',
     marginBottom: 12,
   },
   breakdownRow: {
@@ -335,33 +322,36 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
   },
   breakdownSubLabel: {
     fontSize: 11,
     marginTop: 2,
     fontStyle: 'italic',
+    color: 'rgba(255,255,255,0.4)',
   },
   infoIcon: {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: 'rgba(107, 114, 128, 0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   infoIconText: {
     fontSize: 11,
-    color: '#6b7280',
+    color: 'rgba(255,255,255,0.6)',
     fontWeight: '600',
   },
   breakdownValue: {
     fontSize: 13,
     fontWeight: '500',
+    color: '#fff',
   },
   breakdownTotal: {
     marginTop: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: 'rgba(255,255,255,0.12)',
   },
 });

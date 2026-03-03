@@ -171,210 +171,184 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
     );
   }
 
-  // Mobile view - list with color indicators
+  // Mobile view
   return (
-    <Kard
-      title="Top Payers"
-      icon="💰"
-      onInfoPress={() => setShowInfo(true)}
-    >
-      <View style={styles.totalContainer}>
-        <Text style={[styles.totalLabel, { color: colors.textMuted }]}>Total Income</Text>
-        <Text style={[styles.totalValue, { color: colors.text }]}>
-          {formatCurrency(totalIncome)}
-        </Text>
+    <View style={pStyles.card}>
+      {/* Header: title + total income */}
+      <View style={pStyles.header}>
+        <Text style={pStyles.title}>💵 Top Payers</Text>
+        <Text style={pStyles.totalInHeader}>{formatCurrency(totalIncome)}</Text>
       </View>
 
-      <View style={styles.mobileList}>
-        {data.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.mobileRow, { borderBottomColor: colors.border }]}
-            onPress={() => onPayerClick?.(item.payer)}
-          >
-            <View
-              style={[
-                styles.colorDot,
-                { backgroundColor: chartPalette.payers[index % chartPalette.payers.length] },
-              ]}
-            />
-            <View style={styles.mobileContent}>
-              <Text style={[styles.payerName, { color: colors.text }]}>{item.payer}</Text>
-              <Text style={[styles.payerPercent, { color: colors.textMuted }]}>
-                {formatPercent(item.amount)}
-              </Text>
-            </View>
-            <Text style={[styles.payerAmount, { color: colors.text }]}>
-              {formatCurrency(item.amount)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </Kard>
+      {isEmpty ? (
+        <View style={pStyles.emptyState}>
+          <Text style={pStyles.emptyIcon}>📭</Text>
+          <Text style={pStyles.emptyText}>No payers yet</Text>
+          <Text style={pStyles.emptyHint}>Add gigs to see your top payers</Text>
+        </View>
+      ) : (
+        <>
+          {/* Proportion bar */}
+          <View style={pStyles.propBarWrap}>
+            {data.map((item, index) => (
+              <View
+                key={index}
+                style={[
+                  pStyles.propBarSegment,
+                  {
+                    flex: item.amount / totalIncome,
+                    backgroundColor: chartPalette.payers[index % chartPalette.payers.length],
+                    borderRadius: index === 0 ? 3 : index === data.length - 1 ? 3 : 0,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* Payer rows */}
+          {data.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={pStyles.payerRow}
+              onPress={() => onPayerClick?.(item.payer)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  pStyles.dot,
+                  { backgroundColor: chartPalette.payers[index % chartPalette.payers.length] },
+                ]}
+              />
+              <Text style={pStyles.payerName} numberOfLines={1}>{item.payer}</Text>
+              <View style={pStyles.payerRight}>
+                <Text style={pStyles.payerAmount}>{formatCurrency(item.amount)}</Text>
+                <Text style={pStyles.payerPct}>{formatPercent(item.amount)}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </>
+      )}
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  // Empty State
+const pStyles = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E3DE',
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  totalInHeader: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    color: '#7A7671',
+  },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
-    gap: 8,
+    paddingVertical: 32,
+    paddingHorizontal: 10,
+    gap: 6,
   },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  emptyHint: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  // Custom Legend
-  legendContainer: {
-    marginTop: 16,
-    gap: 8,
-  },
-  legendItem: {
+  emptyIcon: { fontSize: 36, marginBottom: 4 },
+  emptyText: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
+  emptyHint: { fontSize: 13, color: '#B0ADA8' },
+  propBarWrap: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#f9fafb',
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        transition: 'background-color 0.2s',
-        ':hover': {
-          backgroundColor: '#f3f4f6',
-        },
-      },
-    }),
+    height: 6,
+    marginHorizontal: 10,
+    marginBottom: 16,
+    borderRadius: 4,
+    overflow: 'hidden',
+    gap: 2,
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  propBarSegment: {
+    height: 6,
   },
-  legendLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  legendValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  legendPercent: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginLeft: 4,
-  },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 24,
-    maxWidth: 400,
-    width: '100%',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 10,
-      },
-    }),
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  modalText: {
-    fontSize: 14,
-    color: '#6b7280',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  modalButton: {
-    backgroundColor: '#3b82f6',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // Mobile View
-  totalContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  totalLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  totalValue: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  mobileList: {
-    gap: 0,
-  },
-  mobileRow: {
+  payerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    paddingHorizontal: 10,
     paddingVertical: 12,
-    borderBottomWidth: 1,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E3DE',
   },
-  colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  mobileContent: {
-    flex: 1,
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    flexShrink: 0,
   },
   payerName: {
+    flex: 1,
     fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 2,
+    fontWeight: '600',
+    color: '#1A1A1A',
   },
-  payerPercent: {
-    fontSize: 12,
+  payerRight: {
+    alignItems: 'flex-end',
   },
   payerAmount: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    color: '#1A1A1A',
   },
+  payerPct: {
+    fontSize: 12,
+    color: '#B0ADA8',
+    marginTop: 1,
+  },
+});
+
+// Keep old styles for web Kard / modal usage
+const styles = StyleSheet.create({
+  emptyState: { alignItems: 'center', paddingVertical: 48, gap: 8 },
+  emptyIcon: { fontSize: 48, marginBottom: 8 },
+  emptyText: { fontSize: 16, fontWeight: '600', color: '#111827' },
+  emptyHint: { fontSize: 14, color: '#6b7280' },
+  legendContainer: { marginTop: 16, gap: 8 },
+  legendItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#f9fafb',
+    ...Platform.select({ web: { cursor: 'pointer' } as any }),
+  },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: '#111827' },
+  legendValue: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  legendPercent: { fontSize: 12, color: '#6b7280', marginLeft: 4 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: {
+    backgroundColor: '#ffffff', borderRadius: 16, padding: 24, maxWidth: 400, width: '100%',
+    ...Platform.select({ web: { boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' } as any, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 } }),
+  },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 12 },
+  modalText: { fontSize: 14, color: '#6b7280', lineHeight: 20, marginBottom: 20 },
+  modalButton: { backgroundColor: '#3b82f6', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, alignItems: 'center' },
+  modalButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
+  totalContainer: { alignItems: 'center', marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+  totalLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  totalValue: { fontSize: 24, fontWeight: '700' },
+  mobileList: { gap: 0 },
+  mobileRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1 },
+  colorDot: { width: 12, height: 12, borderRadius: 6 },
+  mobileContent: { flex: 1 },
+  payerName: { fontSize: 14, fontWeight: '500', marginBottom: 2 },
+  payerPercent: { fontSize: 12 },
+  payerAmount: { fontSize: 14, fontWeight: '600' },
 });

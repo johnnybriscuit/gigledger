@@ -13,6 +13,9 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
+  Platform,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useTaxProfile, useUpsertTaxProfile } from '../hooks/useTaxProfile';
 import { getMDCounties, getStateName } from '../tax/engine';
@@ -83,6 +86,128 @@ const FILING_STATUSES: { value: FilingStatus; label: string }[] = [
   { value: 'married_separate', label: 'Married Filing Separately' },
   { value: 'head', label: 'Head of Household' },
 ];
+
+// ─── Cross-platform picker ───────────────────────────────────────────────────
+interface PickerOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+interface NativePickerProps {
+  value: string;
+  options: PickerOption[];
+  onChange: (value: string) => void;
+  placeholder?: string;
+}
+function NativePicker({ value, options, onChange, placeholder }: NativePickerProps) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = options.find(o => o.value === value)?.label ?? placeholder ?? 'Select…';
+
+  if (Platform.OS === 'web') {
+    return (
+      // @ts-ignore web-only
+      <select
+        style={pickerStyles.webSelect as any}
+        value={value}
+        onChange={(e: any) => onChange(e.target.value)}
+      >
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <>
+      <TouchableOpacity style={pickerStyles.trigger} onPress={() => setOpen(true)} activeOpacity={0.7}>
+        <Text style={pickerStyles.triggerText}>{selectedLabel}</Text>
+        <Text style={pickerStyles.triggerChevron}>▾</Text>
+      </TouchableOpacity>
+      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        <Pressable style={pickerStyles.backdrop} onPress={() => setOpen(false)}>
+          <View style={pickerStyles.sheet} onStartShouldSetResponder={() => true}>
+            <View style={pickerStyles.sheetHandle} />
+            <ScrollView style={pickerStyles.optionList} showsVerticalScrollIndicator={false}>
+              {options.map(opt => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[pickerStyles.option, opt.value === value && pickerStyles.optionActive, opt.disabled && pickerStyles.optionDisabled]}
+                  onPress={() => { if (!opt.disabled) { onChange(opt.value); setOpen(false); } }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[pickerStyles.optionText, opt.value === value && pickerStyles.optionTextActive, opt.disabled && pickerStyles.optionTextDisabled]}>
+                    {opt.label}
+                  </Text>
+                  {opt.value === value && <Text style={pickerStyles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
+const pickerStyles = StyleSheet.create({
+  webSelect: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#111827',
+    width: '100%',
+  } as any,
+  trigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+  triggerText: { fontSize: 15, color: '#111827', flex: 1 },
+  triggerChevron: { fontSize: 16, color: '#6b7280', marginLeft: 8 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+    maxHeight: '70%' as any,
+  },
+  sheetHandle: {
+    width: 36, height: 4, borderRadius: 2,
+    backgroundColor: '#E5E3DE',
+    alignSelf: 'center',
+    marginTop: 12, marginBottom: 8,
+  },
+  optionList: { paddingHorizontal: 16 },
+  option: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  optionActive: { backgroundColor: '#EEF2FF' },
+  optionDisabled: { opacity: 0.4 },
+  optionText: { fontSize: 15, color: '#1A1A1A', flex: 1 },
+  optionTextActive: { color: '#2D5BE3', fontWeight: '700' },
+  optionTextDisabled: { color: '#B0ADA8' },
+  checkmark: { fontSize: 16, color: '#2D5BE3', fontWeight: '700' },
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface TaxSettingsSectionProps {
   isEditing?: boolean;
@@ -249,22 +374,19 @@ export function TaxSettingsSection({
           </View>
           {isEditing ? (
             <>
-              <select
-                style={styles.select}
+              <NativePicker
                 value={businessStructure}
-                onChange={(e: any) => {
-                  const value = e.target.value as BusinessStructure;
-                  if (value === 'llc_scorp' && !isProPlan) {
-                    return;
-                  }
-                  setBusinessStructure(value);
+                onChange={(val) => {
+                  if (val === 'llc_scorp' && !isProPlan) return;
+                  setBusinessStructure(val as BusinessStructure);
                 }}
-              >
-                <option value="individual">Individual / Sole Proprietor</option>
-                <option value="llc_single_member">Single-Member LLC</option>
-                <option value="llc_scorp" disabled={!isProPlan}>LLC taxed as S-Corp{!isProPlan ? ' (Pro only)' : ''}</option>
-                <option value="llc_multi_member">Multi-Member LLC / Partnership</option>
-              </select>
+                options={[
+                  { value: 'individual', label: 'Individual / Sole Proprietor' },
+                  { value: 'llc_single_member', label: 'Single-Member LLC' },
+                  { value: 'llc_scorp', label: `LLC taxed as S-Corp${!isProPlan ? ' (Pro only)' : ''}`, disabled: !isProPlan },
+                  { value: 'llc_multi_member', label: 'Multi-Member LLC / Partnership' },
+                ]}
+              />
               
               {/* Contextual help text based on selected structure */}
               {businessStructure === 'individual' && (
@@ -303,17 +425,11 @@ export function TaxSettingsSection({
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>Filing Status</Text>
           {isEditing ? (
-            <select
-              style={styles.select}
-              value={taxProfileForm.filingStatus}
-              onChange={(e: any) => setTaxProfileForm({ ...taxProfileForm, filingStatus: e.target.value as FilingStatus })}
-            >
-              {FILING_STATUSES.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
+            <NativePicker
+              value={taxProfileForm.filingStatus ?? ''}
+              onChange={(val) => setTaxProfileForm({ ...taxProfileForm, filingStatus: val as FilingStatus })}
+              options={FILING_STATUSES.map(s => ({ value: s.value, label: s.label }))}
+            />
           ) : (
             <Text style={styles.fieldValue}>{filingStatusLabel || 'Not set'}</Text>
           )}
@@ -323,17 +439,11 @@ export function TaxSettingsSection({
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>State of Residence</Text>
           {isEditing ? (
-            <select
-              style={styles.select}
-              value={taxProfileForm.state}
-              onChange={(e: any) => setTaxProfileForm({ ...taxProfileForm, state: e.target.value as StateCode, county: undefined })}
-            >
-              {TAX_STATES.map((state) => (
-                <option key={state.code} value={state.code}>
-                  {state.name}
-                </option>
-              ))}
-            </select>
+            <NativePicker
+              value={taxProfileForm.state ?? ''}
+              onChange={(val) => setTaxProfileForm({ ...taxProfileForm, state: val as StateCode, county: undefined })}
+              options={TAX_STATES.map(s => ({ value: s.code, label: s.name }))}
+            />
           ) : (
             <Text style={styles.fieldValue}>{stateName}</Text>
           )}
@@ -344,18 +454,12 @@ export function TaxSettingsSection({
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>County</Text>
             {isEditing ? (
-              <select
-                style={styles.select}
+              <NativePicker
                 value={taxProfileForm.county || ''}
-                onChange={(e: any) => setTaxProfileForm({ ...taxProfileForm, county: e.target.value })}
-              >
-                <option value="">Select a county...</option>
-                {getMDCounties().map((county) => (
-                  <option key={county} value={county}>
-                    {county}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setTaxProfileForm({ ...taxProfileForm, county: val })}
+                placeholder="Select a county..."
+                options={getMDCounties().map(c => ({ value: c, label: c }))}
+              />
             ) : (
               <Text style={styles.fieldValue}>{taxProfileForm.county || 'Not set'}</Text>
             )}
@@ -407,21 +511,20 @@ export function TaxSettingsSection({
           <Text style={styles.fieldLabel}>Deduction Method</Text>
           {isEditing ? (
             <>
-              <select
-                style={styles.select}
-                value={taxProfileForm.deductionMethod}
-                onChange={(e: any) => {
-                  const method = e.target.value;
-                  setTaxProfileForm({ 
-                    ...taxProfileForm, 
-                    deductionMethod: method,
-                    itemizedAmount: method === 'standard' ? undefined : taxProfileForm.itemizedAmount
+              <NativePicker
+                value={taxProfileForm.deductionMethod ?? ''}
+                onChange={(val) => {
+                  setTaxProfileForm({
+                    ...taxProfileForm,
+                    deductionMethod: val as 'standard' | 'itemized',
+                    itemizedAmount: val === 'standard' ? undefined : taxProfileForm.itemizedAmount,
                   });
                 }}
-              >
-                <option value="standard">Standard Deduction</option>
-                <option value="itemized">Itemized Deduction</option>
-              </select>
+                options={[
+                  { value: 'standard', label: 'Standard Deduction' },
+                  { value: 'itemized', label: 'Itemized Deduction' },
+                ]}
+              />
 
               {taxProfileForm.deductionMethod === 'itemized' && (
                 <TextInput

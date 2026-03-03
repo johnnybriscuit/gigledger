@@ -21,7 +21,7 @@ interface GigWithRelations extends GigRow {
   }>;
 }
 
-export type DateRange = 'ytd' | 'last30' | 'last90' | 'lastYear' | 'custom';
+export type DateRange = 'ytd' | 'thisYear' | 'last30' | 'last90' | 'lastYear' | 'custom';
 
 export interface MonthlyPoint {
   month: string;
@@ -93,6 +93,10 @@ function getDateRangeConfig(range: DateRange, customStart?: Date, customEnd?: Da
     case 'last90':
       startDate = new Date(now);
       startDate.setDate(startDate.getDate() - 90);
+      break;
+    case 'thisYear':
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate.setFullYear(now.getFullYear(), 11, 31);
       break;
     case 'lastYear':
       startDate = new Date(now.getFullYear() - 1, 0, 1);

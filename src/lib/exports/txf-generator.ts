@@ -356,18 +356,9 @@ function formatAmount(amount: number): string {
 /**
  * Download TXF file
  */
-export function downloadTXF(content: string, taxYear: number): void {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute('href', url);
-  link.setAttribute('download', `bozzy_${taxYear}_schedule_c.txf`);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+export async function downloadTXF(content: string, taxYear: number): Promise<void> {
+  const { downloadTextFile } = await import('./webDownloadHelpers');
+  await downloadTextFile(content, `bozzy_${taxYear}_schedule_c.txf`, 'text/plain;charset=utf-8;');
 }
 
 /**

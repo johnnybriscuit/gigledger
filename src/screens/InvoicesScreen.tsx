@@ -15,15 +15,22 @@ import { useEntitlements } from '../hooks/useEntitlements';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
+import { type DateRange } from '../lib/dateRangeUtils';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
+// NOTE: useInvoices does not currently accept date range params at the data layer.
+// The dateRange prop is accepted here for UI consistency (pill renders in header via AppShell).
+// TODO: Wire dateRange to filter invoices client-side once confirmed safe.
 interface InvoicesScreenProps {
   onNavigateToAccount?: () => void;
   onNavigateToSubscription?: () => void;
+  dateRange?: DateRange;
+  customStart?: Date;
+  customEnd?: Date;
 }
 
-export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }: InvoicesScreenProps = {}) {
+export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription, dateRange, customStart, customEnd }: InvoicesScreenProps = {}) {
   // Use aggregated hook to fetch all data in parallel
   const { data: aggregatedData, isLoading: aggregatedLoading } = useInvoicesDataAggregated();
   
@@ -214,24 +221,6 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     <View style={styles.container}>
       {viewMode === 'list' && (
         <>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Invoices</Text>
-            <View style={styles.headerActions}>
-              <TouchableOpacity
-                style={styles.createHeaderButton}
-                onPress={handleCreateNew}
-              >
-                <Text style={styles.createHeaderButtonText}>+ Create Invoice</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.settingsButton}
-                onPress={() => setViewMode('settings')}
-              >
-                <Text style={styles.settingsButtonText}>⚙️ Settings</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          
           {/* Usage Banner - only show for Free plan users */}
           {!entitlements.isPro && entitlements.usage.invoicesCreatedCount !== undefined && (
             <View style={styles.bannerContainer}>
@@ -253,6 +242,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
             loading={invoicesLoading}
             onSelectInvoice={handleSelectInvoice}
             onCreateNew={handleCreateNew}
+            onOpenSettings={() => setViewMode('settings')}
           />
           
           {/* Paywall Modal - shown at list level */}
@@ -458,7 +448,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   createHeaderButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 6,
     backgroundColor: '#2563eb',
@@ -484,7 +474,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   bannerContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingTop: 16,
   },
   actionBar: {
@@ -497,7 +487,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e5e7eb',
   },
   actionButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: '#2563eb',

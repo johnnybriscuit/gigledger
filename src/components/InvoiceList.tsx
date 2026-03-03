@@ -3,20 +3,38 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import { Invoice, InvoiceStatus, getStatusColor, getStatusLabel, formatCurrency } from '../types/invoice';
 import { OnboardingHelperCard } from './OnboardingHelperCard';
 
+// Design tokens
+const T = {
+  bg: '#F5F4F0',
+  surface: '#FFFFFF',
+  surface2: '#EEECEA',
+  border: '#E5E3DE',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#7A7671',
+  textMuted: '#B0ADA8',
+  green: '#1D9B5E',
+  greenLight: '#E8F7F0',
+  red: '#DC2626',
+  redLight: '#FEE2E2',
+  accent: '#2D5BE3',
+  accentLight: '#EEF2FF',
+  mono: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+};
+
 interface InvoiceListProps {
   invoices: Invoice[];
   loading: boolean;
   onSelectInvoice?: (invoice: Invoice) => void;
   onCreateNew?: () => void;
+  onOpenSettings?: () => void;
 }
 
-export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }: InvoiceListProps) {
+export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, onOpenSettings }: InvoiceListProps) {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'due_date'>('date');
-  const [tipDismissed, setTipDismissed] = useState(false);
   const { width } = useWindowDimensions();
-  const isMobile = Platform.OS === 'web' && width < 768;
+  const isMobile = Platform.OS !== 'web' || width < 768;
 
   const isEmpty = invoices.length === 0;
 
@@ -98,31 +116,25 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }:
   }, [invoices]);
 
   const getStatusBadgeStyle = (status: InvoiceStatus) => {
-    const color = getStatusColor(status);
-    return {
-      backgroundColor: `${color === 'gray' ? '#f3f4f6' : 
-        color === 'blue' ? '#dbeafe' :
-        color === 'purple' ? '#ede9fe' :
-        color === 'yellow' ? '#fef3c7' :
-        color === 'green' ? '#d1fae5' :
-        color === 'red' ? '#fee2e2' : '#f3f4f6'}`,
-      borderColor: `${color === 'gray' ? '#9ca3af' :
-        color === 'blue' ? '#2563eb' :
-        color === 'purple' ? '#7c3aed' :
-        color === 'yellow' ? '#f59e0b' :
-        color === 'green' ? '#059669' :
-        color === 'red' ? '#dc2626' : '#9ca3af'}`
-    };
+    switch (status) {
+      case 'draft': return { backgroundColor: T.surface2, borderColor: T.border };
+      case 'sent': case 'viewed': return { backgroundColor: T.accentLight, borderColor: T.accent };
+      case 'overdue': return { backgroundColor: T.redLight, borderColor: T.red };
+      case 'paid': return { backgroundColor: T.greenLight, borderColor: T.green };
+      case 'partially_paid': return { backgroundColor: T.accentLight, borderColor: T.accent };
+      default: return { backgroundColor: T.surface2, borderColor: T.border };
+    }
   };
 
-  const getStatusTextColor = (status: InvoiceStatus) => {
-    const color = getStatusColor(status);
-    return color === 'gray' ? '#4b5563' :
-      color === 'blue' ? '#1e40af' :
-      color === 'purple' ? '#6d28d9' :
-      color === 'yellow' ? '#d97706' :
-      color === 'green' ? '#047857' :
-      color === 'red' ? '#b91c1c' : '#4b5563';
+  const getStatusTextColor = (status: InvoiceStatus): string => {
+    switch (status) {
+      case 'draft': return T.textMuted;
+      case 'sent': case 'viewed': return T.accent;
+      case 'overdue': return T.red;
+      case 'paid': return T.green;
+      case 'partially_paid': return T.accent;
+      default: return T.textMuted;
+    }
   };
 
   if (loading) {
@@ -190,43 +202,65 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }:
     );
   }
 
+  const formatAmount = (amount: number) => {
+    const formatted = formatCurrency(amount);
+    return formatted.replace(/\.00$/, '');
+  };
+
+  const formatDateShort = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   return (
     <View style={styles.container}>
-      {!tipDismissed && (
-        <View style={styles.compactTipBanner}>
-          <Text style={styles.compactTipText}>
-            💡 Add payment details in <Text style={styles.compactTipBold}>Account → Payment Methods</Text>
+      {/* Stats card */}
+      <View style={isMobile ? styles.statsCardMobile : styles.compactMetricsStrip}>
+        <View style={styles.statCol}>
+          <Text style={isMobile ? styles.statLabelMobile : styles.compactMetricLabel}>Outstanding</Text>
+          <Text style={[isMobile ? styles.statValueMobile : styles.compactMetricValue]}>
+            {formatAmount(metrics.totalOutstanding)}
           </Text>
-          <TouchableOpacity onPress={() => setTipDismissed(true)} style={styles.dismissButton}>
-            <Text style={styles.dismissButtonText}>✕</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <View style={styles.compactMetricsStrip}>
-        <View style={styles.compactMetric}>
-          <Text style={styles.compactMetricLabel}>Outstanding</Text>
-          <Text style={styles.compactMetricValue}>{formatCurrency(metrics.totalOutstanding)}</Text>
         </View>
         <View style={styles.metricDivider} />
-        <View style={styles.compactMetric}>
-          <Text style={styles.compactMetricLabel}>Overdue</Text>
-          <Text style={[styles.compactMetricValue, styles.compactMetricDanger]}>{formatCurrency(metrics.overdueAmount)}</Text>
+        <View style={styles.statCol}>
+          <Text style={isMobile ? styles.statLabelMobile : styles.compactMetricLabel}>Overdue</Text>
+          <Text style={[isMobile ? styles.statValueMobile : styles.compactMetricValue, styles.statDanger]}>
+            {formatAmount(metrics.overdueAmount)}
+          </Text>
         </View>
         <View style={styles.metricDivider} />
-        <View style={styles.compactMetric}>
-          <Text style={styles.compactMetricLabel}>Paid This Month</Text>
-          <Text style={[styles.compactMetricValue, styles.compactMetricSuccess]}>{formatCurrency(metrics.totalPaidThisMonth)}</Text>
+        <View style={styles.statCol}>
+          <Text style={isMobile ? styles.statLabelMobile : styles.compactMetricLabel}>Paid This Month</Text>
+          <Text style={[isMobile ? styles.statValueMobile : styles.compactMetricValue, styles.statSuccess]}>
+            {formatAmount(metrics.totalPaidThisMonth)}
+          </Text>
         </View>
       </View>
 
-      <View style={styles.searchSortRow}>
+      {/* Section header row — mobile only */}
+      {isMobile && (
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeaderLabel}>ALL INVOICES</Text>
+          <View style={styles.sectionHeaderActions}>
+            <TouchableOpacity style={styles.btnGhost} onPress={onOpenSettings}>
+              <Text style={styles.btnGhostText}>Edit Template</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnPrimary} onPress={onCreateNew}>
+              <Text style={styles.btnPrimaryText}>+ Create Invoice</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Search + sort row */}
+      <View style={[styles.searchSortRow, isMobile && styles.searchSortRowMobile]}>
         <TextInput
-          style={styles.compactSearchInput}
+          style={isMobile ? styles.searchInputMobile : styles.compactSearchInput}
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search invoices..."
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={T.textMuted}
         />
         <View style={styles.sortDropdown}>
           <TouchableOpacity
@@ -250,58 +284,37 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }:
         </View>
       </View>
 
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false} 
+      {/* Status filter tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
         style={styles.compactFilterContainer}
         contentContainerStyle={styles.compactFilterContent}
       >
-        <TouchableOpacity
-          style={[styles.compactPill, statusFilter === 'all' && styles.compactPillActive]}
-          onPress={() => setStatusFilter('all')}
-        >
-          <Text style={[styles.compactPillText, statusFilter === 'all' && styles.compactPillTextActive]}>
-            All ({statusCounts.all})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.compactPill, statusFilter === 'sent' && styles.compactPillActive]}
-          onPress={() => setStatusFilter('sent')}
-        >
-          <Text style={[styles.compactPillText, statusFilter === 'sent' && styles.compactPillTextActive]}>
-            Sent ({statusCounts.sent})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.compactPill, statusFilter === 'overdue' && styles.compactPillActive]}
-          onPress={() => setStatusFilter('overdue')}
-        >
-          <Text style={[styles.compactPillText, statusFilter === 'overdue' && styles.compactPillTextActive]}>
-            Overdue ({statusCounts.overdue})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.compactPill, statusFilter === 'paid' && styles.compactPillActive]}
-          onPress={() => setStatusFilter('paid')}
-        >
-          <Text style={[styles.compactPillText, statusFilter === 'paid' && styles.compactPillTextActive]}>
-            Paid ({statusCounts.paid})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.compactPill, statusFilter === 'draft' && styles.compactPillActive]}
-          onPress={() => setStatusFilter('draft')}
-        >
-          <Text style={[styles.compactPillText, statusFilter === 'draft' && styles.compactPillTextActive]}>
-            Draft ({statusCounts.draft})
-          </Text>
-        </TouchableOpacity>
+        {([
+          { key: 'all', label: `All (${statusCounts.all})` },
+          { key: 'sent', label: `Sent (${statusCounts.sent})` },
+          { key: 'overdue', label: `Overdue (${statusCounts.overdue})` },
+          { key: 'paid', label: `Paid (${statusCounts.paid})` },
+          { key: 'draft', label: `Draft (${statusCounts.draft})` },
+        ] as const).map(({ key, label }) => (
+          <TouchableOpacity
+            key={key}
+            style={[styles.compactPill, statusFilter === key && styles.compactPillActive]}
+            onPress={() => setStatusFilter(key)}
+          >
+            <Text style={[styles.compactPillText, statusFilter === key && styles.compactPillTextActive]}>
+              {label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
 
+      {/* Invoice list */}
       <View style={styles.listWrapper}>
-        <ScrollView 
+        <ScrollView
           style={styles.listContainer}
-          contentContainerStyle={styles.listContentContainer}
+          contentContainerStyle={isMobile ? styles.listContentContainerMobile : styles.listContentContainer}
         >
           {filteredInvoices.length === 0 ? (
             isEmpty && statusFilter === 'all' && !searchQuery ? (
@@ -321,53 +334,100 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }:
             )
           ) : (
             filteredInvoices.map((invoice) => (
-              <TouchableOpacity
-                key={invoice.id}
-                style={styles.invoiceCard}
-                onPress={() => onSelectInvoice?.(invoice)}
-              >
-                <View style={styles.invoiceHeader}>
-                  <View>
-                    <Text style={styles.invoiceNumber}>{invoice.invoice_number}</Text>
-                    <Text style={styles.clientName}>{invoice.client_name}</Text>
-                    {invoice.client_company && (
-                      <Text style={styles.clientCompany}>{invoice.client_company}</Text>
+              isMobile ? (
+                <TouchableOpacity
+                  key={invoice.id}
+                  style={styles.invoiceCardMobile}
+                  onPress={() => onSelectInvoice?.(invoice)}
+                  activeOpacity={0.75}
+                >
+                  {/* Top section */}
+                  <View style={styles.cardTopRow}>
+                    <View style={styles.cardLeft}>
+                      <Text style={styles.cardInvoiceNumber}>{invoice.invoice_number}</Text>
+                      <Text style={styles.cardClientName} numberOfLines={1}>{invoice.client_name}</Text>
+                      {invoice.client_company && (
+                        <Text style={styles.cardBandName}>{invoice.client_company}</Text>
+                      )}
+                    </View>
+                    <View style={styles.cardRight}>
+                      <Text style={styles.cardAmount}>{formatAmount(invoice.total_amount)}</Text>
+                      <View style={[styles.cardStatusBadge, getStatusBadgeStyle(invoice.status)]}>
+                        <Text style={[styles.cardStatusText, { color: getStatusTextColor(invoice.status) }]}>
+                          {getStatusLabel(invoice.status).toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Divider */}
+                  <View style={styles.cardDivider} />
+
+                  {/* Date rows */}
+                  <View style={styles.cardDates}>
+                    <View style={styles.dateRow}>
+                      <Text style={styles.dateLabel}>Invoice Date</Text>
+                      <Text style={styles.dateValue}>{formatDateShort(invoice.invoice_date)}</Text>
+                    </View>
+                    <View style={styles.dateRow}>
+                      <Text style={styles.dateLabel}>Due Date</Text>
+                      <Text style={styles.dateValue}>{formatDateShort(invoice.due_date)}</Text>
+                    </View>
+                    {invoice.balance_due !== undefined && invoice.balance_due > 0 && invoice.status !== 'paid' && (
+                      <View style={styles.dateRow}>
+                        <Text style={styles.dateLabel}>Balance Due</Text>
+                        <Text style={[styles.dateValue, styles.balanceDueValue]}>
+                          {formatAmount(invoice.balance_due)}
+                        </Text>
+                      </View>
                     )}
                   </View>
-                  <View style={styles.invoiceHeaderRight}>
-                    <Text style={styles.invoiceAmount}>{formatCurrency(invoice.total_amount)}</Text>
-                    <View style={[styles.statusBadge, getStatusBadgeStyle(invoice.status)]}>
-                      <Text style={[styles.statusText, { color: getStatusTextColor(invoice.status) }]}>
-                        {getStatusLabel(invoice.status)}
-                      </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  key={invoice.id}
+                  style={styles.invoiceCard}
+                  onPress={() => onSelectInvoice?.(invoice)}
+                >
+                  <View style={styles.invoiceHeader}>
+                    <View>
+                      <Text style={styles.invoiceNumber}>{invoice.invoice_number}</Text>
+                      <Text style={styles.clientName}>{invoice.client_name}</Text>
+                      {invoice.client_company && (
+                        <Text style={styles.clientCompany}>{invoice.client_company}</Text>
+                      )}
+                    </View>
+                    <View style={styles.invoiceHeaderRight}>
+                      <Text style={styles.invoiceAmount}>{formatCurrency(invoice.total_amount)}</Text>
+                      <View style={[styles.statusBadge, getStatusBadgeStyle(invoice.status)]}>
+                        <Text style={[styles.statusText, { color: getStatusTextColor(invoice.status) }]}>
+                          {getStatusLabel(invoice.status)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-
-                <View style={styles.invoiceDetails}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Invoice Date:</Text>
-                    <Text style={styles.detailValue}>{new Date(invoice.invoice_date).toLocaleDateString()}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Due Date:</Text>
-                    <Text style={[
-                      styles.detailValue,
-                      invoice.status === 'overdue' && styles.detailValueOverdue
-                    ]}>
-                      {new Date(invoice.due_date).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  {invoice.balance_due !== undefined && invoice.balance_due > 0 && invoice.status !== 'paid' && (
+                  <View style={styles.invoiceDetails}>
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Balance Due:</Text>
-                      <Text style={[styles.detailValue, styles.balanceDue]}>
-                        {formatCurrency(invoice.balance_due)}
+                      <Text style={styles.detailLabel}>Invoice Date:</Text>
+                      <Text style={styles.detailValue}>{new Date(invoice.invoice_date).toLocaleDateString()}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Due Date:</Text>
+                      <Text style={[styles.detailValue, invoice.status === 'overdue' && styles.detailValueOverdue]}>
+                        {new Date(invoice.due_date).toLocaleDateString()}
                       </Text>
                     </View>
-                  )}
-                </View>
-              </TouchableOpacity>
+                    {invoice.balance_due !== undefined && invoice.balance_due > 0 && invoice.status !== 'paid' && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Balance Due:</Text>
+                        <Text style={[styles.detailValue, styles.balanceDue]}>
+                          {formatCurrency(invoice.balance_due)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )
             ))
           )}
         </ScrollView>
@@ -379,241 +439,327 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }:
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: T.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  compactTipBanner: {
+
+  // ── Stats card ──────────────────────────────────────────
+  statsCardMobile: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#eff6ff',
-    padding: 10,
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 6,
-  },
-  compactTipText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#1e40af',
-    lineHeight: 16,
-  },
-  compactTipBold: {
-    fontWeight: '600',
-  },
-  dismissButton: {
-    padding: 4,
-    marginLeft: 8,
-  },
-  dismissButtonText: {
-    fontSize: 16,
-    color: '#6b7280',
-    fontWeight: '600',
+    backgroundColor: T.surface,
+    borderWidth: 1,
+    borderColor: T.border,
+    borderRadius: 20,
+    marginHorizontal: 10,
+    marginBottom: 16,
+    padding: 18,
   },
   compactMetricsStrip: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: T.border,
     borderRadius: 8,
-    marginHorizontal: 16,
+    marginHorizontal: 10,
     marginBottom: 12,
     padding: 12,
   },
+  statCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statLabelMobile: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: T.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  statValueMobile: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: T.textPrimary,
+  },
+  statDanger: { color: T.red },
+  statSuccess: { color: T.green },
   compactMetric: {
     flex: 1,
     alignItems: 'center',
   },
   compactMetricLabel: {
     fontSize: 11,
-    color: '#6b7280',
+    color: T.textMuted,
     marginBottom: 4,
     textAlign: 'center',
   },
   compactMetricValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
-  },
-  compactMetricDanger: {
-    color: '#dc2626',
-  },
-  compactMetricSuccess: {
-    color: '#059669',
+    color: T.textPrimary,
   },
   metricDivider: {
     width: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: T.border,
     marginHorizontal: 8,
   },
+
+  // ── Section header row ────────────────────────────────
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingBottom: 14,
+  },
+  sectionHeaderLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: T.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  sectionHeaderActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  btnGhost: {
+    backgroundColor: T.surface,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  btnGhostText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: T.textSecondary,
+  },
+  btnPrimary: {
+    backgroundColor: T.accent,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  btnPrimaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: T.surface,
+  },
+
+  // ── Search + sort ──────────────────────────────────────
   searchSortRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    paddingHorizontal: 10,
+    marginBottom: 10,
     gap: 8,
+  },
+  searchSortRowMobile: {
+    marginTop: 14,
   },
   compactSearchInput: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: T.surface,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    borderRadius: 12,
+    padding: 9,
     fontSize: 14,
+    color: T.textPrimary,
+  },
+  searchInputMobile: {
+    flex: 1,
+    backgroundColor: T.surface,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    fontSize: 14,
+    color: T.textPrimary,
   },
   sortDropdown: {
     flexDirection: 'row',
     gap: 4,
   },
   sortOptionButton: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
   sortOptionActive: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#2563eb',
+    backgroundColor: T.accentLight,
+    borderColor: T.accent,
   },
   sortOptionText: {
-    fontSize: 12,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  sortOptionTextActive: {
-    color: '#2563eb',
+    fontSize: 13,
+    color: T.textSecondary,
     fontWeight: '600',
   },
+  sortOptionTextActive: {
+    color: T.accent,
+    fontWeight: '600',
+  },
+
+  // ── Filter pills ────────────────────────────────────────
   compactFilterContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     marginBottom: 12,
-    maxHeight: 40,
+    maxHeight: 44,
   },
   compactFilterContent: {
     paddingRight: 16,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   compactPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
-    marginRight: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
   compactPillActive: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+    backgroundColor: T.textPrimary,
+    borderColor: T.textPrimary,
   },
   compactPillText: {
     fontSize: 13,
-    color: '#374151',
+    fontWeight: '600',
+    color: T.textSecondary,
   },
   compactPillTextActive: {
-    color: '#fff',
+    color: T.surface,
     fontWeight: '600',
   },
+
+  // ── List ────────────────────────────────────────────────
   listWrapper: {
     flex: 1,
     minHeight: 0,
   },
   listContainer: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
   },
   listContentContainer: {
     paddingBottom: 24,
   },
-  emptyStateHero: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 80,
-    paddingBottom: 40,
+  listContentContainerMobile: {
+    paddingBottom: 32,
+    gap: 10,
   },
-  emptyStateHeroMobile: {
-    paddingHorizontal: 16,
-    paddingTop: 60,
+
+  // ── Invoice card — mobile ────────────────────────────────
+  invoiceCardMobile: {
+    backgroundColor: T.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+    overflow: 'hidden',
   },
-  emptyStateTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
-    marginBottom: 16,
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 16,
+    gap: 12,
   },
-  emptyStateTitleMobile: {
-    fontSize: 24,
+  cardLeft: {
+    flex: 1,
+    minWidth: 0,
   },
-  emptyStateSubtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 32,
-    maxWidth: 500,
-    lineHeight: 24,
+  cardInvoiceNumber: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: T.textMuted,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    marginBottom: 4,
   },
-  emptyStateSubtitleMobile: {
+  cardClientName: {
     fontSize: 15,
-    marginBottom: 24,
+    fontWeight: '700',
+    color: T.textPrimary,
   },
-  emptyStateCTA: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+  cardBandName: {
+    fontSize: 13,
+    color: T.textSecondary,
+    marginTop: 2,
   },
-  emptyStateCTAMobile: {
-    width: '100%',
-    maxWidth: 400,
+  cardRight: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
   },
-  emptyStateCTAText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
+  cardAmount: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: T.textPrimary,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+  cardStatusBadge: {
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 0,
   },
-  emptyStateText: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 20,
+  cardStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
-  createButton: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 24,
+  cardDivider: {
+    height: 1,
+    backgroundColor: T.border,
+    marginHorizontal: 10,
+  },
+  cardDates: {
+    paddingHorizontal: 10,
     paddingVertical: 12,
-    borderRadius: 8,
   },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  dateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
+  dateLabel: {
+    fontSize: 13,
+    color: T.textSecondary,
+    lineHeight: 22,
+  },
+  dateValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: T.textPrimary,
+    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    lineHeight: 22,
+  },
+  balanceDueValue: {
+    color: T.accent,
+    fontWeight: '700',
+  },
+
+  // ── Invoice card — desktop ───────────────────────────────
   invoiceCard: {
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: T.border,
   },
   invoiceHeader: {
     flexDirection: 'row',
@@ -623,17 +769,17 @@ const styles = StyleSheet.create({
   invoiceNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: T.textPrimary,
     marginBottom: 4,
   },
   clientName: {
     fontSize: 15,
-    color: '#374151',
+    color: T.textPrimary,
     marginBottom: 2,
   },
   clientCompany: {
     fontSize: 13,
-    color: '#6b7280',
+    color: T.textSecondary,
   },
   invoiceHeaderRight: {
     alignItems: 'flex-end',
@@ -641,7 +787,7 @@ const styles = StyleSheet.create({
   invoiceAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: T.textPrimary,
     marginBottom: 6,
   },
   statusBadge: {
@@ -656,7 +802,7 @@ const styles = StyleSheet.create({
   },
   invoiceDetails: {
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: T.border,
     paddingTop: 12,
   },
   detailRow: {
@@ -666,43 +812,116 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    color: '#6b7280',
+    color: T.textSecondary,
   },
   detailValue: {
     fontSize: 13,
-    color: '#374151',
+    color: T.textPrimary,
     fontWeight: '500',
   },
   detailValueOverdue: {
-    color: '#dc2626',
+    color: T.red,
     fontWeight: '600',
   },
   balanceDue: {
-    color: '#2563eb',
+    color: T.accent,
+    fontWeight: '600',
+  },
+
+  // ── Empty states ──────────────────────────────────────────
+  emptyStateHero: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingTop: 80,
+    paddingBottom: 40,
+  },
+  emptyStateHeroMobile: {
+    paddingHorizontal: 10,
+    paddingTop: 60,
+  },
+  emptyStateTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: T.textPrimary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  emptyStateTitleMobile: {
+    fontSize: 24,
+  },
+  emptyStateSubtitle: {
+    fontSize: 16,
+    color: T.textSecondary,
+    textAlign: 'center',
+    marginBottom: 32,
+    maxWidth: 500,
+    lineHeight: 24,
+  },
+  emptyStateSubtitleMobile: {
+    fontSize: 15,
+    marginBottom: 24,
+  },
+  emptyStateCTA: {
+    backgroundColor: T.accent,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 8,
+  },
+  emptyStateCTAMobile: {
+    width: '100%',
+    maxWidth: 400,
+  },
+  emptyStateCTAText: {
+    color: T.surface,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: T.textSecondary,
+    marginBottom: 20,
+  },
+  createButton: {
+    backgroundColor: T.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  createButtonText: {
+    color: T.surface,
+    fontSize: 16,
     fontWeight: '600',
   },
   reminderBox: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: T.accentLight,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: T.accent,
     borderRadius: 12,
     padding: 16,
     marginTop: 24,
   },
   reminderText: {
     fontSize: 14,
-    color: '#1e40af',
+    color: T.accent,
     lineHeight: 20,
   },
   reminderBold: {
     fontWeight: '600',
   },
-  // Skeleton loading styles
+
+  // ── Skeleton ───────────────────────────────────────────────
   skeletonCard: {
     opacity: 0.6,
   },
   skeletonText: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: T.border,
     borderRadius: 4,
   },
   metricsRow: {
@@ -712,11 +931,11 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: T.border,
   },
   invoiceCardHeader: {
     flexDirection: 'row',
@@ -731,6 +950,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: T.border,
   },
 });
