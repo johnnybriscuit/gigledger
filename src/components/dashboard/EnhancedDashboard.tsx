@@ -212,7 +212,7 @@ export function EnhancedDashboard({
                 </View>
               </View>
               <View style={styles.fullWidth}>
-                <MapCard dateRange={dateRange} customStart={customStart} customEnd={customEnd} />
+                <MapCard dateRange={dateRange} customStart={customStart} customEnd={customEnd} payerId={payerId} />
               </View>
             </View>
           </>

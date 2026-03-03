@@ -9,20 +9,23 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { getThemeColors } from '../../../lib/charts/colors';
 import { Kard } from '../Kard';
 import { useMapStats } from '../../../hooks/useMapStats';
+import { useStateGigs } from '../../../hooks/useStateGigs';
 import type { DateRange } from '../../../hooks/useDashboardData';
 import { USMap } from './USMap.web';
 import { RegionTooltip } from './RegionTooltip';
 import { RegionDrawer } from './RegionDrawer';
 import { SidePanel } from '../../SidePanel';
 import { MapLegend } from './MapLegend';
+import { groupGigsByCity } from '../../../lib/maps/geocoding';
 
 interface MapCardProps {
   dateRange?: DateRange;
   customStart?: Date;
   customEnd?: Date;
+  payerId?: string | null;
 }
 
-export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardProps) {
+export function MapCard({ dateRange = 'ytd', customStart, customEnd, payerId }: MapCardProps) {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
   const isDark = theme === 'dark';
@@ -39,7 +42,23 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
     dateRange,
     customStart,
     customEnd,
+    payerId,
   });
+
+  // Fetch gigs for selected state (for city-level pins)
+  const { data: stateGigs } = useStateGigs({
+    stateCode: selectedRegion,
+    dateRange,
+    customStart,
+    customEnd,
+    payerId,
+  });
+
+  // Group gigs by city for pin rendering
+  const cityGroups = useMemo(() => {
+    if (!selectedRegion || !stateGigs || stateGigs.length === 0) return [];
+    return groupGigsByCity(stateGigs, selectedRegion);
+  }, [selectedRegion, stateGigs]);
 
   // Get non-zero gig counts for legend
   const nonZeroCounts = useMemo(() => {
@@ -135,6 +154,8 @@ export function MapCard({ dateRange = 'ytd', customStart, customEnd }: MapCardPr
               onRegionHover={handleRegionHover}
               onRegionClick={handleRegionClick}
               hoveredRegion={hoveredRegion}
+              cityGroups={cityGroups}
+              selectedState={selectedRegion}
             />
           ) : (
             <View style={styles.mobileNotice}>

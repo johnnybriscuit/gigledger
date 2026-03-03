@@ -4,25 +4,30 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { ComposableMap, Geographies, Geography } from 'react-simple-maps';
+import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 import { feature } from 'topojson-client';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getRegionColorScale, getStrokeColor, getStrokeWidth } from '../../../lib/maps/colorScale';
 import type { RegionStatsMap } from '../../../hooks/useMapStats';
+import type { CityGigGroup } from '../../../lib/maps/geocoding';
 
 // Import TopoJSON
 const usStatesTopology = require('../../../../assets/maps/us-states-10m.json');
 
 interface USMapProps {
   stats: RegionStatsMap;
-  onRegionHover?: (code: string | null) => void;
+  onRegionHover?: (code: string | null, event?: React.MouseEvent) => void;
   onRegionClick?: (code: string) => void;
   hoveredRegion?: string | null;
+  cityGroups?: CityGigGroup[];
+  selectedState?: string | null;
 }
 
-export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion }: USMapProps) {
+export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion, cityGroups, selectedState }: USMapProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const [hoveredCity, setHoveredCity] = useState<string | null>(null);
+  const [cityTooltipPos, setCityTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
   // Convert TopoJSON to GeoJSON features
   const geographies = useMemo(() => {
@@ -87,8 +92,8 @@ export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion }: US
                     outline: 'none',
                   },
                 }}
-                onMouseEnter={() => onRegionHover?.(stateCode)}
-                onMouseLeave={() => onRegionHover?.(null)}
+                onMouseEnter={(e: any) => onRegionHover?.(stateCode, e)}
+                onMouseLeave={(e: any) => onRegionHover?.(null, e)}
                 onClick={() => hasGigs && onRegionClick?.(stateCode)}
                 tabIndex={hasGigs ? 0 : -1}
                 role="button"
@@ -98,6 +103,100 @@ export function USMap({ stats, onRegionHover, onRegionClick, hoveredRegion }: US
           })
         }
       </Geographies>
+
+      {/* City-level pins when state is selected */}
+      {selectedState && cityGroups && cityGroups.length > 0 && (
+        cityGroups.map((cityGroup) => {
+          const isHovered = hoveredCity === cityGroup.city;
+          return (
+            <Marker
+              key={cityGroup.city}
+              coordinates={[cityGroup.coordinates.lon, cityGroup.coordinates.lat]}
+              onMouseEnter={(e: any) => {
+                setHoveredCity(cityGroup.city);
+                if (e && e.clientX && e.clientY) {
+                  setCityTooltipPos({ x: e.clientX, y: e.clientY });
+                }
+              }}
+              onMouseLeave={() => {
+                setHoveredCity(null);
+                setCityTooltipPos(null);
+              }}
+            >
+              <circle
+                r={isHovered ? 6 : 4}
+                fill="#3b82f6"
+                stroke="#fff"
+                strokeWidth={isHovered ? 2 : 1}
+                style={{
+                  transition: 'all 0.2s ease',
+                }}
+              />
+            </Marker>
+          );
+        })
+      )}
+
+      {/* City tooltip */}
+      {hoveredCity && cityTooltipPos && (() => {
+        const cityGroup = cityGroups?.find(c => c.city === hoveredCity);
+        if (!cityGroup) return null;
+        
+        const formatCurrency = (amount: number) => {
+          return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }).format(amount);
+        };
+
+        const formatDate = (dateStr: string) => {
+          return new Date(dateStr).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          });
+        };
+
+        return (
+          <foreignObject
+            x={0}
+            y={0}
+            width="100%"
+            height="100%"
+            style={{ pointerEvents: 'none', overflow: 'visible' }}
+          >
+            <div
+              style={{
+                position: 'fixed',
+                left: cityTooltipPos.x + 10,
+                top: cityTooltipPos.y + 10,
+                backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                borderRadius: '8px',
+                padding: '8px 12px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                zIndex: 1000,
+                maxWidth: '200px',
+                fontSize: '13px',
+                color: isDark ? '#f9fafb' : '#111827',
+              }}
+            >
+              <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                {cityGroup.city}
+              </div>
+              <div style={{ fontSize: '12px', color: isDark ? '#9ca3af' : '#6b7280' }}>
+                {cityGroup.gigs.length} {cityGroup.gigs.length === 1 ? 'gig' : 'gigs'} · {formatCurrency(cityGroup.totalAmount)}
+              </div>
+              {cityGroup.gigs.length > 0 && cityGroup.gigs[0].payer && (
+                <div style={{ fontSize: '11px', color: isDark ? '#9ca3af' : '#6b7280', marginTop: '4px' }}>
+                  {formatDate(cityGroup.gigs[0].date)} · {cityGroup.gigs[0].payer}
+                </div>
+              )}
+            </div>
+          </foreignObject>
+        );
+      })()}
     </ComposableMap>
   );
 }

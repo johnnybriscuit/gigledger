@@ -48,29 +48,10 @@ export function RegionTooltip({ region, position }: RegionTooltipProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.cardBg, borderColor: colors.border }, tooltipStyle]}>
-      {/* Region name */}
+      {/* State name — Gig count · Total earnings */}
       <Text style={[styles.title, { color: colors.text }]}>
-        {region.label}
+        {region.label} — {region.gigsCount} {region.gigsCount === 1 ? 'gig' : 'gigs'} · {formatCurrency(region.totalIncome)}
       </Text>
-
-      {/* Gig count and total */}
-      <Text style={[styles.stats, { color: colors.text }]}>
-        {region.gigsCount} {region.gigsCount === 1 ? 'gig' : 'gigs'} • {formatCurrency(region.totalIncome)} total
-      </Text>
-
-      {/* Top payers */}
-      {region.topPayers.length > 0 && (
-        <Text style={[styles.payers, { color: colors.textMuted }]}>
-          Top payers: {region.topPayers.join(', ')}
-        </Text>
-      )}
-
-      {/* Last gig date */}
-      {region.lastGigDate && (
-        <Text style={[styles.date, { color: colors.textMuted }]}>
-          Last gig: {formatDate(region.lastGigDate)}
-        </Text>
-      )}
     </View>
   );
 }

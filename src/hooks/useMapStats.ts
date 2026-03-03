@@ -26,11 +26,12 @@ interface MapStatsParams {
   dateRange?: DateRange;
   customStart?: Date;
   customEnd?: Date;
+  payerId?: string | null;
 }
 
-export function useMapStats({ scope, dateRange = 'ytd', customStart, customEnd }: MapStatsParams) {
+export function useMapStats({ scope, dateRange = 'ytd', customStart, customEnd, payerId }: MapStatsParams) {
   return useQuery({
-    queryKey: ['mapStats', scope, dateRange, customStart, customEnd],
+    queryKey: ['mapStats', scope, dateRange, customStart, customEnd, payerId],
     queryFn: async () => {
       // Calculate date range
       const now = new Date();
@@ -83,6 +84,11 @@ export function useMapStats({ scope, dateRange = 'ytd', customStart, customEnd }
         query = query.eq('country_code', 'US').not('state_code', 'is', null);
       } else {
         query = query.not('country_code', 'is', null);
+      }
+
+      // Filter by payer if specified
+      if (payerId) {
+        query = query.eq('payer_id', payerId);
       }
 
       const { data: gigs, error } = await query;
