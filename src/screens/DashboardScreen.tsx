@@ -212,26 +212,17 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         return (
           <GigsScreen
             onNavigateToSubscription={() => setActiveTab('subscription')}
-            dateRange={range}
-            customStart={customStart}
-            customEnd={customEnd}
           />
         );
       case 'expenses':
         return (
           <ExpensesScreen
             onNavigateToSubscription={() => setActiveTab('subscription')}
-            dateRange={range}
-            customStart={customStart}
-            customEnd={customEnd}
           />
         );
       case 'mileage':
         return (
           <MileageScreen
-            dateRange={range}
-            customStart={customStart}
-            customEnd={customEnd}
             onNavigateToAccount={() => setActiveTab('account')}
           />
         );
@@ -240,9 +231,6 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
           <InvoicesScreen
             onNavigateToAccount={() => setActiveTab('account')}
             onNavigateToSubscription={() => setActiveTab('subscription')}
-            dateRange={range}
-            customStart={customStart}
-            customEnd={customEnd}
           />
         );
       case 'exports':

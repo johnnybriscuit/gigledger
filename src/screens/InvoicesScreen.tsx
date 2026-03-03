@@ -16,18 +16,17 @@ import { useCurrentUser } from '../hooks/useCurrentUser';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
 import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
+import { useDateRange } from '../hooks/useDateRange';
+import { DateRangeFilter } from '../components/DateRangeFilter';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
 interface InvoicesScreenProps {
   onNavigateToAccount?: () => void;
   onNavigateToSubscription?: () => void;
-  dateRange?: DateRange;
-  customStart?: Date;
-  customEnd?: Date;
 }
 
-export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription, dateRange, customStart, customEnd }: InvoicesScreenProps = {}) {
+export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }: InvoicesScreenProps = {}) {
   // Use aggregated hook to fetch all data in parallel
   const { data: aggregatedData, isLoading: aggregatedLoading } = useInvoicesDataAggregated();
   
@@ -35,6 +34,9 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription, 
   const settings = aggregatedData?.settings;
   const settingsLoading = aggregatedLoading;
   const paymentMethods = aggregatedData?.paymentMethods || [];
+  
+  // Date range state - managed independently per page
+  const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
   
   // Still need useInvoices for mutations (updateInvoiceStatus, deleteInvoice, deletePayment)
   const { invoices: allInvoices, loading: invoicesLoading, updateInvoiceStatus, deleteInvoice, deletePayment } = useInvoices();
@@ -246,6 +248,16 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription, 
               />
             </View>
           )}
+          
+          <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+            <DateRangeFilter
+              selected={dateRange}
+              onSelect={setRange}
+              customStart={customStart}
+              customEnd={customEnd}
+              onCustomRangeChange={setCustomRange}
+            />
+          </View>
           
           <InvoiceList
             invoices={invoices}

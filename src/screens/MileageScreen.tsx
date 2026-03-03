@@ -14,17 +14,19 @@ import { AddMileageModal } from '../components/AddMileageModal';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 import { toUtcDateString } from '../lib/date';
 import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
+import { useDateRange } from '../hooks/useDateRange';
+import { DateRangeFilter } from '../components/DateRangeFilter';
 
 interface MileageScreenProps {
-  dateRange?: DateRange;
-  customStart?: Date;
-  customEnd?: Date;
   onNavigateToAccount?: () => void;
 }
 
-export function MileageScreen({ dateRange, customStart, customEnd, onNavigateToAccount }: MileageScreenProps = {}) {
+export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingMileage, setEditingMileage] = useState<any>(null);
+  
+  // Date range state - managed independently per page
+  const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
   
   const { data: allMileage, isLoading, error } = useMileage();
 
@@ -175,9 +177,18 @@ export function MileageScreen({ dateRange, customStart, customEnd, onNavigateToA
       {/* Section header */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionLabel}>ALL TRIPS</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-          <Text style={styles.addBtnText}>+ Add Trip</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <DateRangeFilter
+            selected={dateRange}
+            onSelect={setRange}
+            customStart={customStart}
+            customEnd={customEnd}
+            onCustomRangeChange={setCustomRange}
+          />
+          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+            <Text style={styles.addBtnText}>+ Add Trip</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Content */}

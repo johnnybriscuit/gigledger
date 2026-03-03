@@ -30,6 +30,8 @@ import { getGigDisplayName } from '../lib/gigDisplayName';
 import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
 import { generateICSFile, downloadICSFile, generateICSFilename } from '../utils/calendar';
 import { addGigToCalendar } from '../utils/nativeCalendar';
+import { useDateRange } from '../hooks/useDateRange';
+import { DateRangeFilter } from '../components/DateRangeFilter';
 
 // Design tokens
 const T = {
@@ -267,12 +269,9 @@ const cardS = StyleSheet.create({
 
 interface GigsScreenProps {
   onNavigateToSubscription?: () => void;
-  dateRange?: DateRange;
-  customStart?: Date;
-  customEnd?: Date;
 }
 
-export function GigsScreen({ onNavigateToSubscription, dateRange, customStart, customEnd }: GigsScreenProps = {}) {
+export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
@@ -289,6 +288,9 @@ export function GigsScreen({ onNavigateToSubscription, dateRange, customStart, c
   // Selection mode state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedGigIds, setSelectedGigIds] = useState<string[]>([]);
+  
+  // Date range state - managed independently per page
+  const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
   
   const { data: allGigs, isLoading, error } = useGigs();
 
@@ -603,6 +605,13 @@ export function GigsScreen({ onNavigateToSubscription, dateRange, customStart, c
         <View style={styles.sectionHeader}>
           <NativeText style={styles.sectionTitle}>ALL GIGS</NativeText>
           <View style={styles.headerActions}>
+            <DateRangeFilter
+              selected={dateRange}
+              onSelect={setRange}
+              customStart={customStart}
+              customEnd={customEnd}
+              onCustomRangeChange={setCustomRange}
+            />
             <TouchableOpacity style={styles.btnGhost} onPress={() => setImportModalVisible(true)}>
               <NativeText style={styles.btnGhostText}>📥 Import</NativeText>
             </TouchableOpacity>

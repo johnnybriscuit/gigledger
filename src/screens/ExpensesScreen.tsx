@@ -27,15 +27,14 @@ import { colors } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 import { DeductionInfoCard } from '../components/DeductionInfoCard';
 import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
+import { useDateRange } from '../hooks/useDateRange';
+import { DateRangeFilter } from '../components/DateRangeFilter';
 
 interface ExpensesScreenProps {
   onNavigateToSubscription?: () => void;
-  dateRange?: DateRange;
-  customStart?: Date;
-  customEnd?: Date;
 }
 
-export function ExpensesScreen({ onNavigateToSubscription, dateRange, customStart, customEnd }: ExpensesScreenProps = {}) {
+export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps = {}) {
   
   const handleNavigateToSubscription = () => {
     if (onNavigateToSubscription) {
@@ -57,6 +56,9 @@ export function ExpensesScreen({ onNavigateToSubscription, dateRange, customStar
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [duplicatingExpense, setDuplicatingExpense] = useState<any>(null);
   const [editingRecurring, setEditingRecurring] = useState<RecurringExpense | undefined>(undefined);
+  
+  // Date range state - managed independently per page
+  const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
   
   const { data: allExpenses, isLoading, error } = useExpenses();
 
@@ -200,21 +202,30 @@ export function ExpensesScreen({ onNavigateToSubscription, dateRange, customStar
       {/* ── Section Header ── */}
       <View style={styles.sectionHeader}>
         <RNText style={styles.sectionTitle}>ALL EXPENSES</RNText>
-        {hasReachedExpenseLimit ? (
-          <TouchableOpacity style={styles.addBtn} onPress={handleNavigateToSubscription}>
-            <RNText style={styles.addBtnText}>⭐ Upgrade</RNText>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => {
-              if (hasReachedExpenseLimit) { setShowPaywallModal(true); return; }
-              setModalVisible(true);
-            }}
-          >
-            <RNText style={styles.addBtnText}>+ Add Expense</RNText>
-          </TouchableOpacity>
-        )}
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <DateRangeFilter
+            selected={dateRange}
+            onSelect={setRange}
+            customStart={customStart}
+            customEnd={customEnd}
+            onCustomRangeChange={setCustomRange}
+          />
+          {hasReachedExpenseLimit ? (
+            <TouchableOpacity style={styles.addBtn} onPress={handleNavigateToSubscription}>
+              <RNText style={styles.addBtnText}>⭐ Upgrade</RNText>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => {
+                if (hasReachedExpenseLimit) { setShowPaywallModal(true); return; }
+                setModalVisible(true);
+              }}
+            >
+              <RNText style={styles.addBtnText}>+ Add Expense</RNText>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* ── Filter Row ── */}
