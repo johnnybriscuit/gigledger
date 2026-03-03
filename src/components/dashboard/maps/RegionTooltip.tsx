@@ -18,7 +18,7 @@ export function RegionTooltip({ region, position }: RegionTooltipProps) {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
 
-  if (!region) return null;
+  if (!region || !position) return null;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -29,26 +29,37 @@ export function RegionTooltip({ region, position }: RegionTooltipProps) {
     }).format(amount);
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
+  // On web, use a native div for proper fixed positioning
+  if (Platform.OS === 'web') {
+    const tooltipContent = `${region.label} — ${region.gigsCount} ${region.gigsCount === 1 ? 'gig' : 'gigs'} · ${formatCurrency(region.totalIncome)}`;
+    
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          left: position.x + 10,
+          top: position.y + 10,
+          zIndex: 1000,
+          backgroundColor: colors.cardBg,
+          border: `1px solid ${colors.border}`,
+          borderRadius: '8px',
+          padding: '12px',
+          maxWidth: '250px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          pointerEvents: 'none',
+          fontSize: '14px',
+          fontWeight: '600',
+          color: colors.text,
+        }}
+      >
+        {tooltipContent}
+      </div>
+    );
+  }
 
-  const tooltipStyle: any = Platform.OS === 'web' && position
-    ? {
-        position: 'fixed',
-        left: position.x + 10,
-        top: position.y + 10,
-        zIndex: 1000,
-      }
-    : {};
-
+  // Fallback for native (though this component is web-only)
   return (
-    <View style={[styles.container, { backgroundColor: colors.cardBg, borderColor: colors.border }, tooltipStyle]}>
-      {/* State name — Gig count · Total earnings */}
+    <View style={[styles.container, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
       <Text style={[styles.title, { color: colors.text }]}>
         {region.label} — {region.gigsCount} {region.gigsCount === 1 ? 'gig' : 'gigs'} · {formatCurrency(region.totalIncome)}
       </Text>
