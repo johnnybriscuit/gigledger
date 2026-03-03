@@ -15,13 +15,10 @@ import { useEntitlements } from '../hooks/useEntitlements';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
-import { type DateRange } from '../lib/dateRangeUtils';
+import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
-// NOTE: useInvoices does not currently accept date range params at the data layer.
-// The dateRange prop is accepted here for UI consistency (pill renders in header via AppShell).
-// TODO: Wire dateRange to filter invoices client-side once confirmed safe.
 interface InvoicesScreenProps {
   onNavigateToAccount?: () => void;
   onNavigateToSubscription?: () => void;
@@ -40,7 +37,20 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription, 
   const paymentMethods = aggregatedData?.paymentMethods || [];
   
   // Still need useInvoices for mutations (updateInvoiceStatus, deleteInvoice, deletePayment)
-  const { invoices, loading: invoicesLoading, updateInvoiceStatus, deleteInvoice, deletePayment } = useInvoices();
+  const { invoices: allInvoices, loading: invoicesLoading, updateInvoiceStatus, deleteInvoice, deletePayment } = useInvoices();
+
+  // Client-side date filtering — useInvoices fetches all, we filter here
+  const invoices = dateRange
+    ? (() => {
+        const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
+        // Filter invoices by invoice_date field
+        return allInvoices.filter(invoice => {
+          if (!invoice.invoice_date) return false;
+          const invoiceDate = new Date(invoice.invoice_date);
+          return invoiceDate >= startDate && invoiceDate <= endDate;
+        });
+      })()
+    : allInvoices;
   
   // Use entitlements hook for complex entitlements logic (will use cached subscription data)
   const entitlements = useEntitlements();
