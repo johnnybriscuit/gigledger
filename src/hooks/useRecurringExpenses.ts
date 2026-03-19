@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { mapUiToDbCategory } from '../lib/categoryMapping';
 
 // Client-side calculation of next due date
 function calculateNextDueDate(
@@ -260,18 +261,20 @@ export function useQuickAddExpense() {
       // Create expense from template
       const expenseDate = date || new Date().toISOString().split('T')[0];
 
+      const mappedCategory = mapUiToDbCategory(template.category);
+      
       const { data, error } = await supabase
         .from('expenses')
         .insert({
           user_id: user.id,
           date: expenseDate,
-          category: template.category,
+          category: mappedCategory,
           description: template.name,
           amount: template.amount,
           vendor: template.vendor,
           notes: template.notes,
           recurring_expense_id: recurringExpenseId,
-          meals_percent_allowed: template.category === 'Meals & Entertainment' ? 0.5 : null,
+          meals_percent_allowed: mappedCategory === 'Meals & Entertainment' ? 0.5 : null,
         })
         .select()
         .single();
