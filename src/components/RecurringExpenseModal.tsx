@@ -15,6 +15,7 @@ import {
   useUpdateRecurringExpense,
   type RecurringExpense,
 } from '../hooks/useRecurringExpenses';
+import { UI_EXPENSE_CATEGORIES, mapUiToDbCategory } from '../lib/categoryMapping';
 
 interface RecurringExpenseModalProps {
   visible: boolean;
@@ -22,19 +23,7 @@ interface RecurringExpenseModalProps {
   editingExpense?: RecurringExpense;
 }
 
-const EXPENSE_CATEGORIES = [
-  'Rent',
-  'Travel',
-  'Meals',
-  'Lodging',
-  'Supplies',
-  'Marketing',
-  'Education',
-  'Software',
-  'Fees',
-  'Equipment',
-  'Other',
-] as const;
+const EXPENSE_CATEGORIES = UI_EXPENSE_CATEGORIES;
 
 const FREQUENCIES = [
   { value: 'weekly', label: 'Weekly' },
@@ -129,7 +118,7 @@ export function RecurringExpenseModal({ visible, onClose, editingExpense }: Recu
 
       const formData = {
         name: name.trim(),
-        category,
+        category: mapUiToDbCategory(category),
         amount: parseFloat(amount),
         vendor: vendor.trim() || null,
         notes: notes.trim() || null,
