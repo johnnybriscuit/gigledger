@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
 import { Text } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { supabase } from '../lib/supabase';
@@ -17,6 +17,8 @@ interface TaxProfileBannerProps {
 export function TaxProfileBanner({ onNavigateToTaxSettings }: TaxProfileBannerProps) {
   const [dismissed, setDismissed] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 640;
 
   useEffect(() => {
     // Get user ID and check if banner was dismissed
@@ -51,31 +53,33 @@ export function TaxProfileBanner({ onNavigateToTaxSettings }: TaxProfileBannerPr
   }
 
   return (
-    <View style={styles.banner}>
-      <View style={styles.iconContainer}>
-        <Text style={styles.icon}>⚠️</Text>
-      </View>
-      <View style={styles.content}>
-        <Text style={styles.title}>Set up your tax profile</Text>
-        <Text style={styles.message}>
-          Add your state for accurate tax estimates
-        </Text>
+    <View style={[styles.banner, isMobile && styles.bannerMobile]}>
+      <View style={styles.topRow}>
+        <View style={styles.iconContainer}>
+          <Text style={styles.icon}>⚠️</Text>
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.title}>Set up your tax profile</Text>
+          <Text style={styles.message}>
+            Add your state for accurate tax estimates
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.dismissButton}
+          onPress={handleDismiss}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss banner"
+        >
+          <Text style={styles.dismissText}>✕</Text>
+        </TouchableOpacity>
       </View>
       <TouchableOpacity
-        style={styles.actionButton}
+        style={[styles.actionButton, isMobile && styles.actionButtonMobile]}
         onPress={onNavigateToTaxSettings}
         accessibilityRole="button"
         accessibilityLabel="Edit tax settings"
       >
         <Text style={styles.actionText}>📊 Edit Tax Settings</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.dismissButton}
-        onPress={handleDismiss}
-        accessibilityRole="button"
-        accessibilityLabel="Dismiss banner"
-      >
-        <Text style={styles.dismissText}>✕</Text>
       </TouchableOpacity>
     </View>
   );
@@ -83,14 +87,20 @@ export function TaxProfileBanner({ onNavigateToTaxSettings }: TaxProfileBannerPr
 
 const styles = StyleSheet.create({
   banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.warning.DEFAULT + '15', // Light warning background
+    backgroundColor: colors.warning.DEFAULT + '15',
     borderLeftWidth: 4,
     borderLeftColor: colors.warning.DEFAULT,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
+  },
+  bannerMobile: {
+    flexDirection: 'column',
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   iconContainer: {
     marginRight: 12,
@@ -114,9 +124,14 @@ const styles = StyleSheet.create({
   actionButton: {
     backgroundColor: colors.brand.DEFAULT,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
-    marginLeft: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonMobile: {
+    width: '100%',
+    marginTop: 4,
   },
   actionText: {
     color: '#ffffff',
