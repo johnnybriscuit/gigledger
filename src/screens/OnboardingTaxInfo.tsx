@@ -74,7 +74,8 @@ const US_STATES = [
 const FILING_STATUSES = [
   { value: 'single', label: 'Single', description: 'Filing as a single individual' },
   { value: 'married', label: 'Married Filing Jointly', description: 'Filing jointly with spouse' },
-  { code: 'hoh', label: 'Head of Household', description: 'Unmarried with qualifying dependents' },
+  { value: 'married_separate', label: 'Married Filing Separately', description: 'Married but filing separately' },
+  { value: 'hoh', label: 'Head of Household', description: 'Unmarried with qualifying dependents' },
 ];
 
 interface OnboardingTaxInfoProps {
@@ -84,7 +85,7 @@ interface OnboardingTaxInfoProps {
 
 export function OnboardingTaxInfo({ onComplete, onSkip }: OnboardingTaxInfoProps) {
   const [selectedState, setSelectedState] = useState<string | null>(null);
-  const [selectedFilingStatus, setSelectedFilingStatus] = useState<'single' | 'married' | 'hoh'>('single');
+  const [selectedFilingStatus, setSelectedFilingStatus] = useState<'single' | 'married' | 'married_separate' | 'hoh'>('single');
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [stateSearch, setStateSearch] = useState('');
   const [saving, setSaving] = useState(false);
@@ -155,7 +156,7 @@ export function OnboardingTaxInfo({ onComplete, onSkip }: OnboardingTaxInfoProps
                   styles.radioOption,
                   selectedFilingStatus === status.value && styles.radioOptionSelected,
                 ]}
-                onPress={() => setSelectedFilingStatus(status.value as 'single' | 'married' | 'hoh')}
+                onPress={() => setSelectedFilingStatus(status.value as 'single' | 'married' | 'married_separate' | 'hoh')}
               >
                 <View style={styles.radioCircle}>
                   {selectedFilingStatus === status.value && <View style={styles.radioCircleInner} />}

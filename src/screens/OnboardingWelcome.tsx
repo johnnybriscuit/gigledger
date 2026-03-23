@@ -34,6 +34,7 @@ const US_STATES = [
 const FILING_STATUSES = [
   { value: 'single', label: 'Single' },
   { value: 'married', label: 'Married Filing Jointly' },
+  { value: 'married_separate', label: 'Married Filing Separately' },
   { value: 'hoh', label: 'Head of Household' },
   { value: 'not_sure', label: 'Not sure' },
 ];
@@ -46,7 +47,7 @@ interface OnboardingWelcomeProps {
 export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
   const [fullName, setFullName] = useState('');
   const [stateCode, setStateCode] = useState('');
-  const [filingStatus, setFilingStatus] = useState<'single' | 'married' | 'hoh'>('single');
+  const [filingStatus, setFilingStatus] = useState<'single' | 'married' | 'married_separate' | 'hoh'>('single');
   const [loading, setLoading] = useState(false);
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [stateSearch, setStateSearch] = useState('');
@@ -87,6 +88,7 @@ export function OnboardingWelcome({ onNext, onSkip }: OnboardingWelcomeProps) {
       const filingStatusMap: Record<string, string> = {
         'single': 'single',
         'married': 'married_joint',
+        'married_separate': 'married_separate',
         'hoh': 'head',
         'not_sure': 'single', // Default to single if not sure
       };

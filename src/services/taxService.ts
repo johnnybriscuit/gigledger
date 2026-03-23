@@ -11,7 +11,7 @@ const stateRateCache = new Map<string, StateRate>();
 
 export interface UserTaxProfile {
   stateCode: string | null;
-  filingStatus: 'single' | 'married' | 'hoh';
+  filingStatus: 'single' | 'married' | 'married_separate' | 'hoh';
 }
 
 /**
@@ -84,7 +84,7 @@ export async function getUserTaxProfile(): Promise<UserTaxProfile> {
     
     return {
       stateCode: data.state_code,
-      filingStatus: (data.filing_status as 'single' | 'married' | 'hoh') || 'single',
+      filingStatus: (data.filing_status as 'single' | 'married' | 'married_separate' | 'hoh') || 'single',
     };
   } catch (err) {
     console.error('Error in getUserTaxProfile:', err);
@@ -103,7 +103,7 @@ export async function getUserTaxProfile(): Promise<UserTaxProfile> {
  */
 export async function updateUserTaxProfile(
   stateCode: string,
-  filingStatus: 'single' | 'married' | 'hoh'
+  filingStatus: 'single' | 'married' | 'married_separate' | 'hoh'
 ): Promise<void> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
