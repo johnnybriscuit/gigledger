@@ -46,7 +46,7 @@ ALTER TABLE expenses
   ALTER COLUMN category TYPE expense_category
   USING category::expense_category;
 
--- Step 4: Recreate the v_expenses_export view
+-- Step 4: Recreate the v_expenses_export view (only with columns that exist)
 CREATE OR REPLACE VIEW v_expenses_export AS
 SELECT 
   e.user_id,
@@ -55,9 +55,7 @@ SELECT
   e.vendor,
   e.description,
   e.amount,
-  e.receipt_url,
-  e.notes,
-  e.recurring_expense_id
+  e.receipt_url
 FROM expenses e
 ORDER BY e.date DESC;
 

@@ -2,8 +2,13 @@
 -- These indexes will dramatically speed up user-specific queries by date range
 
 -- User tax profile lookups (172-342ms -> 10-20ms expected)
-CREATE INDEX IF NOT EXISTS idx_user_tax_profile_user_id 
-ON user_tax_profile(user_id);
+-- Only create if table exists
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'user_tax_profile') THEN
+    CREATE INDEX IF NOT EXISTS idx_user_tax_profile_user_id ON user_tax_profile(user_id);
+  END IF;
+END $$;
 
 -- Gig queries by user and date (most common dashboard query)
 CREATE INDEX IF NOT EXISTS idx_gigs_user_date 
@@ -25,9 +30,13 @@ ON expenses(user_id, category);
 CREATE INDEX IF NOT EXISTS idx_mileage_user_date 
 ON mileage(user_id, date DESC);
 
--- Invoice queries by user and status
-CREATE INDEX IF NOT EXISTS idx_invoices_user_status 
-ON invoices(user_id, status);
+-- Invoice queries by user and status (only if table exists)
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'invoices') THEN
+    CREATE INDEX IF NOT EXISTS idx_invoices_user_status ON invoices(user_id, status);
+  END IF;
+END $$;
 
 -- Payer queries by user (already exists but verify)
 CREATE INDEX IF NOT EXISTS idx_payers_user_id 
@@ -38,25 +47,40 @@ CREATE INDEX IF NOT EXISTS idx_profiles_user_id
 ON profiles(id);
 
 -- Composite index for gig date range queries with aggregations
+-- Only include columns that exist
 CREATE INDEX IF NOT EXISTS idx_gigs_user_date_amounts 
-ON gigs(user_id, date DESC, gross_amount, tips, fees, per_diem, other_income);
+ON gigs(user_id, date DESC, gross_amount, tips, fees);
 
 -- Composite index for expense date range queries with aggregations
 CREATE INDEX IF NOT EXISTS idx_expenses_user_date_amounts 
 ON expenses(user_id, date DESC, amount, category);
 
--- Add comments documenting the performance impact
-COMMENT ON INDEX idx_user_tax_profile_user_id IS 'Speeds up tax profile lookups from 172-342ms to 10-20ms';
+-- Add comments documenting the performance impact (only for indexes that exist)
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_user_tax_profile_user_id') THEN
+    COMMENT ON INDEX idx_user_tax_profile_user_id IS 'Speeds up tax profile lookups from 172-342ms to 10-20ms';
+  END IF;
+END $$;
+
 COMMENT ON INDEX idx_gigs_user_date IS 'Optimizes dashboard gig queries by user and date range';
 COMMENT ON INDEX idx_expenses_user_date IS 'Optimizes dashboard expense queries by user and date range';
 COMMENT ON INDEX idx_gigs_user_date_amounts IS 'Composite index for faster aggregation queries on dashboard';
 COMMENT ON INDEX idx_expenses_user_date_amounts IS 'Composite index for faster expense aggregation queries';
 
--- Analyze tables to update statistics for query planner
+-- Analyze tables to update statistics for query planner (only tables that exist)
 ANALYZE gigs;
 ANALYZE expenses;
 ANALYZE mileage;
-ANALYZE user_tax_profile;
 ANALYZE profiles;
 ANALYZE payers;
-ANALYZE invoices;
+
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'user_tax_profile') THEN
+    ANALYZE user_tax_profile;
+  END IF;
+  IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'invoices') THEN
+    ANALYZE invoices;
+  END IF;
+END $$;

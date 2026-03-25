@@ -50,7 +50,7 @@ ALTER TABLE expenses
 DROP TYPE expense_category;
 ALTER TYPE expense_category_new RENAME TO expense_category;
 
--- Step 7: Recreate the v_expenses_export view
+-- Step 7: Recreate the v_expenses_export view (only with columns that exist)
 CREATE OR REPLACE VIEW v_expenses_export AS
 SELECT 
   e.user_id,
@@ -59,9 +59,7 @@ SELECT
   e.vendor,
   e.description,
   e.amount,
-  e.receipt_url,
-  e.notes,
-  e.recurring_expense_id
+  e.receipt_url
 FROM expenses e
 ORDER BY e.date DESC;
 

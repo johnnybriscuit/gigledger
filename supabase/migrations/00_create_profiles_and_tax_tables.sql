@@ -139,7 +139,16 @@ VALUES
    'PLACEHOLDER: Georgia progressive brackets')
 ON CONFLICT (state_code, effective_year) DO NOTHING;
 
--- 5. Create function to update updated_at timestamp
+-- 5. Create generic function to update updated_at timestamp (used by multiple tables)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create specific function for state_tax_rates (for backwards compatibility)
 CREATE OR REPLACE FUNCTION update_state_tax_rates_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

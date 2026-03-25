@@ -32,7 +32,7 @@ WHERE id IN (
   SELECT p.id 
   FROM profiles p
   LEFT JOIN subscriptions s ON p.id = s.user_id
-  WHERE (s.status IS NULL OR s.status IN ('canceled', 'incomplete', 'incomplete_expired', 'past_due', 'unpaid'))
+  WHERE (s.status IS NULL OR s.status IN ('canceled', 'incomplete', 'past_due'))
     AND p.plan != 'free'
 );
 
