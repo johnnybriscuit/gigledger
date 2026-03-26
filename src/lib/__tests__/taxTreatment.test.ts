@@ -48,7 +48,7 @@ describe('Tax Treatment Logic', () => {
 
     it('should default to contractor_1099 when both are null', () => {
       const gig = { tax_treatment: null };
-      const payer = { tax_treatment: null };
+      const payer = { tax_treatment: null as any };
       expect(getEffectiveTaxTreatment(gig, payer)).toBe('contractor_1099');
     });
 

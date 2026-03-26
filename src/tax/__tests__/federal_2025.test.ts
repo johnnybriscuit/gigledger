@@ -177,14 +177,14 @@ describe('Federal 2025 Constants', () => {
       it('should calculate tax at 22% bracket edge (just below $103,350)', () => {
         const income = 103349;
         const tax = (11925 * 0.10) + ((48475 - 11925) * 0.12) + ((income - 48475) * 0.22);
-        expect(tax).toBeCloseTo(17835.28, 2);
+        expect(tax).toBeCloseTo(17650.78, 2);
       });
 
       it('should calculate tax at 24% bracket edge (just below $197,300)', () => {
         const income = 197299;
         const tax = (11925 * 0.10) + ((48475 - 11925) * 0.12) + 
                     ((103350 - 48475) * 0.22) + ((income - 103350) * 0.24);
-        expect(tax).toBeCloseTo(40407.04, 2);
+        expect(tax).toBeCloseTo(40198.76, 2);
       });
     });
   });
@@ -228,7 +228,7 @@ describe('Federal 2025 Constants', () => {
       it('should calculate tax at 22% bracket edge (just below $206,700)', () => {
         const income = 206699;
         const tax = (23850 * 0.10) + ((96950 - 23850) * 0.12) + ((income - 96950) * 0.22);
-        expect(tax).toBeCloseTo(35670.78, 2);
+        expect(tax).toBeCloseTo(35301.78, 2);
       });
     });
   });
@@ -275,7 +275,7 @@ describe('Federal 2025 Constants', () => {
       it('should calculate tax at 22% bracket edge (just below $103,350)', () => {
         const income = 103349;
         const tax = (17000 * 0.10) + ((64850 - 17000) * 0.12) + ((income - 64850) * 0.22);
-        expect(tax).toBeCloseTo(14211.78, 2);
+        expect(tax).toBeCloseTo(15911.78, 2);
       });
     });
   });

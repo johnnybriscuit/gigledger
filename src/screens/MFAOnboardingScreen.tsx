@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
-import { supabase } from '../lib/supabase';
 import * as Clipboard from 'expo-clipboard';
+import {
+  enrollTOTP,
+  generateBackupCodes,
+  verifyTOTPEnrollment,
+  type BackupCode,
+} from '../lib/mfa';
 
 interface MFAOnboardingScreenProps {
   onNavigateToDashboard?: () => void;
@@ -16,7 +21,7 @@ export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScre
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [recoveryCodes, setRecoveryCodes] = useState<BackupCode[]>([]);
 
   useEffect(() => {
     enrollMFA();
@@ -24,23 +29,12 @@ export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScre
 
   const enrollMFA = async () => {
     try {
-      const { data, error } = await supabase.auth.mfa.enroll({
-        factorType: 'totp',
-        friendlyName: 'GigLedger Authenticator',
-      });
-
-      if (error) throw error;
-
-      if (!data) {
-        throw new Error('Failed to enroll MFA');
-      }
-
-      setFactorId(data.id);
-      setQrUri(data.totp.qr_code);
-      setSecret(data.totp.secret);
+      const data = await enrollTOTP();
+      setFactorId(data.factorId);
+      setQrUri(data.qrCode);
+      setSecret(data.secret);
       setLoading(false);
-
-      console.log('[MFA] Enrollment initiated:', data.id);
+      console.log('[MFA] Enrollment initiated:', data.factorId);
     } catch (err: any) {
       console.error('[MFA] Enrollment error:', err);
       Alert.alert('Error', err.message || 'Failed to set up 2FA');
@@ -58,25 +52,9 @@ export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScre
     setError('');
 
     try {
-      const { data, error } = await supabase.auth.mfa.challengeAndVerify({
-        factorId,
-        code,
-      });
-
-      if (error) throw error;
-
+      await verifyTOTPEnrollment(factorId, code);
       console.log('[MFA] Verification successful');
-
-      // Update user metadata to mark MFA as enrolled
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Note: This requires admin privileges - should be done via Edge Function
-        // For now, we'll rely on the factor being verified
-        console.log('[MFA] User MFA factor verified:', factorId);
-      }
-
-      // Generate recovery codes
-      const codes = generateRecoveryCodes();
+      const codes = await generateBackupCodes();
       setRecoveryCodes(codes);
       setStep('recovery');
     } catch (err: any) {
@@ -87,29 +65,20 @@ export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScre
     }
   };
 
-  const generateRecoveryCodes = (): string[] => {
-    const codes: string[] = [];
-    for (let i = 0; i < 10; i++) {
-      const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-      codes.push(code);
-    }
-    return codes;
-  };
-
   const copySecret = async () => {
     await Clipboard.setStringAsync(secret);
     Alert.alert('Copied', 'Secret key copied to clipboard');
   };
 
   const copyRecoveryCodes = async () => {
-    await Clipboard.setStringAsync(recoveryCodes.join('\n'));
+    await Clipboard.setStringAsync(recoveryCodes.map((code) => code.code).join('\n'));
     Alert.alert('Copied', 'Recovery codes copied to clipboard');
   };
 
   const downloadRecoveryCodes = () => {
     // For web, create a download link
     if (typeof window !== 'undefined') {
-      const blob = new Blob([recoveryCodes.join('\n')], { type: 'text/plain' });
+      const blob = new Blob([recoveryCodes.map((code) => code.code).join('\n')], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -241,7 +210,7 @@ export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScre
           {recoveryCodes.map((code, index) => (
             <View key={index} style={styles.recoveryCodeRow}>
               <Text style={styles.recoveryCodeNumber}>{index + 1}.</Text>
-              <Text style={styles.recoveryCode}>{code}</Text>
+              <Text style={styles.recoveryCode}>{code.code}</Text>
             </View>
           ))}
         </View>

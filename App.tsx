@@ -14,7 +14,7 @@ import { CheckEmailScreen } from './src/screens/CheckEmailScreen';
 import { ForgotPasswordScreen } from './src/screens/ForgotPasswordScreen';
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
 import { MFAOnboardingScreen } from './src/screens/MFAOnboardingScreen';
-import { MFAChallengeScreen } from './src/screens/MFAChallengeScreen';
+import { MFAVerifyScreen } from './src/screens/MFAVerifyScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { TermsScreen } from './src/screens/TermsScreen';
@@ -22,6 +22,7 @@ import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { SupportScreen } from './src/screens/SupportScreen';
 import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen';
 import { PublicLandingPage } from './src/screens/PublicLandingPage';
+import { PublicInvoiceView } from './src/screens/PublicInvoiceView';
 import { initializeUserData } from './src/services/profileService';
 import { invalidateUserQueries } from './src/lib/queryKeys';
 import { useAppBootstrap } from './src/hooks/useAppBootstrap';
@@ -31,6 +32,7 @@ import { perf } from './src/lib/performance';
 import { enableQueryDebug } from './src/lib/queryDebug';
 import { trackPageView } from './src/lib/analytics';
 import type { Session } from '@supabase/supabase-js';
+import type { MFAFactor } from './src/lib/mfa';
 
 // Import spotlight CSS for Account page CTA highlighting
 if (Platform.OS === 'web') {
@@ -57,6 +59,21 @@ if (__DEV__) {
 
 function AppContent() {
   const bootstrap = useAppBootstrap();
+  const getPublicInvoiceRoute = () => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+      return null;
+    }
+
+    const match = window.location.pathname.match(/^\/invoices\/([^/]+)$/);
+    if (!match) {
+      return null;
+    }
+
+    return {
+      invoiceId: decodeURIComponent(match[1]),
+      token: new URLSearchParams(window.location.search).get('token'),
+    };
+  };
   
   // Determine initial route from URL pathname on web
   const getInitialRoute = () => {
@@ -67,16 +84,20 @@ function AppContent() {
       if (pathname === '/support') return 'support';
       if (pathname === '/forgot-password') return 'forgot-password';
       if (pathname === '/reset-password') return 'reset-password';
+      if (pathname.startsWith('/invoices/')) return 'public-invoice';
     }
     return 'landing';
   };
   
-  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-challenge' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>(getInitialRoute());
+  const initialPublicInvoiceRoute = getPublicInvoiceRoute();
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-verify' | 'public-invoice' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>(getInitialRoute());
   const [authResolved, setAuthResolved] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [onboardingJustCompleted, setOnboardingJustCompleted] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [oauthCallbackUrl, setOauthCallbackUrl] = useState<string | null>(null);
+  const [pendingMfaFactor, setPendingMfaFactor] = useState<MFAFactor | null>(null);
+  const [publicInvoiceRoute, setPublicInvoiceRoute] = useState(initialPublicInvoiceRoute);
 
   // Sync URL with current route on web
   useEffect(() => {
@@ -91,7 +112,10 @@ function AppContent() {
         'reset-password': '/reset-password',
       };
       
-      const targetPath = routeToPath[currentRoute] || '/';
+      const targetPath = routeToPath[currentRoute];
+      if (!targetPath) {
+        return;
+      }
       if (window.location.pathname !== targetPath) {
         window.history.pushState({}, '', targetPath);
       }
@@ -311,6 +335,18 @@ function AppContent() {
     );
   }
 
+  if (currentRoute === 'public-invoice' && publicInvoiceRoute) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <PublicInvoiceView
+          invoiceId={publicInvoiceRoute.invoiceId}
+          token={publicInvoiceRoute.token}
+        />
+      </>
+    );
+  }
+
   // AUTHENTICATED ROUTES - Bootstrap required beyond this point
   
   // Bootstrap loading state
@@ -436,13 +472,20 @@ function AppContent() {
   }
 
   // MFA Challenge (returning users)
-  if (currentRoute === 'mfa-challenge') {
+  if (currentRoute === 'mfa-verify' && pendingMfaFactor) {
     return (
       <>
         <StatusBar style="dark" />
-        <MFAChallengeScreen 
-          onNavigateToDashboard={() => setCurrentRoute('dashboard')}
-          onNavigateToAuth={() => setCurrentRoute('auth')}
+        <MFAVerifyScreen
+          factor={pendingMfaFactor}
+          onVerified={() => {
+            setPendingMfaFactor(null);
+            setCurrentRoute('dashboard');
+          }}
+          onCancel={() => {
+            setPendingMfaFactor(null);
+            setCurrentRoute('auth');
+          }}
         />
       </>
     );
@@ -456,6 +499,10 @@ function AppContent() {
         <AuthCallbackScreen 
           oauthCallbackUrl={oauthCallbackUrl}
           onNavigateToMFASetup={() => setCurrentRoute('mfa-setup')}
+          onNavigateToMFAVerify={(factor) => {
+            setPendingMfaFactor(factor);
+            setCurrentRoute('mfa-verify');
+          }}
           onNavigateToDashboard={() => setCurrentRoute('dashboard')}
           onNavigateToAuth={() => setCurrentRoute('auth')}
         />

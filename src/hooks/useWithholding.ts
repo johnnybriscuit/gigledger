@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { calculateWithholding, type WithholdingBreakdown, type WithholdingInput } from '../lib/tax/withholding';
 import { getStateRate, getUserTaxProfile } from '../services/taxService';
+import type { FilingStatus } from '../lib/tax/withholding';
 
 interface UseWithholdingResult {
   breakdown: WithholdingBreakdown | null;
@@ -47,7 +48,7 @@ export function useWithholding(
 
         // If no profile, use defaults
         const stateCode = profile.stateCode || 'TN'; // Default to TN (no state tax)
-        const filingStatus = profile.filingStatus || 'single';
+        const filingStatus = mapFilingStatus(profile.filingStatus);
 
         // Get state rate (will return null if table doesn't exist)
         const stateRate = await getStateRate(stateCode);
@@ -99,4 +100,20 @@ export function useWithholding(
   }, [amount, ytdNetIncome]);
 
   return { breakdown, loading, error, hasProfile };
+}
+
+function mapFilingStatus(status: string | null | undefined): FilingStatus {
+  switch (status) {
+    case 'married':
+    case 'married_joint':
+    case 'married_separate':
+      return 'married';
+    case 'hoh':
+    case 'head':
+      return 'hoh';
+    case 'single':
+      return status;
+    default:
+      return 'single';
+  }
 }

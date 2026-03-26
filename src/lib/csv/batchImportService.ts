@@ -7,6 +7,10 @@ import { supabase } from '../supabase';
 import { CombinedGig } from './importHelpers';
 import { PayerMatch } from './importHelpers';
 
+function normalizeName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 export interface ImportRowResult {
   rowIndex: number;
   status: 'imported' | 'skipped_duplicate' | 'error';
@@ -53,6 +57,7 @@ export async function createMissingPayers(
         .insert({
           user_id: userId,
           name: match.csvName,
+          normalized_name: normalizeName(match.csvName),
           payer_type: 'Venue', // Default type for CSV imports
           created_by_import_batch_id: batchId, // Track which batch created this payer
         })

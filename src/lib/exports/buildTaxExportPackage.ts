@@ -18,12 +18,12 @@ import { mapCategoryToScheduleCRef } from './scheduleCRefMapping';
 import { getStandardMileageRate } from './mileageRates';
 import { roundCents } from './rounding';
 import { getScheduleCLineName } from './scheduleCLineNames';
-import { 
-  getEffectiveTaxTreatment, 
-  filterGigsForScheduleC, 
+import {
+  getEffectiveTaxTreatment,
+  filterGigsForScheduleC,
   splitGigsByTaxTreatment,
-  type TaxTreatment 
 } from '../taxTreatment';
+import type { TaxTreatment } from '../taxTreatment';
 
 type GigRow = Database['public']['Tables']['gigs']['Row'];
 type ExpenseDbRow = Database['public']['Tables']['expenses']['Row'];

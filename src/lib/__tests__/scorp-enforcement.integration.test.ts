@@ -3,7 +3,7 @@
  * Tests database triggers, API enforcement, and downgrade behavior
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 
 describe('S-Corp Enforcement Integration Tests', () => {
   describe('Database Trigger: enforce_scorp_plan', () => {

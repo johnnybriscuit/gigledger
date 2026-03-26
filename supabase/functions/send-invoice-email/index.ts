@@ -43,8 +43,25 @@ serve(async (req) => {
       throw new Error('Invoice settings not found')
     }
 
+    const publicToken = invoice.public_token ?? crypto.randomUUID().replace(/-/g, '')
+
+    if (!invoice.public_token) {
+      const { error: tokenError } = await supabaseClient
+        .from('invoices')
+        .update({ public_token: publicToken })
+        .eq('id', invoiceId)
+
+      if (tokenError) {
+        throw tokenError
+      }
+    }
+
     // Generate invoice HTML
-    const invoiceHtml = generateInvoiceHTML(invoice, settings, message)
+    const invoiceHtml = generateInvoiceHTML(
+      { ...invoice, public_token: publicToken },
+      settings,
+      message
+    )
 
     // Send email via Resend
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
@@ -283,7 +300,7 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
       </div>
 
       <div style="text-align: center;">
-        <a href="${publicUrl}/invoices/${invoice.id}" class="button">View Invoice Online</a>
+        <a href="${publicUrl}/invoices/${invoice.id}?token=${invoice.public_token}" class="button">View Invoice Online</a>
       </div>
 
       ${paymentMethodsHtml ? `

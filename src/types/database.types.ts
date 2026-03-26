@@ -605,6 +605,7 @@ export type Database = {
           notes: string | null
           paid_at: string | null
           payment_terms: string | null
+          public_token: string | null
           private_notes: string | null
           sent_at: string | null
           status: string
@@ -634,6 +635,7 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           payment_terms?: string | null
+          public_token?: string | null
           private_notes?: string | null
           sent_at?: string | null
           status?: string
@@ -663,6 +665,7 @@ export type Database = {
           notes?: string | null
           paid_at?: string | null
           payment_terms?: string | null
+          public_token?: string | null
           private_notes?: string | null
           sent_at?: string | null
           status?: string

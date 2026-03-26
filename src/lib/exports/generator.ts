@@ -127,6 +127,7 @@ export function calculateScheduleCSummary(
 
   for (const gig of gigs) {
     grossReceipts += gig.gross_amount;
+    feesTotal += gig.fees;
     
     if (input.includeTips) {
       tipsTotal += gig.tips;
@@ -135,9 +136,6 @@ export function calculateScheduleCSummary(
     perDiemTotal += gig.per_diem;
     otherIncomeTotal += gig.other_income;
     
-    if (!input.includeFeesAsDeduction) {
-      feesTotal += gig.fees;
-    }
   }
 
   // Total gross receipts includes all income before fees

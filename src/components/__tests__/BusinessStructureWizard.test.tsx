@@ -3,7 +3,7 @@
  * Verifies recommendation logic for different user scenarios
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 
 describe('BusinessStructureWizard Recommendation Logic', () => {
   describe('Recommendation paths', () => {

@@ -4,8 +4,10 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { supabase } from '../lib/supabase';
+import { env } from '../config/env';
 
 interface ForgotPasswordScreenProps {
   onBack: () => void;
@@ -17,25 +19,58 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
   const [emailError, setEmailError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const isLocalWebDev =
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+  const [serverApiAvailable, setServerApiAvailable] = useState(!isLocalWebDev);
 
   const emailInputRef = useRef<TextInput>(null);
 
-  const SITE_URL = Constants.expoConfig?.extra?.siteUrl || process.env.EXPO_PUBLIC_SITE_URL;
+  const SITE_URL = env.siteUrl || Constants.expoConfig?.extra?.EXPO_PUBLIC_SITE_URL || process.env.EXPO_PUBLIC_SITE_URL;
   const isSiteUrlMissing = !SITE_URL;
+
+  const readJsonResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      return null;
+    }
+
+    return response.json();
+  };
+
+  const fetchCsrfToken = async (): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/csrf-token', {
+        credentials: 'include',
+      });
+      const data = await readJsonResponse(response);
+
+      if (!response.ok || !data?.csrfToken) {
+        if (isLocalWebDev) {
+          setServerApiAvailable(false);
+        }
+        return null;
+      }
+
+      setServerApiAvailable(true);
+      setCsrfToken(data.csrfToken);
+      return data.csrfToken;
+    } catch (error) {
+      if (isLocalWebDev) {
+        setServerApiAvailable(false);
+        console.warn('[ForgotPassword] Server API unavailable on local web; using direct Supabase flow.');
+        return null;
+      }
+
+      console.error('Failed to fetch CSRF token:', error);
+      return null;
+    }
+  };
 
   // Fetch CSRF token on mount
   useEffect(() => {
     if (isSiteUrlMissing) return;
-    
-    const fetchCsrfToken = async () => {
-      try {
-        const response = await fetch('/api/csrf-token');
-        const data = await response.json();
-        setCsrfToken(data.csrfToken);
-      } catch (error) {
-        console.error('Failed to fetch CSRF token:', error);
-      }
-    };
 
     fetchCsrfToken();
   }, [isSiteUrlMissing]);
@@ -69,6 +104,18 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
     console.debug('[ForgotPassword] Requesting password reset', { email });
 
     try {
+      if (!serverApiAvailable) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${SITE_URL}/reset-password`,
+        });
+
+        if (error) throw error;
+
+        console.log('[ForgotPassword] Password reset email sent via direct Supabase flow');
+        setEmailSent(true);
+        return;
+      }
+
       const response = await fetch('/api/auth/request-password-reset', {
         method: 'POST',
         headers: {
@@ -78,16 +125,33 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
+      const data = await readJsonResponse(response);
+
+      if (!data) {
+        if (isLocalWebDev) {
+          setServerApiAvailable(false);
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${SITE_URL}/reset-password`,
+          });
+
+          if (error) throw error;
+
+          console.log('[ForgotPassword] Password reset email sent via direct Supabase flow');
+          setEmailSent(true);
+          return;
+        }
+
+        setEmailError('Server error. Please try again later.');
+        return;
+      }
+
       console.debug('[ForgotPassword] Response', { status: response.status, data });
 
       if (!response.ok) {
         if (data.code === 'CSRF_FAILED') {
           console.error('[ForgotPassword] CSRF validation failed');
           // Refetch CSRF token
-          const tokenResponse = await fetch('/api/csrf-token');
-          const tokenData = await tokenResponse.json();
-          setCsrfToken(tokenData.csrfToken);
+          await fetchCsrfToken();
           setEmailError('Security check failed. Please try again.');
           setTimeout(() => emailInputRef.current?.focus(), 100);
         } else if (data.code === 'RATE_LIMIT_EXCEEDED') {

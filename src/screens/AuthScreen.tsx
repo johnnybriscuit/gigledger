@@ -9,6 +9,7 @@ import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
 import { getBaseUrl } from '../lib/getBaseUrl';
 import { trackSignUp, trackLogin } from '../lib/analytics';
 import { track } from '../lib/tracking';
+import { env } from '../config/env';
 
 interface AuthScreenProps {
   onNavigateToTerms?: () => void;
@@ -46,32 +47,63 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
   
   // CSRF token
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const isLocalWebDev =
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+  const [serverApiAvailable, setServerApiAvailable] = useState(!isLocalWebDev);
 
   // Runtime assertion: SITE_URL must be configured
-  const SITE_URL = Constants.expoConfig?.extra?.siteUrl || process.env.EXPO_PUBLIC_SITE_URL;
+  const SITE_URL = env.siteUrl || Constants.expoConfig?.extra?.EXPO_PUBLIC_SITE_URL || process.env.EXPO_PUBLIC_SITE_URL;
   const isSiteUrlMissing = !SITE_URL;
   
   // Google OAuth feature flag (default true)
   const GOOGLE_OAUTH_ENABLED = Constants.expoConfig?.extra?.googleOAuthEnabled !== false && 
                                 process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED !== 'false';
+
+  const readJsonResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      return null;
+    }
+
+    return response.json();
+  };
+
+  const fetchCsrfToken = async (): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/csrf-token', {
+        credentials: 'include',
+      });
+      const data = await readJsonResponse(response);
+
+      if (!response.ok || !data?.csrfToken) {
+        if (isLocalWebDev) {
+          setServerApiAvailable(false);
+        }
+        return null;
+      }
+
+      setServerApiAvailable(true);
+      setCsrfToken(data.csrfToken);
+      console.debug('[Auth] CSRF token fetched:', data.csrfToken.substring(0, 16) + '...');
+      return data.csrfToken;
+    } catch (error) {
+      if (isLocalWebDev) {
+        setServerApiAvailable(false);
+        console.warn('[Auth] Server API unavailable on local web; using direct Supabase auth flows.');
+        return null;
+      }
+
+      console.error('[Auth] Failed to fetch CSRF token:', error);
+      return null;
+    }
+  };
   
   // Fetch CSRF token on mount (skip if SITE_URL is missing)
   useEffect(() => {
     if (isSiteUrlMissing) return;
     
-    const fetchCsrfToken = async () => {
-      try {
-        const response = await fetch('/api/csrf-token', {
-          credentials: 'include', // Ensure cookies are sent/received
-        });
-        const data = await response.json();
-        setCsrfToken(data.csrfToken);
-        console.debug('[Auth] CSRF token fetched:', data.csrfToken?.substring(0, 16) + '...');
-      } catch (error) {
-        console.error('[Auth] Failed to fetch CSRF token:', error);
-      }
-    };
-
     fetchCsrfToken();
   }, [isSiteUrlMissing]);
   
@@ -151,25 +183,35 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
     try {
       // Ensure we have a CSRF token before proceeding
       let tokenToUse = csrfToken;
-      if (!tokenToUse) {
+      if (serverApiAvailable && !tokenToUse) {
         console.log('[Auth] No CSRF token found, fetching now...');
-        try {
-          const tokenResponse = await fetch('/api/csrf-token', {
-            credentials: 'include',
-          });
-          const tokenData = await tokenResponse.json();
-          tokenToUse = tokenData.csrfToken;
-          setCsrfToken(tokenToUse);
-          console.debug('[Auth] CSRF token fetched:', tokenToUse?.substring(0, 16) + '...');
-        } catch (error) {
-          console.error('[Auth] Failed to fetch CSRF token:', error);
-          setEmailError('Security check failed. Please refresh the page and try again.');
-          setLoading(false);
-          return;
-        }
+        tokenToUse = await fetchCsrfToken();
       }
 
-      // Call our rate-limited API endpoint
+      if (!serverApiAvailable || !tokenToUse) {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${getBaseUrl()}/auth/callback`,
+            shouldCreateUser: mode === 'signup',
+          },
+        });
+
+        if (error) throw error;
+
+        await logSecurityEvent('magic_link_sent', { email, mode });
+
+        if (mode === 'signup') {
+          trackSignUp('magic_link');
+          track('sign_up', { method: 'magic_link' });
+        }
+
+        setEmailSent(true);
+        setCooldown(60);
+        console.log('[Auth] Magic link sent to:', email);
+        return;
+      }
+
       const response = await fetch('/api/auth/send-magic-link', {
         method: 'POST',
         headers: {
@@ -183,15 +225,41 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         }),
       });
 
-      const data = await response.json();
+      const data = await readJsonResponse(response);
+
+      if (!data) {
+        if (isLocalWebDev) {
+          setServerApiAvailable(false);
+          const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+              emailRedirectTo: `${getBaseUrl()}/auth/callback`,
+              shouldCreateUser: mode === 'signup',
+            },
+          });
+
+          if (error) throw error;
+
+          await logSecurityEvent('magic_link_sent', { email, mode });
+          if (mode === 'signup') {
+            trackSignUp('magic_link');
+            track('sign_up', { method: 'magic_link' });
+          }
+          setEmailSent(true);
+          setCooldown(60);
+          return;
+        }
+
+        setEmailError('Security check failed. Please refresh the page and try again.');
+        await logSecurityEvent('magic_link_failed', { email, mode }, false);
+        return;
+      }
 
       if (!response.ok) {
         // Handle specific error codes
         if (data.code === 'CSRF_FAILED') {
           // Refetch CSRF token
-          const tokenResponse = await fetch('/api/csrf-token');
-          const tokenData = await tokenResponse.json();
-          setCsrfToken(tokenData.csrfToken);
+          await fetchCsrfToken();
           setEmailError('Security check refreshed—please try again.');
         } else if (data.code === 'RATE_LIMIT_EXCEEDED') {
           setEmailError('Too many attempts. Please try again in a few minutes.');
@@ -244,6 +312,28 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
     try {
       if (mode === 'signup') {
+        if (!serverApiAvailable) {
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${SITE_URL}/auth/callback`,
+            },
+          });
+
+          if (error) throw error;
+
+          console.log('[Auth] Password signup successful', {
+            emailConfirmationRequired: !data.session,
+            localFallback: true,
+          });
+          await logSecurityEvent('password_signup', { email });
+          trackSignUp('password');
+          track('sign_up', { method: 'password' });
+          setEmailSent(true);
+          return;
+        }
+
         // Call our rate-limited API endpoint
         console.debug('[Auth] Calling /api/auth/signup-password');
         const response = await fetch('/api/auth/signup-password', {
@@ -260,7 +350,36 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           }),
         });
 
-        const data = await response.json();
+        const data = await readJsonResponse(response);
+
+        if (!data) {
+          if (isLocalWebDev) {
+            setServerApiAvailable(false);
+            const { data: fallbackData, error } = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                emailRedirectTo: `${SITE_URL}/auth/callback`,
+              },
+            });
+
+            if (error) throw error;
+
+            console.log('[Auth] Password signup successful', {
+              emailConfirmationRequired: !fallbackData.session,
+              localFallback: true,
+            });
+            await logSecurityEvent('password_signup', { email });
+            trackSignUp('password');
+            track('sign_up', { method: 'password' });
+            setEmailSent(true);
+            return;
+          }
+
+          setEmailError('Server error. Please try again later.');
+          return;
+        }
+
         console.debug('[Auth] Signup response', { status: response.status, data });
 
         if (!response.ok) {
@@ -268,12 +387,8 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           if (data.code === 'CSRF_FAILED') {
             console.error('[Auth] CSRF validation failed');
             // Refetch CSRF token
-            const tokenResponse = await fetch('/api/csrf-token', {
-              credentials: 'include',
-            });
-            const tokenData = await tokenResponse.json();
-            setCsrfToken(tokenData.csrfToken);
-            console.debug('[Auth] CSRF token refetched:', tokenData.csrfToken?.substring(0, 16) + '...');
+            const refreshedToken = await fetchCsrfToken();
+            console.debug('[Auth] CSRF token refetched:', refreshedToken?.substring(0, 16) + '...');
             setEmailError('Security check failed. Please try again.');
             setTimeout(() => emailInputRef.current?.focus(), 100);
           } else if (data.code === 'RATE_LIMIT_EXCEEDED') {

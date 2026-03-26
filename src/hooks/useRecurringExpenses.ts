@@ -286,7 +286,7 @@ export function useQuickAddExpense() {
       const fromDate = new Date(year, month - 1, day);
       
       const nextDueDate = calculateNextDueDate(
-        template.frequency,
+        template.frequency as 'weekly' | 'monthly' | 'yearly',
         template.day_of_week,
         template.day_of_month,
         template.month_of_year,

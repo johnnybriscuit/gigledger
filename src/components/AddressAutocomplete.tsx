@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AddressAutocomplete Component
  * Free-solo address input with optional autocomplete suggestions

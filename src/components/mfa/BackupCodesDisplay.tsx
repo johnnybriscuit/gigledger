@@ -70,7 +70,8 @@ export function BackupCodesDisplay({
       } else {
         // Mobile: save to file and share
         const fileName = `bozzy-backup-codes-${Date.now()}.txt`;
-        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        const documentDirectory = (FileSystem as any).documentDirectory as string | undefined;
+        const fileUri = `${documentDirectory ?? ''}${fileName}`;
         
         await FileSystem.writeAsStringAsync(fileUri, codesText);
         

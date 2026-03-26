@@ -1,5 +1,10 @@
 import { supabase } from '../lib/supabase';
-import { PLAN_LIMITS, PLAN_NAMES, type LimitType } from '../constants/plans';
+import {
+  getPlanDefinition,
+  normalizePlan,
+  PLAN_NAMES,
+  type LimitType,
+} from '../constants/plans';
 
 export interface LimitCheckResult {
   allowed: boolean;
@@ -32,11 +37,14 @@ export async function checkAndIncrementLimit(
       return { allowed: false, message: 'Profile not found' };
     }
   
-  if (profile.plan === PLAN_NAMES.PRO_MONTHLY || profile.plan === PLAN_NAMES.PRO_ANNUAL) {
+  const normalizedPlan = normalizePlan(profile.plan, profile.legacy_free_plan === true);
+  const definition = getPlanDefinition(profile.plan, profile.legacy_free_plan === true);
+
+  if (definition.isPaid) {
     return { allowed: true };
   }
   
-  if (profile.legacy_free_plan) {
+  if (normalizedPlan === PLAN_NAMES.LEGACY_FREE) {
     if (limitType === 'gigs' || limitType === 'expenses') {
       const tableName = limitType === 'gigs' ? 'gigs' : 'expenses';
       const { count } = await supabase
@@ -44,9 +52,7 @@ export async function checkAndIncrementLimit(
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);
       
-      const limit = limitType === 'gigs' 
-        ? PLAN_LIMITS.LEGACY_FREE.GIGS_LIFETIME 
-        : PLAN_LIMITS.LEGACY_FREE.EXPENSES_LIFETIME;
+      const limit = definition.usage[limitType].limit ?? Infinity;
       
       if ((count || 0) >= limit) {
         return { 
@@ -60,15 +66,7 @@ export async function checkAndIncrementLimit(
   
   const usedField = `${limitType}_used_this_month` as keyof typeof profile;
   const used = (profile[usedField] as number) || 0;
-  
-  const limits = {
-    gigs: PLAN_LIMITS.FREE.GIGS_PER_MONTH,
-    expenses: PLAN_LIMITS.FREE.EXPENSES_PER_MONTH,
-    invoices: PLAN_LIMITS.FREE.INVOICES_PER_MONTH,
-    exports: PLAN_LIMITS.FREE.EXPORTS_PER_MONTH,
-  };
-  
-  const limit = limits[limitType];
+  const limit = definition.usage[limitType].limit ?? Infinity;
   
   if (used >= limit) {
     const resetDate = getNextResetDate().toLocaleDateString('en-US', { 
@@ -115,11 +113,14 @@ export async function checkLimit(
     return { allowed: false, message: 'Profile not found' };
   }
   
-  if (profile.plan === PLAN_NAMES.PRO_MONTHLY || profile.plan === PLAN_NAMES.PRO_ANNUAL) {
+  const normalizedPlan = normalizePlan(profile.plan, profile.legacy_free_plan === true);
+  const definition = getPlanDefinition(profile.plan, profile.legacy_free_plan === true);
+
+  if (definition.isPaid) {
     return { allowed: true };
   }
   
-  if (profile.legacy_free_plan) {
+  if (normalizedPlan === PLAN_NAMES.LEGACY_FREE) {
     if (limitType === 'gigs' || limitType === 'expenses') {
       const tableName = limitType === 'gigs' ? 'gigs' : 'expenses';
       const { count } = await supabase
@@ -127,9 +128,7 @@ export async function checkLimit(
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);
       
-      const limit = limitType === 'gigs' 
-        ? PLAN_LIMITS.LEGACY_FREE.GIGS_LIFETIME 
-        : PLAN_LIMITS.LEGACY_FREE.EXPENSES_LIFETIME;
+      const limit = definition.usage[limitType].limit ?? Infinity;
       
       if ((count || 0) >= limit) {
         return { 
@@ -143,15 +142,7 @@ export async function checkLimit(
   
   const usedField = `${limitType}_used_this_month` as keyof typeof profile;
   const used = (profile[usedField] as number) || 0;
-  
-  const limits = {
-    gigs: PLAN_LIMITS.FREE.GIGS_PER_MONTH,
-    expenses: PLAN_LIMITS.FREE.EXPENSES_PER_MONTH,
-    invoices: PLAN_LIMITS.FREE.INVOICES_PER_MONTH,
-    exports: PLAN_LIMITS.FREE.EXPORTS_PER_MONTH,
-  };
-  
-  const limit = limits[limitType];
+  const limit = definition.usage[limitType].limit ?? Infinity;
   
   if (used >= limit) {
     const resetDate = getNextResetDate().toLocaleDateString('en-US', { 

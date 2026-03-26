@@ -1,42 +1,34 @@
 /**
- * Plan configuration and limits for GigLedger
+ * Canonical plan configuration.
+ * This module exists as the stable import path for runtime plan helpers.
  */
 
-export type UserPlan = 'free' | 'pro_monthly' | 'pro_yearly';
+import {
+  PLAN_DEFINITIONS,
+  PLAN_NAMES,
+  canPlanExport,
+  getPlanDefinition,
+  isPaidPlan,
+  normalizePlan,
+  type PlanDefinition,
+  type UserPlan,
+} from '../constants/plans';
 
-export const FREE_GIG_LIMIT = 20;
-
-export const PLAN_FEATURES = {
-  free: {
-    gigLimit: FREE_GIG_LIMIT,
-    canExport: false,
-    name: 'Free',
-    description: 'Track up to 20 gigs',
-  },
-  pro_monthly: {
-    gigLimit: Infinity,
-    canExport: true,
-    name: 'Pro Monthly',
-    description: 'Unlimited gigs + exports',
-  },
-  pro_yearly: {
-    gigLimit: Infinity,
-    canExport: true,
-    name: 'Pro Yearly',
-    description: 'Unlimited gigs + exports',
-  },
-} as const;
+export { PLAN_DEFINITIONS, PLAN_NAMES, normalizePlan, type PlanDefinition, type UserPlan };
+export { getPlanDefinition } from '../constants/plans';
 
 export function isPro(plan: UserPlan | null | undefined): boolean {
-  return plan === 'pro_monthly' || plan === 'pro_yearly';
+  return isPaidPlan(plan);
 }
 
 export function canExport(plan: UserPlan | null | undefined): boolean {
-  if (!plan) return false;
-  return PLAN_FEATURES[plan].canExport;
+  return canPlanExport(plan);
 }
 
 export function getGigLimit(plan: UserPlan | null | undefined): number {
-  if (!plan) return FREE_GIG_LIMIT;
-  return PLAN_FEATURES[plan].gigLimit;
+  return getPlanDefinition(plan).usage.gigs.limit ?? Infinity;
+}
+
+export function getPlan(plan: UserPlan | null | undefined): PlanDefinition {
+  return getPlanDefinition(plan);
 }

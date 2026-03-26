@@ -72,6 +72,7 @@ export interface InvoicePayment {
 export interface Invoice {
   id: string;
   user_id: string;
+  public_token?: string | null;
   client_id?: string;
   client_name: string;
   client_email?: string;
@@ -102,6 +103,56 @@ export interface Invoice {
   payments?: InvoicePayment[];
   total_paid?: number;
   balance_due?: number;
+}
+
+export interface PublicInvoicePayload {
+  invoice: Pick<
+    Invoice,
+    | 'id'
+    | 'client_name'
+    | 'client_company'
+    | 'client_email'
+    | 'client_address'
+    | 'invoice_number'
+    | 'invoice_date'
+    | 'due_date'
+    | 'status'
+    | 'subtotal'
+    | 'tax_rate'
+    | 'tax_amount'
+    | 'discount_amount'
+    | 'total_amount'
+    | 'currency'
+    | 'payment_terms'
+    | 'notes'
+    | 'sent_at'
+    | 'viewed_at'
+    | 'paid_at'
+  > & {
+    line_items: Array<
+      Pick<InvoiceLineItem, 'id' | 'description' | 'quantity' | 'rate' | 'amount' | 'sort_order'>
+    >;
+    payments: Array<
+      Pick<InvoicePayment, 'id' | 'payment_date' | 'amount' | 'payment_method' | 'reference_number'>
+    >;
+    total_paid: number;
+    balance_due: number;
+  };
+  settings: Pick<
+    InvoiceSettings,
+    | 'business_name'
+    | 'email'
+    | 'phone'
+    | 'address'
+    | 'website'
+    | 'logo_url'
+    | 'default_currency'
+    | 'color_scheme'
+    | 'font_style'
+    | 'layout_style'
+    | 'accepted_payment_methods'
+    | 'payment_methods_config'
+  >;
 }
 
 export interface InvoiceFormData {

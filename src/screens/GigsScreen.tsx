@@ -21,7 +21,7 @@ import { UsageLimitBanner } from '../components/UsageLimitBanner';
 import { OnboardingHelperCard } from '../components/OnboardingHelperCard';
 import { usePayers } from '../hooks/usePayers';
 import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
-import { usePlanLimits } from '../hooks/usePlanLimits';
+import { useEntitlements } from '../hooks/useEntitlements';
 import { SkeletonGigCard } from '../components/SkeletonCard';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
@@ -307,12 +307,10 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   const deleteGig = useDeleteGig();
   const updateGig = useUpdateGig();
   const removeGigFromTour = useRemoveGigFromTour();
-
-  // Use unified plan limits hook (reads from subscriptions table, same as SubscriptionScreen)
-  const gigCount = gigs?.length || 0;
-  const planLimits = usePlanLimits(gigCount, 0);
-  
-  const { isFreePlan, hasReachedGigLimit, maxGigs, gigsRemaining } = planLimits;
+  const entitlements = useEntitlements();
+  const gigCount = entitlements.usage.gigsCount;
+  const isFreePlan = !entitlements.isPro;
+  const hasReachedGigLimit = !entitlements.can.createGig;
 
   const handleDelete = (id: string, displayName: string) => {
     if (Platform.OS === 'web') {
@@ -705,7 +703,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           <UsageLimitBanner
             label="gigs"
             usedCount={gigCount}
-            limitCount={7}
+            limitCount={entitlements.limits.gigsMax ?? 0}
             onUpgradePress={handleUpgradeClick}
           />
         </View>

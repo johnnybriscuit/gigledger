@@ -3,7 +3,7 @@
  * Verifies data aggregation and filtering logic
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 
 // Mock data for testing
 const mockGigs = [

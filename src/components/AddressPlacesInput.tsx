@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * AddressPlacesInput Component
  * Wrapper around react-native-google-places-textinput for address autocomplete

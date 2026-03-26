@@ -18,6 +18,7 @@ import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
 import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
+import { confirmDialog, showAlert } from '../lib/dialog';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
@@ -74,7 +75,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     setViewMode('view');
   };
 
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
     console.log('🔵 Create Invoice clicked');
     console.log('🔵 Settings:', !!settings);
     console.log('🔵 Entitlements:', entitlements);
@@ -85,8 +86,9 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       if (!settings) {
         console.log('🔵 Settings not loaded, prompting user to set up');
         // Use window.confirm for web compatibility
-        const shouldSetup = window.confirm(
-          'Setup Required\n\nPlease set up your business information before creating invoices.\n\nWould you like to set up now?'
+        const shouldSetup = await confirmDialog(
+          'Setup Required',
+          'Please set up your business information before creating invoices.\n\nWould you like to set up now?'
         );
         if (shouldSetup) {
           setViewMode('settings');
@@ -97,7 +99,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       // If still loading entitlements, show feedback
       if (entitlements.isLoading) {
         console.log('🔵 Entitlements still loading');
-        window.alert('Loading...\n\nChecking your plan limits. Please try again in a moment.');
+        showAlert('Loading', 'Checking your plan limits. Please try again in a moment.');
         return;
       }
       
@@ -114,7 +116,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       setViewMode('create');
     } catch (error) {
       console.error('🔴 Error in handleCreateNew:', error);
-      window.alert('Error\n\nCouldn\'t start a new invoice. Please try again.');
+      showAlert('Error', 'Couldn\'t start a new invoice. Please try again.');
     }
   };
 
@@ -131,7 +133,8 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     console.log('Selected invoice:', selectedInvoice.id, selectedInvoice.invoice_number);
 
     // Use window.confirm for web compatibility
-    const confirmed = window.confirm(
+    const confirmed = await confirmDialog(
+      'Delete Invoice',
       `Are you sure you want to delete invoice ${selectedInvoice.invoice_number}? This action cannot be undone.`
     );
 
@@ -146,10 +149,10 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       console.log('✓ Delete successful, updating UI');
       setViewMode('list');
       setSelectedInvoice(null);
-      window.alert('Invoice deleted successfully');
+      showAlert('Success', 'Invoice deleted successfully');
     } catch (error) {
       console.error('❌ Delete failed:', error);
-      window.alert('Failed to delete invoice');
+      showAlert('Error', 'Failed to delete invoice');
     }
   };
 
@@ -215,9 +218,9 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       // Navigate back to list so user can see updated invoice status
       setViewMode('list');
       setSelectedInvoice(null);
-      window.alert('Payment deleted successfully. Invoice status updated.');
+      showAlert('Success', 'Payment deleted successfully. Invoice status updated.');
     } catch (error: any) {
-      window.alert(error.message || 'Failed to delete payment');
+      showAlert('Error', error.message || 'Failed to delete payment');
     }
   };
 
@@ -239,7 +242,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
               <UsageLimitBanner
                 label="invoices"
                 usedCount={entitlements.usage.invoicesCreatedCount}
-                limitCount={3}
+                limitCount={entitlements.limits.invoicesMax ?? 0}
                 onUpgradePress={() => {
                   if (onNavigateToSubscription) {
                     onNavigateToSubscription();

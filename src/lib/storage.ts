@@ -26,7 +26,7 @@ export async function uploadReceipt({ userId, file }: UploadReceiptParams): Prom
   } else {
     // Mobile: read file as base64 and convert to ArrayBuffer
     const base64 = await FileSystem.readAsStringAsync(file.uri, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: 'base64' as any,
     });
     const binaryString = atob(base64);
     const bytes = new Uint8Array(binaryString.length);

@@ -2,13 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { supabase } from '../lib/supabase';
-import { logSecurityEvent } from '../lib/mfa';
+import {
+  getStoredTrustedDeviceToken,
+  getVerifiedTOTPFactor,
+  logSecurityEvent,
+  verifyTrustedDevice,
+  type MFAFactor,
+} from '../lib/mfa';
 import { trackLogin, trackSignUp } from '../lib/analytics';
 import { track } from '../lib/tracking';
 
 interface AuthCallbackScreenProps {
   oauthCallbackUrl?: string | null;
   onNavigateToMFASetup?: () => void;
+  onNavigateToMFAVerify?: (factor: MFAFactor) => void;
   onNavigateToDashboard?: () => void;
   onNavigateToAuth?: () => void;
 }
@@ -16,6 +23,7 @@ interface AuthCallbackScreenProps {
 export function AuthCallbackScreen({ 
   oauthCallbackUrl,
   onNavigateToMFASetup, 
+  onNavigateToMFAVerify,
   onNavigateToDashboard,
   onNavigateToAuth 
 }: AuthCallbackScreenProps = {}) {
@@ -127,22 +135,30 @@ export function AuthCallbackScreen({
         track('login', { method: 'magic_link' });
       }
 
-      // Check if MFA is enrolled by checking actual factors
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const hasVerifiedFactor = factors?.totp?.some(f => f.status === 'verified') || false;
+      const verifiedFactor = await getVerifiedTOTPFactor();
+      console.log('[AuthCallback] MFA check - has verified factor:', !!verifiedFactor);
 
-      console.log('[AuthCallback] MFA check - has verified factor:', hasVerifiedFactor);
-
-      if (!hasVerifiedFactor) {
+      if (!verifiedFactor) {
         // First time login - redirect to MFA setup
         console.log('[AuthCallback] Redirecting to MFA setup');
         setLoading(false);
         onNavigateToMFASetup?.();
       } else {
-        // MFA already enrolled - redirect to dashboard
-        console.log('[AuthCallback] Redirecting to dashboard');
+        const trustedDeviceToken = await getStoredTrustedDeviceToken();
+        const isTrustedDevice = trustedDeviceToken
+          ? await verifyTrustedDevice(trustedDeviceToken)
+          : false;
+
+        if (isTrustedDevice) {
+          console.log('[AuthCallback] Trusted device verified, redirecting to dashboard');
+          setLoading(false);
+          onNavigateToDashboard?.();
+          return;
+        }
+
+        console.log('[AuthCallback] Redirecting to MFA verification');
         setLoading(false);
-        onNavigateToDashboard?.();
+        onNavigateToMFAVerify?.(verifiedFactor);
       }
     } catch (err: any) {
       console.error('[AuthCallback] Error:', err);

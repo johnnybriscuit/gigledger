@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 /**
  * Google SSO Tests
  * Tests for Google OAuth integration
@@ -6,7 +8,7 @@
 describe('Google SSO Integration', () => {
   describe('OAuth handler', () => {
     it('should call signInWithOAuth with correct parameters', () => {
-      const mockSignInWithOAuth = jest.fn().mockResolvedValue({ error: null });
+      const mockSignInWithOAuth = vi.fn().mockResolvedValue({ error: null });
       const SITE_URL = 'https://gigledger-ten.vercel.app';
 
       // Mock Supabase client
@@ -42,7 +44,7 @@ describe('Google SSO Integration', () => {
 
     it('should handle OAuth errors gracefully', async () => {
       const mockError = { message: 'OAuth provider error' };
-      const mockSignInWithOAuth = jest.fn().mockResolvedValue({ error: mockError });
+      const mockSignInWithOAuth = vi.fn().mockResolvedValue({ error: mockError });
 
       const supabase = {
         auth: {
@@ -271,4 +273,3 @@ describe('Google SSO Integration', () => {
     });
   });
 });
-

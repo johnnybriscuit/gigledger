@@ -21,7 +21,7 @@ import {
   useQuickAddExpense,
   type RecurringExpense,
 } from '../hooks/useRecurringExpenses';
-import { usePlanLimits } from '../hooks/usePlanLimits';
+import { useEntitlements } from '../hooks/useEntitlements';
 import { H3, Text } from '../ui';
 import { colors } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
@@ -73,10 +73,10 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
   const deleteExpense = useDeleteExpense();
   const quickAdd = useQuickAddExpense();
 
-  // Use unified plan limits hook
-  const expenseCount = expenses?.length || 0;
-  const planLimits = usePlanLimits(0, expenseCount);
-  const { isFreePlan, hasReachedExpenseLimit } = planLimits;
+  const entitlements = useEntitlements();
+  const expenseCount = entitlements.usage.expensesCount;
+  const isFreePlan = !entitlements.isPro;
+  const hasReachedExpenseLimit = !entitlements.can.createExpense;
 
   const handleDelete = async (id: string, description: string) => {
     const confirmed = Platform.OS === 'web'
@@ -295,7 +295,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
           <UsageLimitBanner
             label="expenses"
             usedCount={expenseCount}
-            limitCount={7}
+            limitCount={entitlements.limits.expensesMax ?? 0}
             onUpgradePress={handleNavigateToSubscription}
           />
         </View>

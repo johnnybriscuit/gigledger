@@ -1,65 +1,68 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { supabase } from '../lib/supabase';
-import { Invoice, InvoiceSettings } from '../types/invoice';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Invoice, InvoiceSettings, PublicInvoicePayload } from '../types/invoice';
 import { InvoiceTemplate } from '../components/InvoiceTemplate';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
+import { getBaseUrl } from '../lib/getBaseUrl';
 
 interface PublicInvoiceViewProps {
   invoiceId: string;
+  token: string | null;
 }
 
-export function PublicInvoiceView({ invoiceId }: PublicInvoiceViewProps) {
+export function PublicInvoiceView({ invoiceId, token }: PublicInvoiceViewProps) {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [settings, setSettings] = useState<InvoiceSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchInvoice();
-  }, [invoiceId]);
+    void fetchInvoice();
+  }, [invoiceId, token]);
 
   const fetchInvoice = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .from('invoices' as any)
-        .select(`
-          *,
-          line_items:invoice_line_items(*)
-        `)
-        .eq('id', invoiceId)
-        .single();
-
-      if (invoiceError) throw invoiceError;
-
-      if (!invoiceData) {
-        throw new Error('Invoice not found');
+      if (!token) {
+        throw new Error('This invoice link is invalid or incomplete.');
       }
 
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('invoice_settings' as any)
-        .select('*')
-        .eq('user_id', invoiceData.user_id)
-        .single();
+      const baseUrl = getBaseUrl();
+      const url = new URL('/api/invoices/public', baseUrl);
+      url.searchParams.set('invoiceId', invoiceId);
+      url.searchParams.set('token', token);
 
-      if (settingsError) throw settingsError;
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
 
-      setInvoice(invoiceData);
-      setSettings(settingsData);
-
-      if (invoiceData.status === 'sent' && !invoiceData.viewed_at) {
-        await supabase
-          .from('invoices' as any)
-          .update({ 
-            status: 'viewed', 
-            viewed_at: new Date().toISOString() 
-          })
-          .eq('id', invoiceId);
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || 'Failed to load invoice');
       }
 
+      const payload = (await response.json()) as PublicInvoicePayload;
+
+      setInvoice(payload.invoice as Invoice);
+      setSettings(payload.settings as InvoiceSettings);
+
+      if (payload.invoice.status === 'sent' && !payload.invoice.viewed_at) {
+        await fetch(new URL('/api/invoices/public/viewed', baseUrl).toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            invoiceId,
+            token,
+          }),
+        });
+      }
     } catch (err) {
       console.error('Error fetching invoice:', err);
       setError(err instanceof Error ? err.message : 'Failed to load invoice');

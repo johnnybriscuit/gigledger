@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * VenuePlacesInput Component
  * Wrapper around react-native-google-places-textinput

@@ -6,6 +6,8 @@
 
 import { supabase } from './supabase';
 import * as Crypto from 'expo-crypto';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import bcrypt from 'bcryptjs';
 
 // ============================================================================
@@ -49,6 +51,8 @@ export interface SecurityEvent {
   success: boolean;
   created_at: string;
 }
+
+export const TRUSTED_DEVICE_KEY = 'gl_mfa_trusted_device';
 
 // ============================================================================
 // MFA Enrollment
@@ -129,7 +133,13 @@ export async function getMFAFactors(): Promise<MFAFactor[]> {
 
     if (error) throw error;
 
-    return (data?.totp || []) as MFAFactor[];
+    return (data?.totp || []).map((factor) => ({
+      id: factor.id,
+      type: 'totp',
+      status: factor.status === 'verified' ? 'verified' : 'unverified',
+      created_at: factor.created_at,
+      updated_at: factor.updated_at,
+    }));
   } catch (error) {
     console.error('[MFA] Error fetching factors:', error);
     return [];
@@ -468,6 +478,45 @@ export async function verifyTrustedDevice(deviceToken: string): Promise<boolean>
   } catch (error) {
     console.error('[MFA] Error verifying trusted device:', error);
     return false;
+  }
+}
+
+export async function getStoredTrustedDeviceToken(): Promise<string | null> {
+  try {
+    if (Platform.OS === 'web') {
+      return typeof localStorage !== 'undefined' ? localStorage.getItem(TRUSTED_DEVICE_KEY) : null;
+    }
+
+    return await SecureStore.getItemAsync(TRUSTED_DEVICE_KEY);
+  } catch (error) {
+    console.error('[MFA] Error reading trusted device token:', error);
+    return null;
+  }
+}
+
+export async function storeTrustedDeviceToken(deviceToken: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(TRUSTED_DEVICE_KEY, deviceToken);
+    }
+    return;
+  }
+
+  await SecureStore.setItemAsync(TRUSTED_DEVICE_KEY, deviceToken);
+}
+
+export async function clearStoredTrustedDeviceToken(): Promise<void> {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(TRUSTED_DEVICE_KEY);
+      }
+      return;
+    }
+
+    await SecureStore.deleteItemAsync(TRUSTED_DEVICE_KEY);
+  } catch (error) {
+    console.error('[MFA] Error clearing trusted device token:', error);
   }
 }
 

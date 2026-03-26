@@ -36,13 +36,13 @@ export function use1099Totals(taxYear: number) {
     queryKey: ['subcontractor-1099-totals', taxYear],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('subcontractor_1099_totals')
+        .from('subcontractor_1099_totals' as any)
         .select('*')
         .eq('tax_year', taxYear)
         .order('total_paid', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as Subcontractor1099Total[];
+      return (data || []) as unknown as Subcontractor1099Total[];
     },
   });
 }
@@ -52,7 +52,7 @@ export function use1099TotalForSubcontractor(subcontractorId: string, taxYear: n
     queryKey: ['subcontractor-1099-total', subcontractorId, taxYear],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('subcontractor_1099_totals')
+        .from('subcontractor_1099_totals' as any)
         .select('*')
         .eq('subcontractor_id', subcontractorId)
         .eq('tax_year', taxYear)
@@ -63,7 +63,7 @@ export function use1099TotalForSubcontractor(subcontractorId: string, taxYear: n
         if (error.code === 'PGRST116') return null;
         throw error;
       }
-      return data as Subcontractor1099Total;
+      return data as unknown as Subcontractor1099Total;
     },
   });
 }

@@ -441,14 +441,14 @@ export function formatTaxRate(rate: number): string {
  * Get state name from code
  */
 export function getStateName(code: StateCode): string {
-  const names: Record<StateCode, string> = {
+  const names: Partial<Record<StateCode, string>> = {
     TN: 'Tennessee',
     TX: 'Texas',
     CA: 'California',
     NY: 'New York',
     MD: 'Maryland',
   };
-  return names[code];
+  return names[code] ?? code;
 }
 
 /**

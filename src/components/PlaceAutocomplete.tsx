@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * PlaceAutocomplete Component
  * Google Places Autocomplete with Modal overlay

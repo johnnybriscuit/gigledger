@@ -83,7 +83,7 @@ export function useInvoices() {
       const taxAmount = formData.tax_rate ? subtotal * (formData.tax_rate / 100) : 0;
       const totalAmount = subtotal + taxAmount - (formData.discount_amount || 0);
 
-      const { data: invoice, error: invoiceError } = await supabase
+      const { data: invoiceData, error: invoiceError } = await supabase
         .from('invoices' as any)
         .insert({
           user_id: user.id,
@@ -110,6 +110,7 @@ export function useInvoices() {
         .single();
 
       if (invoiceError) throw invoiceError;
+      const invoice = invoiceData as any;
 
       const lineItemsWithInvoiceId = lineItems.map(item => ({
         ...item,

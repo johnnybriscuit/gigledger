@@ -13,16 +13,16 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
-  Platform,
 } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 import {
   createMFAChallenge,
   verifyMFAChallenge,
   verifyBackupCode,
   addTrustedDevice,
+  storeTrustedDeviceToken,
   type MFAFactor,
 } from '../lib/mfa';
+import { supabase } from '../lib/supabase';
 
 interface MFAVerifyScreenProps {
   factor: MFAFactor;
@@ -31,8 +31,6 @@ interface MFAVerifyScreenProps {
 }
 
 type VerifyMode = 'totp' | 'backup';
-
-const TRUSTED_DEVICE_KEY = 'gl_mfa_trusted_device';
 
 export function MFAVerifyScreen({ factor, onVerified, onCancel }: MFAVerifyScreenProps) {
   const [mode, setMode] = useState<VerifyMode>('totp');
@@ -133,18 +131,10 @@ export function MFAVerifyScreen({ factor, onVerified, onCancel }: MFAVerifyScree
 
   const saveTrustedDevice = async () => {
     try {
-      const deviceName = Platform.OS === 'ios' ? 'iPhone' :
-                        Platform.OS === 'android' ? 'Android' :
-                        'Web Browser';
+      const deviceName = 'Trusted Device';
       
       const deviceToken = await addTrustedDevice(deviceName);
-      
-      // Save token to secure storage
-      if (Platform.OS === 'web') {
-        localStorage.setItem(TRUSTED_DEVICE_KEY, deviceToken);
-      } else {
-        await SecureStore.setItemAsync(TRUSTED_DEVICE_KEY, deviceToken);
-      }
+      await storeTrustedDeviceToken(deviceToken);
     } catch (error) {
       console.error('[MFAVerify] Error saving trusted device:', error);
       // Don't fail verification if trust device fails
@@ -163,6 +153,11 @@ export function MFAVerifyScreen({ factor, onVerified, onCancel }: MFAVerifyScree
     setMode(mode === 'totp' ? 'backup' : 'totp');
     setCode('');
     setError('');
+  };
+
+  const handleCancel = async () => {
+    await supabase.auth.signOut();
+    onCancel();
   };
 
   return (
@@ -250,7 +245,7 @@ export function MFAVerifyScreen({ factor, onVerified, onCancel }: MFAVerifyScree
         {/* Cancel */}
         <TouchableOpacity
           style={styles.cancelButton}
-          onPress={onCancel}
+          onPress={handleCancel}
           disabled={loading}
         >
           <Text style={styles.cancelButtonText}>Cancel & Sign Out</Text>

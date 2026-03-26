@@ -3,7 +3,7 @@
  * Tests Schedule C calculations, CSV generation, and data transformations
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect } from 'vitest';
 import {
   calculateScheduleCSummary,
   generateGigsCSV,
@@ -314,9 +314,9 @@ describe('Schedule C Calculator', () => {
 
     const result = calculateScheduleCSummary(input);
 
-    // SE tax basis = net profit * 0.9235
-    // $2246.40 * 0.9235 = $2074.56
-    expect(result.se_tax_basis).toBeCloseTo(2074.56, 2);
+    // SE tax basis = net profit * 0.9235, rounded to cents
+    // $2246.40 * 0.9235 = $2074.5504 -> $2074.55
+    expect(result.se_tax_basis).toBeCloseTo(2074.55, 2);
   });
 });
 
