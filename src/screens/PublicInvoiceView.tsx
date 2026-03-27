@@ -50,19 +50,6 @@ export function PublicInvoiceView({ invoiceId, token }: PublicInvoiceViewProps) 
 
       setInvoice(payload.invoice as Invoice);
       setSettings(payload.settings as InvoiceSettings);
-
-      if (payload.invoice.status === 'sent' && !payload.invoice.viewed_at) {
-        await fetch(new URL('/api/invoices/public/viewed', baseUrl).toString(), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            invoiceId,
-            token,
-          }),
-        });
-      }
     } catch (err) {
       console.error('Error fetching invoice:', err);
       setError(err instanceof Error ? err.message : 'Failed to load invoice');

@@ -76,6 +76,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'Invoice not found' });
     }
 
+    let invoiceStatus = invoice.status;
+    let invoiceViewedAt = invoice.viewed_at;
+
+    if (invoice.status === 'sent' && !invoice.viewed_at) {
+      const viewedAt = new Date().toISOString();
+      const { error: viewedUpdateError } = await supabase
+        .from('invoices')
+        .update({
+          status: 'viewed',
+          viewed_at: viewedAt,
+        })
+        .eq('id', invoice.id)
+        .eq('public_token', token);
+
+      if (!viewedUpdateError) {
+        invoiceStatus = 'viewed';
+        invoiceViewedAt = viewedAt;
+      } else {
+        console.warn('[public-invoice] Failed to mark invoice as viewed:', viewedUpdateError);
+      }
+    }
+
     const { data: settings, error: settingsError } = await supabase
       .from('invoice_settings')
       .select(`
@@ -112,7 +134,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         invoice_number: invoice.invoice_number,
         invoice_date: invoice.invoice_date,
         due_date: invoice.due_date,
-        status: invoice.status as PublicInvoicePayload['invoice']['status'],
+        status: invoiceStatus as PublicInvoicePayload['invoice']['status'],
         subtotal: Number(invoice.subtotal ?? 0),
         tax_rate: invoice.tax_rate === null ? undefined : Number(invoice.tax_rate),
         tax_amount: invoice.tax_amount === null ? undefined : Number(invoice.tax_amount),
@@ -122,7 +144,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         payment_terms: invoice.payment_terms ?? undefined,
         notes: invoice.notes ?? undefined,
         sent_at: invoice.sent_at ?? undefined,
-        viewed_at: invoice.viewed_at ?? undefined,
+        viewed_at: invoiceViewedAt ?? undefined,
         paid_at: invoice.paid_at ?? undefined,
         line_items: (invoice.invoice_line_items ?? []).map((item) => ({
           id: item.id,
