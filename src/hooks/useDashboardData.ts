@@ -50,6 +50,7 @@ export interface PayerBreakdown {
 
 export interface DashboardData {
   isReady: boolean; // NEW: Indicates all data is loaded and totals are accurate
+  allTimeGigsCount: number; // NEW: Count of all gigs regardless of date range
   monthly: MonthlyPoint[];
   cumulativeNet: { month: string; value: number }[];
   expenseBreakdown: ExpenseCategoryPoint[];
@@ -420,6 +421,7 @@ export function useDashboardData(
       expenseBreakdown,
       incomeBreakdown,
       payerBreakdown,
+      allTimeGigsCount: allGigs.length,
       gigsCount: gigs.length,
       ytdGigsCount,
       paidGigsCount,

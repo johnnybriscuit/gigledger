@@ -20,7 +20,7 @@ export default async function handler(
   
   // Always set CORS headers for same-origin requests
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-csrf-token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-csrf-token, cf-turnstile-token');
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   res.setHeader('Vary', 'Origin');
   res.setHeader('Content-Type', 'application/json');
@@ -126,6 +126,14 @@ export default async function handler(
         method: 'POST',
         body: formData,
       });
+
+      if (!verifyResponse.ok) {
+        console.error('[signup-password] Turnstile verification request failed:', verifyResponse.status);
+        return res.status(502).json({
+          error: 'Verification service error',
+          code: 'ANTIBOT_UNAVAILABLE',
+        });
+      }
 
       const verifyData = await verifyResponse.json();
 

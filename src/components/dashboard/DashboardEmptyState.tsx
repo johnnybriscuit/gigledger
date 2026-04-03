@@ -3,22 +3,30 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, spacingNum, radiusNum } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
 
-interface ActionCardProps {
-  icon: string;
+interface StepCardProps {
+  step: string;
   title: string;
   description: string;
   buttonText: string;
   onClick: () => void;
+  primary?: boolean;
 }
 
-const ActionCard: React.FC<ActionCardProps> = ({ icon, title, description, buttonText, onClick }) => {
+const StepCard: React.FC<StepCardProps> = ({ step, title, description, buttonText, onClick, primary = false }) => {
   return (
-    <View style={styles.actionCard}>
-      <Text style={styles.actionIcon}>{icon}</Text>
-      <Text style={styles.actionTitle}>{title}</Text>
-      <Text style={styles.actionDescription}>{description}</Text>
-      <TouchableOpacity style={styles.actionButton} onPress={onClick}>
-        <Text style={styles.actionButtonText}>{buttonText}</Text>
+    <View style={styles.stepCard}>
+      <View style={styles.stepHeader}>
+        <View style={styles.stepBadge}>
+          <Text style={styles.stepBadgeText}>{step}</Text>
+        </View>
+        <Text style={styles.stepTitle}>{title}</Text>
+      </View>
+      <Text style={styles.stepDescription}>{description}</Text>
+      <TouchableOpacity
+        style={[styles.stepButton, primary && styles.stepButtonPrimary]}
+        onPress={onClick}
+      >
+        <Text style={[styles.stepButtonText, primary && styles.stepButtonTextPrimary]}>{buttonText}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -27,53 +35,54 @@ const ActionCard: React.FC<ActionCardProps> = ({ icon, title, description, butto
 interface DashboardEmptyStateProps {
   onAddContact: () => void;
   onAddGig: () => void;
-  onAddExpense: () => void;
+  onOpenGigs: () => void;
 }
 
 export const DashboardEmptyState: React.FC<DashboardEmptyStateProps> = ({
   onAddContact,
   onAddGig,
-  onAddExpense,
+  onOpenGigs,
 }) => {
   const { isMobile } = useResponsive();
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.welcomeTitle}>Welcome to Bozzy! 👋</Text>
+        <Text style={styles.welcomeTitle}>Welcome to Bozzy 👋</Text>
         <Text style={styles.welcomeSubtitle}>
-          You're all set up. Here's what you can do next:
+          Let’s log your first gig so your dashboard, tax estimates, and reports can start working for you.
         </Text>
       </View>
 
-      <View style={[styles.actionCards, isMobile && styles.actionCardsMobile]}>
-        <ActionCard
-          icon="📇"
-          title="Add Your First Contact"
-          description="Track clients, venues, and platforms you work with."
-          buttonText="+ Add Contact"
+      <View style={[styles.stepsContainer, isMobile && styles.stepsContainerMobile]}>
+        <StepCard
+          step="1"
+          title="Add a contact"
+          description="Create a payer (venue, client, or platform) so your gig has someone attached to it."
+          buttonText="Add Contact"
           onClick={onAddContact}
         />
 
-        <ActionCard
-          icon="🎸"
-          title="Log Your First Gig"
-          description="Start tracking your income and stay organized for taxes."
+        <StepCard
+          step="2"
+          title="Log your first gig"
+          description="Add date + amount to create your first income record. You can fill in extras later."
           buttonText="+ Add Gig"
           onClick={onAddGig}
+          primary
         />
 
-        <ActionCard
-          icon="💰"
-          title="Add an Expense"
-          description="Log business expenses to maximize deductions."
-          buttonText="+ Add Expense"
-          onClick={onAddExpense}
+        <StepCard
+          step="3"
+          title="Review your gigs"
+          description="Open the Gigs tab anytime to edit details, mark gigs paid, and keep everything organized."
+          buttonText="Open Gigs"
+          onClick={onOpenGigs}
         />
       </View>
 
       <Text style={styles.exploreMessage}>
-        Or explore at your own pace - we'll be here when you're ready!
+        Tip: Start simple with one gig — you can always add more detail later.
       </Text>
     </View>
   );
@@ -88,10 +97,11 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacingNum[10],
+    marginBottom: spacingNum[8],
+    maxWidth: 760,
   },
   welcomeTitle: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '700',
     color: colors.text.DEFAULT,
     marginBottom: spacingNum[3],
@@ -101,60 +111,77 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.muted,
     textAlign: 'center',
-    maxWidth: 600,
+    lineHeight: 24,
   },
-  actionCards: {
+  stepsContainer: {
     flexDirection: 'row',
-    gap: spacingNum[6],
-    marginBottom: spacingNum[10],
+    gap: spacingNum[5],
+    marginBottom: spacingNum[8],
     maxWidth: 1200,
     width: '100%',
   },
-  actionCardsMobile: {
+  stepsContainerMobile: {
     flexDirection: 'column',
   },
-  actionCard: {
+  stepCard: {
     flex: 1,
     backgroundColor: colors.surface.DEFAULT,
     borderRadius: radiusNum.lg,
-    padding: spacingNum[8],
-    alignItems: 'center',
+    padding: spacingNum[6],
     borderWidth: 1,
     borderColor: colors.border.DEFAULT,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    minHeight: 220,
   },
-  actionIcon: {
-    fontSize: 48,
-    marginBottom: spacingNum[4],
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacingNum[3],
   },
-  actionTitle: {
+  stepBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.brand.muted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacingNum[3],
+  },
+  stepBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.brand.hover,
+  },
+  stepTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.text.DEFAULT,
-    marginBottom: spacingNum[3],
-    textAlign: 'center',
   },
-  actionDescription: {
+  stepDescription: {
     fontSize: 14,
     color: colors.text.muted,
-    textAlign: 'center',
-    marginBottom: spacingNum[6],
+    marginBottom: spacingNum[5],
     lineHeight: 20,
+    flex: 1,
   },
-  actionButton: {
-    backgroundColor: colors.success.DEFAULT,
-    paddingHorizontal: spacingNum[6],
-    paddingVertical: spacingNum[4],
+  stepButton: {
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    paddingHorizontal: spacingNum[5],
+    paddingVertical: spacingNum[3],
     borderRadius: radiusNum.md,
+    alignItems: 'center',
   },
-  actionButtonText: {
-    color: '#fff',
+  stepButtonPrimary: {
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
+  },
+  stepButtonText: {
+    color: colors.text.DEFAULT,
     fontSize: 14,
     fontWeight: '600',
+  },
+  stepButtonTextPrimary: {
+    color: colors.brand.foreground,
   },
   exploreMessage: {
     fontSize: 14,

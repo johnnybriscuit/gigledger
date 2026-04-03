@@ -25,6 +25,7 @@ import { perf } from '../../lib/performance';
 import { spacing } from '../../styles/theme';
 import { useEffect } from 'react';
 import { UsageWidget } from '../UsageWidget';
+import { DashboardEmptyState } from './DashboardEmptyState';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -36,6 +37,7 @@ interface EnhancedDashboardProps {
   onPayerChange?: (payerId: string | null) => void;
   onNavigateToExpenses?: () => void;
   onNavigateToGigs?: (payerFilter?: string) => void;
+  onNavigateToPayers?: () => void;
   onAddGig?: () => void;
   onAddExpense?: () => void;
   onExport?: () => void;
@@ -50,6 +52,7 @@ export function EnhancedDashboard({
   onPayerChange,
   onNavigateToExpenses,
   onNavigateToGigs,
+  onNavigateToPayers,
   onAddGig,
   onAddExpense,
   onExport,
@@ -93,6 +96,20 @@ export function EnhancedDashboard({
     // TODO: Implement CSV export for drill-through month
     alert('Export functionality coming soon!');
   };
+
+  const showFirstGigWelcome = data.isReady && data.allTimeGigsCount === 0;
+
+  if (showFirstGigWelcome) {
+    return (
+      <View style={styles.container}>
+        <DashboardEmptyState
+          onAddContact={() => onNavigateToPayers?.()}
+          onAddGig={() => onAddGig?.()}
+          onOpenGigs={() => onNavigateToGigs?.()}
+        />
+      </View>
+    );
+  }
 
   return (
     <View 

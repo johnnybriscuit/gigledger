@@ -77,6 +77,15 @@ export function clearSharedUserId() {
 }
 
 /**
+ * Sync the cache with the latest auth state.
+ * Use this on sign-in, sign-out, and session restoration so hooks don't read a stale user id.
+ */
+export function syncSharedUserId(userId: string | null) {
+  cachedUserId = userId;
+  authPromise = null;
+}
+
+/**
  * Get the cached userId synchronously (if available)
  * Returns null if not yet fetched
  * 

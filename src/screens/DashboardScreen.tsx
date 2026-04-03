@@ -263,6 +263,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
               // TODO: Pass payer filter to GigsScreen
               setActiveTab('gigs');
             }}
+            onNavigateToPayers={() => setActiveTab('payers')}
             onAddGig={() => setShowAddGigModal(true)}
             onAddExpense={() => setShowAddExpenseModal(true)}
             onExport={() => setActiveTab('exports')}

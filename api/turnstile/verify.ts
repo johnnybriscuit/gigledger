@@ -42,18 +42,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ ok: false, error: 'Server configuration error' });
     }
 
+    const remoteIpHeader = req.headers['x-forwarded-for'];
+    const remoteIp = Array.isArray(remoteIpHeader)
+      ? remoteIpHeader[0]
+      : remoteIpHeader?.split(',')[0]?.trim();
+
+    const formData = new URLSearchParams({
+      secret: secretKey,
+      response: token,
+    });
+    if (remoteIp) {
+      formData.set('remoteip', remoteIp);
+    }
+
     // POST to Cloudflare siteverify
     const verifyResponse = await fetch(
       'https://challenges.cloudflare.com/turnstile/v0/siteverify',
       {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: JSON.stringify({
-          secret: secretKey,
-          response: token,
-        }),
+        body: formData.toString(),
       }
     );
 

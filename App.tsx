@@ -31,6 +31,7 @@ import { ErrorScreen } from './src/components/ErrorScreen';
 import { perf } from './src/lib/performance';
 import { enableQueryDebug } from './src/lib/queryDebug';
 import { trackPageView } from './src/lib/analytics';
+import { clearSharedUserId, syncSharedUserId } from './src/lib/sharedAuth';
 import type { Session } from '@supabase/supabase-js';
 import type { MFAFactor } from './src/lib/mfa';
 
@@ -74,9 +75,8 @@ function AppContent() {
       token: new URLSearchParams(window.location.search).get('token'),
     };
   };
-  
-  // Determine initial route from URL pathname on web
-  const getInitialRoute = () => {
+
+  const getRouteFromLocation = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const pathname = window.location.pathname;
       if (pathname === '/terms') return 'terms';
@@ -90,7 +90,7 @@ function AppContent() {
   };
   
   const initialPublicInvoiceRoute = getPublicInvoiceRoute();
-  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-verify' | 'public-invoice' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>(getInitialRoute());
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-verify' | 'public-invoice' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>(getRouteFromLocation());
   const [authResolved, setAuthResolved] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [onboardingJustCompleted, setOnboardingJustCompleted] = useState(false);
@@ -122,6 +122,21 @@ function AppContent() {
     }
   }, [currentRoute]);
 
+  // Keep the in-app route aligned with browser history navigation on web.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') {
+      return;
+    }
+
+    const syncRouteFromLocation = () => {
+      setCurrentRoute(getRouteFromLocation());
+      setPublicInvoiceRoute(getPublicInvoiceRoute());
+    };
+
+    window.addEventListener('popstate', syncRouteFromLocation);
+    return () => window.removeEventListener('popstate', syncRouteFromLocation);
+  }, []);
+
   // Track page views on route changes
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -146,6 +161,7 @@ function AppContent() {
             console.log('🔴 [Auth] Clearing stale session and cached data');
             await supabase.auth.signOut();
             queryClient.clear();
+            clearSharedUserId();
             if (Platform.OS === 'web') {
               localStorage.clear();
               sessionStorage.clear();
@@ -157,9 +173,13 @@ function AppContent() {
           }
           
           console.log('✅ [Auth] Session validated successfully');
+          syncSharedUserId(user.id);
         }
         
         setSession(currentSession);
+        if (!currentSession) {
+          clearSharedUserId();
+        }
         setAuthResolved(true);
         
         // If user has session and is on landing, redirect to dashboard
@@ -169,6 +189,7 @@ function AppContent() {
         }
       } catch (error) {
         console.error('[Auth] Failed to resolve session:', error);
+        clearSharedUserId();
         setAuthResolved(true); // Still mark as resolved to avoid infinite loading
       }
     }
@@ -197,6 +218,11 @@ function AppContent() {
       console.log('🟢 Auth state changed:', event, 'Session:', !!newSession);
       setSession(newSession);
       setAuthResolved(true);
+      if (newSession?.user?.id) {
+        syncSharedUserId(newSession.user.id);
+      } else {
+        clearSharedUserId();
+      }
       
       // Clear all cached data on sign out to prevent data leakage
       if (event === 'SIGNED_OUT') {

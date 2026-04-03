@@ -104,7 +104,13 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
     console.debug('[ForgotPassword] Requesting password reset', { email });
 
     try {
-      if (!serverApiAvailable) {
+      let tokenToUse = csrfToken;
+      if (serverApiAvailable && !tokenToUse) {
+        console.log('[ForgotPassword] No CSRF token found, fetching now...');
+        tokenToUse = await fetchCsrfToken();
+      }
+
+      if (!serverApiAvailable || !tokenToUse) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${SITE_URL}/reset-password`,
         });
@@ -120,7 +126,7 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken || '',
+          'x-csrf-token': tokenToUse,
         },
         body: JSON.stringify({ email }),
       });

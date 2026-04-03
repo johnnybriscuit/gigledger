@@ -312,7 +312,13 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
     try {
       if (mode === 'signup') {
-        if (!serverApiAvailable) {
+        let tokenToUse = csrfToken;
+        if (serverApiAvailable && !tokenToUse) {
+          console.log('[Auth] No CSRF token found for password signup, fetching now...');
+          tokenToUse = await fetchCsrfToken();
+        }
+
+        if (!serverApiAvailable || !tokenToUse) {
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -340,7 +346,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-csrf-token': csrfToken || '',
+            'x-csrf-token': tokenToUse,
           },
           credentials: 'include', // Ensure cookies are sent
           body: JSON.stringify({

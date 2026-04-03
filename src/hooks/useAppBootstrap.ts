@@ -305,6 +305,7 @@ export function useAppBootstrap() {
       session: null,
       needsOnboarding: false,
     });
+    setAuthTrigger(prev => prev + 1);
   };
 
   return { ...status, retry };
