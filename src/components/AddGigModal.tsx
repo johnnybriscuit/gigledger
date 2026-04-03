@@ -42,7 +42,7 @@ import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getEffectiveTaxTreatment, getTaxTreatmentLabel, getTaxTreatmentShortLabel, getDefaultAmountType } from '../lib/taxTreatment';
-import { getBaseUrl } from '../lib/getBaseUrl';
+import { resolvePlaceDetails } from '../lib/placeDetails';
 
 interface AddGigModalProps {
   visible: boolean;
@@ -1084,31 +1084,40 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     setVenueDetails(null);
                     setVenueError('');
                   }}
-                  onSelect={async (item: { description: string; place_id: string }) => {
+                  onSelect={async (item: { description: string; place_id: string; lat?: number; lng?: number }) => {
                     setLocation(item.description);
                     setVenueError('');
+
+                    if (typeof item.lat === 'number' && typeof item.lng === 'number') {
+                      setVenueDetails((prev: any) => ({
+                        ...(prev || {}),
+                        formatted_address: prev?.formatted_address || item.description,
+                        location: { lat: item.lat, lng: item.lng },
+                        parts: prev?.parts || {},
+                      }));
+                    }
                     
                     try {
-                      const response = await fetch(`${getBaseUrl()}/api/places/details?place_id=${encodeURIComponent(item.place_id)}`, {
-                        credentials: 'include',
-                      });
-                      
-                      if (response.ok) {
-                        const details = await response.json();
+                      const details = await resolvePlaceDetails(item.place_id);
+
+                      if (details) {
                         setVenueDetails(details);
                         
-                        if (details.parts.city) {
+                        if (details.parts?.city) {
                           setCity(details.parts.city);
                         }
-                        if (details.parts.state) {
+                        if (details.parts?.state) {
                           setState(details.parts.state);
                         }
-                        if (details.parts.country) {
+                        if (details.parts?.country) {
                           setCountry(details.parts.country);
                         }
+                      } else {
+                        setVenueError('Could not load venue details. Select a venue from suggestions or enter miles manually.');
                       }
                     } catch (error) {
                       console.error('Error fetching venue details:', error);
+                      setVenueError('Could not load venue details. Select a venue from suggestions or enter miles manually.');
                     }
                   }}
                   error={venueError}
@@ -1128,28 +1137,37 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     setCityDetails(null);
                     setCityError('');
                   }}
-                  onSelect={async (item: { description: string; place_id: string }) => {
+                  onSelect={async (item: { description: string; place_id: string; lat?: number; lng?: number }) => {
                     setCity(item.description);
                     setCityError('');
+
+                    if (typeof item.lat === 'number' && typeof item.lng === 'number') {
+                      setCityDetails((prev: any) => ({
+                        ...(prev || {}),
+                        formatted_address: prev?.formatted_address || item.description,
+                        location: { lat: item.lat, lng: item.lng },
+                        parts: prev?.parts || {},
+                      }));
+                    }
                     
                     try {
-                      const response = await fetch(`${getBaseUrl()}/api/places/details?place_id=${encodeURIComponent(item.place_id)}`, {
-                        credentials: 'include',
-                      });
-                      
-                      if (response.ok) {
-                        const details = await response.json();
+                      const details = await resolvePlaceDetails(item.place_id);
+
+                      if (details) {
                         setCityDetails(details);
                         
-                        if (details.parts.state) {
+                        if (details.parts?.state) {
                           setState(details.parts.state);
                         }
-                        if (details.parts.country) {
+                        if (details.parts?.country) {
                           setCountry(details.parts.country);
                         }
+                      } else {
+                        setCityError('Could not load city details. Select a city from suggestions or fill fields manually.');
                       }
                     } catch (error) {
                       console.error('Error fetching city details:', error);
+                      setCityError('Could not load city details. Select a city from suggestions or fill fields manually.');
                     }
                   }}
                   error={cityError}

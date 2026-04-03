@@ -20,7 +20,7 @@ interface VenuePlacesInputProps {
   types?: 'establishment' | '(cities)' | 'address';
   value: string;
   onChange: (text: string) => void;
-  onSelect: (item: { description: string; place_id: string }) => void;
+  onSelect: (item: { description: string; place_id: string; lat?: number; lng?: number }) => void;
   disabled?: boolean;
   error?: string;
   locationBias?: { lat: number; lng: number };
@@ -72,10 +72,15 @@ export function VenuePlacesInput({
     // Call parent onChange
     onChange(description);
     
+    const payloadLat = place.location?.latitude ?? place.location?.lat ?? place.lat ?? place.latitude;
+    const payloadLng = place.location?.longitude ?? place.location?.lng ?? place.lng ?? place.longitude;
+    const hasPayloadCoords = typeof payloadLat === 'number' && typeof payloadLng === 'number';
+
     // Call parent onSelect
     onSelect({
       description: description,
-      place_id: place.placeId,
+      place_id: place.placeId || place.place_id || place.id,
+      ...(hasPayloadCoords ? { lat: payloadLat, lng: payloadLng } : {}),
     });
   };
 

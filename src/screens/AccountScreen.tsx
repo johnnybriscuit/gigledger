@@ -25,6 +25,7 @@ import { formatRelativeTime } from '../lib/profile';
 import { colors } from '../styles/theme';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
 import { getStateName } from '../tax/engine';
+import { resolvePlaceDetails } from '../lib/placeDetails';
 
 const ALL_PAYMENT_METHODS: { key: string; label: string }[] = [
   { key: 'venmo', label: 'Venmo' },
@@ -426,12 +427,25 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                 <TextInput style={styles.editInput} value={fullName} onChangeText={setFullName} placeholder="Enter your name" />
                 <RNText style={styles.editFieldLabel}>Home Address</RNText>
                 <AddressPlacesInput label="" placeholder="123 Main St, City, State ZIP" value={homeAddressFull} onChange={setHomeAddressFull}
-                  onSelect={async (item: { description: string; place_id: string }) => {
-                    setHomeAddressFull(item.description); setHomeAddressPlaceId(item.place_id);
+                  onSelect={async (item: { description: string; place_id: string; lat?: number; lng?: number }) => {
+                    setHomeAddressFull(item.description);
+                    setHomeAddressPlaceId(item.place_id);
+
+                    if (typeof item.lat === 'number' && typeof item.lng === 'number') {
+                      setHomeAddressLat(item.lat);
+                      setHomeAddressLng(item.lng);
+                      return;
+                    }
+
                     try {
-                      const r = await fetch(`/api/places/details?place_id=${item.place_id}`, { credentials: 'include' });
-                      if (r.ok) { const d = await r.json(); if (d.location) { setHomeAddressLat(d.location.lat); setHomeAddressLng(d.location.lng); } }
-                    } catch (e) { console.error(e); }
+                      const details = await resolvePlaceDetails(item.place_id);
+                      if (details?.location) {
+                        setHomeAddressLat(details.location.lat);
+                        setHomeAddressLng(details.location.lng);
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    }
                   }} />
                 <View style={styles.editButtonRow}>
                   <TouchableOpacity style={styles.editCancelBtn} onPress={() => { setIsEditingProfile(false); setFullName(profile?.full_name || ''); }}>

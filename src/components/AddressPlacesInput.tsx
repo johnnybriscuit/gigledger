@@ -14,7 +14,7 @@ import GooglePlacesTextInput, {
 import { Text } from '../ui';
 import { colors } from '../styles/theme';
 import Constants from 'expo-constants';
-import { getBaseUrl } from '../lib/getBaseUrl';
+import { resolvePlaceDetails } from '../lib/placeDetails';
 
 interface AddressPlacesInputProps {
   label: string;
@@ -60,7 +60,10 @@ export function AddressPlacesInput({
     // Extract place details
     const placeName = place.structuredFormat?.mainText?.text || place.name || '';
     const formattedAddress = place.text?.text || place.formattedAddress || place.description || '';
-    const placeId = place.placeId || '';
+    const placeId = place.placeId || place.place_id || place.id || '';
+    const payloadLat = place.location?.latitude ?? place.location?.lat ?? place.lat ?? place.latitude;
+    const payloadLng = place.location?.longitude ?? place.location?.lng ?? place.lng ?? place.longitude;
+    const hasPayloadCoords = typeof payloadLat === 'number' && typeof payloadLng === 'number';
     
     // Determine if this is an establishment (venue) or just an address
     const isEstablishment = place.types?.includes('establishment') || 
@@ -96,37 +99,35 @@ export function AddressPlacesInput({
       place_id: placeId,
       name: placeName,
       formatted_address: formattedAddress,
+      ...(hasPayloadCoords ? { lat: payloadLat, lng: payloadLng } : {}),
     });
+
+    if (hasPayloadCoords) {
+      return;
+    }
     
     // Fetch coordinates using the shared Places endpoint for both web and native.
     if (placeId) {
       try {
-        const response = await fetch(
-          `${getBaseUrl()}/api/places/details?place_id=${encodeURIComponent(placeId)}`
-        );
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
+        const details = await resolvePlaceDetails(placeId);
+
+        if (!details || !details.location) {
           if (isDev) {
-            console.warn('[Places] coords FAILED', { place_id: placeId, error: `HTTP ${response.status}` });
+            console.warn('[Places] coords FAILED', { place_id: placeId, error: 'No location returned from resolver' });
           }
           onCoordsFailed?.();
           return;
         }
-        
-        const data = await response.json();
-        
+
         // Guard: Ensure coordinates are present and valid
-        if (typeof data.location?.lat === 'number' &&
-            typeof data.location?.lng === 'number' && 
-            typeof data.location.lat === 'number' && 
-            typeof data.location.lng === 'number') {
+        if (typeof details.location.lat === 'number' &&
+            typeof details.location.lng === 'number') {
           
           if (isDev) {
             console.debug('[Places] coords resolved', { 
               place_id: placeId, 
-              lat: data.location.lat, 
-              lng: data.location.lng 
+              lat: details.location.lat,
+              lng: details.location.lng
             });
           }
           
@@ -136,8 +137,8 @@ export function AddressPlacesInput({
             place_id: placeId,
             name: placeName,
             formatted_address: formattedAddress,
-            lat: data.location.lat,
-            lng: data.location.lng,
+            lat: details.location.lat,
+            lng: details.location.lng,
           });
         } else {
           // Coordinates missing or invalid
@@ -145,7 +146,7 @@ export function AddressPlacesInput({
             console.warn('[Places] coords FAILED', { 
               place_id: placeId, 
               error: 'Missing or invalid lat/lng in response',
-              data 
+              details
             });
           }
           onCoordsFailed?.();
