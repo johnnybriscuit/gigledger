@@ -40,12 +40,12 @@ export function OnboardingHelperCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.surface.elevated,
     borderRadius: parseInt(radius.lg),
     padding: parseInt(spacing[4]),
     marginBottom: parseInt(spacing[4]),
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: colors.border.DEFAULT,
   },
   content: {
     flexDirection: 'row',
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    color: '#ffffff',
+    color: colors.brand.foreground,
     fontSize: 15,
     fontWeight: typography.fontWeight.semibold,
   },

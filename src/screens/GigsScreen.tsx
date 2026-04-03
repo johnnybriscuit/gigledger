@@ -36,20 +36,23 @@ import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 
 // Design tokens
 const T = {
-  bg: '#F5F4F0',
-  surface: '#FFFFFF',
-  surface2: '#EEECEA',
-  border: '#E5E3DE',
-  textPrimary: '#1A1A1A',
-  textSecondary: '#7A7671',
-  textMuted: '#B0ADA8',
-  green: '#1D9B5E',
-  greenLight: '#E8F7F0',
-  amber: '#D97706',
-  amberLight: '#FEF3C7',
-  accent: '#2D5BE3',
-  accentLight: '#F0F4FF',
-  red: '#DC2626',
+  bg: colors.surface.canvas,
+  surfacePanel: colors.surface.DEFAULT,
+  surface: colors.surface.elevated,
+  surface2: colors.surface.muted,
+  border: colors.border.DEFAULT,
+  borderMuted: colors.border.muted,
+  textPrimary: colors.text.DEFAULT,
+  textSecondary: colors.text.muted,
+  textMuted: colors.text.subtle,
+  textOnBrand: colors.brand.foreground,
+  green: colors.success.DEFAULT,
+  greenLight: colors.success.muted,
+  amber: colors.warning.DEFAULT,
+  amberLight: colors.warning.muted,
+  accent: colors.brand.DEFAULT,
+  accentLight: colors.brand.muted,
+  red: colors.danger.DEFAULT,
   mono: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
 };
 
@@ -200,9 +203,9 @@ const cardS = StyleSheet.create({
     backgroundColor: T.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: T.border,
+    borderColor: T.borderMuted,
     marginBottom: 10,
-    marginHorizontal: 10,
+    marginHorizontal: 0,
     overflow: 'hidden',
   },
   cardSelected: {
@@ -227,7 +230,7 @@ const cardS = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: { backgroundColor: T.accent, borderColor: T.accent },
-  checkboxTick: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 14 },
+  checkboxTick: { color: T.textOnBrand, fontSize: 12, fontWeight: '700', lineHeight: 14 },
   left: { flex: 1, minWidth: 0 },
   bandName: { fontSize: 15, fontWeight: '700', color: T.textPrimary, marginBottom: 3 },
   venue: { fontSize: 13, color: T.textSecondary, marginBottom: 10 },
@@ -258,10 +261,10 @@ const cardS = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: T.border,
-    backgroundColor: T.bg,
+    borderTopColor: T.borderMuted,
+    backgroundColor: T.surfacePanel,
   },
-  footerSelected: { backgroundColor: '#EBF0FF' },
+  footerSelected: { backgroundColor: T.accentLight },
   tourTag: { fontSize: 12, fontWeight: '600', color: T.textSecondary },
   footerActions: { flexDirection: 'row', gap: 12 },
   footerBtn: { paddingVertical: 2 },
@@ -523,12 +526,14 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           <NativeText style={{ fontSize: 28, fontWeight: '700', color: T.textPrimary }}>Gigs</NativeText>
           <NativeText style={{ fontSize: 14, color: T.textMuted, marginTop: 2 }}>Loading...</NativeText>
         </View>
-        <View style={styles.listContent}>
-          <SkeletonGigCard />
-          <SkeletonGigCard />
-          <SkeletonGigCard />
-          <SkeletonGigCard />
-          <SkeletonGigCard />
+        <View style={styles.contentArea}>
+          <View style={styles.listContent}>
+            <SkeletonGigCard />
+            <SkeletonGigCard />
+            <SkeletonGigCard />
+            <SkeletonGigCard />
+            <SkeletonGigCard />
+          </View>
         </View>
       </View>
     );
@@ -705,7 +710,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
       <View style={styles.contentArea}>
         {filteredGigs && filteredGigs.length === 0 ? (
           tourFilter === 'all' ? (
-            <View style={{ padding: 16 }}>
+            <View style={styles.onboardingCardWrapper}>
               <OnboardingHelperCard
                 icon="🎸"
                 title="Log your first gig"
@@ -718,6 +723,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
             <EmptyState
               title={tourFilter === 'none' ? 'No gigs without a tour' : 'No gigs in this tour'}
               description="Try a different filter"
+              style={styles.emptyStateCard}
             />
           )
         ) : (
@@ -824,41 +830,14 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-  },
-
-  // ── Summary bar ──
-  summaryBar: {
-    backgroundColor: T.textPrimary,
     marginHorizontal: 10,
     marginBottom: 12,
-    borderRadius: 16,
-    paddingVertical: 14,
     paddingHorizontal: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryStat: {},
-  summaryLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  summaryValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#fff',
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    marginTop: 2,
-  },
-  summaryValueAmber: {
-    color: '#FBBF24',
-  },
-  summaryDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: T.surfacePanel,
+    borderWidth: 1,
+    borderColor: T.borderMuted,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
 
   // ── Section header ──
@@ -903,7 +882,7 @@ const styles = StyleSheet.create({
   btnPrimaryText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
+    color: T.textOnBrand,
   },
 
   // ── Filter + Select row ──
@@ -958,9 +937,9 @@ const styles = StyleSheet.create({
     zIndex: 50,
     marginTop: 6,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+      ios: { shadowColor: colors.overlay.DEFAULT, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
       android: { elevation: 8 },
-      web: { boxShadow: '0 8px 24px rgba(0,0,0,0.12)' } as any,
+      web: {} as any,
     }),
   },
   filterMenuItem: {
@@ -970,7 +949,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: T.border,
+    borderBottomColor: T.borderMuted,
   },
   filterMenuItemActive: {
     backgroundColor: T.accentLight,
@@ -999,7 +978,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterCheckMark: {
-    color: '#fff',
+    color: T.textOnBrand,
     fontSize: 11,
     fontWeight: '700',
     lineHeight: 13,
@@ -1023,7 +1002,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: T.textPrimary,
+    backgroundColor: T.surface,
+    borderWidth: 1,
+    borderColor: T.border,
     marginHorizontal: 10,
     marginBottom: 12,
     borderRadius: 14,
@@ -1034,12 +1015,12 @@ const styles = StyleSheet.create({
   cancelSelectText: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.6)',
+    color: T.textMuted,
   },
   selectCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: T.textPrimary,
   },
   assignBtn: {
     paddingHorizontal: 14,
@@ -1054,17 +1035,23 @@ const styles = StyleSheet.create({
   assignBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#fff',
+    color: T.textOnBrand,
   },
 
   // ── List ──
   listContent: {
     paddingHorizontal: 0,
-    paddingTop: 4,
+    paddingTop: 8,
     paddingBottom: 24,
   },
   bannerWrapper: {
     paddingHorizontal: 10,
     paddingBottom: 8,
+  },
+  onboardingCardWrapper: {
+    paddingTop: 16,
+  },
+  emptyStateCard: {
+    paddingVertical: 24,
   },
 });

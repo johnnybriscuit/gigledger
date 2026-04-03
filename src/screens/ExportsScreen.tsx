@@ -8,6 +8,7 @@ import {
   Modal,
 } from 'react-native';
 import { Text } from '../ui';
+import { colors } from '../styles/theme';
 import { HowToImportModal, type TaxSoftware } from '../components/HowToImportModal';
 import { useAllExportData, type ExportFilters } from '../hooks/useExports';
 import { generateCSVBundle } from '../lib/exports/csv-bundle-generator';
@@ -764,7 +765,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
       <View style={styles.exportGroupCard}>
         {/* TurboTax Online */}
         <View style={styles.exportRow}>
-          <View style={[styles.exportIconWrap, { backgroundColor: '#ECFDF5' }]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: T.greenLight }]}>
             <Text style={styles.exportIconEmoji}>📊</Text>
           </View>
           <View style={styles.exportInfo}>
@@ -785,7 +786,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         </View>
         {/* TurboTax Desktop */}
         <View style={[styles.exportRow, styles.exportRowBorder]}>
-          <View style={[styles.exportIconWrap, { backgroundColor: '#EEF2FF' }]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: T.accentLight }]}>
             <Text style={styles.exportIconEmoji}>🖥️</Text>
           </View>
           <View style={styles.exportInfo}>
@@ -803,7 +804,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         </View>
         {/* H&R Block */}
         <View style={[styles.exportRow, styles.exportRowBorder]}>
-          <View style={[styles.exportIconWrap, { backgroundColor: '#FFF7ED' }]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: T.amberLight }]}>
             <Text style={styles.exportIconEmoji}>🧾</Text>
           </View>
           <View style={styles.exportInfo}>
@@ -821,7 +822,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         </View>
         {/* TaxAct */}
         <View style={[styles.exportRow, styles.exportRowBorder]}>
-          <View style={[styles.exportIconWrap, { backgroundColor: '#F3F0FF' }]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: T.surface2 }]}>
             <Text style={styles.exportIconEmoji}>📋</Text>
           </View>
           <View style={styles.exportInfo}>
@@ -844,7 +845,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
       <View style={styles.exportGroupCard}>
         {/* CSV Bundle */}
         <View style={styles.exportRow}>
-          <View style={[styles.exportIconWrap, { backgroundColor: '#ECFDF5' }]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: T.greenLight }]}>
             <Text style={styles.exportIconEmoji}>📦</Text>
           </View>
           <View style={styles.exportInfo}>
@@ -859,7 +860,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         </View>
         {/* Excel */}
         <View style={[styles.exportRow, styles.exportRowBorder]}>
-          <View style={[styles.exportIconWrap, { backgroundColor: '#FFF1F2' }]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: T.dangerLight }]}>
             <Text style={styles.exportIconEmoji}>📗</Text>
           </View>
           <View style={styles.exportInfo}>
@@ -874,7 +875,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         </View>
         {/* PDF Summary */}
         <View style={[styles.exportRow, styles.exportRowBorder]}>
-          <View style={[styles.exportIconWrap, { backgroundColor: '#FEF3C7' }]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: T.amberLight }]}>
             <Text style={styles.exportIconEmoji}>📄</Text>
           </View>
           <View style={styles.exportInfo}>
@@ -893,7 +894,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
       <Text style={styles.sectionLabel}>BACKUP</Text>
       <View style={styles.exportGroupCard}>
         <View style={styles.exportRow}>
-          <View style={[styles.exportIconWrap, { backgroundColor: '#F5F5F4' }]}>
+          <View style={[styles.exportIconWrap, { backgroundColor: T.surface2 }]}>
             <Text style={styles.exportIconEmoji}>💾</Text>
           </View>
           <View style={styles.exportInfo}>
@@ -1037,56 +1038,30 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
 }
 
 const T = {
-  bg: '#F5F4F0',
-  surface: '#FFFFFF',
-  surface2: '#EEECEA',
-  border: '#E5E3DE',
-  textPrimary: '#1A1A1A',
-  textSecondary: '#7A7671',
-  textMuted: '#B0ADA8',
-  green: '#1D9B5E',
-  greenLight: '#E8F7F0',
-  amber: '#D97706',
-  amberLight: '#FEF3C7',
-  accent: '#2D5BE3',
-  accentLight: '#EEF2FF',
+  bg: colors.surface.canvas,
+  surfacePanel: colors.surface.DEFAULT,
+  surface: colors.surface.elevated,
+  surface2: colors.surface.muted,
+  border: colors.border.DEFAULT,
+  borderMuted: colors.border.muted,
+  textPrimary: colors.text.DEFAULT,
+  textSecondary: colors.text.muted,
+  textMuted: colors.text.subtle,
+  textOnBrand: colors.brand.foreground,
+  green: colors.success.DEFAULT,
+  greenLight: colors.success.muted,
+  amber: colors.warning.DEFAULT,
+  amberLight: colors.warning.muted,
+  danger: colors.danger.DEFAULT,
+  dangerLight: colors.danger.muted,
+  accent: colors.brand.DEFAULT,
+  accentLight: colors.brand.muted,
+  overlay: colors.overlay.DEFAULT,
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
   contentContainer: { paddingBottom: 40 },
-
-  // ── Summary bar ──────────────────────────────────
-  summaryBar: {
-    flexDirection: 'row',
-    backgroundColor: T.textPrimary,
-    marginHorizontal: 10,
-    marginBottom: 14,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryStatCol: { alignItems: 'center' },
-  summaryLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginTop: 2,
-  },
-  summaryDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
 
   // ── Warning callout ──────────────────────────────
   warningCallout: {
@@ -1172,7 +1147,7 @@ const styles = StyleSheet.create({
     color: T.textSecondary,
   },
   yearBtnTextActive: {
-    color: '#FFFFFF',
+    color: T.textOnBrand,
   },
 
   // ── iOS-style toggle ─────────────────────────────
@@ -1203,8 +1178,8 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: T.surface,
+    shadowColor: colors.overlay.DEFAULT,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -1380,7 +1355,7 @@ const styles = StyleSheet.create({
   // ── Modals (kept for existing modal JSX) ─────────
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: T.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -1407,7 +1382,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  modalButtonText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  modalButtonText: { fontSize: 15, fontWeight: '600', color: T.textOnBrand },
   issuesSectionTitle: {
     fontSize: 15,
     fontWeight: '600',
@@ -1416,12 +1391,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   issueCard: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: T.dangerLight,
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#DC2626',
+    borderLeftColor: T.danger,
   },
   issueCardWarning: {
     backgroundColor: T.amberLight,
@@ -1430,7 +1405,7 @@ const styles = StyleSheet.create({
   issueCategory: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#DC2626',
+    color: T.danger,
     textTransform: 'uppercase',
     marginBottom: 4,
   },

@@ -35,6 +35,27 @@ interface ExpensesScreenProps {
   onNavigateToSubscription?: () => void;
 }
 
+const T = {
+  bg: colors.surface.canvas,
+  surfacePanel: colors.surface.DEFAULT,
+  surface: colors.surface.elevated,
+  surface2: colors.surface.muted,
+  border: colors.border.DEFAULT,
+  borderMuted: colors.border.muted,
+  textPrimary: colors.text.DEFAULT,
+  textSecondary: colors.text.muted,
+  textMuted: colors.text.subtle,
+  textOnBrand: colors.brand.foreground,
+  green: colors.success.DEFAULT,
+  greenLight: colors.success.muted,
+  amber: colors.warning.DEFAULT,
+  amberLight: colors.warning.muted,
+  accent: colors.brand.DEFAULT,
+  accentLight: colors.brand.muted,
+  red: colors.danger.DEFAULT,
+  overlay: colors.overlay.DEFAULT,
+};
+
 export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps = {}) {
   
   const handleNavigateToSubscription = () => {
@@ -194,7 +215,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
       {/* ── Section Header ── */}
       <View style={styles.sectionHeader}>
         <RNText style={styles.sectionTitle}>ALL EXPENSES</RNText>
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+        <View style={styles.headerActions}>
           <DateRangeFilter
             selected={dateRange}
             onSelect={setRange}
@@ -294,92 +315,94 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
       )}
 
       {/* Main list */}
-      {expenses && expenses.length === 0 ? (
-        <View style={{ padding: 20 }}>
-          <OnboardingHelperCard
-            icon="💰"
-            title="Log your first expense"
-            description="Track business expenses to maximize your tax deductions. Every dollar counts!"
-            actionLabel="Add Expense"
-            onAction={() => setModalVisible(true)}
-          />
-        </View>
-      ) : (
-        <FlatList
-          data={expenses}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
-            <>
-              {/* Quick Add strip */}
-              {activeRecurring && activeRecurring.length > 0 && (
-                <View style={styles.quickAddStrip}>
-                  <RNText style={styles.quickAddLabel}>QUICK ADD</RNText>
-                  <View style={styles.quickAddChips}>
-                    {activeRecurring.map((recurring) => (
-                      <TouchableOpacity
-                        key={recurring.id}
-                        style={styles.quickAddChip}
-                        onPress={() => handleQuickAdd(recurring.id, recurring.name)}
-                        activeOpacity={0.7}
-                      >
-                        <RNText style={styles.quickAddChipRecurIcon}>🔄</RNText>
-                        <RNText style={styles.quickAddChipName}>{recurring.name}</RNText>
-                        <RNText style={styles.quickAddChipAmount}>{formatCurrency(recurring.amount)}</RNText>
-                        <RNText style={styles.quickAddChipPlus}>＋</RNText>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {/* Edu card */}
-              <DeductionInfoCard />
-            </>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.expenseCard}>
-              <View style={styles.expenseCardMain}>
-                {/* Left */}
-                <View style={styles.expenseLeft}>
-                  <RNText style={styles.expenseName} numberOfLines={1}>{cleanName(item.description)}</RNText>
-                  {item.vendor ? (
-                    <RNText style={styles.expenseVendor} numberOfLines={1}>📍 {item.vendor}</RNText>
-                  ) : null}
-                  <View style={styles.expenseMeta}>
-                    <View style={styles.expenseDateChip}>
-                      <RNText style={styles.expenseDateText}>{formatDate(item.date)}</RNText>
+      <View style={styles.contentArea}>
+        {expenses && expenses.length === 0 ? (
+          <View style={styles.onboardingCardWrapper}>
+            <OnboardingHelperCard
+              icon="💰"
+              title="Log your first expense"
+              description="Track business expenses to maximize your tax deductions. Every dollar counts!"
+              actionLabel="Add Expense"
+              onAction={() => setModalVisible(true)}
+            />
+          </View>
+        ) : (
+          <FlatList
+            data={expenses}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            ListHeaderComponent={
+              <>
+                {/* Quick Add strip */}
+                {activeRecurring && activeRecurring.length > 0 && (
+                  <View style={styles.quickAddStrip}>
+                    <RNText style={styles.quickAddLabel}>QUICK ADD</RNText>
+                    <View style={styles.quickAddChips}>
+                      {activeRecurring.map((recurring) => (
+                        <TouchableOpacity
+                          key={recurring.id}
+                          style={styles.quickAddChip}
+                          onPress={() => handleQuickAdd(recurring.id, recurring.name)}
+                          activeOpacity={0.7}
+                        >
+                          <RNText style={styles.quickAddChipRecurIcon}>🔄</RNText>
+                          <RNText style={styles.quickAddChipName}>{recurring.name}</RNText>
+                          <RNText style={styles.quickAddChipAmount}>{formatCurrency(recurring.amount)}</RNText>
+                          <RNText style={styles.quickAddChipPlus}>＋</RNText>
+                        </TouchableOpacity>
+                      ))}
                     </View>
-                    {item.category ? (
-                      <View style={styles.expenseCategoryChip}>
-                        <RNText style={styles.expenseCategoryText}>{item.category.toUpperCase()}</RNText>
-                      </View>
+                  </View>
+                )}
+
+                {/* Edu card */}
+                <DeductionInfoCard />
+              </>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.expenseCard}>
+                <View style={styles.expenseCardMain}>
+                  {/* Left */}
+                  <View style={styles.expenseLeft}>
+                    <RNText style={styles.expenseName} numberOfLines={1}>{cleanName(item.description)}</RNText>
+                    {item.vendor ? (
+                      <RNText style={styles.expenseVendor} numberOfLines={1}>📍 {item.vendor}</RNText>
                     ) : null}
+                    <View style={styles.expenseMeta}>
+                      <View style={styles.expenseDateChip}>
+                        <RNText style={styles.expenseDateText}>{formatDate(item.date)}</RNText>
+                      </View>
+                      {item.category ? (
+                        <View style={styles.expenseCategoryChip}>
+                          <RNText style={styles.expenseCategoryText}>{item.category.toUpperCase()}</RNText>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                  {/* Right */}
+                  <View style={styles.expenseRight}>
+                    <RNText style={styles.expenseAmountLabel}>AMOUNT</RNText>
+                    <RNText style={styles.expenseAmount}>{formatCurrency(item.amount)}</RNText>
+                    <RNText style={styles.expenseDeductible}>✓ deductible</RNText>
                   </View>
                 </View>
-                {/* Right */}
-                <View style={styles.expenseRight}>
-                  <RNText style={styles.expenseAmountLabel}>AMOUNT</RNText>
-                  <RNText style={styles.expenseAmount}>{formatCurrency(item.amount)}</RNText>
-                  <RNText style={styles.expenseDeductible}>✓ deductible</RNText>
+                {/* Footer actions */}
+                <View style={styles.expenseCardFooter}>
+                  <TouchableOpacity onPress={() => handleEdit(item)}>
+                    <RNText style={styles.footerActionBlue}>Edit</RNText>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleRepeat(item)}>
+                    <RNText style={styles.footerActionBlue}>Repeat</RNText>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(item.id, item.description)}>
+                    <RNText style={styles.footerActionRed}>Delete</RNText>
+                  </TouchableOpacity>
                 </View>
               </View>
-              {/* Footer actions */}
-              <View style={styles.expenseCardFooter}>
-                <TouchableOpacity onPress={() => handleEdit(item)}>
-                  <RNText style={styles.footerActionBlue}>Edit</RNText>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleRepeat(item)}>
-                  <RNText style={styles.footerActionBlue}>Repeat</RNText>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDelete(item.id, item.description)}>
-                  <RNText style={styles.footerActionRed}>Delete</RNText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        />
-      )}
+            )}
+          />
+        )}
+      </View>
 
       <AddExpenseModal
         visible={modalVisible}
@@ -413,53 +436,25 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F4F0',
+    backgroundColor: T.bg,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F4F0',
+    backgroundColor: T.bg,
     gap: 8,
   },
-
-  // ── Summary Bar ──
-  summaryBar: {
-    backgroundColor: '#1A1A1A',
+  contentArea: {
+    flex: 1,
     marginHorizontal: 10,
     marginBottom: 12,
-    borderRadius: 16,
-    paddingVertical: 14,
     paddingHorizontal: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  summaryStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  summaryValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    marginTop: 2,
-  },
-  summaryValueGreen: {
-    color: '#4ADE80',
-  },
-  summaryDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: T.surfacePanel,
+    borderWidth: 1,
+    borderColor: T.borderMuted,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
 
   // ── Section Header ──
@@ -471,15 +466,20 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingTop: 4,
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#7A7671',
+    color: T.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
   addBtn: {
-    backgroundColor: '#2D5BE3',
+    backgroundColor: T.accent,
     borderRadius: 10,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: T.textOnBrand,
   },
 
   // ── Filter Row ──
@@ -507,8 +507,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E5E3DE',
-    backgroundColor: '#FFFFFF',
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
   filterIcon: {
     fontSize: 15,
@@ -517,49 +517,49 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: T.textPrimary,
   },
   filterChevron: {
     fontSize: 10,
-    color: '#B0ADA8',
+    color: T.textMuted,
   },
   recurringPill: {
     paddingVertical: 9,
     paddingHorizontal: 10,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E5E3DE',
-    backgroundColor: '#FFFFFF',
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
   recurringPillActive: {
-    backgroundColor: '#1A1A1A',
-    borderColor: '#1A1A1A',
+    backgroundColor: T.accent,
+    borderColor: T.accent,
   },
   recurringPillText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: T.textPrimary,
   },
   recurringPillTextActive: {
-    color: '#FFFFFF',
+    color: T.textOnBrand,
   },
 
   // ── Filter Menu ──
   filterMenuBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: T.overlay,
     justifyContent: 'flex-start',
     paddingTop: 160,
     paddingHorizontal: 10,
   },
   filterMenu: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: T.surface,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E5E3DE',
+    borderColor: T.border,
     overflow: 'hidden',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 24 },
+      ios: { shadowColor: colors.overlay.DEFAULT, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 24 },
       android: { elevation: 8 },
     }),
   },
@@ -570,10 +570,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E3DE',
+    borderBottomColor: T.borderMuted,
   },
   filterMenuItemActive: {
-    backgroundColor: '#F5F4F0',
+    backgroundColor: T.accentLight,
   },
   filterMenuIcon: {
     fontSize: 16,
@@ -582,23 +582,23 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: T.textPrimary,
   },
   filterMenuLabelActive: {
     fontWeight: '700',
-    color: '#2D5BE3',
+    color: T.accent,
   },
   filterCheck: {
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#2D5BE3',
+    backgroundColor: T.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterCheckMark: {
     fontSize: 11,
-    color: '#FFFFFF',
+    color: T.textOnBrand,
     fontWeight: '700',
   },
 
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
   quickAddLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#B0ADA8',
+    color: T.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 8,
@@ -623,9 +623,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: T.surface,
     borderWidth: 1.5,
-    borderColor: '#E5E3DE',
+    borderColor: T.border,
     borderRadius: 12,
     paddingVertical: 9,
     paddingHorizontal: 14,
@@ -637,34 +637,35 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: T.textPrimary,
   },
   quickAddChipAmount: {
     fontSize: 13,
-    color: '#B0ADA8',
+    color: T.textMuted,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
   quickAddChipPlus: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#2D5BE3',
+    color: T.accent,
   },
 
   // ── List ──
   listContent: {
     paddingHorizontal: 0,
+    paddingTop: 8,
     paddingBottom: 32,
   },
 
   // ── Expense Card ──
   expenseCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: T.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5E3DE',
+    borderColor: T.borderMuted,
     overflow: 'hidden',
     marginBottom: 10,
-    marginHorizontal: 10,
+    marginHorizontal: 0,
   },
   expenseCardMain: {
     flexDirection: 'row',
@@ -680,11 +681,11 @@ const styles = StyleSheet.create({
   expenseName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: T.textPrimary,
   },
   expenseVendor: {
     fontSize: 13,
-    color: '#7A7671',
+    color: T.textSecondary,
     marginTop: 3,
   },
   expenseMeta: {
@@ -695,7 +696,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   expenseDateChip: {
-    backgroundColor: '#EEECEA',
+    backgroundColor: T.surface2,
     borderRadius: 6,
     paddingVertical: 3,
     paddingHorizontal: 8,
@@ -703,10 +704,10 @@ const styles = StyleSheet.create({
   expenseDateText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#7A7671',
+    color: T.textSecondary,
   },
   expenseCategoryChip: {
-    backgroundColor: '#EEECEA',
+    backgroundColor: T.surface2,
     borderRadius: 6,
     paddingVertical: 3,
     paddingHorizontal: 8,
@@ -714,7 +715,7 @@ const styles = StyleSheet.create({
   expenseCategoryText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#7A7671',
+    color: T.textSecondary,
     letterSpacing: 0.3,
   },
   expenseRight: {
@@ -724,21 +725,21 @@ const styles = StyleSheet.create({
   expenseAmountLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#B0ADA8',
+    color: T.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   expenseAmount: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#DC2626',
+    color: T.red,
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
     lineHeight: 28,
   },
   expenseDeductible: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#1D9B5E',
+    color: T.green,
     marginTop: 3,
   },
   expenseCardFooter: {
@@ -749,23 +750,26 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 10,
     borderTopWidth: 1,
-    borderTopColor: '#E5E3DE',
-    backgroundColor: '#F5F4F0',
+    borderTopColor: T.borderMuted,
+    backgroundColor: T.surfacePanel,
   },
   footerActionBlue: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2D5BE3',
+    color: T.accent,
   },
   footerActionRed: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#DC2626',
+    color: T.red,
   },
 
   // ── Misc ──
   bannerWrapper: {
     paddingHorizontal: 10,
     paddingBottom: 8,
+  },
+  onboardingCardWrapper: {
+    paddingTop: 20,
   },
 });
