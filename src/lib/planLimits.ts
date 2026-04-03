@@ -18,6 +18,19 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
   yearly: { maxGigs: null, maxExpenses: null },
 };
 
+function isActivePaidSubscription(subscription: { tier: string | null; status: string | null } | null): subscription is { tier: PlanId; status: string } {
+  if (!subscription) return false;
+  const isActive = subscription.status === 'active' || subscription.status === 'trialing';
+  const isPaidTier = subscription.tier === 'monthly' || subscription.tier === 'yearly';
+  return isActive && isPaidTier;
+}
+
+function mapProfilePlanToPlanId(profilePlan: string | null | undefined): PlanId {
+  if (profilePlan === 'monthly' || profilePlan === 'pro_monthly') return 'monthly';
+  if (profilePlan === 'yearly' || profilePlan === 'pro_yearly') return 'yearly';
+  return 'free';
+}
+
 export interface UsageSnapshot {
   gigCount: number;
   expenseCount: number;
@@ -48,24 +61,37 @@ export async function getPlanAndUsage(
   supabase: SupabaseClient,
   userId: string
 ): Promise<PlanCheckResult> {
-  // 1. Get user's subscription tier (default to 'free' if no subscription)
+  // 1. Get user's subscription tier (authoritative when active)
   const { data: subscription, error: subError } = await supabase
     .from('subscriptions')
     .select('tier, status')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
-  let plan: PlanId = 'free';
-  
-  if (!subError && subscription) {
-    // User has active subscription
-    const isActive = subscription.status === 'active' || subscription.status === 'trialing';
-    if (isActive && (subscription.tier === 'monthly' || subscription.tier === 'yearly')) {
-      plan = subscription.tier;
-    }
+  if (subError) {
+    console.warn('[getPlanAndUsage] Error fetching subscription:', subError);
   }
 
-  // 2. Count user's gigs
+  // 2. Fallback: read profile plan for webhook-sync or legacy edge cases
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (profileError) {
+    console.warn('[getPlanAndUsage] Error fetching profile plan:', profileError);
+  }
+
+  let plan: PlanId = 'free';
+
+  if (isActivePaidSubscription(subscription)) {
+    plan = subscription.tier;
+  } else {
+    plan = mapProfilePlanToPlanId(profile?.plan);
+  }
+
+  // 3. Count user's gigs
   const { count: gigCount, error: gigError } = await supabase
     .from('gigs')
     .select('*', { count: 'exact', head: true })
@@ -76,7 +102,7 @@ export async function getPlanAndUsage(
     throw new Error(`Failed to count gigs: ${gigError.message}`);
   }
 
-  // 3. Count user's expenses
+  // 4. Count user's expenses
   const { count: expenseCount, error: expenseError } = await supabase
     .from('expenses')
     .select('*', { count: 'exact', head: true })
@@ -87,11 +113,11 @@ export async function getPlanAndUsage(
     throw new Error(`Failed to count expenses: ${expenseError.message}`);
   }
 
-  // 4. Get limits for this plan
+  // 5. Get limits for this plan
   const limits = PLAN_LIMITS[plan];
   const isFreePlan = plan === 'free';
 
-  // 5. Check if user can create more
+  // 6. Check if user can create more
   const canCreateGigs = limits.maxGigs === null || (gigCount ?? 0) < limits.maxGigs;
   const canCreateExpenses = limits.maxExpenses === null || (expenseCount ?? 0) < limits.maxExpenses;
 

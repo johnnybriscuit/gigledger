@@ -7,14 +7,21 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { queryKeys } from '../lib/queryKeys';
 import {
   getPlanDefinition,
   normalizePlan,
+  PLAN_NAMES,
   type PlanDefinition,
   type UserPlan,
 } from '../config/plans';
 import { useUserId } from './useCurrentUser';
+
+function hasActivePaidSubscription(subscription: { tier: string | null; status: string | null } | null): boolean {
+  if (!subscription) return false;
+  const isActive = subscription.status === 'active' || subscription.status === 'trialing';
+  const isPaidTier = subscription.tier === 'monthly' || subscription.tier === 'yearly';
+  return isActive && isPaidTier;
+}
 
 export interface EntitlementsLimits {
   gigsMax: number | null;      // null = unlimited
@@ -90,11 +97,31 @@ export function useEntitlements(): Entitlements {
         console.error('🔴 [useEntitlements] Profile fetch error:', profileResult.error);
         throw profileResult.error;
       }
+
+      const subscriptionResult = await supabase
+        .from('subscriptions')
+        .select('tier, status')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (subscriptionResult.error) {
+        console.warn('🟡 [useEntitlements] Subscription fetch warning:', subscriptionResult.error);
+      }
+
       const profile = profileResult.data;
-      const normalizedPlan = normalizePlan(profile?.plan, profile?.legacy_free_plan === true);
+      const normalizedPlanFromProfile = normalizePlan(profile?.plan, profile?.legacy_free_plan === true);
+      const paidFromSubscription = hasActivePaidSubscription(subscriptionResult.data);
+
+      const normalizedPlan = paidFromSubscription
+        ? (subscriptionResult.data?.tier === 'yearly' ? PLAN_NAMES.PRO_ANNUAL : PLAN_NAMES.PRO_MONTHLY)
+        : normalizedPlanFromProfile;
+
+      const legacyFreePlan = !paidFromSubscription && profile?.legacy_free_plan === true;
 
       console.log('🔵 [useEntitlements] Fetched successfully:', {
         plan: normalizedPlan,
+        subscriptionTier: subscriptionResult.data?.tier,
+        subscriptionStatus: subscriptionResult.data?.status,
         gigsCount: profile?.gigs_used_this_month,
         expensesCount: profile?.expenses_used_this_month,
         invoicesCreatedCount: profile?.invoices_used_this_month,
@@ -104,11 +131,11 @@ export function useEntitlements(): Entitlements {
       return {
         plan: normalizedPlan === 'legacy_free' ? 'free' : (normalizedPlan as UserPlan),
         normalizedPlan,
-        legacyFreePlan: profile?.legacy_free_plan === true,
-        gigsCount: profile?.legacy_free_plan ? null : (profile?.gigs_used_this_month ?? 0),
-        expensesCount: profile?.legacy_free_plan ? null : (profile?.expenses_used_this_month ?? 0),
-        invoicesCreatedCount: profile?.legacy_free_plan ? null : (profile?.invoices_used_this_month ?? 0),
-        exportsCount: profile?.legacy_free_plan ? null : (profile?.exports_used_this_month ?? 0),
+        legacyFreePlan,
+        gigsCount: legacyFreePlan ? null : (profile?.gigs_used_this_month ?? 0),
+        expensesCount: legacyFreePlan ? null : (profile?.expenses_used_this_month ?? 0),
+        invoicesCreatedCount: legacyFreePlan ? null : (profile?.invoices_used_this_month ?? 0),
+        exportsCount: legacyFreePlan ? null : (profile?.exports_used_this_month ?? 0),
         usagePeriodStart: profile?.usage_period_start ?? null,
       };
     },

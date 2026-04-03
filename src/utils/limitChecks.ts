@@ -11,6 +11,40 @@ export interface LimitCheckResult {
   message?: string;
 }
 
+interface SubscriptionSnapshot {
+  tier: string | null;
+  status: string | null;
+}
+
+function hasActivePaidSubscription(subscription: SubscriptionSnapshot | null): boolean {
+  if (!subscription) return false;
+  const isActive = subscription.status === 'active' || subscription.status === 'trialing';
+  const isPaidTier = subscription.tier === 'monthly' || subscription.tier === 'yearly';
+  return isActive && isPaidTier;
+}
+
+function hasPaidProfilePlan(plan: string | null | undefined): boolean {
+  return plan === 'pro_monthly' || plan === 'pro_yearly' || plan === 'monthly' || plan === 'yearly';
+}
+
+async function isPaidUser(userId: string, profilePlan: string | null | undefined): Promise<boolean> {
+  const { data: subscription, error } = await supabase
+    .from('subscriptions')
+    .select('tier, status')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[limitChecks] Error fetching subscription for limit check:', error);
+  }
+
+  if (hasActivePaidSubscription(subscription)) {
+    return true;
+  }
+
+  return hasPaidProfilePlan(profilePlan);
+}
+
 export async function checkAndIncrementLimit(
   userId: string,
   limitType: LimitType
@@ -36,13 +70,14 @@ export async function checkAndIncrementLimit(
     if (!profile) {
       return { allowed: false, message: 'Profile not found' };
     }
+
+    const paidUser = await isPaidUser(userId, profile.plan);
+    if (paidUser) {
+      return { allowed: true };
+    }
   
   const normalizedPlan = normalizePlan(profile.plan, profile.legacy_free_plan === true);
   const definition = getPlanDefinition(profile.plan, profile.legacy_free_plan === true);
-
-  if (definition.isPaid) {
-    return { allowed: true };
-  }
   
   if (normalizedPlan === PLAN_NAMES.LEGACY_FREE) {
     if (limitType === 'gigs' || limitType === 'expenses') {
@@ -112,13 +147,14 @@ export async function checkLimit(
   if (error || !profile) {
     return { allowed: false, message: 'Profile not found' };
   }
+
+  const paidUser = await isPaidUser(userId, profile.plan);
+  if (paidUser) {
+    return { allowed: true };
+  }
   
   const normalizedPlan = normalizePlan(profile.plan, profile.legacy_free_plan === true);
   const definition = getPlanDefinition(profile.plan, profile.legacy_free_plan === true);
-
-  if (definition.isPaid) {
-    return { allowed: true };
-  }
   
   if (normalizedPlan === PLAN_NAMES.LEGACY_FREE) {
     if (limitType === 'gigs' || limitType === 'expenses') {

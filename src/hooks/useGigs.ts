@@ -5,9 +5,7 @@ import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { getCachedUserId } from '../lib/sharedAuth';
 import { useUserId } from './useCurrentUser';
-
-// Free plan gig limit
-const FREE_GIG_LIMIT = 20;
+import { getPlanAndUsage, createGigLimitError } from '../lib/planLimits';
 
 type Gig = Database['public']['Tables']['gigs']['Row'];
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
@@ -85,27 +83,13 @@ export function useCreateGig() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Check user's plan and gig count
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('plan')
-        .eq('id', user.id)
-        .single();
+      // Check plan limits before creating gig
+      const planCheck = await getPlanAndUsage(supabase, user.id);
 
-      const plan = profile?.plan || 'free';
-
-      // If free plan, check gig limit
-      if (plan === 'free') {
-        const { count } = await supabase
-          .from('gigs')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-
-        if (count !== null && count >= FREE_GIG_LIMIT) {
-          const error: any = new Error('Free plan limit reached');
-          error.code = 'FREE_PLAN_LIMIT_REACHED';
-          throw error;
-        }
+      if (!planCheck.canCreateGigs) {
+        const error: any = createGigLimitError(planCheck);
+        error.code = 'FREE_PLAN_LIMIT_REACHED';
+        throw error;
       }
 
       // Calculate net amount (database trigger will also do this, but we set it for consistency)
