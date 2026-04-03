@@ -17,6 +17,8 @@ import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { AddressPlacesInput } from './AddressPlacesInput';
 import { useCreateSavedRoute, useSavedRoutes } from '../hooks/useSavedRoutes';
 import { drivingMiles } from '../lib/geo';
+import { colors } from '../styles/theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface AddMileageModalProps {
   visible: boolean;
@@ -25,6 +27,7 @@ interface AddMileageModalProps {
 }
 
 export function AddMileageModal({ visible, onClose, editingMileage }: AddMileageModalProps) {
+  const { theme } = useTheme();
   const [date, setDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [purpose, setPurpose] = useState('');
@@ -348,7 +351,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 value={purpose}
                 onChangeText={setPurpose}
                 placeholder="e.g., Drive to gig in Columbus"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.text.subtle}
               />
             </View>
 
@@ -419,7 +422,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                   disabled={isCalculating || !startLocation || !endLocation}
                 >
                   {isCalculating ? (
-                    <ActivityIndicator size="small" color="#3b82f6" />
+                    <ActivityIndicator size="small" color={colors.brand.DEFAULT} />
                   ) : (
                     <Text style={styles.calculateButtonText}>🔄 Calculate</Text>
                   )}
@@ -434,7 +437,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                   setAutoCalculatedOneWayMiles(null);
                 }}
                 placeholder="0"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.text.subtle}
                 keyboardType="decimal-pad"
               />
               {coordsError && (
@@ -478,7 +481,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Add notes about this trip..."
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.text.subtle}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -508,7 +511,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                       value={routeName}
                       onChangeText={setRouteName}
                       placeholder="e.g., Home → Office"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.text.subtle}
                     />
                   </View>
                 )}
@@ -540,6 +543,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
         onChange={handleDateChange}
         title="Select trip date"
         showTodayShortcut={true}
+        isDark={theme === 'dark'}
       />
     </Modal>
   );
@@ -548,11 +552,11 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.DEFAULT,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.elevated,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 20,
@@ -569,19 +573,19 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   form: {
     paddingHorizontal: 20,
@@ -592,22 +596,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text.muted,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   dateButton: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
     borderRadius: 8,
     padding: 12,
     flexDirection: 'row',
@@ -616,7 +620,7 @@ const styles = StyleSheet.create({
   },
   dateButtonText: {
     fontSize: 16,
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   calendarIcon: {
     fontSize: 18,
@@ -626,32 +630,32 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   deductionCard: {
-    backgroundColor: '#f0f9ff',
+    backgroundColor: colors.brand.muted,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: colors.border.focus,
   },
   deductionLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1e40af',
+    color: colors.brand.DEFAULT,
     marginBottom: 4,
   },
   deductionValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#1e40af',
+    color: colors.brand.DEFAULT,
     marginBottom: 4,
   },
   deductionFormula: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   submitButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -659,7 +663,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   submitButtonText: {
-    color: '#fff',
+    color: colors.brand.foreground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -670,21 +674,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   calculateButton: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.brand.muted,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: colors.border.focus,
   },
   calculateButtonText: {
-    color: '#3b82f6',
+    color: colors.brand.DEFAULT,
     fontSize: 14,
     fontWeight: '600',
   },
   autoCalculatedHint: {
     fontSize: 12,
-    color: '#10b981',
+    color: colors.success.DEFAULT,
     marginTop: 4,
   },
   checkboxGroup: {
@@ -699,23 +703,23 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: colors.border.strong,
     marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxBoxChecked: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
   },
   checkmark: {
-    color: '#fff',
+    color: colors.brand.foreground,
     fontSize: 14,
     fontWeight: '700',
   },
   checkboxLabel: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.text.muted,
     flex: 1,
   },
   saveRouteSection: {
@@ -723,45 +727,45 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   quickSelectSection: {
-    backgroundColor: '#f0f9ff',
+    backgroundColor: colors.brand.muted,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: colors.border.focus,
   },
   quickSelectTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1e40af',
+    color: colors.brand.DEFAULT,
     marginBottom: 4,
   },
   quickSelectSubtitle: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.text.muted,
     marginBottom: 12,
   },
   routeCardsContainer: {
     marginTop: 4,
   },
   routeCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 8,
     padding: 12,
     marginRight: 12,
     minWidth: 140,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
   },
   routeCardName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text.DEFAULT,
     marginBottom: 4,
   },
   routeCardDetails: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   favoriteIcon: {
     position: 'absolute',
@@ -771,7 +775,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
-    color: '#ef4444',
+    color: colors.danger.DEFAULT,
     marginTop: 6,
   },
 });

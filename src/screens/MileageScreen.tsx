@@ -16,6 +16,7 @@ import { toUtcDateString } from '../lib/date';
 import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
+import { colors } from '../styles/theme';
 
 interface MileageScreenProps {
   onNavigateToAccount?: () => void;
@@ -158,12 +159,12 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
         <View style={styles.summaryDivider} />
         <View style={styles.summaryStatCol}>
           <Text style={styles.summaryLabel}>MILES</Text>
-          <Text style={{ ...styles.summaryValue, color: '#2DD4BF' }}>{totalMiles.toFixed(1)}</Text>
+          <Text style={{ ...styles.summaryValue, color: T.teal }}>{totalMiles.toFixed(1)}</Text>
         </View>
         <View style={styles.summaryDivider} />
         <View style={styles.summaryStatCol}>
           <Text style={styles.summaryLabel}>DEDUCTION</Text>
-          <Text style={{ ...styles.summaryValue, color: '#4ADE80' }}>${totalDeduction.toFixed(0)}</Text>
+          <Text style={{ ...styles.summaryValue, color: T.green }}>${totalDeduction.toFixed(0)}</Text>
         </View>
       </View>
 
@@ -241,18 +242,22 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
 }
 
 const T = {
-  bg: '#F5F4F0',
-  surface: '#FFFFFF',
-  surface2: '#EEECEA',
-  border: '#E5E3DE',
-  textPrimary: '#1A1A1A',
-  textSecondary: '#7A7671',
-  textMuted: '#B0ADA8',
-  green: '#1D9B5E',
-  teal: '#0D9488',
-  tealLight: '#F0FDFA',
-  accent: '#2D5BE3',
-  red: '#DC2626',
+  bg: colors.surface.canvas,
+  surface: colors.surface.DEFAULT,
+  surface2: colors.surface.muted,
+  border: colors.border.DEFAULT,
+  textPrimary: colors.text.DEFAULT,
+  textSecondary: colors.text.muted,
+  textMuted: colors.text.subtle,
+  green: colors.success.DEFAULT,
+  teal: colors.chart.secondary,
+  tealLight: colors.brand.muted,
+  accent: colors.brand.DEFAULT,
+  accentMuted: colors.brand.muted,
+  onDarkMuted: colors.text.subtle,
+  onDarkDivider: colors.overlay.muted,
+  calloutGhost: colors.surface.elevated,
+  red: colors.danger.DEFAULT,
 };
 
 const styles = StyleSheet.create({
@@ -271,7 +276,7 @@ const styles = StyleSheet.create({
   // Summary bar
   summaryBar: {
     flexDirection: 'row',
-    backgroundColor: T.textPrimary,
+    backgroundColor: T.accent,
     marginHorizontal: 10,
     marginBottom: 14,
     borderRadius: 16,
@@ -287,20 +292,21 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: 'rgba(255,255,255,0.5)',
+    color: colors.brand.foreground,
+    opacity: 0.8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   summaryValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.brand.foreground,
     marginTop: 2,
   },
   summaryDivider: {
     width: 1,
     height: 32,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: colors.brand.hover,
   },
 
   // IRS chip
@@ -311,7 +317,7 @@ const styles = StyleSheet.create({
   irsChip: {
     backgroundColor: T.tealLight,
     borderWidth: 1,
-    borderColor: 'rgba(13,148,136,0.15)',
+    borderColor: colors.border.focus,
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -346,7 +352,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.brand.foreground,
   },
 
   // List
@@ -399,7 +405,7 @@ const styles = StyleSheet.create({
   },
   dateChip: {
     alignSelf: 'flex-start',
-    backgroundColor: '#EEECEA',
+    backgroundColor: T.surface2,
     borderRadius: 6,
     paddingVertical: 3,
     paddingHorizontal: 8,
@@ -461,7 +467,7 @@ const styles = StyleSheet.create({
   calloutCard: {
     marginHorizontal: 10,
     marginBottom: 16,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: T.accentMuted,
     borderRadius: 20,
     padding: 18,
   },
@@ -507,7 +513,7 @@ const styles = StyleSheet.create({
   calloutBtnGhost: {
     flex: 1,
     paddingVertical: 11,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: T.calloutGhost,
     borderRadius: 12,
     alignItems: 'center',
   },
@@ -526,7 +532,7 @@ const styles = StyleSheet.create({
   calloutBtnPrimaryText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.brand.foreground,
   },
   emptyCard: {
     marginHorizontal: 10,

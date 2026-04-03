@@ -43,6 +43,8 @@ import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getEffectiveTaxTreatment, getTaxTreatmentLabel, getTaxTreatmentShortLabel, getDefaultAmountType } from '../lib/taxTreatment';
 import { resolvePlaceDetails } from '../lib/placeDetails';
+import { colors } from '../styles/theme';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface AddGigModalProps {
   visible: boolean;
@@ -97,6 +99,7 @@ const COUNTRIES = [
 ];
 
 export function AddGigModal({ visible, onClose, onNavigateToSubscription, editingGig, duplicatingGig }: AddGigModalProps) {
+  const { theme } = useTheme();
   const [payerId, setPayerId] = useState('');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
@@ -986,7 +989,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     }
                   }}
                   placeholder="0.00"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.text.subtle}
                   keyboardType="decimal-pad"
                 />
                 {fieldErrors.grossAmount && (
@@ -1016,7 +1019,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   value={startTime}
                   onChangeText={setStartTime}
                   placeholder="19:00"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.text.subtle}
                 />
               </View>
 
@@ -1027,7 +1030,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   value={endTime}
                   onChangeText={setEndTime}
                   placeholder="21:00"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.text.subtle}
                 />
               </View>
             </View>
@@ -1039,7 +1042,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 value={title}
                 onChangeText={setTitle}
                 placeholder="e.g., Friday Night Show (auto-generated if left empty)"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.text.subtle}
               />
             </View>
 
@@ -1209,7 +1212,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   value={invoiceLink}
                   onChangeText={setInvoiceLink}
                   placeholder="https://..."
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.text.subtle}
                   keyboardType="url"
                   autoCapitalize="none"
                 />
@@ -1226,7 +1229,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     value={tips}
                     onChangeText={setTips}
                     placeholder="0.00"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -1238,7 +1241,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     value={fees}
                     onChangeText={setFees}
                     placeholder="0.00"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -1252,7 +1255,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     value={perDiem}
                     onChangeText={setPerDiem}
                     placeholder="0.00"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -1264,7 +1267,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     value={otherIncome}
                     onChangeText={setOtherIncome}
                     placeholder="0.00"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -1349,7 +1352,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Add notes about this gig..."
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.text.subtle}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -1487,6 +1490,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         onChange={handleDateChange}
         title="Select gig date"
         showTodayShortcut={true}
+        isDark={theme === 'dark'}
       />
 
       {/* State Picker Modal */}
@@ -1517,7 +1521,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 value={stateSearch}
                 onChangeText={setStateSearch}
                 placeholder="Search states..."
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.text.subtle}
               />
             </View>
             <ScrollView style={styles.pickerScroll}>
@@ -1581,7 +1585,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 value={countrySearch}
                 onChangeText={setCountrySearch}
                 placeholder="Search countries..."
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.text.subtle}
               />
             </View>
             <ScrollView style={styles.pickerScroll}>
@@ -1611,11 +1615,11 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.DEFAULT,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.elevated,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 20,
@@ -1632,19 +1636,19 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 20,
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   form: {
     paddingHorizontal: 10,
@@ -1653,22 +1657,22 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 36,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border.DEFAULT,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
     marginBottom: 4,
   },
   sectionDescription: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.text.muted,
     marginBottom: 16,
   },
   scrollHint: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.text.muted,
     marginBottom: 16,
   },
   inputGroup: {
@@ -1677,24 +1681,24 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text.muted,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   inputError: {
-    borderColor: '#dc2626',
+    borderColor: colors.danger.DEFAULT,
     borderWidth: 2,
   },
   errorText: {
-    color: '#dc2626',
+    color: colors.danger.DEFAULT,
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
@@ -1715,30 +1719,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
   },
   payerChipActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
   },
   payerChipText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   payerChipTextActive: {
-    color: '#fff',
+    color: colors.brand.foreground,
   },
   helperText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: colors.text.subtle,
     fontStyle: 'italic',
   },
   reminderBox: {
-    backgroundColor: '#fef3c7',
+    backgroundColor: colors.warning.muted,
     borderWidth: 1,
-    borderColor: '#f59e0b',
+    borderColor: colors.warning.DEFAULT,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
@@ -1751,7 +1755,7 @@ const styles = StyleSheet.create({
   },
   reminderText: {
     fontSize: 13,
-    color: '#92400e',
+    color: colors.warning.DEFAULT,
     fontWeight: '500',
     flex: 1,
   },
@@ -1763,7 +1767,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   netAmountCard: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: colors.success.muted,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -1776,23 +1780,23 @@ const styles = StyleSheet.create({
   netAmountLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#059669',
+    color: colors.success.DEFAULT,
     marginBottom: 2,
   },
   netAmountSubtitle: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.text.muted,
     fontStyle: 'italic',
   },
   netAmountValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#059669',
+    color: colors.success.DEFAULT,
     marginBottom: 4,
   },
   netAmountFormula: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   typeButtons: {
     flexDirection: 'row',
@@ -1804,20 +1808,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderColor: colors.border.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
   },
   typeButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
   },
   typeButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   typeButtonTextActive: {
-    color: '#fff',
+    color: colors.brand.foreground,
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -1829,30 +1833,30 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: colors.border.strong,
     marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
   },
   checkboxChecked: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
   },
   checkmark: {
-    color: '#fff',
+    color: colors.brand.foreground,
     fontSize: 14,
     fontWeight: '700',
   },
   checkboxLabel: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.text.muted,
     fontWeight: '500',
   },
   taxSetAsideContainer: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.brand.muted,
     borderWidth: 1,
-    borderColor: '#2563eb',
+    borderColor: colors.border.focus,
     borderRadius: 8,
     marginHorizontal: 10,
     marginBottom: 12,
@@ -1870,12 +1874,12 @@ const styles = StyleSheet.create({
   taxSetAsideLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1e40af',
+    color: colors.brand.DEFAULT,
     marginBottom: 2,
   },
   taxSetAsideHint: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   taxSetAsideRight: {
     flexDirection: 'row',
@@ -1885,44 +1889,44 @@ const styles = StyleSheet.create({
   taxSetAsideAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1e40af',
+    color: colors.brand.DEFAULT,
   },
   taxSetAsideRate: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2563eb',
+    color: colors.brand.DEFAULT,
   },
   taxBreakdown: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
     padding: 12,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#bfdbfe',
+    borderTopColor: colors.border.focus,
     gap: 6,
   },
   taxBreakdownItem: {
     fontSize: 12,
-    color: '#374151',
+    color: colors.text.muted,
   },
   taxBreakdownNote: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.text.muted,
     fontStyle: 'italic',
   },
   taxBreakdownSeparator: {
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.border.DEFAULT,
     marginVertical: 8,
   },
   taxBreakdownExplainer: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.text.muted,
     lineHeight: 18,
     marginBottom: 4,
   },
   taxBreakdownDisclaimer: {
     fontSize: 11,
-    color: '#9ca3af',
+    color: colors.text.subtle,
     marginTop: 4,
     fontStyle: 'italic',
   },
@@ -1931,9 +1935,9 @@ const styles = StyleSheet.create({
     bottom: 80,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.elevated,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border.DEFAULT,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
@@ -1946,25 +1950,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.elevated,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border.DEFAULT,
   },
   submitButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   submitButtonText: {
-    color: '#fff',
+    color: colors.brand.foreground,
     fontSize: 16,
     fontWeight: '600',
   },
   pickerButton: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
     borderRadius: 8,
     padding: 12,
     flexDirection: 'row',
@@ -1973,22 +1977,22 @@ const styles = StyleSheet.create({
   },
   pickerButtonText: {
     fontSize: 16,
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   placeholderText: {
-    color: '#9ca3af',
+    color: colors.text.subtle,
   },
   pickerButtonIcon: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   pickerModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.DEFAULT,
     justifyContent: 'flex-end',
   },
   pickerModalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.elevated,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
@@ -2000,17 +2004,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border.DEFAULT,
   },
   pickerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   pickerDone: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: colors.brand.DEFAULT,
   },
   pickerScroll: {
     maxHeight: 400,
@@ -2018,24 +2022,24 @@ const styles = StyleSheet.create({
   pickerOption: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border.muted,
   },
   pickerOptionText: {
     fontSize: 16,
-    color: '#374151',
+    color: colors.text.muted,
   },
   pickerOptionTextActive: {
-    color: '#3b82f6',
+    color: colors.brand.DEFAULT,
     fontWeight: '600',
   },
   dateInput: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text.DEFAULT,
     margin: 20,
     marginBottom: 10,
   },
@@ -2047,22 +2051,22 @@ const styles = StyleSheet.create({
   },
   quickDateButton: {
     flex: 1,
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   quickDateButtonText: {
-    color: '#fff',
+    color: colors.brand.foreground,
     fontSize: 14,
     fontWeight: '600',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
     borderRadius: 8,
     paddingHorizontal: 12,
     marginHorizontal: 10,
@@ -2076,10 +2080,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     fontSize: 16,
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   calendarModalContent: {
-    backgroundColor: '#1f2937',
+    backgroundColor: colors.surface.elevated,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
@@ -2096,19 +2100,19 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#374151',
+    backgroundColor: colors.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',
   },
   calendarNavText: {
     fontSize: 20,
-    color: '#fff',
+    color: colors.text.DEFAULT,
     fontWeight: '600',
   },
   calendarMonthText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.text.DEFAULT,
   },
   calendarGrid: {
     flexDirection: 'row',
@@ -2126,7 +2130,7 @@ const styles = StyleSheet.create({
   calendarDayHeaderText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: colors.text.subtle,
   },
   calendarDay: {
     width: '14.28%',
@@ -2136,24 +2140,24 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   calendarDaySelected: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
     borderRadius: 8,
   },
   calendarDayToday: {
     borderWidth: 2,
-    borderColor: '#6b7280',
+    borderColor: colors.border.focus,
     borderRadius: 8,
   },
   calendarDayText: {
     fontSize: 16,
-    color: '#e5e7eb',
+    color: colors.text.DEFAULT,
   },
   calendarDayTextSelected: {
-    color: '#fff',
+    color: colors.brand.foreground,
     fontWeight: '700',
   },
   calendarDayTextToday: {
-    color: '#fff',
+    color: colors.text.DEFAULT,
     fontWeight: '600',
   },
   calendarFooter: {
@@ -2168,23 +2172,23 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#374151',
+    backgroundColor: colors.surface.muted,
   },
   calendarFooterButtonPrimary: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
   },
   calendarFooterButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: colors.text.subtle,
   },
   calendarFooterButtonTextPrimary: {
-    color: '#fff',
+    color: colors.brand.foreground,
   },
   withholdingCard: {
-    backgroundColor: '#fef3c7',
+    backgroundColor: colors.warning.muted,
     borderWidth: 1,
-    borderColor: '#fde68a',
+    borderColor: colors.warning.DEFAULT,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -2198,10 +2202,10 @@ const styles = StyleSheet.create({
   withholdingTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#92400e',
+    color: colors.warning.DEFAULT,
   },
   setupTaxButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -2209,12 +2213,12 @@ const styles = StyleSheet.create({
   setupTaxButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.brand.foreground,
   },
   withholdingTotal: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#92400e',
+    color: colors.warning.DEFAULT,
     marginBottom: 12,
   },
   withholdingBreakdown: {
@@ -2227,21 +2231,21 @@ const styles = StyleSheet.create({
   },
   withholdingLabel: {
     fontSize: 14,
-    color: '#78350f',
+    color: colors.warning.DEFAULT,
   },
   withholdingValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#78350f',
+    color: colors.warning.DEFAULT,
   },
   withholdingDisclaimer: {
     fontSize: 11,
-    color: '#92400e',
+    color: colors.warning.DEFAULT,
     fontStyle: 'italic',
     textAlign: 'center',
   },
   monthYearPickerContent: {
-    backgroundColor: '#1f2937',
+    backgroundColor: colors.surface.elevated,
     borderRadius: 16,
     padding: 20,
     width: '90%',
@@ -2256,7 +2260,7 @@ const styles = StyleSheet.create({
   yearLabel: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#e5e7eb',
+    color: colors.text.DEFAULT,
     marginBottom: 12,
   },
   monthGrid: {
@@ -2269,41 +2273,41 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: '#374151',
+    backgroundColor: colors.surface.muted,
   },
   monthButtonSelected: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
   },
   monthButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#9ca3af',
+    color: colors.text.subtle,
   },
   monthButtonTextSelected: {
-    color: '#fff',
+    color: colors.brand.foreground,
   },
   // Payer dropdown styles
   emptyPayerContainer: {
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
   },
   emptyPayerText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.text.muted,
     marginBottom: 12,
   },
   addPayerButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 8,
   },
   addPayerButtonText: {
-    color: '#fff',
+    color: colors.brand.foreground,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -2317,7 +2321,7 @@ const styles = StyleSheet.create({
   },
   addPayerLinkText: {
     fontSize: 14,
-    color: '#3b82f6',
+    color: colors.brand.DEFAULT,
     fontWeight: '600',
   },
   editPayerLink: {
@@ -2325,12 +2329,12 @@ const styles = StyleSheet.create({
   },
   editPayerLinkText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.text.muted,
     fontWeight: '600',
   },
   // Payer picker modal styles
   pickerModal: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.elevated,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '70%',
@@ -2342,12 +2346,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border.DEFAULT,
   },
   pickerModalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   pickerModalList: {
     maxHeight: 400,
@@ -2358,17 +2362,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border.muted,
   },
   pickerModalItemActive: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.brand.muted,
   },
   pickerModalItemText: {
     fontSize: 16,
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   pickerModalItemTextActive: {
-    color: '#3b82f6',
+    color: colors.brand.DEFAULT,
     fontWeight: '600',
   },
   // Net After Tax section styles
@@ -2378,9 +2382,9 @@ const styles = StyleSheet.create({
   sectionHeaderRow: {
     paddingHorizontal: 10,
     paddingVertical: 12,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border.DEFAULT,
   },
   // Toggle styles
   toggleRow: {
@@ -2396,18 +2400,18 @@ const styles = StyleSheet.create({
     width: 51,
     height: 31,
     borderRadius: 16,
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.border.strong,
     padding: 2,
     justifyContent: 'center',
   },
   toggleActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
   },
   toggleThumb: {
     width: 27,
     height: 27,
     borderRadius: 14,
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -2421,10 +2425,10 @@ const styles = StyleSheet.create({
   taxTreatmentSection: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
   },
   taxTreatmentBadgeRow: {
     flexDirection: 'row',
@@ -2434,29 +2438,29 @@ const styles = StyleSheet.create({
   taxTreatmentLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.text.muted,
     marginRight: 8,
   },
   taxTreatmentBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.border.DEFAULT,
   },
   taxTreatmentBadgeW2: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: colors.brand.muted,
   },
   taxTreatmentBadge1099: {
-    backgroundColor: '#fef3c7',
+    backgroundColor: colors.warning.muted,
   },
   taxTreatmentBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text.muted,
   },
   taxTreatmentOverrideNote: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.text.muted,
     fontStyle: 'italic',
     marginLeft: 6,
   },
@@ -2465,18 +2469,18 @@ const styles = StyleSheet.create({
   },
   taxTreatmentOverrideToggleText: {
     fontSize: 13,
-    color: '#3b82f6',
+    color: colors.brand.DEFAULT,
     fontWeight: '500',
   },
   taxTreatmentOverrideSection: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border.DEFAULT,
   },
   taxTreatmentOverrideHelp: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.text.muted,
     marginBottom: 8,
   },
   taxTreatmentButtons: {
@@ -2489,41 +2493,41 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: colors.border.strong,
+    backgroundColor: colors.surface.DEFAULT,
   },
   taxTreatmentButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
   },
   taxTreatmentButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   taxTreatmentButtonTextActive: {
-    color: '#fff',
+    color: colors.brand.foreground,
   },
   taxTreatmentClearButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#ef4444',
-    backgroundColor: '#fff',
+    borderColor: colors.danger.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
   },
   taxTreatmentClearButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#ef4444',
+    color: colors.danger.DEFAULT,
   },
   w2InfoBox: {
     marginTop: 12,
     padding: 10,
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.brand.muted,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: colors.border.focus,
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
@@ -2534,7 +2538,7 @@ const styles = StyleSheet.create({
   w2InfoText: {
     flex: 1,
     fontSize: 12,
-    color: '#1e40af',
+    color: colors.brand.DEFAULT,
     lineHeight: 16,
   },
 });

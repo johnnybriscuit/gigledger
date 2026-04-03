@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
+import { colors } from '../../styles/theme';
 
 interface QuickStatsProps {
   ytdGigsCount: number; // Total gigs logged for the year
@@ -81,7 +82,7 @@ export function QuickStats({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 16,
     padding: 24,
     ...Platform.select({
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6b7280',
+    color: colors.text.muted,
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   value: {
     fontSize: Platform.OS === 'web' ? 28 : 22,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
     letterSpacing: -0.5,
   },
 });

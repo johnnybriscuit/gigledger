@@ -32,11 +32,13 @@ import { perf } from './src/lib/performance';
 import { enableQueryDebug } from './src/lib/queryDebug';
 import { trackPageView } from './src/lib/analytics';
 import { clearSharedUserId, syncSharedUserId } from './src/lib/sharedAuth';
+import { useTheme } from './src/contexts/ThemeContext';
 import type { Session } from '@supabase/supabase-js';
 import type { MFAFactor } from './src/lib/mfa';
 
 // Import spotlight CSS for Account page CTA highlighting
 if (Platform.OS === 'web') {
+  require('./src/styles/global-theme.css');
   require('./src/styles/spotlight.css');
 }
 
@@ -59,7 +61,9 @@ if (__DEV__) {
 }
 
 function AppContent() {
+  const { theme } = useTheme();
   const bootstrap = useAppBootstrap();
+  const statusBarStyle = theme === 'dark' ? 'light' : 'dark';
   const getPublicInvoiceRoute = () => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') {
       return null;
@@ -307,7 +311,7 @@ function AppContent() {
   if (currentRoute === 'landing' && !session) {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <PublicLandingPage 
           onGetStarted={() => {
             setAuthMode('signup');
@@ -329,7 +333,7 @@ function AppContent() {
   if (currentRoute === 'terms') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <TermsScreen onNavigateBack={() => setCurrentRoute('landing')} />
       </>
     );
@@ -339,7 +343,7 @@ function AppContent() {
   if (currentRoute === 'privacy') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <PrivacyScreen onNavigateBack={() => setCurrentRoute('landing')} />
       </>
     );
@@ -349,7 +353,7 @@ function AppContent() {
   if (currentRoute === 'support') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <SupportScreen 
           onNavigateBack={() => setCurrentRoute('landing')} 
           onNavigateToSignIn={() => {
@@ -364,7 +368,7 @@ function AppContent() {
   if (currentRoute === 'public-invoice' && publicInvoiceRoute) {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <PublicInvoiceView
           invoiceId={publicInvoiceRoute.invoiceId}
           token={publicInvoiceRoute.token}
@@ -389,7 +393,7 @@ function AppContent() {
   if (currentRoute === 'business-structures' && bootstrap.session) {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <UserProvider>
           <BusinessStructuresScreen 
             onNavigateBack={() => setCurrentRoute('dashboard')} 
@@ -404,7 +408,7 @@ function AppContent() {
   if (currentRoute === 'check-email' && bootstrap.session) {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <CheckEmailScreen
           email={bootstrap.session.user.email || ''}
           onVerified={() => {
@@ -441,7 +445,7 @@ function AppContent() {
   if (currentRoute === 'forgot-password') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <ForgotPasswordScreen onBack={() => setCurrentRoute('landing')} />
       </>
     );
@@ -451,7 +455,7 @@ function AppContent() {
   if (currentRoute === 'reset-password') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <ResetPasswordScreen 
           onSuccess={() => setCurrentRoute('landing')}
           onBack={() => setCurrentRoute('landing')}
@@ -464,7 +468,7 @@ function AppContent() {
   if (bootstrap.status === 'unauthenticated') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <AuthScreen 
           initialMode={authMode}
           onNavigateToTerms={() => setCurrentRoute('terms')}
@@ -489,7 +493,7 @@ function AppContent() {
   if (currentRoute === 'mfa-setup') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <MFAOnboardingScreen 
           onNavigateToDashboard={() => setCurrentRoute('dashboard')}
         />
@@ -501,7 +505,7 @@ function AppContent() {
   if (currentRoute === 'mfa-verify' && pendingMfaFactor) {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <MFAVerifyScreen
           factor={pendingMfaFactor}
           onVerified={() => {
@@ -521,7 +525,7 @@ function AppContent() {
   if (currentRoute === 'auth-callback') {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <AuthCallbackScreen 
           oauthCallbackUrl={oauthCallbackUrl}
           onNavigateToMFASetup={() => setCurrentRoute('mfa-setup')}
@@ -540,7 +544,7 @@ function AppContent() {
   if (bootstrap.needsOnboarding && !onboardingJustCompleted) {
     return (
       <>
-        <StatusBar style="dark" />
+        <StatusBar style={statusBarStyle} />
         <OnboardingFlow
           onComplete={() => {
             console.log('🔵 [App] OnboardingFlow onComplete called');
@@ -563,7 +567,7 @@ function AppContent() {
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={statusBarStyle} />
       <UserProvider>
         <DashboardScreen onNavigateToBusinessStructures={() => setCurrentRoute('business-structures')} />
       </UserProvider>

@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Text, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacingNum } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
+import { ThemeToggleButton } from '../ThemeToggleButton';
 import {
   House,
   CalendarCheck,
@@ -314,6 +315,8 @@ export function AppShell({
               resizeMode="contain"
             />
             <Text style={styles.mobileTitle}>Bozzy</Text>
+            <View style={styles.mobileHeaderSpacer} />
+            <ThemeToggleButton compact />
           </View>
           
           {/* Only render sidebar when hamburger is OPEN - as overlay, not in-flow */}
@@ -387,9 +390,10 @@ export function AppShell({
             <Text style={styles.nativeHeaderTitle}>{pageTitle || 'Bozzy'}</Text>
           </View>
           {/* Right: headerRight slot (e.g. period pill) */}
-          {headerRight && (
-            <View style={styles.nativeHeaderRight}>{headerRight}</View>
-          )}
+          <View style={styles.nativeHeaderRight}>
+            <ThemeToggleButton compact />
+            {headerRight}
+          </View>
         </View>
       )}
 
@@ -452,7 +456,7 @@ export function AppShell({
                       >
                         <View style={[
                           styles.drawerItemIcon,
-                          { backgroundColor: isActive ? '#FFFFFF' : item.iconBg },
+                          { backgroundColor: isActive ? colors.surface.elevated : item.iconBg },
                         ]}>
                           <item.IconComponent size={22} weight="duotone" color={item.iconColor} />
                         </View>
@@ -471,6 +475,7 @@ export function AppShell({
 
             {/* Footer: Sign Out */}
             <View style={[styles.drawerFooterNative, { paddingBottom: Math.max(insets.bottom + 16, 40) }]}>
+              <ThemeToggleButton />
               {onSignOut && (
                 <TouchableOpacity
                   style={styles.drawerSignOutRow}
@@ -480,7 +485,7 @@ export function AppShell({
                   }}
                   activeOpacity={0.7}
                 >
-                  <SignOutIcon size={15} weight="regular" color="#B0ADA8" />
+                  <SignOutIcon size={15} weight="regular" color={colors.text.subtle} />
                   <Text style={styles.drawerSignOut}>Sign Out</Text>
                 </TouchableOpacity>
               )}
@@ -517,7 +522,10 @@ export function AppShell({
                 </Text>
               )}
             </View>
-            <View style={styles.headerRight}>{headerActions}</View>
+            <View style={styles.headerRight}>
+              <ThemeToggleButton />
+              {headerActions}
+            </View>
           </View>
         )}
 
@@ -577,7 +585,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row', // Desktop: row for sidebar + content
-    backgroundColor: '#fafbfc',
+    backgroundColor: colors.surface.canvas,
     width: '100%',
     minWidth: 0,
   },
@@ -586,9 +594,9 @@ const styles = StyleSheet.create({
   },
   sidebar: {
     width: SIDEBAR_WIDTH,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     borderRightWidth: 1,
-    borderRightColor: '#e5e7eb',
+    borderRightColor: colors.border.DEFAULT,
     paddingVertical: spacingNum[8],
     ...Platform.select({
       web: {
@@ -607,7 +615,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacingNum[6],
     paddingBottom: spacingNum[8],
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border.muted,
     marginBottom: spacingNum[6],
   },
   logo: {
@@ -618,7 +626,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
     letterSpacing: -0.5,
     lineHeight: 24,
   },
@@ -644,7 +652,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   navItemActive: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.brand.muted,
   },
   navIcon: {
     fontSize: 18,
@@ -652,22 +660,25 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     fontSize: 15,
-    color: '#6b7280',
+    color: colors.text.muted,
     fontWeight: '500',
   },
   navLabelActive: {
-    color: '#2563eb',
+    color: colors.brand.DEFAULT,
     fontWeight: '600',
   },
   mobileHeader: {
     height: 60,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border.DEFAULT,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacingNum[4],
     zIndex: 1001,
+  },
+  mobileHeaderSpacer: {
+    flex: 1,
   },
   mobileHeaderLogo: {
     width: 28,
@@ -680,12 +691,12 @@ const styles = StyleSheet.create({
   },
   hamburgerIcon: {
     fontSize: 24,
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   mobileTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   drawerBackdrop: {
     position: 'absolute',
@@ -693,7 +704,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay.DEFAULT,
     zIndex: 999,
   },
   drawerPanel: {
@@ -702,7 +713,7 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: SIDEBAR_WIDTH,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     zIndex: 1000,
     shadowColor: '#000',
     shadowOffset: { width: 2, height: 0 },
@@ -712,7 +723,7 @@ const styles = StyleSheet.create({
   },
   drawerFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border.DEFAULT,
     paddingHorizontal: spacingNum[3],
     paddingVertical: spacingNum[4],
     gap: spacingNum[2],
@@ -730,7 +741,7 @@ const styles = StyleSheet.create({
   },
   drawerFooterLabel: {
     fontSize: 15,
-    color: '#6b7280',
+    color: colors.text.muted,
     fontWeight: '500',
   },
   mainContainer: {
@@ -757,7 +768,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   nativeHeader: {
-    backgroundColor: '#F5F4F0',
+    backgroundColor: colors.surface.canvas,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -772,6 +783,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nativeHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     flexShrink: 0,
   },
   nativeHamburger: {
@@ -784,19 +798,19 @@ const styles = StyleSheet.create({
   hamburgerLine: {
     width: 22,
     height: 2,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: colors.text.DEFAULT,
     borderRadius: 2,
   },
   nativeHeaderTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: colors.text.DEFAULT,
     letterSpacing: -0.5,
   },
   // Native drawer styles
   drawerBackdropNative: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: colors.overlay.DEFAULT,
     zIndex: 90,
   },
   drawerPanelNative: {
@@ -805,7 +819,7 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: 280,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.DEFAULT,
     zIndex: 100,
     flexDirection: 'column',
   },
@@ -814,17 +828,17 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E3DE',
+    borderBottomColor: colors.border.DEFAULT,
   },
   drawerAppName: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: colors.text.DEFAULT,
     letterSpacing: -0.3,
   },
   drawerUserEmail: {
     fontSize: 13,
-    color: '#B0ADA8',
+    color: colors.text.subtle,
     marginTop: 4,
   },
   drawerScrollNative: {
@@ -833,7 +847,7 @@ const styles = StyleSheet.create({
   drawerSectionLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#B0ADA8',
+    color: colors.text.subtle,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     paddingTop: 16,
@@ -848,19 +862,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   drawerItemActive: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: colors.brand.muted,
   },
   drawerItemIcon: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#F5F4F0',
+    backgroundColor: colors.surface.muted,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   drawerItemIconActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.DEFAULT,
   },
   drawerItemIconText: {
     fontSize: 18,
@@ -868,17 +882,18 @@ const styles = StyleSheet.create({
   drawerItemLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: colors.text.DEFAULT,
   },
   drawerItemLabelActive: {
     fontWeight: '700',
-    color: '#2D5BE3',
+    color: colors.brand.DEFAULT,
   },
   drawerFooterNative: {
     borderTopWidth: 1,
-    borderTopColor: '#E5E3DE',
+    borderTopColor: colors.border.DEFAULT,
     paddingTop: 16,
     paddingHorizontal: 24,
+    gap: 12,
   },
   drawerSignOutRow: {
     flexDirection: 'row',
@@ -888,12 +903,12 @@ const styles = StyleSheet.create({
   drawerSignOut: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#B0ADA8',
+    color: colors.text.subtle,
   },
   nativeActionBar: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border.muted,
     paddingHorizontal: 16,
     paddingVertical: 10,
     flexDirection: 'row',
@@ -901,9 +916,9 @@ const styles = StyleSheet.create({
     gap: spacingNum[3],
   },
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border.muted,
     paddingHorizontal: spacingNum[10],
     paddingVertical: spacingNum[8],
     flexDirection: 'row',
@@ -934,7 +949,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
     letterSpacing: -0.5,
     flexShrink: 1,
     ...Platform.select({
@@ -947,9 +962,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   actionBar: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border.muted,
     paddingHorizontal: spacingNum[10],
     paddingVertical: spacingNum[4],
     flexDirection: 'row',
@@ -961,7 +976,7 @@ const styles = StyleSheet.create({
   },
   contentScroll: {
     flex: 1,
-    backgroundColor: '#fafbfc',
+    backgroundColor: colors.surface.canvas,
   },
   contentContainer: {
     flexGrow: 1,

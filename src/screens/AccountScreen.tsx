@@ -26,6 +26,7 @@ import { colors } from '../styles/theme';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
 import { getStateName } from '../tax/engine';
 import { resolvePlaceDetails } from '../lib/placeDetails';
+import { ThemeToggleButton } from '../components/ThemeToggleButton';
 
 const ALL_PAYMENT_METHODS: { key: string; label: string }[] = [
   { key: 'venmo', label: 'Venmo' },
@@ -452,7 +453,7 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                     <RNText style={styles.editCancelBtnText}>Cancel</RNText>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.editSaveBtn} onPress={handleSaveProfile} disabled={updateProfileMutation.isPending}>
-                    {updateProfileMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <RNText style={styles.editSaveBtnText}>Save</RNText>}
+                    {updateProfileMutation.isPending ? <ActivityIndicator color={colors.brand.foreground} size="small" /> : <RNText style={styles.editSaveBtnText}>Save</RNText>}
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -476,7 +477,7 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
                   <RNText style={styles.editCancelBtnText}>Cancel</RNText>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.editSaveBtn} onPress={handleChangePassword} disabled={changePasswordMutation.isPending}>
-                  {changePasswordMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <RNText style={styles.editSaveBtnText}>Update</RNText>}
+                  {changePasswordMutation.isPending ? <ActivityIndicator color={colors.brand.foreground} size="small" /> : <RNText style={styles.editSaveBtnText}>Update</RNText>}
                 </TouchableOpacity>
               </View>
             </View>
@@ -510,7 +511,7 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
             {avatarUri
               ? <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
               : <View style={styles.avatarPlaceholder}><RNText style={styles.avatarInitials}>{initials}</RNText></View>}
-            {avatarUploading && <View style={styles.avatarLoadingOverlay}><ActivityIndicator color="#fff" size="small" /></View>}
+            {avatarUploading && <View style={styles.avatarLoadingOverlay}><ActivityIndicator color={colors.text.inverse} size="small" /></View>}
             <View style={styles.avatarBadge}><RNText style={styles.avatarBadgeIcon}>✎</RNText></View>
           </TouchableOpacity>
           <View style={styles.heroInfo}>
@@ -557,6 +558,17 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
         {profile?.updated_at && (
           <RNText style={styles.lastSaved}>Last saved {formatRelativeTime(profile.updated_at)}</RNText>
         )}
+
+        <RNText style={styles.sectionLabel}>Appearance</RNText>
+        <View style={styles.settingsCard}>
+          <View style={[styles.fieldRow, styles.fieldRowLast]}>
+            <View style={styles.fieldLeft}>
+              <RNText style={styles.fieldLabel}>THEME</RNText>
+              <RNText style={styles.fieldValue}>Choose light or dark mode for the app</RNText>
+            </View>
+            <ThemeToggleButton />
+          </View>
+        </View>
 
         {/* ── Tax Settings Section ── */}
         <RNText style={styles.sectionLabel}>Tax Settings</RNText>
@@ -636,75 +648,74 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F4F0' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F4F0' },
+  container: { flex: 1, backgroundColor: colors.surface.canvas },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface.canvas },
   scrollContent: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 48 },
-  heroCard: { backgroundColor: '#1C1C1E', borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
+  heroCard: { backgroundColor: colors.surface.elevated, borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: colors.border.DEFAULT },
   avatarWrap: { position: 'relative', marginRight: 14 },
   avatarImg: { width: 64, height: 64, borderRadius: 32 },
-  avatarPlaceholder: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#3A3A3C', justifyContent: 'center', alignItems: 'center' },
-  avatarInitials: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
-  avatarLoadingOverlay: { position: 'absolute', top: 0, left: 0, width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
-  avatarBadge: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: '#3B82F6', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#1C1C1E' },
-  avatarBadgeIcon: { fontSize: 11, color: '#fff', lineHeight: 14 },
+  avatarPlaceholder: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surface.muted, justifyContent: 'center', alignItems: 'center' },
+  avatarInitials: { fontSize: 22, fontWeight: '700', color: colors.text.DEFAULT },
+  avatarLoadingOverlay: { position: 'absolute', top: 0, left: 0, width: 64, height: 64, borderRadius: 32, backgroundColor: colors.overlay.DEFAULT, justifyContent: 'center', alignItems: 'center' },
+  avatarBadge: { position: 'absolute', bottom: 0, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.brand.DEFAULT, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.surface.elevated },
+  avatarBadgeIcon: { fontSize: 11, color: colors.brand.foreground, lineHeight: 14 },
   heroInfo: { flex: 1 },
-  heroName: { fontSize: 17, fontWeight: '700', color: '#FFFFFF', marginBottom: 2 },
-  heroEmail: { fontSize: 13, color: '#8E8E93' },
-  heroEditBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20 },
-  heroEditBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
-  sectionLabel: { fontSize: 12, fontWeight: '600', color: '#8E8E93', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginTop: 4, paddingHorizontal: 4 },
-  settingsCard: { backgroundColor: '#FFFFFF', borderRadius: 14, marginBottom: 20, overflow: 'hidden' },
-  fieldRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E5E5EA' },
+  heroName: { fontSize: 17, fontWeight: '700', color: colors.text.DEFAULT, marginBottom: 2 },
+  heroEmail: { fontSize: 13, color: colors.text.muted },
+  heroEditBtn: { paddingHorizontal: 14, paddingVertical: 7, backgroundColor: colors.brand.muted, borderRadius: 20, borderWidth: 1, borderColor: colors.border.DEFAULT },
+  heroEditBtnText: { fontSize: 14, fontWeight: '600', color: colors.brand.DEFAULT },
+  sectionLabel: { fontSize: 12, fontWeight: '600', color: colors.text.subtle, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8, marginTop: 4, paddingHorizontal: 4 },
+  settingsCard: { backgroundColor: colors.surface.DEFAULT, borderRadius: 14, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: colors.border.DEFAULT },
+  fieldRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.DEFAULT },
   fieldRowLast: { borderBottomWidth: 0 },
   fieldLeft: { flex: 1 },
-  fieldLabel: { fontSize: 11, fontWeight: '600', color: '#8E8E93', letterSpacing: 0.4, marginBottom: 3 },
-  fieldValue: { fontSize: 15, color: '#1C1C1E' },
-  fieldAction: { fontSize: 15, color: '#3B82F6', fontWeight: '500' },
-  lockedChip: { backgroundColor: '#F2F2F7', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  lockedChipText: { fontSize: 12, color: '#8E8E93', fontWeight: '500' },
-  lastSaved: { fontSize: 12, color: '#8E8E93', fontStyle: 'italic', marginTop: -14, marginBottom: 20, paddingHorizontal: 4 },
-  paymentRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E5E5EA' },
-  paymentRowLast: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E5E5EA' },
+  fieldLabel: { fontSize: 11, fontWeight: '600', color: colors.text.subtle, letterSpacing: 0.4, marginBottom: 3 },
+  fieldValue: { fontSize: 15, color: colors.text.DEFAULT },
+  fieldAction: { fontSize: 15, color: colors.brand.DEFAULT, fontWeight: '500' },
+  lockedChip: { backgroundColor: colors.surface.muted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  lockedChipText: { fontSize: 12, color: colors.text.subtle, fontWeight: '500' },
+  lastSaved: { fontSize: 12, color: colors.text.subtle, fontStyle: 'italic', marginTop: -14, marginBottom: 20, paddingHorizontal: 4 },
+  paymentRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.DEFAULT },
+  paymentRowLast: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.DEFAULT },
   paymentStatus: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  paymentStatusEnabled: { backgroundColor: '#D1FAE5' },
-  paymentStatusDisabled: { backgroundColor: '#F2F2F7' },
+  paymentStatusEnabled: { backgroundColor: colors.success.muted },
+  paymentStatusDisabled: { backgroundColor: colors.surface.muted },
   paymentStatusIcon: { fontSize: 14, fontWeight: '700' },
-  paymentStatusIconEnabled: { color: '#059669' },
-  paymentStatusIconDisabled: { color: '#C7C7CC' },
-  paymentName: { flex: 1, fontSize: 15, color: '#1C1C1E', fontWeight: '500' },
-  paymentNameDisabled: { color: '#8E8E93' },
-  paymentHandle: { fontSize: 13, color: '#8E8E93' },
-  navActionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E5E5EA' },
-  navActionIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#EEF2FF', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  navActionLabel: { flex: 1, fontSize: 15, color: '#3B82F6', fontWeight: '500' },
-  navActionArrow: { fontSize: 20, color: '#C7C7CC' },
-  dangerCard: { backgroundColor: '#FFFFFF', borderRadius: 14, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#FEE2E2' },
+  paymentStatusIconEnabled: { color: colors.success.DEFAULT },
+  paymentStatusIconDisabled: { color: colors.text.subtle },
+  paymentName: { flex: 1, fontSize: 15, color: colors.text.DEFAULT, fontWeight: '500' },
+  paymentNameDisabled: { color: colors.text.subtle },
+  paymentHandle: { fontSize: 13, color: colors.text.subtle },
+  navActionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border.DEFAULT },
+  navActionIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.brand.muted, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  navActionLabel: { flex: 1, fontSize: 15, color: colors.brand.DEFAULT, fontWeight: '500' },
+  navActionArrow: { fontSize: 20, color: colors.text.subtle },
+  dangerCard: { backgroundColor: colors.surface.DEFAULT, borderRadius: 14, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: colors.danger.DEFAULT },
   dangerRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16 },
-  dangerIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#FEE2E2', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  dangerLabel: { flex: 1, fontSize: 16, fontWeight: '600', color: '#DC2626' },
-  dangerArrow: { fontSize: 20, color: '#FCA5A5' },
-  sheetBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end', zIndex: 999 },
-  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 34, paddingTop: 12 },
-  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E5EA', alignSelf: 'center', marginBottom: 16 },
-  sheetTitle: { fontSize: 17, fontWeight: '700', color: '#1C1C1E', textAlign: 'center', marginBottom: 8 },
-  sheetOption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E5E5EA' },
+  dangerIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: colors.danger.muted, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  dangerLabel: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.danger.DEFAULT },
+  dangerArrow: { fontSize: 20, color: colors.danger.DEFAULT },
+  sheetBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.overlay.DEFAULT, justifyContent: 'flex-end', zIndex: 999 },
+  sheet: { backgroundColor: colors.surface.elevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 34, paddingTop: 12 },
+  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.border.DEFAULT, alignSelf: 'center', marginBottom: 16 },
+  sheetTitle: { fontSize: 17, fontWeight: '700', color: colors.text.DEFAULT, textAlign: 'center', marginBottom: 8 },
+  sheetOption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border.DEFAULT },
   sheetOptionRemove: {},
-  sheetOptionIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: '#F2F2F7', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
-  sheetOptionIconRemove: { backgroundColor: '#FEE2E2' },
+  sheetOptionIcon: { width: 40, height: 40, borderRadius: 10, backgroundColor: colors.surface.muted, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  sheetOptionIconRemove: { backgroundColor: colors.danger.muted },
   sheetOptionEmoji: { fontSize: 20 },
-  sheetOptionLabel: { fontSize: 16, color: '#1C1C1E', fontWeight: '500' },
-  sheetOptionLabelRemove: { color: '#DC2626' },
-  sheetCancel: { marginHorizontal: 10, marginTop: 12, backgroundColor: '#F2F2F7', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-  sheetCancelText: { fontSize: 16, fontWeight: '600', color: '#1C1C1E' },
-  editModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  editModalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, maxHeight: '85%' as any },
-  editModalTitle: { fontSize: 20, fontWeight: '700', color: '#1C1C1E', marginBottom: 20 },
-  editFieldLabel: { fontSize: 13, fontWeight: '600', color: '#6B7280', marginBottom: 6, marginTop: 14 },
-  editInput: { backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: '#1C1C1E' },
+  sheetOptionLabel: { fontSize: 16, color: colors.text.DEFAULT, fontWeight: '500' },
+  sheetOptionLabelRemove: { color: colors.danger.DEFAULT },
+  sheetCancel: { marginHorizontal: 10, marginTop: 12, backgroundColor: colors.surface.muted, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  sheetCancelText: { fontSize: 16, fontWeight: '600', color: colors.text.DEFAULT },
+  editModalOverlay: { flex: 1, backgroundColor: colors.overlay.DEFAULT, justifyContent: 'flex-end' },
+  editModalContent: { backgroundColor: colors.surface.elevated, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, maxHeight: '85%' as any },
+  editModalTitle: { fontSize: 20, fontWeight: '700', color: colors.text.DEFAULT, marginBottom: 20 },
+  editFieldLabel: { fontSize: 13, fontWeight: '600', color: colors.text.muted, marginBottom: 6, marginTop: 14 },
+  editInput: { backgroundColor: colors.surface.muted, borderWidth: 1, borderColor: colors.border.DEFAULT, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: colors.text.DEFAULT },
   editButtonRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  editCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#F2F2F7', alignItems: 'center' },
-  editCancelBtnText: { fontSize: 15, fontWeight: '600', color: '#1C1C1E' },
-  editSaveBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#3B82F6', alignItems: 'center' },
-  editSaveBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  editCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: colors.surface.muted, alignItems: 'center', borderWidth: 1, borderColor: colors.border.DEFAULT },
+  editCancelBtnText: { fontSize: 15, fontWeight: '600', color: colors.text.DEFAULT },
+  editSaveBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: colors.brand.DEFAULT, alignItems: 'center' },
+  editSaveBtnText: { fontSize: 15, fontWeight: '600', color: colors.brand.foreground },
 });
-

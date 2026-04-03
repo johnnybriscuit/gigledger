@@ -22,7 +22,7 @@ import { useDashboardData, type DateRange } from '../../hooks/useDashboardData';
 import { DateRangeFilter } from '../DateRangeFilter';
 import { SkeletonDashboardCard } from '../SkeletonCard';
 import { perf } from '../../lib/performance';
-import { spacing } from '../../styles/theme';
+import { colors, spacing } from '../../styles/theme';
 import { useEffect } from 'react';
 import { UsageWidget } from '../UsageWidget';
 import { DashboardEmptyState } from './DashboardEmptyState';
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   },
   qaBtn: {
     flex: 1,
-    backgroundColor: '#2D5BE3',
+    backgroundColor: colors.brand.DEFAULT,
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
@@ -355,14 +355,14 @@ const styles = StyleSheet.create({
   qaBtnPrimaryText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.brand.foreground,
   },
   qaBtnGhost: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#E5E3DE',
+    borderColor: colors.border.DEFAULT,
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -370,6 +370,6 @@ const styles = StyleSheet.create({
   qaBtnGhostText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: colors.text.DEFAULT,
   },
 });

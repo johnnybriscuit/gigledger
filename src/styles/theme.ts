@@ -11,6 +11,136 @@
  * - Clear hierarchy through typography and spacing
  */
 
+import { Platform } from 'react-native';
+
+export type ThemeMode = 'light' | 'dark';
+
+const themePalettes = {
+  light: {
+    brand: {
+      DEFAULT: '#2563eb',
+      foreground: '#ffffff',
+      hover: '#1d4ed8',
+      muted: '#dbeafe',
+    },
+    surface: {
+      canvas: '#f6f8fb',
+      DEFAULT: '#ffffff',
+      muted: '#f3f6fb',
+      elevated: '#ffffff',
+      inverse: '#101828',
+    },
+    text: {
+      DEFAULT: '#101828',
+      muted: '#475467',
+      subtle: '#667085',
+      inverse: '#ffffff',
+    },
+    success: {
+      DEFAULT: '#15803d',
+      foreground: '#ffffff',
+      muted: '#dcfce7',
+    },
+    warning: {
+      DEFAULT: '#b45309',
+      foreground: '#ffffff',
+      muted: '#fef3c7',
+    },
+    danger: {
+      DEFAULT: '#b91c1c',
+      foreground: '#ffffff',
+      muted: '#fee2e2',
+    },
+    error: {
+      DEFAULT: '#b91c1c',
+      foreground: '#ffffff',
+      muted: '#fee2e2',
+    },
+    border: {
+      DEFAULT: '#d0d5dd',
+      muted: '#eaecf0',
+      strong: '#98a2b3',
+      focus: '#2563eb',
+    },
+    overlay: {
+      DEFAULT: 'rgba(15, 23, 42, 0.56)',
+      muted: 'rgba(15, 23, 42, 0.18)',
+    },
+    chart: {
+      primary: '#2563eb',
+      secondary: '#0f766e',
+      tertiary: '#15803d',
+      quaternary: '#7c3aed',
+      quinary: '#db2777',
+    },
+  },
+  dark: {
+    brand: {
+      DEFAULT: '#3b82f6',
+      foreground: '#f8fafc',
+      hover: '#60a5fa',
+      muted: '#172554',
+    },
+    surface: {
+      canvas: '#0f1720',
+      DEFAULT: '#151b23',
+      muted: '#1b2430',
+      elevated: '#202a37',
+      inverse: '#f8fafc',
+    },
+    text: {
+      DEFAULT: '#f8fafc',
+      muted: '#dbe4f0',
+      subtle: '#b6c2d2',
+      inverse: '#0f1720',
+    },
+    success: {
+      DEFAULT: '#22c55e',
+      foreground: '#052e16',
+      muted: '#11361f',
+    },
+    warning: {
+      DEFAULT: '#f59e0b',
+      foreground: '#1f1300',
+      muted: '#3b2a0d',
+    },
+    danger: {
+      DEFAULT: '#f87171',
+      foreground: '#2b0b0e',
+      muted: '#3f171d',
+    },
+    error: {
+      DEFAULT: '#f87171',
+      foreground: '#2b0b0e',
+      muted: '#3f171d',
+    },
+    border: {
+      DEFAULT: '#334155',
+      muted: '#263241',
+      strong: '#64748b',
+      focus: '#60a5fa',
+    },
+    overlay: {
+      DEFAULT: 'rgba(2, 6, 23, 0.72)',
+      muted: 'rgba(15, 23, 42, 0.4)',
+    },
+    chart: {
+      primary: '#60a5fa',
+      secondary: '#2dd4bf',
+      tertiary: '#4ade80',
+      quaternary: '#a78bfa',
+      quinary: '#f472b6',
+    },
+  },
+} as const;
+
+export function getThemePalette(theme: ThemeMode) {
+  return themePalettes[theme];
+}
+
+const cssVar = (token: string, fallback: string) =>
+  Platform.OS === 'web' ? `var(${token}, ${fallback})` : fallback;
+
 // ============================================================================
 // COLORS
 // ============================================================================
@@ -18,66 +148,75 @@
 export const colors = {
   // Brand colors - clean, trustworthy blue
   brand: {
-    DEFAULT: '#3b82f6', // blue-500
-    foreground: '#ffffff',
-    hover: '#2563eb', // blue-600
-    muted: '#dbeafe', // blue-100
+    DEFAULT: cssVar('--color-brand', themePalettes.light.brand.DEFAULT),
+    foreground: cssVar('--color-brand-foreground', themePalettes.light.brand.foreground),
+    hover: cssVar('--color-brand-hover', themePalettes.light.brand.hover),
+    muted: cssVar('--color-brand-muted', themePalettes.light.brand.muted),
   },
   
   // Surface colors - clean, minimal backgrounds
   surface: {
-    DEFAULT: '#ffffff',
-    muted: '#f9fafb', // gray-50
-    elevated: '#ffffff',
+    canvas: cssVar('--color-surface-canvas', themePalettes.light.surface.canvas),
+    DEFAULT: cssVar('--color-surface', themePalettes.light.surface.DEFAULT),
+    muted: cssVar('--color-surface-muted', themePalettes.light.surface.muted),
+    elevated: cssVar('--color-surface-elevated', themePalettes.light.surface.elevated),
+    inverse: cssVar('--color-surface-inverse', themePalettes.light.surface.inverse),
   },
   
   // Text colors - clear hierarchy
   text: {
-    DEFAULT: '#111827', // gray-900
-    muted: '#6b7280', // gray-500
-    subtle: '#9ca3af', // gray-400
+    DEFAULT: cssVar('--color-text', themePalettes.light.text.DEFAULT),
+    muted: cssVar('--color-text-muted', themePalettes.light.text.muted),
+    subtle: cssVar('--color-text-subtle', themePalettes.light.text.subtle),
+    inverse: cssVar('--color-text-inverse', themePalettes.light.text.inverse),
   },
   
   // Semantic colors
   success: {
-    DEFAULT: '#10b981', // emerald-500
-    foreground: '#ffffff',
-    muted: '#d1fae5', // emerald-100
+    DEFAULT: cssVar('--color-success', themePalettes.light.success.DEFAULT),
+    foreground: cssVar('--color-success-foreground', themePalettes.light.success.foreground),
+    muted: cssVar('--color-success-muted', themePalettes.light.success.muted),
   },
   
   warning: {
-    DEFAULT: '#f59e0b', // amber-500
-    foreground: '#ffffff',
-    muted: '#fef3c7', // amber-100
+    DEFAULT: cssVar('--color-warning', themePalettes.light.warning.DEFAULT),
+    foreground: cssVar('--color-warning-foreground', themePalettes.light.warning.foreground),
+    muted: cssVar('--color-warning-muted', themePalettes.light.warning.muted),
   },
   
   danger: {
-    DEFAULT: '#ef4444', // red-500
-    foreground: '#ffffff',
-    muted: '#fee2e2', // red-100
+    DEFAULT: cssVar('--color-danger', themePalettes.light.danger.DEFAULT),
+    foreground: cssVar('--color-danger-foreground', themePalettes.light.danger.foreground),
+    muted: cssVar('--color-danger-muted', themePalettes.light.danger.muted),
   },
   
   // Error colors (alias for danger)
   error: {
-    DEFAULT: '#ef4444', // red-500
-    foreground: '#ffffff',
-    muted: '#fee2e2', // red-100
+    DEFAULT: cssVar('--color-error', themePalettes.light.error.DEFAULT),
+    foreground: cssVar('--color-error-foreground', themePalettes.light.error.foreground),
+    muted: cssVar('--color-error-muted', themePalettes.light.error.muted),
   },
   
   // Border colors - subtle, minimal
   border: {
-    DEFAULT: '#e5e7eb', // gray-200
-    muted: '#f3f4f6', // gray-100
-    focus: '#f59e0b', // brand
+    DEFAULT: cssVar('--color-border', themePalettes.light.border.DEFAULT),
+    muted: cssVar('--color-border-muted', themePalettes.light.border.muted),
+    strong: cssVar('--color-border-strong', themePalettes.light.border.strong),
+    focus: cssVar('--color-border-focus', themePalettes.light.border.focus),
+  },
+
+  overlay: {
+    DEFAULT: cssVar('--color-overlay', themePalettes.light.overlay.DEFAULT),
+    muted: cssVar('--color-overlay-muted', themePalettes.light.overlay.muted),
   },
   
   // Chart colors - harmonious palette
   chart: {
-    primary: '#f59e0b', // amber-500
-    secondary: '#3b82f6', // blue-500
-    tertiary: '#10b981', // emerald-500
-    quaternary: '#8b5cf6', // violet-500
-    quinary: '#ec4899', // pink-500
+    primary: cssVar('--color-chart-primary', themePalettes.light.chart.primary),
+    secondary: cssVar('--color-chart-secondary', themePalettes.light.chart.secondary),
+    tertiary: cssVar('--color-chart-tertiary', themePalettes.light.chart.tertiary),
+    quaternary: cssVar('--color-chart-quaternary', themePalettes.light.chart.quaternary),
+    quinary: cssVar('--color-chart-quinary', themePalettes.light.chart.quinary),
   },
 } as const;
 

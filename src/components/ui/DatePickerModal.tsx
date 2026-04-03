@@ -16,6 +16,7 @@ import {
 import { addMonths, subMonths, startOfMonth, format, setMonth as setDateMonth, setYear } from 'date-fns';
 import { CalendarGrid } from './CalendarGrid';
 import { getToday } from '../../lib/date';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export interface DatePickerModalProps {
   /** Whether the modal is open */
@@ -50,8 +51,10 @@ export function DatePickerModal({
   title = 'Select date',
   initialMonth,
   showTodayShortcut = true,
-  isDark = false,
+  isDark,
 }: DatePickerModalProps) {
+  const { theme } = useTheme();
+  const resolvedIsDark = typeof isDark === 'boolean' ? isDark : theme === 'dark';
   // Draft state for the selected date (not committed until Apply)
   const [draft, setDraft] = useState<Date>(value ?? getToday());
   // Current month being displayed
@@ -127,7 +130,7 @@ export function DatePickerModal({
           onPress={(e) => e.stopPropagation()}
           style={[
             styles.content,
-            isDark && styles.contentDark,
+            resolvedIsDark && styles.contentDark,
             Platform.OS === 'web' && styles.contentWeb,
           ]}
         >
@@ -135,12 +138,12 @@ export function DatePickerModal({
           <View style={styles.header}>
             <TouchableOpacity
               onPress={handlePrevMonth}
-              style={[styles.navButton, isDark && styles.navButtonDark]}
+              style={[styles.navButton, resolvedIsDark && styles.navButtonDark]}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="Previous month"
             >
-              <Text style={[styles.navButtonText, isDark && styles.navButtonTextDark]}>
+              <Text style={[styles.navButtonText, resolvedIsDark && styles.navButtonTextDark]}>
                 ‹
               </Text>
             </TouchableOpacity>
@@ -152,20 +155,20 @@ export function DatePickerModal({
               accessibilityRole="button"
               accessibilityLabel="Select month and year"
             >
-              <Text style={[styles.monthText, isDark && styles.monthTextDark]}>
+              <Text style={[styles.monthText, resolvedIsDark && styles.monthTextDark]}>
                 {format(month, 'MMMM yyyy')}
               </Text>
-              <Text style={[styles.dropdownIcon, isDark && styles.dropdownIconDark]}>▼</Text>
+              <Text style={[styles.dropdownIcon, resolvedIsDark && styles.dropdownIconDark]}>▼</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={handleNextMonth}
-              style={[styles.navButton, isDark && styles.navButtonDark]}
+              style={[styles.navButton, resolvedIsDark && styles.navButtonDark]}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel="Next month"
             >
-              <Text style={[styles.navButtonText, isDark && styles.navButtonTextDark]}>
+              <Text style={[styles.navButtonText, resolvedIsDark && styles.navButtonTextDark]}>
                 ›
               </Text>
             </TouchableOpacity>
@@ -178,7 +181,7 @@ export function DatePickerModal({
             onSelect={handleSelectDate}
             minDate={minDate}
             maxDate={maxDate}
-            isDark={isDark}
+            isDark={resolvedIsDark}
           />
 
           {/* Footer with actions */}
@@ -191,7 +194,7 @@ export function DatePickerModal({
                 accessibilityRole="button"
                 accessibilityLabel="Select today"
               >
-                <Text style={[styles.todayButtonText, isDark && styles.todayButtonTextDark]}>
+                <Text style={[styles.todayButtonText, resolvedIsDark && styles.todayButtonTextDark]}>
                   Today
                 </Text>
               </TouchableOpacity>
@@ -200,12 +203,12 @@ export function DatePickerModal({
             <View style={styles.actionButtons}>
               <TouchableOpacity
                 onPress={handleCancel}
-                style={[styles.button, styles.buttonCancel, isDark && styles.buttonCancelDark]}
+                style={[styles.button, styles.buttonCancel, resolvedIsDark && styles.buttonCancelDark]}
                 accessible={true}
                 accessibilityRole="button"
                 accessibilityLabel="Cancel"
               >
-                <Text style={[styles.buttonText, isDark && styles.buttonTextDark]}>
+                <Text style={[styles.buttonText, resolvedIsDark && styles.buttonTextDark]}>
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -242,14 +245,14 @@ export function DatePickerModal({
             <TouchableOpacity
               activeOpacity={1}
               onPress={(e) => e.stopPropagation()}
-              style={[styles.pickerContent, isDark && styles.pickerContentDark]}
+              style={[styles.pickerContent, resolvedIsDark && styles.pickerContentDark]}
             >
               <View style={styles.pickerHeader}>
-                <Text style={[styles.pickerTitle, isDark && styles.pickerTitleDark]}>
+                <Text style={[styles.pickerTitle, resolvedIsDark && styles.pickerTitleDark]}>
                   Select Month & Year
                 </Text>
                 <TouchableOpacity onPress={() => setShowMonthYearPicker(false)}>
-                  <Text style={[styles.pickerClose, isDark && styles.pickerCloseDark]}>✕</Text>
+                  <Text style={[styles.pickerClose, resolvedIsDark && styles.pickerCloseDark]}>✕</Text>
                 </TouchableOpacity>
               </View>
               <ScrollView style={styles.pickerScroll}>
@@ -259,7 +262,7 @@ export function DatePickerModal({
                   (_, i) => new Date().getFullYear() + 2 - i
                 ).map((year) => (
                   <View key={year} style={styles.yearSection}>
-                    <Text style={[styles.yearLabel, isDark && styles.yearLabelDark]}>{year}</Text>
+                    <Text style={[styles.yearLabel, resolvedIsDark && styles.yearLabelDark]}>{year}</Text>
                     <View style={styles.monthGrid}>
                       {[
                         'Jan',
@@ -282,7 +285,7 @@ export function DatePickerModal({
                             key={monthName}
                             style={[
                               styles.monthButton,
-                              isDark && styles.monthButtonDark,
+                              resolvedIsDark && styles.monthButtonDark,
                               isSelected && styles.monthButtonSelected,
                             ]}
                             onPress={() => handleMonthYearSelect(monthIndex, year)}
@@ -290,7 +293,7 @@ export function DatePickerModal({
                             <Text
                               style={[
                                 styles.monthButtonText,
-                                isDark && styles.monthButtonTextDark,
+                                resolvedIsDark && styles.monthButtonTextDark,
                                 isSelected && styles.monthButtonTextSelected,
                               ]}
                             >

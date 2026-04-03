@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useInvoices } from '../hooks/useInvoices';
 import { formatCurrency } from '../types/invoice';
+import { colors } from '../styles/theme';
 
 interface InvoiceDashboardWidgetProps {
   onNavigateToInvoices?: () => void;
@@ -52,7 +53,7 @@ export function InvoiceDashboardWidget({ onNavigateToInvoices }: InvoiceDashboar
           <Text style={styles.title}>Invoices</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#2563eb" />
+          <ActivityIndicator size="small" color={colors.brand.DEFAULT} />
         </View>
       </View>
     );
@@ -180,12 +181,12 @@ function getStatusTextStyle(status: string) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
   },
   header: {
     flexDirection: 'row',
@@ -196,11 +197,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
   },
   viewAllButton: {
     fontSize: 14,
-    color: '#2563eb',
+    color: colors.brand.DEFAULT,
     fontWeight: '600',
   },
   loadingContainer: {
@@ -213,17 +214,17 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.text.muted,
     marginBottom: 12,
   },
   createButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.brand.DEFAULT,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   createButtonText: {
-    color: '#fff',
+    color: colors.brand.foreground,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -236,36 +237,36 @@ const styles = StyleSheet.create({
   metricCard: {
     flex: 1,
     minWidth: 100,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.surface.muted,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
   },
   overdueCard: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    backgroundColor: colors.danger.muted,
+    borderColor: colors.danger.DEFAULT,
   },
   metricLabel: {
     fontSize: 11,
-    color: '#6b7280',
+    color: colors.text.muted,
     marginBottom: 4,
   },
   metricValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.text.DEFAULT,
     marginBottom: 2,
   },
   overdueValue: {
-    color: '#dc2626',
+    color: colors.danger.DEFAULT,
   },
   paidValue: {
-    color: '#059669',
+    color: colors.success.DEFAULT,
   },
   metricSubtext: {
     fontSize: 10,
-    color: '#9ca3af',
+    color: colors.text.subtle,
   },
   recentSection: {
     marginBottom: 12,
@@ -273,7 +274,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text.muted,
     marginBottom: 8,
   },
   invoiceRow: {
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border.muted,
   },
   invoiceInfo: {
     flex: 1,
@@ -290,12 +291,12 @@ const styles = StyleSheet.create({
   invoiceNumber: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text.DEFAULT,
     marginBottom: 2,
   },
   clientName: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.text.muted,
   },
   invoiceRight: {
     alignItems: 'flex-end',
@@ -303,7 +304,7 @@ const styles = StyleSheet.create({
   invoiceAmount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text.DEFAULT,
     marginBottom: 4,
   },
   statusBadge: {
@@ -317,7 +318,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   viewAllFullButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surface.muted,
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -326,6 +327,6 @@ const styles = StyleSheet.create({
   viewAllFullButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text.muted,
   },
 });
