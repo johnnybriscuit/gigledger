@@ -68,7 +68,7 @@ export const mileageSchema = z.object({
   purpose: z.string().min(1, 'Purpose is required'),
   start_location: z.string().min(1, 'Start location is required'),
   end_location: z.string().min(1, 'End location is required'),
-  miles: z.number().min(0, 'Must be 0 or greater'),
+  miles: z.number().positive('Miles must be greater than 0'),
   notes: z.string().optional(),
 });
 

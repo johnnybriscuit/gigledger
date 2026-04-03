@@ -43,13 +43,25 @@ export function useCurrentUser() {
     if (cachedUser !== undefined) {
       setUser(cachedUser);
       setIsLoading(false);
-      return;
+    } else {
+      getCurrentUser().then((u) => {
+        setUser(u);
+        setIsLoading(false);
+      });
     }
 
-    getCurrentUser().then((u) => {
-      setUser(u);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      cachedUser = session?.user ?? null;
+      userPromise = null;
+      setUser(cachedUser);
       setIsLoading(false);
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return { data: user, isLoading };

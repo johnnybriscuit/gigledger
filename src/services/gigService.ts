@@ -24,6 +24,11 @@ export interface InlineExpenseData {
 export interface InlineMileageData {
   miles: number;
   note?: string;
+  startLocation?: string;
+  endLocation?: string;
+  purpose?: string;
+  isAutoCalculated?: boolean;
+  roundTrip?: boolean;
 }
 
 export interface InlineSubcontractorPaymentData {
@@ -160,12 +165,15 @@ export async function updateGigWithLines({
     const mileageInsert = {
       user_id: user.id,
       gig_id: gigId,
+      linked_gig_id: gigId,
       miles: mileage.miles,
-      purpose: 'Gig travel',
-      start_location: '',
-      end_location: '',
+      purpose: mileage.purpose || 'Gig travel',
+      start_location: mileage.startLocation || 'Home',
+      end_location: mileage.endLocation || (gig.location ?? 'Gig location'),
       notes: mileage.note || null,
       date: gig.date || new Date().toISOString().split('T')[0],
+      is_auto_calculated: mileage.isAutoCalculated ?? false,
+      is_round_trip: mileage.roundTrip ?? true,
     };
 
     const { error: mileageError } = await supabase
@@ -279,12 +287,15 @@ export async function createGigWithLines({
       const mileageInsert = {
         user_id: user.id,
         gig_id: gigId,
+        linked_gig_id: gigId,
         miles: mileage.miles,
-        purpose: 'Gig travel',
-        start_location: '',
-        end_location: '',
+        purpose: mileage.purpose || 'Gig travel',
+        start_location: mileage.startLocation || 'Home',
+        end_location: mileage.endLocation || (gig.location ?? 'Gig location'),
         notes: mileage.note || null,
         date: gig.date, // Use gig date for mileage
+        is_auto_calculated: mileage.isAutoCalculated ?? false,
+        is_round_trip: mileage.roundTrip ?? true,
       };
 
       const { error: mileageError } = await (supabase

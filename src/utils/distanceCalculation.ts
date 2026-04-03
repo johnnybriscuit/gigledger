@@ -119,10 +119,10 @@ export function formatDistance(miles: number | null): string {
 /**
  * Calculate tax deduction for mileage
  * @param miles - Distance in miles
- * @param ratePerMile - IRS standard mileage rate (default: $0.67 for 2024)
+ * @param ratePerMile - IRS standard mileage rate (default: $0.70 for 2025)
  * @returns Tax deduction amount
  */
-export function calculateMileageDeduction(miles: number, ratePerMile: number = 0.67): number {
+export function calculateMileageDeduction(miles: number, ratePerMile: number = 0.70): number {
   return Math.round(miles * ratePerMile * 100) / 100; // Round to 2 decimal places
 }
 
@@ -130,9 +130,9 @@ export function calculateMileageDeduction(miles: number, ratePerMile: number = 0
  * Format tax deduction for display
  * @param miles - Distance in miles
  * @param ratePerMile - IRS standard mileage rate
- * @returns Formatted string (e.g., "$71.69 (107 miles × $0.67/mile)")
+ * @returns Formatted string (e.g., "$74.90 (107 miles × $0.70/mile)")
  */
-export function formatMileageDeduction(miles: number, ratePerMile: number = 0.67): string {
+export function formatMileageDeduction(miles: number, ratePerMile: number = 0.70): string {
   const deduction = calculateMileageDeduction(miles, ratePerMile);
   return `$${deduction.toFixed(2)} (${miles} miles × $${ratePerMile.toFixed(2)}/mile)`;
 }

@@ -14,6 +14,7 @@ import GooglePlacesTextInput, {
 import { Text } from '../ui';
 import { colors } from '../styles/theme';
 import Constants from 'expo-constants';
+import { getBaseUrl } from '../lib/getBaseUrl';
 
 interface AddressPlacesInputProps {
   label: string;
@@ -97,10 +98,12 @@ export function AddressPlacesInput({
       formatted_address: formattedAddress,
     });
     
-    // Fetch coordinates using existing server-side endpoint (no CORS issues)
-    if (placeId && Platform.OS === 'web') {
+    // Fetch coordinates using the shared Places endpoint for both web and native.
+    if (placeId) {
       try {
-        const response = await fetch(`/api/places/details?place_id=${encodeURIComponent(placeId)}`);
+        const response = await fetch(
+          `${getBaseUrl()}/api/places/details?place_id=${encodeURIComponent(placeId)}`
+        );
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -114,7 +117,8 @@ export function AddressPlacesInput({
         const data = await response.json();
         
         // Guard: Ensure coordinates are present and valid
-        if (data.location?.lat && data.location?.lng && 
+        if (typeof data.location?.lat === 'number' &&
+            typeof data.location?.lng === 'number' && 
             typeof data.location.lat === 'number' && 
             typeof data.location.lng === 'number') {
           

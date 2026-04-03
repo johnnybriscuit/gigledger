@@ -9,8 +9,8 @@ type Mileage = Database['public']['Tables']['mileage']['Row'];
 type MileageInsert = Database['public']['Tables']['mileage']['Insert'];
 type MileageUpdate = Database['public']['Tables']['mileage']['Update'];
 
-// IRS standard mileage rate for 2024
-export const IRS_MILEAGE_RATE = 0.67;
+// IRS standard mileage rate for 2025
+export const IRS_MILEAGE_RATE = 0.70;
 
 export function useMileage() {
   const userId = useUserId();

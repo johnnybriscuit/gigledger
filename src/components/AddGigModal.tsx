@@ -42,6 +42,7 @@ import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getEffectiveTaxTreatment, getTaxTreatmentLabel, getTaxTreatmentShortLabel, getDefaultAmountType } from '../lib/taxTreatment';
+import { getBaseUrl } from '../lib/getBaseUrl';
 
 interface AddGigModalProps {
   visible: boolean;
@@ -169,6 +170,8 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   
   // Construct venue address from form fields
   const venueAddress = [location, city, state].filter(Boolean).join(', ');
+  const resolvedVenueAddress = venueDetails?.formatted_address || venueAddress || location || null;
+  const resolvedHomeAddress = profile?.home_address_full || profile?.home_address || null;
   
   // Calculate net amount before tax
   const netBeforeTax = (parseFloat(grossAmount) || 0) 
@@ -295,6 +298,11 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   // Handle duplicating gig (separate from editing)
   useEffect(() => {
     if (duplicatingGig) {
+      setVenueDetails(null);
+      setCityDetails(null);
+      setVenueError('');
+      setCityError('');
+      setInlineMileage(null);
       setPayerId(duplicatingGig.payer_id);
       setDate(toUtcDateString(new Date())); // Default to today for duplicates
       setTitle(duplicatingGig.title || '');
@@ -349,7 +357,15 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
           setInlineMileage({
             miles: mileage.miles.toString(),
             note: mileage.notes || '',
+            startLocation: mileage.start_location || undefined,
+            endLocation: mileage.end_location || undefined,
+            venueAddress: mileage.end_location || undefined,
+            roundTrip: mileage.is_round_trip ?? undefined,
+            isAutoCalculated: mileage.is_auto_calculated ?? undefined,
+            oneWayMiles: mileage.is_round_trip ? (mileage.miles / 2).toString() : mileage.miles.toString(),
           });
+        } else {
+          setInlineMileage(null);
         }
       };
       
@@ -364,6 +380,11 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
 
   useEffect(() => {
     if (editingGig) {
+      setVenueDetails(null);
+      setCityDetails(null);
+      setVenueError('');
+      setCityError('');
+      setInlineMileage(null);
       setPayerId(editingGig.payer_id);
       setDate(editingGig.date);
       setTitle(editingGig.title || '');
@@ -417,7 +438,15 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
           setInlineMileage({
             miles: mileage.miles.toString(),
             note: mileage.notes || '',
+            startLocation: mileage.start_location || undefined,
+            endLocation: mileage.end_location || undefined,
+            venueAddress: mileage.end_location || undefined,
+            roundTrip: mileage.is_round_trip ?? undefined,
+            isAutoCalculated: mileage.is_auto_calculated ?? undefined,
+            oneWayMiles: mileage.is_round_trip ? (mileage.miles / 2).toString() : mileage.miles.toString(),
           });
+        } else {
+          setInlineMileage(null);
         }
       };
       
@@ -457,6 +486,10 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     setCity('');
     setState('');
     setCountry('US');
+    setVenueDetails(null);
+    setCityDetails(null);
+    setVenueError('');
+    setCityError('');
     setGrossAmount('');
     setTips('0');
     setFees('0');
@@ -474,6 +507,14 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     setInlineSubcontractorPayments([]);
     setCopyExpenses(false);
     setCopySubcontractorPayments(false);
+    setFieldErrors({});
+    setTaxTreatmentOverride(null);
+    setShowTaxTreatmentOverride(false);
+    setNetAmountW2('');
+    setWithholdingAmountW2('');
+    setShowW2Details(false);
+    setStateSearch('');
+    setCountrySearch('');
   };
 
   // Date picker handler
@@ -618,6 +659,11 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
       const mileageData = inlineMileage ? {
         miles: parseFloat(inlineMileage.miles) || 0,
         note: inlineMileage.note,
+        startLocation: inlineMileage.startLocation || resolvedHomeAddress || undefined,
+        endLocation: inlineMileage.endLocation || resolvedVenueAddress || undefined,
+        purpose: validated.title || generateDefaultTitle(),
+        isAutoCalculated: inlineMileage.isAutoCalculated ?? false,
+        roundTrip: inlineMileage.roundTrip ?? true,
       } : undefined;
 
       // Prepare subcontractor payments data (used for both create and edit)
@@ -1043,7 +1089,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     setVenueError('');
                     
                     try {
-                      const response = await fetch(`/api/places/details?place_id=${item.place_id}`, {
+                      const response = await fetch(`${getBaseUrl()}/api/places/details?place_id=${encodeURIComponent(item.place_id)}`, {
                         credentials: 'include',
                       });
                       
@@ -1087,7 +1133,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                     setCityError('');
                     
                     try {
-                      const response = await fetch(`/api/places/details?place_id=${item.place_id}`, {
+                      const response = await fetch(`${getBaseUrl()}/api/places/details?place_id=${encodeURIComponent(item.place_id)}`, {
                         credentials: 'include',
                       });
                       
@@ -1268,11 +1314,12 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                 mileage={inlineMileage}
                 onChange={setInlineMileage}
                 homeAddress={profile ? {
-                  full: profile.home_address_full,
+                  full: resolvedHomeAddress,
                   lat: profile.home_address_lat,
                   lng: profile.home_address_lng,
                 } : null}
                 venueLocation={venueDetails?.location || cityDetails?.location || null}
+                venueAddress={resolvedVenueAddress}
               />
             </Accordion>
 

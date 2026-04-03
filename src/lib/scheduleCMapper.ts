@@ -144,6 +144,7 @@ export function groupExpensesByScheduleC(
  * IRS standard mileage rate (updated annually)
  */
 export const IRS_MILEAGE_RATE = {
+  2025: 0.70,
   2024: 0.67,
   2023: 0.655,
   2022: 0.625,
@@ -153,7 +154,7 @@ export const IRS_MILEAGE_RATE = {
  * Gets the IRS mileage rate for a given year
  */
 export function getMileageRate(year: number): number {
-  return IRS_MILEAGE_RATE[year as keyof typeof IRS_MILEAGE_RATE] || IRS_MILEAGE_RATE[2024];
+  return IRS_MILEAGE_RATE[year as keyof typeof IRS_MILEAGE_RATE] || IRS_MILEAGE_RATE[2025];
 }
 
 /**

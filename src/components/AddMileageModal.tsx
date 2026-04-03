@@ -15,8 +15,8 @@ import { mileageSchema, type MileageFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { AddressPlacesInput } from './AddressPlacesInput';
-import { calculateDistance } from '../utils/distanceCalculation';
 import { useCreateSavedRoute, useSavedRoutes } from '../hooks/useSavedRoutes';
+import { drivingMiles } from '../lib/geo';
 
 interface AddMileageModalProps {
   visible: boolean;
@@ -45,6 +45,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const [coordsError, setCoordsError] = useState(''); // For coordinate fetching issues
   const [startCoordsError, setStartCoordsError] = useState(''); // For start location coord issues
   const [endCoordsError, setEndCoordsError] = useState(''); // For end location coord issues
+  const [autoCalculatedOneWayMiles, setAutoCalculatedOneWayMiles] = useState<number | null>(null);
 
   const createMileage = useCreateMileage();
   const updateMileage = useUpdateMileage();
@@ -59,6 +60,23 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
       setEndLocation(editingMileage.end_location);
       setMiles(editingMileage.miles.toString());
       setNotes(editingMileage.notes || '');
+      setIsRoundTrip(Boolean(editingMileage.is_round_trip));
+      setIsAutoCalculated(Boolean(editingMileage.is_auto_calculated));
+      setShouldSaveRoute(false);
+      setRouteName('');
+      setStartPlaceId(null);
+      setEndPlaceId(null);
+      setStartCoords(null);
+      setEndCoords(null);
+      setSelectionError('');
+      setCoordsError('');
+      setStartCoordsError('');
+      setEndCoordsError('');
+      setAutoCalculatedOneWayMiles(
+        editingMileage.is_auto_calculated
+          ? (editingMileage.is_round_trip ? Number(editingMileage.miles) / 2 : Number(editingMileage.miles))
+          : null
+      );
     } else {
       resetForm();
     }
@@ -83,6 +101,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     setCoordsError('');
     setStartCoordsError('');
     setEndCoordsError('');
+    setAutoCalculatedOneWayMiles(null);
   };
 
   // Date picker handler
@@ -135,18 +154,16 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
 
     setIsCalculating(true);
     try {
-      // Calculate distance using coordinates directly (no geocoding needed)
-      const distance = calculateDistanceFromCoords(
-        startCoords.lat,
-        startCoords.lng,
-        endCoords.lat,
-        endCoords.lng
+      const result = await drivingMiles(
+        startCoords,
+        endCoords
       );
       
-      if (distance !== null && distance > 0) {
-        const finalMiles = isRoundTrip ? distance * 2 : distance;
+      if (result.miles > 0) {
+        const finalMiles = isRoundTrip ? result.miles * 2 : result.miles;
         setMiles(finalMiles.toFixed(1));
         setIsAutoCalculated(true);
+        setAutoCalculatedOneWayMiles(result.miles);
       } else {
         setCoordsError('Couldn\'t calculate miles right now — please try again.');
       }
@@ -158,37 +175,13 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     }
   };
 
-  // Helper function to calculate distance from coordinates using Haversine formula
-  const calculateDistanceFromCoords = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number => {
-    const R = 3958.8; // Earth's radius in miles
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) *
-        Math.cos(lat2 * (Math.PI / 180)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  // Update miles when round trip toggle changes
+  // Keep derived auto-calculated miles in sync with the round-trip toggle.
   useEffect(() => {
-    if (isAutoCalculated && miles) {
-      const currentMiles = parseFloat(miles);
-      if (isRoundTrip) {
-        setMiles((currentMiles * 2).toString());
-      } else {
-        setMiles((currentMiles / 2).toString());
-      }
+    if (isAutoCalculated && autoCalculatedOneWayMiles && autoCalculatedOneWayMiles > 0) {
+      const syncedMiles = isRoundTrip ? autoCalculatedOneWayMiles * 2 : autoCalculatedOneWayMiles;
+      setMiles(syncedMiles.toFixed(1));
     }
-  }, [isRoundTrip]);
+  }, [isRoundTrip, isAutoCalculated, autoCalculatedOneWayMiles]);
 
   // Auto-generate route name from locations
   useEffect(() => {
@@ -202,15 +195,25 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   // Handle saved route selection
   const handleSelectSavedRoute = (routeId: string) => {
     const route = savedRoutes.find(r => r.id === routeId);
-    if (route) {
-      setStartLocation(route.start_location);
-      setEndLocation(route.end_location);
-      setMiles(route.distance_miles.toString());
-      if (route.default_purpose) {
-        setPurpose(route.default_purpose);
+      if (route) {
+        setStartLocation(route.start_location);
+        setEndLocation(route.end_location);
+        setMiles(route.distance_miles.toFixed(1));
+        if (route.default_purpose) {
+          setPurpose(route.default_purpose);
+        }
+        setIsRoundTrip(false);
+        setIsAutoCalculated(true);
+        setAutoCalculatedOneWayMiles(route.distance_miles);
+        setSelectionError('');
+        setCoordsError('');
+        setStartCoordsError('');
+        setEndCoordsError('');
+        setStartPlaceId(null);
+        setEndPlaceId(null);
+        setStartCoords(null);
+        setEndCoords(null);
       }
-      setIsAutoCalculated(true);
-    }
   };
 
   const handleSubmit = async () => {
@@ -230,9 +233,15 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
         await updateMileage.mutateAsync({
           id: editingMileage.id,
           ...validated,
+          is_auto_calculated: isAutoCalculated,
+          is_round_trip: isRoundTrip,
         });
       } else {
-        await createMileage.mutateAsync(validated);
+        await createMileage.mutateAsync({
+          ...validated,
+          is_auto_calculated: isAutoCalculated,
+          is_round_trip: isRoundTrip,
+        });
 
         // Save route if requested
         if (shouldSaveRoute && routeName && startLocation && endLocation) {
@@ -241,7 +250,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               name: routeName,
               start_location: startLocation,
               end_location: endLocation,
-              distance_miles: parseFloat(miles) || 0,
+              distance_miles: autoCalculatedOneWayMiles ?? (parseFloat(miles) || 0),
               default_purpose: purpose,
               is_favorite: false,
             });
@@ -358,7 +367,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               onSelect={(item) => {
                 setStartLocation(item.description);
                 setStartPlaceId(item.place_id); // Mark as valid selection immediately
-                if (item.lat && item.lng) {
+                if (typeof item.lat === 'number' && typeof item.lng === 'number') {
                   setStartCoords({ lat: item.lat, lng: item.lng });
                   setStartCoordsError(''); // Clear error when coords received
                 }
@@ -387,7 +396,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               onSelect={(item) => {
                 setEndLocation(item.description);
                 setEndPlaceId(item.place_id); // Mark as valid selection immediately
-                if (item.lat && item.lng) {
+                if (typeof item.lat === 'number' && typeof item.lng === 'number') {
                   setEndCoords({ lat: item.lat, lng: item.lng });
                   setEndCoordsError(''); // Clear error when coords received
                 }
@@ -422,6 +431,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 onChangeText={(text) => {
                   setMiles(text);
                   setIsAutoCalculated(false);
+                  setAutoCalculatedOneWayMiles(null);
                 }}
                 placeholder="0"
                 placeholderTextColor="#9ca3af"

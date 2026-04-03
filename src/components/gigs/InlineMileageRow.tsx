@@ -4,7 +4,7 @@
  * Supports automatic calculation from home address to venue
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { IRS_MILEAGE_RATE, calculateMileageDeduction } from '../../hooks/useTaxEstimate';
 import { drivingMiles, formatProvider, type LatLng } from '../../lib/geo';
@@ -13,7 +13,11 @@ export interface InlineMileage {
   miles: string;
   note?: string;
   venueAddress?: string;
+  startLocation?: string;
+  endLocation?: string;
   roundTrip?: boolean;
+  isAutoCalculated?: boolean;
+  oneWayMiles?: string;
 }
 
 interface InlineMileageRowProps {
@@ -25,37 +29,52 @@ interface InlineMileageRowProps {
     lng: number | null;
   } | null;
   venueLocation?: LatLng | null; // Venue lat/lng from autocomplete
+  venueAddress?: string | null;
 }
 
-export function InlineMileageRow({ mileage, onChange, homeAddress, venueLocation }: InlineMileageRowProps) {
-  const [calculating, setCalculating] = useState(false);
-  const [useAutoCalculate, setUseAutoCalculate] = useState(false);
+function hasCoordinates(location: LatLng | null | undefined): location is LatLng {
+  return typeof location?.lat === 'number' && typeof location?.lng === 'number';
+}
+
+export function InlineMileageRow({ mileage, onChange, homeAddress, venueLocation, venueAddress }: InlineMileageRowProps) {
+  const [calculating, setCalculating] = React.useState(false);
   
   const miles = parseFloat(mileage?.miles || '0');
   const deduction = calculateMileageDeduction(miles);
   const roundTrip = mileage?.roundTrip ?? true;
-
-  const canAutoCalculate = homeAddress?.lat && homeAddress?.lng && venueLocation?.lat && venueLocation?.lng;
+  const homeCoordinates = (
+    typeof homeAddress?.lat === 'number' && typeof homeAddress?.lng === 'number'
+      ? { lat: homeAddress.lat, lng: homeAddress.lng }
+      : null
+  );
+  const canAutoCalculate = Boolean(
+    hasCoordinates(homeCoordinates) &&
+      hasCoordinates(venueLocation) &&
+      homeAddress?.full &&
+      venueAddress
+  );
 
   const handleAutoCalculate = async () => {
-    if (!homeAddress?.lat || !homeAddress?.lng || !venueLocation?.lat || !venueLocation?.lng) return;
+    if (!homeCoordinates || !hasCoordinates(venueLocation) || !homeAddress?.full || !venueAddress) {
+      return;
+    }
     
     setCalculating(true);
     try {
       const result = await drivingMiles(
-        { lat: homeAddress.lat, lng: homeAddress.lng },
+        homeCoordinates,
         { lat: venueLocation.lat, lng: venueLocation.lng }
       );
-      
-      let calculatedMiles = result.miles;
-      if (roundTrip) {
-        calculatedMiles *= 2;
-      }
-      
+
       onChange({
-        miles: calculatedMiles.toFixed(1),
+        miles: (roundTrip ? result.miles * 2 : result.miles).toFixed(1),
         note: `Calculated via ${formatProvider(result.provider)}${roundTrip ? ' (round trip)' : ''}`,
+        startLocation: homeAddress.full,
+        endLocation: venueAddress,
+        venueAddress,
         roundTrip,
+        isAutoCalculated: true,
+        oneWayMiles: result.miles.toFixed(3),
       });
     } catch (error: any) {
       console.error('Error calculating mileage:', error);
@@ -66,14 +85,19 @@ export function InlineMileageRow({ mileage, onChange, homeAddress, venueLocation
   };
 
   const handleMilesChange = (text: string) => {
-    if (!text || text === '0') {
+    const parsedMiles = parseFloat(text);
+    if (!text || Number.isNaN(parsedMiles) || parsedMiles <= 0) {
       onChange(null);
     } else {
       onChange({
         miles: text,
         note: mileage?.note || '',
+        startLocation: mileage?.startLocation,
+        endLocation: mileage?.endLocation,
         venueAddress: mileage?.venueAddress,
         roundTrip: mileage?.roundTrip ?? true,
+        isAutoCalculated: false,
+        oneWayMiles: undefined,
       });
     }
   };
@@ -88,6 +112,20 @@ export function InlineMileageRow({ mileage, onChange, homeAddress, venueLocation
   };
 
   const toggleRoundTrip = () => {
+    if (mileage?.isAutoCalculated) {
+      const oneWayMiles = parseFloat(mileage.oneWayMiles || mileage.miles || '0');
+      if (!Number.isNaN(oneWayMiles) && oneWayMiles > 0) {
+        const baseNote = mileage.note?.replace(' (round trip)', '') || 'Calculated mileage';
+        onChange({
+          ...mileage,
+          miles: (!roundTrip ? oneWayMiles * 2 : oneWayMiles).toFixed(1),
+          roundTrip: !roundTrip,
+          note: `${baseNote}${!roundTrip ? ' (round trip)' : ''}`,
+        });
+        return;
+      }
+    }
+
     if (mileage) {
       onChange({
         ...mileage,
@@ -137,7 +175,7 @@ export function InlineMileageRow({ mileage, onChange, homeAddress, venueLocation
         </View>
       )}
 
-      {!canAutoCalculate && homeAddress?.full && !venueLocation && (
+      {!canAutoCalculate && homeAddress?.full && !venueAddress && (
         <Text style={styles.hint}>Add venue location to auto-calculate mileage</Text>
       )}
 
@@ -145,7 +183,8 @@ export function InlineMileageRow({ mileage, onChange, homeAddress, venueLocation
         <Text style={styles.hint}>Add home address in Account settings to enable auto-calculate</Text>
       )}
       
-      {homeAddress?.full && !homeAddress?.lat && (
+      {homeAddress?.full &&
+        (typeof homeAddress.lat !== 'number' || typeof homeAddress.lng !== 'number') && (
         <Text style={styles.hint}>Home address missing coordinates. Please re-select in Account settings.</Text>
       )}
 
