@@ -39,6 +39,7 @@ import { generateTurboTaxOnlinePack } from '../lib/exports/turbotax-online-pack'
 import { downloadTXF as downloadTXFWeb, downloadZip } from '../lib/exports/webDownloadHelpers';
 import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
 import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
+import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 
 interface ExportsScreenProps {
   dateRange?: DateRange;
@@ -694,27 +695,15 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
 
       {/* ── Summary bar ─────────────────────────────── */}
-      <View style={styles.summaryBar}>
-        <View style={styles.summaryStatCol}>
-          <Text style={styles.summaryLabel}>GIGS</Text>
-          <Text style={styles.summaryValue}>{isLoading ? '—' : (gigs.data?.length ?? 0)}</Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryStatCol}>
-          <Text style={styles.summaryLabel}>EXPENSES</Text>
-          <Text style={styles.summaryValue}>{isLoading ? '—' : (expenses.data?.length ?? 0)}</Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryStatCol}>
-          <Text style={styles.summaryLabel}>MILEAGE</Text>
-          <Text style={styles.summaryValue}>{isLoading ? '—' : (mileage.data?.length ?? 0)}</Text>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryStatCol}>
-          <Text style={styles.summaryLabel}>PAYERS</Text>
-          <Text style={styles.summaryValue}>{isLoading ? '—' : (payers.data?.length ?? 0)}</Text>
-        </View>
-      </View>
+      <StatsSummaryBar
+        style={{ marginBottom: 14 }}
+        items={[
+          { label: 'GIGS', value: isLoading ? '—' : (gigs.data?.length ?? 0) },
+          { label: 'EXPENSES', value: isLoading ? '—' : (expenses.data?.length ?? 0) },
+          { label: 'MILEAGE', value: isLoading ? '—' : (mileage.data?.length ?? 0) },
+          { label: 'PAYERS', value: isLoading ? '—' : (payers.data?.length ?? 0) },
+        ]}
+      />
 
       {/* ── Warning callout (conditional) ───────────── */}
       {hasWarnings && (

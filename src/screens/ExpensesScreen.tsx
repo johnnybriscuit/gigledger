@@ -29,6 +29,7 @@ import { DeductionInfoCard } from '../components/DeductionInfoCard';
 import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
+import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 
 interface ExpensesScreenProps {
   onNavigateToSubscription?: () => void;
@@ -182,22 +183,13 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
     <View style={styles.container}>
 
       {/* ── Summary Bar ── */}
-      <View style={styles.summaryBar}>
-        <View style={styles.summaryStat}>
-          <RNText style={styles.summaryLabel}>TOTAL EXPENSES</RNText>
-          <RNText style={styles.summaryValue}>{expenses?.length || 0}</RNText>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryStat}>
-          <RNText style={styles.summaryLabel}>TOTAL SPENT</RNText>
-          <RNText style={styles.summaryValue}>{formatCurrency(totalExpenses)}</RNText>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryStat}>
-          <RNText style={styles.summaryLabel}>DEDUCTIBLE</RNText>
-          <RNText style={[styles.summaryValue, styles.summaryValueGreen]}>{formatCurrency(deductibleTotal)}</RNText>
-        </View>
-      </View>
+      <StatsSummaryBar
+        items={[
+          { label: 'TOTAL EXPENSES', value: expenses?.length || 0 },
+          { label: 'TOTAL SPENT', value: formatCurrency(totalExpenses) },
+          { label: 'DEDUCTIBLE', value: formatCurrency(deductibleTotal), valueColor: colors.success.DEFAULT },
+        ]}
+      />
 
       {/* ── Section Header ── */}
       <View style={styles.sectionHeader}>

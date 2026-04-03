@@ -32,6 +32,7 @@ import { generateICSFile, downloadICSFile, generateICSFilename } from '../utils/
 import { addGigToCalendar } from '../utils/nativeCalendar';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
+import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 
 // Design tokens
 const T = {
@@ -581,22 +582,13 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     <View style={styles.container}>
 
       {/* ── SUMMARY BAR ── */}
-      <View style={styles.summaryBar}>
-        <View style={styles.summaryStat}>
-          <NativeText style={styles.summaryLabel}>TOTAL GIGS</NativeText>
-          <NativeText style={styles.summaryValue}>{filteredGigs?.length || 0}</NativeText>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryStat}>
-          <NativeText style={styles.summaryLabel}>NET EARNINGS</NativeText>
-          <NativeText style={styles.summaryValue}>{formatCurrency(totalNet)}</NativeText>
-        </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryStat}>
-          <NativeText style={styles.summaryLabel}>TAX ASIDE</NativeText>
-          <NativeText style={[styles.summaryValue, styles.summaryValueAmber]}>{formatCurrency(totalTaxAside)}</NativeText>
-        </View>
-      </View>
+      <StatsSummaryBar
+        items={[
+          { label: 'TOTAL GIGS', value: filteredGigs?.length || 0 },
+          { label: 'NET EARNINGS', value: formatCurrency(totalNet) },
+          { label: 'TAX ASIDE', value: formatCurrency(totalTaxAside), valueColor: T.amber },
+        ]}
+      />
 
       {/* ── SECTION HEADER + ACTION BUTTONS ── */}
       {!isSelectionMode && (
