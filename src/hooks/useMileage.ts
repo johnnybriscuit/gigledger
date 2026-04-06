@@ -4,13 +4,18 @@ import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { getCachedUserId } from '../lib/sharedAuth';
 import { useUserId } from './useCurrentUser';
+import {
+  calculateMileageDeduction as calculateMileageDeductionForDate,
+  getLatestSupportedMileageYear,
+  getStandardMileageRate,
+} from '../lib/mileage';
 
 type Mileage = Database['public']['Tables']['mileage']['Row'];
 type MileageInsert = Database['public']['Tables']['mileage']['Insert'];
 type MileageUpdate = Database['public']['Tables']['mileage']['Update'];
 
-// IRS standard mileage rate for 2025
-export const IRS_MILEAGE_RATE = 0.70;
+export const IRS_MILEAGE_RATE_YEAR = getLatestSupportedMileageYear();
+export const IRS_MILEAGE_RATE = getStandardMileageRate();
 
 export function useMileage() {
   const userId = useUserId();
@@ -120,6 +125,6 @@ export function useDeleteMileage() {
 }
 
 // Calculate total deductible amount
-export function calculateMileageDeduction(miles: number): number {
-  return miles * IRS_MILEAGE_RATE;
+export function calculateMileageDeduction(miles: number, date?: string | Date | null): number {
+  return calculateMileageDeductionForDate(miles, date);
 }

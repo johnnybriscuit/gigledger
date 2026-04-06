@@ -7,9 +7,17 @@ import {
   ActivityIndicator,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Text } from '../ui';
-import { useMileage, useDeleteMileage, calculateMileageDeduction, IRS_MILEAGE_RATE, useCreateMileage } from '../hooks/useMileage';
+import {
+  useMileage,
+  useDeleteMileage,
+  calculateMileageDeduction,
+  IRS_MILEAGE_RATE,
+  IRS_MILEAGE_RATE_YEAR,
+  useCreateMileage,
+} from '../hooks/useMileage';
 import { AddMileageModal } from '../components/AddMileageModal';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 import { toUtcDateString } from '../lib/date';
@@ -17,6 +25,7 @@ import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/da
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { colors } from '../styles/theme';
+import { sumMileageDeduction } from '../lib/mileage';
 
 interface MileageScreenProps {
   onNavigateToAccount?: () => void;
@@ -29,7 +38,7 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
   
-  const { data: allMileage, isLoading, error } = useMileage();
+  const { data: allMileage, isLoading, error, refetch } = useMileage();
 
   // Client-side date filtering — useMileage fetches all, we filter here
   const mileage = dateRange
@@ -42,19 +51,34 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
   const createMileage = useCreateMileage();
 
   const handleDelete = async (id: string, purpose: string) => {
-    const confirmed = Platform.OS === 'web'
-      ? window.confirm(`Are you sure you want to delete "${purpose}"?`)
-      : true;
-
-    if (!confirmed) return;
-
-    try {
-      await deleteMileage.mutateAsync(id);
-    } catch (error: any) {
-      if (Platform.OS === 'web') {
-        window.alert(`Error: ${error.message || 'Failed to delete mileage'}`);
+    const confirmDelete = async () => {
+      try {
+        await deleteMileage.mutateAsync(id);
+      } catch (deleteError: any) {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(`Error: ${deleteError.message || 'Failed to delete mileage'}`);
+        } else {
+          Alert.alert('Error', deleteError.message || 'Failed to delete mileage');
+        }
       }
+    };
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const confirmed = window.confirm(`Are you sure you want to delete "${purpose}"?`);
+      if (confirmed) {
+        await confirmDelete();
+      }
+      return;
     }
+
+    Alert.alert(
+      'Delete trip?',
+      `This will permanently remove "${purpose}".`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => void confirmDelete() },
+      ]
+    );
   };
 
   const handleEdit = (item: any) => {
@@ -68,7 +92,7 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
   };
 
   const formatDate = (dateString: string) => {
-    return formatDateUtil(new Date(dateString));
+    return formatDateUtil(dateString);
   };
 
   const formatCurrency = formatCurrencyUtil;
@@ -105,17 +129,21 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
       <View style={styles.centerContainer}>
         <Text style={{ color: T.red, fontWeight: '700', fontSize: 16 }}>Error loading mileage</Text>
         <Text style={{ color: T.textSecondary }}>{(error as Error).message}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={() => void refetch()}>
+          <Text style={styles.retryBtnText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   const totalMiles = mileage?.reduce((sum, item) => sum + item.miles, 0) || 0;
-  const totalDeduction = calculateMileageDeduction(totalMiles);
+  const totalDeduction = sumMileageDeduction(mileage || []);
   const tripCount = mileage?.length || 0;
+  const hasAnyTrips = (allMileage?.length || 0) > 0;
   const hasTrips = tripCount > 0;
 
   const renderTrip = ({ item }: { item: any }) => {
-    const deduction = calculateMileageDeduction(item.miles);
+    const deduction = calculateMileageDeduction(item.miles, item.date);
     const venue = [item.start_location, item.end_location].filter(Boolean).join(' → ');
     return (
       <View style={styles.tripCard}>
@@ -133,7 +161,7 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
           <View style={styles.tripRight}>
             <Text style={styles.milesLabel}>MILES</Text>
             <Text style={styles.milesValue}>{item.miles.toFixed(1)}</Text>
-            <Text style={styles.deductionValue}>${deduction.toFixed(2)} saved</Text>
+            <Text style={styles.deductionValue}>{formatCurrency(deduction, true)} deduction</Text>
           </View>
         </View>
         <View style={styles.tripFooter}>
@@ -164,21 +192,21 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
         <View style={styles.summaryDivider} />
         <View style={styles.summaryStatCol}>
           <Text style={styles.summaryLabel}>DEDUCTION</Text>
-          <Text style={{ ...styles.summaryValue, color: T.green }}>${totalDeduction.toFixed(0)}</Text>
+          <Text style={{ ...styles.summaryValue, color: T.green }}>{formatCurrency(totalDeduction, true)}</Text>
         </View>
       </View>
 
       {/* IRS rate chip */}
       <View style={styles.irsChipWrap}>
         <View style={styles.irsChip}>
-          <Text style={styles.irsChipText}>🚗  IRS Rate: ${IRS_MILEAGE_RATE} / mile ({new Date().getFullYear()})</Text>
+          <Text style={styles.irsChipText}>🚗 Year-specific IRS rates. Latest configured: ${IRS_MILEAGE_RATE}/mile ({IRS_MILEAGE_RATE_YEAR})</Text>
         </View>
       </View>
 
       {/* Section header */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionLabel}>ALL TRIPS</Text>
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+        <View style={styles.sectionHeaderActions}>
           <DateRangeFilter
             selected={dateRange}
             onSelect={setRange}
@@ -202,33 +230,40 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
         />
       ) : (
         <ScrollView contentContainerStyle={styles.emptyScroll}>
-          {/* Home address callout */}
-          <View style={styles.calloutCard}>
-            <View style={styles.calloutTop}>
-              <View style={styles.calloutIconWrap}>
-                <Text style={styles.calloutIconEmoji}>🗺️</Text>
-              </View>
-              <View style={styles.calloutTextWrap}>
-                <Text style={styles.calloutTitle}>Enable auto-calculated mileage</Text>
-                <Text style={styles.calloutDesc}>Add your home address in Account Settings and mileage will be calculated automatically when you log gigs.</Text>
-              </View>
+          {hasAnyTrips ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyIcon}>📆</Text>
+              <Text style={styles.emptyTitle}>No trips in this date range</Text>
+              <Text style={styles.emptyDesc}>Adjust the date filter or add a new trip for this period.</Text>
             </View>
-            <View style={styles.calloutActions}>
-              <TouchableOpacity style={styles.calloutBtnGhost} onPress={() => setModalVisible(true)}>
-                <Text style={styles.calloutBtnGhostText}>Add Manually</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.calloutBtnPrimary} onPress={onNavigateToAccount}>
-                <Text style={styles.calloutBtnPrimaryText}>Go to Settings</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Empty state */}
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>🚗</Text>
-            <Text style={styles.emptyTitle}>No trips logged yet</Text>
-            <Text style={styles.emptyDesc}>Add your first trip manually or set up auto-calculation via Account Settings.</Text>
-          </View>
+          ) : (
+            <>
+              <View style={styles.calloutCard}>
+                <View style={styles.calloutTop}>
+                  <View style={styles.calloutIconWrap}>
+                    <Text style={styles.calloutIconEmoji}>🗺️</Text>
+                  </View>
+                  <View style={styles.calloutTextWrap}>
+                    <Text style={styles.calloutTitle}>Enable auto-calculated mileage</Text>
+                    <Text style={styles.calloutDesc}>Add your home address in Account Settings and mileage will be calculated automatically when you log gigs.</Text>
+                  </View>
+                </View>
+                <View style={styles.calloutActions}>
+                  <TouchableOpacity style={styles.calloutBtnGhost} onPress={() => setModalVisible(true)}>
+                    <Text style={styles.calloutBtnGhostText}>Add Manually</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.calloutBtnPrimary} onPress={onNavigateToAccount}>
+                    <Text style={styles.calloutBtnPrimaryText}>Go to Settings</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyIcon}>🚗</Text>
+                <Text style={styles.emptyTitle}>No trips logged yet</Text>
+                <Text style={styles.emptyDesc}>Add your first trip manually or set up auto-calculation via Account Settings.</Text>
+              </View>
+            </>
+          )}
         </ScrollView>
       )}
 
@@ -332,9 +367,18 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    rowGap: 8,
     paddingHorizontal: 10,
     paddingBottom: 10,
+  },
+  sectionHeaderActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
   },
   sectionLabel: {
     fontSize: 13,
@@ -462,7 +506,19 @@ const styles = StyleSheet.create({
 
   // Empty / callout
   emptyScroll: {
+    flexGrow: 1,
     paddingBottom: 32,
+  },
+  retryBtn: {
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: T.accent,
+  },
+  retryBtnText: {
+    color: colors.brand.foreground,
+    fontWeight: '600',
   },
   calloutCard: {
     marginHorizontal: 10,

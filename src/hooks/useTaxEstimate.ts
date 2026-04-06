@@ -6,9 +6,14 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import {
+  calculateMileageDeduction as calculateMileageDeductionForDate,
+  getLatestSupportedMileageYear,
+  getStandardMileageRate,
+} from '../lib/mileage';
 
-// IRS mileage rate for 2025 (update annually)
-export const IRS_MILEAGE_RATE = 0.70; // $0.70 per mile
+export const IRS_MILEAGE_RATE_YEAR = getLatestSupportedMileageYear();
+export const IRS_MILEAGE_RATE = getStandardMileageRate();
 
 // Self-Employment tax rate (Social Security + Medicare)
 const SE_TAX_RATE = 0.153; // 15.3%
@@ -133,6 +138,6 @@ export function useTaxEstimate(netBeforeTax: number) {
 /**
  * Calculate mileage deduction
  */
-export function calculateMileageDeduction(miles: number): number {
-  return miles * IRS_MILEAGE_RATE;
+export function calculateMileageDeduction(miles: number, date?: string | Date | null): number {
+  return calculateMileageDeductionForDate(miles, date);
 }

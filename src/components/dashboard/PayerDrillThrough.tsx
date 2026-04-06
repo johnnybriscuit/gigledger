@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemeColors, chartColors } from '../../lib/charts/colors';
 import { useGigs } from '../../hooks/useGigs';
+import { parseStoredDate } from '../../lib/date';
 
 interface PayerDrillThroughProps {
   payer: string;
@@ -32,7 +33,7 @@ export function PayerDrillThrough({ payer, onGigClick }: PayerDrillThroughProps)
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    return parseStoredDate(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -76,8 +77,8 @@ export function PayerDrillThrough({ payer, onGigClick }: PayerDrillThroughProps)
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Gigs ({gigs.length})
           </Text>
-          {gigs
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      {gigs
+            .sort((a, b) => parseStoredDate(b.date).getTime() - parseStoredDate(a.date).getTime())
             .map((gig) => {
               const gigIncome = (gig.gross_amount || 0) + (gig.tips || 0) + (gig.per_diem || 0) + (gig.other_income || 0) - (gig.fees || 0);
               

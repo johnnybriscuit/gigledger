@@ -5,6 +5,8 @@ import { useDashboardDataAggregated } from './useDashboardDataAggregated';
 import { supabase } from '../lib/supabase';
 import { debugTotals } from '../lib/debugTotals';
 import type { Database } from '../types/database.types';
+import { parseStoredDate } from '../lib/date';
+import { sumMileageDeduction } from '../lib/mileage';
 
 type GigRow = Database['public']['Tables']['gigs']['Row'];
 
@@ -125,7 +127,7 @@ function filterByDateRange<T extends { date?: string }>(
     const dateStr = item.date;
     if (!dateStr) return false;
     
-    const itemDate = new Date(dateStr);
+    const itemDate = parseStoredDate(dateStr);
     return itemDate >= startDate && itemDate <= endDate;
   });
 }
@@ -200,8 +202,7 @@ export function useDashboardData(
     const totalIncome = totalGross + totalTips + totalPerDiem + totalOtherIncome - totalFees;
 
     const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const totalMiles = mileage.reduce((sum, m) => sum + m.miles, 0);
-    const totalMileageDeduction = calculateMileageDeduction(totalMiles);
+    const totalMileageDeduction = sumMileageDeduction(mileage);
     
     // Include subcontractor payments in deductions
     const totalSubcontractorPayments = gigs.reduce((sum, gig) => {
@@ -277,7 +278,7 @@ export function useDashboardData(
 
     // Aggregate gigs by month
     gigs.forEach((gig) => {
-      const gigDate = new Date(gig.date || '');
+      const gigDate = parseStoredDate(gig.date || '');
       const key = getMonthKey(gigDate);
       const point = monthlyMap.get(key);
       if (point) {
@@ -293,7 +294,7 @@ export function useDashboardData(
 
     // Aggregate expenses by month
     expenses.forEach((exp) => {
-      const expDate = new Date(exp.date || '');
+      const expDate = parseStoredDate(exp.date || '');
       const key = getMonthKey(expDate);
       const point = monthlyMap.get(key);
       if (point) {
@@ -303,11 +304,11 @@ export function useDashboardData(
 
     // Aggregate mileage by month
     mileage.forEach((m) => {
-      const mileageDate = new Date(m.date || '');
+      const mileageDate = parseStoredDate(m.date || '');
       const key = getMonthKey(mileageDate);
       const point = monthlyMap.get(key);
       if (point) {
-        point.expenses += calculateMileageDeduction(m.miles);
+        point.expenses += calculateMileageDeduction(m.miles, m.date);
       }
     });
 
@@ -339,8 +340,7 @@ export function useDashboardData(
     });
 
     // Add mileage as a category
-    const totalMiles = mileage.reduce((sum, m) => sum + m.miles, 0);
-    const mileageDeduction = calculateMileageDeduction(totalMiles);
+    const mileageDeduction = sumMileageDeduction(mileage);
     if (mileageDeduction > 0) {
       categoryMap.set('Mileage', mileageDeduction);
     }
@@ -391,7 +391,7 @@ export function useDashboardData(
     const yearStart = new Date(now.getFullYear(), 0, 1);
     const yearEnd = new Date(now.getFullYear(), 11, 31);
     const ytdGigs = allGigs.filter(gig => {
-      const gigDate = new Date(gig.date || '');
+      const gigDate = parseStoredDate(gig.date || '');
       return gigDate >= yearStart && gigDate <= yearEnd;
     });
     const ytdGigsCount = payerId ? ytdGigs.filter(g => g.payer_id === payerId).length : ytdGigs.length;

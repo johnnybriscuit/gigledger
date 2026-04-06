@@ -41,6 +41,7 @@ import { downloadTXF as downloadTXFWeb, downloadZip } from '../lib/exports/webDo
 import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
 import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
+import { getMileageRateForDate, sumMileageDeduction } from '../lib/mileage';
 
 interface ExportsScreenProps {
   dateRange?: DateRange;
@@ -147,8 +148,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
     const totalIncome = totalGross + totalTips + totalPerDiem + totalOtherIncome - totalFees;
     
     const totalExpenses = expenses.data.reduce((sum, e) => sum + e.amount, 0);
-    const totalMiles = mileage.data.reduce((sum, m) => sum + m.miles, 0);
-    const totalMileageDeduction = totalMiles * 0.67; // Standard mileage rate
+    const totalMileageDeduction = sumMileageDeduction(mileage.data);
     const totalDeductions = totalExpenses + totalMileageDeduction;
     
     return totalIncome - totalDeductions;
@@ -192,7 +192,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         trip_id: m.user_id, // Placeholder
         business_miles: m.miles,
         vehicle: null,
-        standard_rate: 0.67,
+        standard_rate: getMileageRateForDate(m.date),
         calculated_deduction: m.deduction_amount,
       })) as MileageExportRow[];
 
@@ -443,7 +443,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         expensesByCategory[cat] = (expensesByCategory[cat] || 0) + e.amount;
       });
       
-      const mileageDeduction = mileage.data.reduce((sum, m) => sum + (m.deduction_amount || m.miles * 0.67), 0);
+      const mileageDeduction = mileage.data.reduce((sum, m) => sum + (m.deduction_amount || 0), 0);
       
       const advertising = expensesByCategory['Marketing'] || 0;
       const carTruck = mileageDeduction;

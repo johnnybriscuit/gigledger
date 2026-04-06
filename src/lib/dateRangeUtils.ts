@@ -1,3 +1,5 @@
+import { parseStoredDate, toUtcDateString } from './date';
+
 /**
  * Shared date range utilities used across screens.
  * Extracted from useDashboardData so Gigs/Expenses/Mileage/Exports
@@ -60,7 +62,7 @@ export function filterByDateRange<T extends { date?: string | null }>(
   return items.filter((item) => {
     const dateStr = item.date;
     if (!dateStr) return false;
-    const itemDate = new Date(dateStr);
+    const itemDate = parseStoredDate(dateStr);
     return itemDate >= startDate && itemDate <= endDate;
   });
 }
@@ -73,7 +75,7 @@ export function dateRangeToStrings(
 ): { startDate: string; endDate: string } {
   const { startDate, endDate } = getDateRangeConfig(range, customStart, customEnd);
   return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
+    startDate: toUtcDateString(startDate),
+    endDate: toUtcDateString(endDate),
   };
 }

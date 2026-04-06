@@ -11,6 +11,8 @@ import { useGigs } from '../../hooks/useGigs';
 import { getGigDisplayName } from '../../lib/gigDisplayName';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useMileage } from '../../hooks/useMileage';
+import { parseStoredDate } from '../../lib/date';
+import { calculateMileageDeduction } from '../../lib/mileage';
 
 interface MonthDrillThroughProps {
   month: string; // e.g., "Jan 2025"
@@ -34,17 +36,17 @@ export function MonthDrillThrough({ month, onGigClick, onExpenseClick }: MonthDr
 
   // Filter data for this month
   const gigs = (allGigs || []).filter(gig => {
-    const gigDate = new Date(gig.date);
+    const gigDate = parseStoredDate(gig.date);
     return gigDate >= startDate && gigDate <= endDate;
   });
 
   const expenses = (allExpenses || []).filter(exp => {
-    const expDate = new Date(exp.date);
+    const expDate = parseStoredDate(exp.date);
     return expDate >= startDate && expDate <= endDate;
   });
 
   const mileage = (allMileage || []).filter(m => {
-    const mDate = new Date(m.date);
+    const mDate = parseStoredDate(m.date);
     return mDate >= startDate && mDate <= endDate;
   });
 
@@ -57,7 +59,7 @@ export function MonthDrillThrough({ month, onGigClick, onExpenseClick }: MonthDr
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    return parseStoredDate(dateStr).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
     });
@@ -69,7 +71,7 @@ export function MonthDrillThrough({ month, onGigClick, onExpenseClick }: MonthDr
   }, 0);
 
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const totalMileage = mileage.reduce((sum, m) => sum + (m.miles * 0.70), 0);
+  const totalMileage = mileage.reduce((sum, m) => sum + calculateMileageDeduction(m.miles, m.date), 0);
 
   return (
     <View style={styles.container}>
@@ -169,7 +171,7 @@ export function MonthDrillThrough({ month, onGigClick, onExpenseClick }: MonthDr
                 </Text>
               </View>
               <Text style={[styles.recordAmount, { color: chartColors.red }]}>
-                -{formatCurrency(m.miles * 0.70)}
+                -{formatCurrency(calculateMileageDeduction(m.miles, m.date))}
               </Text>
             </View>
           ))}

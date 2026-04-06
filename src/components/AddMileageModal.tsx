@@ -9,8 +9,14 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { useCreateMileage, useUpdateMileage, calculateMileageDeduction, IRS_MILEAGE_RATE } from '../hooks/useMileage';
+import {
+  useCreateMileage,
+  useUpdateMileage,
+  calculateMileageDeduction,
+  IRS_MILEAGE_RATE_YEAR,
+} from '../hooks/useMileage';
 import { mileageSchema, type MileageFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
@@ -19,6 +25,7 @@ import { useCreateSavedRoute, useSavedRoutes } from '../hooks/useSavedRoutes';
 import { drivingMiles } from '../lib/geo';
 import { colors } from '../styles/theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { getMileageRateForDate, getMileageRateYearForDate, parseMileageInput } from '../lib/mileage';
 
 interface AddMileageModalProps {
   visible: boolean;
@@ -113,8 +120,17 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   };
 
   const calculateDeduction = () => {
-    const milesNum = parseFloat(miles) || 0;
-    return calculateMileageDeduction(milesNum);
+    const milesNum = parseMileageInput(miles) ?? 0;
+    return calculateMileageDeduction(milesNum, date);
+  };
+
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.alert(`${title}: ${message}`);
+      return;
+    }
+
+    Alert.alert(title, message);
   };
 
   // Auto-calculate distance from locations
@@ -221,12 +237,13 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
 
   const handleSubmit = async () => {
     try {
+      const parsedMiles = parseMileageInput(miles);
       const formData: MileageFormData = {
         date,
         purpose,
         start_location: startLocation,
         end_location: endLocation,
-        miles: parseFloat(miles) || 0,
+        miles: parsedMiles ?? 0,
         notes: notes || undefined,
       };
 
@@ -253,7 +270,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               name: routeName,
               start_location: startLocation,
               end_location: endLocation,
-              distance_miles: autoCalculatedOneWayMiles ?? (parseFloat(miles) || 0),
+              distance_miles: autoCalculatedOneWayMiles ?? ((parsedMiles ?? 0) / (isRoundTrip ? 2 : 1)),
               default_purpose: purpose,
               is_favorite: false,
             });
@@ -269,13 +286,9 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     } catch (error: any) {
       console.error('Mileage submission error:', error);
       if (error.errors) {
-        if (Platform.OS === 'web') {
-          window.alert(`Validation Error: ${error.errors[0].message}`);
-        }
+        showAlert('Validation Error', error.errors[0].message);
       } else {
-        if (Platform.OS === 'web') {
-          window.alert(`Error: ${error.message || 'Failed to save mileage'}`);
-        }
+        showAlert('Error', error.message || 'Failed to save mileage');
       }
     }
   };
@@ -470,8 +483,13 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 ${deduction.toFixed(2)}
               </Text>
               <Text style={styles.deductionFormula}>
-                {miles || '0'} miles × ${IRS_MILEAGE_RATE}/mile
+                {(parseMileageInput(miles) ?? 0).toFixed(1)} miles × ${getMileageRateForDate(date)}/mile ({date ? date.slice(0, 4) : IRS_MILEAGE_RATE_YEAR})
               </Text>
+              {getMileageRateYearForDate(date) !== (date ? Number(date.slice(0, 4)) : IRS_MILEAGE_RATE_YEAR) && (
+                <Text style={styles.deductionFormula}>
+                  Using latest configured IRS rate ({getMileageRateYearForDate(date)}) for this entry.
+                </Text>
+              )}
             </View>
 
             <View style={styles.inputGroup}>

@@ -26,6 +26,7 @@ export interface GigWithPayer extends Gig {
   }>;
   mileage?: Array<{
     id: string;
+    date: string;
     miles: number;
     notes: string | null;
   }>;
@@ -55,6 +56,7 @@ export function useGigs() {
           *,
           payer:payers(id, name, payer_type),
           expenses(id, category, description, amount, notes),
+          mileage:mileage!mileage_gig_id_fkey(id, date, miles, notes),
           subcontractor_payments:gig_subcontractor_payments(id, subcontractor_id, amount, note)
         `)
         .eq('user_id', userId)
@@ -62,7 +64,7 @@ export function useGigs() {
 
       console.log('[useGigs] Query result:', data?.length, 'gigs, error:', error);
       if (error) throw error;
-      return data as GigWithPayer[];
+      return data as unknown as GigWithPayer[];
     },
     enabled: !!userId,
     staleTime: 0, // Always consider data stale to refetch

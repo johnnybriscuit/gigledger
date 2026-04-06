@@ -3,7 +3,9 @@
  * Handles conversion between local Date objects and UTC yyyy-MM-dd strings
  */
 
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
+
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Convert a local Date object to a UTC yyyy-MM-dd string for storage
@@ -29,6 +31,22 @@ export function fromUtcDateString(dateString: string): Date {
   const [year, month, day] = dateString.split('-').map(Number);
   // Construct as local date
   return new Date(year, month - 1, day);
+}
+
+/**
+ * Parse stored app dates safely.
+ * yyyy-MM-dd values are treated as local calendar dates to avoid timezone drift.
+ */
+export function parseStoredDate(dateString: string): Date {
+  if (DATE_ONLY_PATTERN.test(dateString)) {
+    return fromUtcDateString(dateString);
+  }
+
+  return new Date(dateString);
+}
+
+export function isDateOnlyString(value: string): boolean {
+  return DATE_ONLY_PATTERN.test(value);
 }
 
 /**

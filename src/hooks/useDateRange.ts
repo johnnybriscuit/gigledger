@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
+import { fromUtcDateString, toUtcDateString } from '../lib/date';
 
 export type DateRange = 'ytd' | 'thisYear' | 'last30' | 'last90' | 'lastYear' | 'custom';
 
@@ -31,8 +32,8 @@ export function useDateRange(): UseDateRangeReturn {
       if (urlRange === 'custom' && customStart && customEnd) {
         return {
           range: 'custom',
-          customStart: new Date(customStart),
-          customEnd: new Date(customEnd),
+          customStart: fromUtcDateString(customStart),
+          customEnd: fromUtcDateString(customEnd),
         };
       }
 
@@ -68,8 +69,8 @@ export function useDateRange(): UseDateRangeReturn {
       params.set('range', state.range);
 
       if (state.range === 'custom' && state.customStart && state.customEnd) {
-        params.set('start', state.customStart.toISOString().split('T')[0]);
-        params.set('end', state.customEnd.toISOString().split('T')[0]);
+        params.set('start', toUtcDateString(state.customStart));
+        params.set('end', toUtcDateString(state.customEnd));
       } else {
         params.delete('start');
         params.delete('end');

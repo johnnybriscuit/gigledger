@@ -33,6 +33,7 @@ import { addGigToCalendar } from '../utils/nativeCalendar';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
+import { sumMileageDeduction } from '../lib/mileage';
 
 // Design tokens
 const T = {
@@ -100,7 +101,7 @@ function GigCard({
   const subcontractorPaymentsTotal = (item.subcontractor_payments || []).reduce((sum: number, p: any) => sum + p.amount, 0);
   const expensesOnly = (item.expenses || []).reduce((sum: number, exp: any) => sum + exp.amount, 0) 
     + (item.fees || 0)
-    + ((item.mileage || []).reduce((sum: number, m: any) => sum + (m.miles * 0.67), 0));
+    + sumMileageDeduction(item.mileage || []);
   const expensesTotal = expensesOnly + subcontractorPaymentsTotal;
   const netBeforeTax = gross - expensesTotal;
   

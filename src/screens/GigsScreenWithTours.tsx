@@ -25,6 +25,7 @@ import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 import { getGigDisplayName } from '../lib/gigDisplayName';
+import { sumMileageDeduction } from '../lib/mileage';
 
 // Gig card with tour badge
 function GigCard({ 
@@ -64,7 +65,7 @@ function GigCard({
   const subcontractorPaymentsTotal = (item.subcontractor_payments || []).reduce((sum, p) => sum + p.amount, 0);
   const expensesOnly = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0) 
     + (item.fees || 0)
-    + ((item.mileage || []).reduce((sum, m) => sum + (m.miles * 0.67), 0));
+    + sumMileageDeduction(item.mileage || []);
   const expensesTotal = expensesOnly + subcontractorPaymentsTotal;
   
   const netBeforeTax = gross - expensesTotal;

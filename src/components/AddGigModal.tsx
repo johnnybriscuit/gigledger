@@ -168,7 +168,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   
   // Calculate totals for inline items
   const totalExpenses = inlineExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
-  const mileageDeduction = inlineMileage ? calculateMileageDeduction(parseFloat(inlineMileage.miles) || 0) : 0;
+  const mileageDeduction = inlineMileage ? calculateMileageDeduction(parseFloat(inlineMileage.miles) || 0, date) : 0;
   const totalSubcontractorPayments = inlineSubcontractorPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
   
   // Construct venue address from form fields
@@ -354,18 +354,20 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
           .from('mileage')
           .select('*')
           .eq('gig_id', duplicatingGig.id)
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1);
         
-        if (!error && mileage) {
+        const tripMileage = mileage?.[0];
+        if (!error && tripMileage) {
           setInlineMileage({
-            miles: mileage.miles.toString(),
-            note: mileage.notes || '',
-            startLocation: mileage.start_location || undefined,
-            endLocation: mileage.end_location || undefined,
-            venueAddress: mileage.end_location || undefined,
-            roundTrip: mileage.is_round_trip ?? undefined,
-            isAutoCalculated: mileage.is_auto_calculated ?? undefined,
-            oneWayMiles: mileage.is_round_trip ? (mileage.miles / 2).toString() : mileage.miles.toString(),
+            miles: tripMileage.miles.toString(),
+            note: tripMileage.notes || '',
+            startLocation: tripMileage.start_location || undefined,
+            endLocation: tripMileage.end_location || undefined,
+            venueAddress: tripMileage.end_location || undefined,
+            roundTrip: tripMileage.is_round_trip ?? undefined,
+            isAutoCalculated: tripMileage.is_auto_calculated ?? undefined,
+            oneWayMiles: tripMileage.is_round_trip ? (tripMileage.miles / 2).toString() : tripMileage.miles.toString(),
           });
         } else {
           setInlineMileage(null);
@@ -435,18 +437,20 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
           .from('mileage')
           .select('*')
           .eq('gig_id', editingGig.id)
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1);
         
-        if (!error && mileage) {
+        const tripMileage = mileage?.[0];
+        if (!error && tripMileage) {
           setInlineMileage({
-            miles: mileage.miles.toString(),
-            note: mileage.notes || '',
-            startLocation: mileage.start_location || undefined,
-            endLocation: mileage.end_location || undefined,
-            venueAddress: mileage.end_location || undefined,
-            roundTrip: mileage.is_round_trip ?? undefined,
-            isAutoCalculated: mileage.is_auto_calculated ?? undefined,
-            oneWayMiles: mileage.is_round_trip ? (mileage.miles / 2).toString() : mileage.miles.toString(),
+            miles: tripMileage.miles.toString(),
+            note: tripMileage.notes || '',
+            startLocation: tripMileage.start_location || undefined,
+            endLocation: tripMileage.end_location || undefined,
+            venueAddress: tripMileage.end_location || undefined,
+            roundTrip: tripMileage.is_round_trip ?? undefined,
+            isAutoCalculated: tripMileage.is_auto_calculated ?? undefined,
+            oneWayMiles: tripMileage.is_round_trip ? (tripMileage.miles / 2).toString() : tripMileage.miles.toString(),
           });
         } else {
           setInlineMileage(null);

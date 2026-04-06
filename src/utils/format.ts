@@ -1,3 +1,5 @@
+import { parseStoredDate } from '../lib/date';
+
 /**
  * Formatting Utilities
  * 
@@ -60,7 +62,7 @@ export function formatCompactNumber(value: number): string {
  * @example formatDate(new Date('2025-01-15')) => "Jan 15, 2025"
  */
 export function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = typeof date === 'string' ? parseStoredDate(date) : date;
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -73,8 +75,8 @@ export function formatDate(date: Date | string): string {
  * @example formatDateRange(start, end) => "Jan 1 - Dec 31, 2025"
  */
 export function formatDateRange(start: Date | string, end: Date | string): string {
-  const startDate = typeof start === 'string' ? new Date(start) : start;
-  const endDate = typeof end === 'string' ? new Date(end) : end;
+  const startDate = typeof start === 'string' ? parseStoredDate(start) : start;
+  const endDate = typeof end === 'string' ? parseStoredDate(end) : end;
   
   const sameYear = startDate.getFullYear() === endDate.getFullYear();
   

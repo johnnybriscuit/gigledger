@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_REASONABLE_MILES_PER_TRIP } from './mileage';
 
 export const payerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -64,12 +65,16 @@ export const expenseSchema = z.object({
 export type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 export const mileageSchema = z.object({
-  date: z.string().min(1, 'Date is required'),
-  purpose: z.string().min(1, 'Purpose is required'),
-  start_location: z.string().min(1, 'Start location is required'),
-  end_location: z.string().min(1, 'End location is required'),
-  miles: z.number().positive('Miles must be greater than 0'),
-  notes: z.string().optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  purpose: z.string().trim().min(1, 'Purpose is required').max(120, 'Purpose is too long'),
+  start_location: z.string().trim().min(1, 'Start location is required').max(250, 'Start location is too long'),
+  end_location: z.string().trim().min(1, 'End location is required').max(250, 'End location is too long'),
+  miles: z
+    .number()
+    .finite('Miles must be a valid number')
+    .positive('Miles must be greater than 0')
+    .max(MAX_REASONABLE_MILES_PER_TRIP, `Miles must be ${MAX_REASONABLE_MILES_PER_TRIP} or less`),
+  notes: z.string().trim().max(1000, 'Notes are too long').optional(),
 });
 
 export type MileageFormData = z.infer<typeof mileageSchema>;

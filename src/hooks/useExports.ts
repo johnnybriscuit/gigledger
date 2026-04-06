@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { coerceToValidCategory } from '../lib/categoryMapping';
+import { calculateMileageDeduction } from '../lib/mileage';
 
 export type ExportFilters = {
   startDate: string;
@@ -153,8 +154,8 @@ export function useMileageExport(filters: ExportFilters) {
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
-        .from('mileage')
-        .select('user_id, date, start_location, end_location, purpose, miles, notes')
+        .from('v_mileage_export')
+        .select('user_id, date, origin, destination, purpose, miles, deduction_amount, notes')
         .eq('user_id', user.id)
         .gte('date', filters.startDate)
         .lte('date', filters.endDate)
@@ -163,14 +164,16 @@ export function useMileageExport(filters: ExportFilters) {
       if (error) throw error;
       
       // Transform and calculate deduction
-      return data.map((m: any) => ({
+      return (data || []).map((m: any) => ({
         user_id: m.user_id,
         date: m.date,
-        origin: m.start_location,
-        destination: m.end_location,
+        origin: m.origin,
+        destination: m.destination,
         purpose: m.purpose,
         miles: m.miles,
-        deduction_amount: Math.round(m.miles * 0.67 * 100) / 100,
+        deduction_amount: typeof m.deduction_amount === 'number'
+          ? m.deduction_amount
+          : calculateMileageDeduction(m.miles || 0, m.date),
         notes: m.notes,
       })) as MileageExport[];
     },
