@@ -7,8 +7,11 @@ import {
   StyleSheet,
   useWindowDimensions,
   Platform,
+  Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CalendarCheck, DownloadSimple, Receipt } from 'phosphor-react-native';
+import { getThemePalette, radiusNum, spacingNum } from '../styles/theme';
 import { trackHomepageCtaClicked } from '../lib/analytics';
 
 interface PublicLandingPageProps {
@@ -19,6 +22,47 @@ interface PublicLandingPageProps {
   onNavigateToSupport?: () => void;
 }
 
+const HERO_STEPS = [
+  {
+    title: 'Create your account',
+    description: 'Use Google, email, or a magic link.',
+  },
+  {
+    title: 'Add your first gig',
+    description: 'Start with payer, date, and amount.',
+  },
+  {
+    title: 'Stay tax-ready',
+    description: 'Add mileage, expenses, and exports anytime.',
+  },
+] as const;
+
+const HERO_PROOF_CARDS = [
+  {
+    Icon: CalendarCheck,
+    iconColor: '#2563EB',
+    iconBackground: '#DBEAFE',
+    label: 'Fast first entry',
+    value: 'Log your first gig in minutes',
+  },
+  {
+    Icon: Receipt,
+    iconColor: '#0F766E',
+    iconBackground: '#CCFBF1',
+    label: 'Tax-aware tracking',
+    value: 'See what to set aside as you work',
+  },
+  {
+    Icon: DownloadSimple,
+    iconColor: '#475569',
+    iconBackground: '#E2E8F0',
+    label: 'CPA-ready exports',
+    value: 'Export clean records at tax time',
+  },
+] as const;
+
+const landingPalette = getThemePalette('light');
+
 /**
  * Public marketing landing page - Dropbox-style, mobile-first, no AppShell
  * This is the first impression for new users
@@ -26,6 +70,8 @@ interface PublicLandingPageProps {
 export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, onNavigateToPrivacy, onNavigateToSupport }: PublicLandingPageProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const isNarrowMobile = width < 560;
+  const isStackedHero = width < 1024;
   const maxWidth = 1200;
   const insets = useSafeAreaInsets();
   const navBarTopPadding = Platform.OS !== 'web' ? insets.top : 0;
@@ -44,112 +90,76 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
 
   return (
     <View style={styles.container}>
-      {/* Top Navigation Bar */}
-      <View style={[styles.navBar, isMobile && styles.navBarMobile, { paddingTop: (isMobile ? 12 : 16) + navBarTopPadding }]}>
-        <View style={[styles.navContent, { maxWidth }, isMobile && styles.navContentMobile]}>
-          <Text style={styles.navLogo}>💼 Bozzy</Text>
-          <View style={[styles.navButtons, isMobile && styles.navButtonsMobile]}>
-            <TouchableOpacity onPress={() => handleLoginCta('nav_login')} activeOpacity={0.7}>
-              <Text style={styles.navLinkText}>Log in</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.navPrimaryButton} 
-              onPress={() => handleSignupCta('nav_primary')}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.navPrimaryButtonText}>Create free account</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      <LandingHeader
+        maxWidth={maxWidth}
+        isMobile={isMobile}
+        isNarrowMobile={isNarrowMobile}
+        navBarTopPadding={navBarTopPadding}
+        onLogin={() => handleLoginCta('nav_login')}
+        onCreateAccount={() => handleSignupCta('nav_primary')}
+      />
 
       <ScrollView 
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
-        <View style={[styles.hero, isMobile && styles.heroMobile]}>
-          <View style={[styles.heroContent, { maxWidth }, isMobile && styles.heroContentMobile]}>
-            <View style={[styles.heroLayout, isMobile && styles.heroLayoutMobile]}>
-              <View style={[styles.heroTextColumn, isMobile && styles.heroTextColumnMobile]}>
-                <Text style={[styles.eyebrow, isMobile && styles.heroTextCentered]}>
-                  For musicians first. Flexible enough for the rest of your gig work.
-                </Text>
-                <Text style={[styles.headline, isMobile && styles.headlineMobile]}>
-                  Track gigs.{'\n'}Know your tax set-aside.
-                </Text>
+        <View style={[styles.topSection, isMobile && styles.topSectionMobile]}>
+          <View style={[styles.hero, isMobile && styles.heroMobile]}>
+            <View style={[styles.heroContent, { maxWidth }, isMobile && styles.heroContentMobile]}>
+              <View style={[styles.heroLayout, isStackedHero && styles.heroLayoutStacked]}>
+                <View style={[styles.heroTextColumn, isStackedHero && styles.heroTextColumnStacked]}>
+                  <Text style={styles.eyebrow}>
+                    Built for musicians. Flexible for any gig worker.
+                  </Text>
+                  <Text style={[styles.headline, isStackedHero && styles.headlineStacked, isMobile && styles.headlineMobile]}>
+                    Track your gigs. Know what to set aside for taxes.
+                  </Text>
 
-                <Text style={[styles.subheadline, isMobile && styles.subheadlineMobile]}>
-                  Built for performers, freelancers, and self-employed gig workers who need clean income records before tax season turns messy.
-                </Text>
+                  <Text style={[styles.subheadline, isStackedHero && styles.subheadlineStacked, isMobile && styles.subheadlineMobile]}>
+                    Bozzy helps performers, freelancers, and self-employed workers log income, stay organized, and avoid tax-season chaos.
+                  </Text>
 
-                <View style={[styles.ctaButtons, isMobile && styles.ctaButtonsMobile]}>
-                  <TouchableOpacity 
-                    style={[styles.primaryButton, isMobile && styles.primaryButtonMobile]} 
-                    onPress={() => handleSignupCta('hero_primary')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.primaryButtonText}>Create free account</Text>
-                  </TouchableOpacity>
+                  <View style={[styles.heroCtaButtons, isMobile && styles.heroCtaButtonsMobile]}>
+                    <TouchableOpacity 
+                      style={[styles.primaryButton, styles.heroPrimaryButton, isMobile && styles.primaryButtonMobile]} 
+                      onPress={() => handleSignupCta('hero_primary')}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.primaryButtonText}>Create free account</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile]} 
-                    onPress={() => handleLoginCta('hero_secondary')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.secondaryButtonText}>Log in</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.heroSecondaryButton, isMobile && styles.heroSecondaryButtonMobile]} 
+                      onPress={() => handleLoginCta('hero_secondary')}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.heroSecondaryButtonText}>Log in</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.trustBadge}>
+                    No credit card required. Create your account, add your first gig, and stay organized from day one.
+                  </Text>
                 </View>
 
-                <Text style={[styles.trustBadge, isMobile && styles.heroTextCentered]}>
-                  No credit card required. Verify your email, land in the dashboard, and start with your first gig.
-                </Text>
+                <HeroStepsCard isMobile={isMobile} isStackedHero={isStackedHero} />
               </View>
 
-              <View style={[styles.heroPanel, isMobile && styles.heroPanelMobile]}>
-                <Text style={styles.heroPanelEyebrow}>What happens next</Text>
-                <Text style={styles.heroPanelTitle}>A cleaner first-run path</Text>
-
-                <View style={styles.heroPanelSteps}>
-                  <View style={styles.heroPanelStep}>
-                    <Text style={styles.heroPanelStepNumber}>1</Text>
-                    <View style={styles.heroPanelStepContent}>
-                      <Text style={styles.heroPanelStepTitle}>Create your account</Text>
-                      <Text style={styles.heroPanelStepText}>Use Google, password, or a magic link.</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.heroPanelStep}>
-                    <Text style={styles.heroPanelStepNumber}>2</Text>
-                    <View style={styles.heroPanelStepContent}>
-                      <Text style={styles.heroPanelStepTitle}>Add the first gig</Text>
-                      <Text style={styles.heroPanelStepText}>Amount, date, and payer first. Extra details can wait.</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.heroPanelStep}>
-                    <Text style={styles.heroPanelStepNumber}>3</Text>
-                    <View style={styles.heroPanelStepContent}>
-                      <Text style={styles.heroPanelStepTitle}>Stay tax-ready as you go</Text>
-                      <Text style={styles.heroPanelStepText}>Layer on mileage, expenses, and exports when you need them.</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.heroPanelFooter}>
-                  <Text style={styles.heroPanelFooterText}>Best fit for live-performance income, side gigs, and other self-employed work that needs simple records.</Text>
-                </View>
+              <View style={[styles.proofStrip, isMobile && styles.proofStripMobile]}>
+                {HERO_PROOF_CARDS.map((card) => (
+                  <HeroProofCard
+                    key={card.label}
+                    Icon={card.Icon}
+                    iconColor={card.iconColor}
+                    iconBackground={card.iconBackground}
+                    label={card.label}
+                    value={card.value}
+                    isMobile={isMobile}
+                  />
+                ))}
               </View>
             </View>
-          </View>
-        </View>
-
-        <View style={[styles.proofStrip, isMobile && styles.proofStripMobile]}>
-          <View style={[styles.sectionContent, { maxWidth }, styles.proofStripContent]}>
-            <ProofPill label="Fast first entry" value="Log your first gig in minutes" />
-            <ProofPill label="Tax-aware" value="See what to set aside while you work" />
-            <ProofPill label="CPA-ready" value="Export organized records when the year ends" />
           </View>
         </View>
 
@@ -387,6 +397,78 @@ interface StepCardProps {
   isMobile: boolean;
 }
 
+interface LandingHeaderProps {
+  maxWidth: number;
+  isMobile: boolean;
+  isNarrowMobile: boolean;
+  navBarTopPadding: number;
+  onLogin: () => void;
+  onCreateAccount: () => void;
+}
+
+function LandingHeader({ maxWidth, isMobile, isNarrowMobile, navBarTopPadding, onLogin, onCreateAccount }: LandingHeaderProps) {
+  const createAccountLabel = isNarrowMobile ? 'Sign up' : 'Create free account';
+
+  return (
+    <View style={[styles.navBar, isMobile && styles.navBarMobile, isNarrowMobile && styles.navBarNarrowMobile, { paddingTop: (isMobile ? spacingNum[3] : spacingNum[4]) + navBarTopPadding }]}>
+      <View style={[styles.navContent, { maxWidth }, isMobile && styles.navContentMobile, isNarrowMobile && styles.navContentNarrowMobile]}>
+        <View style={[styles.navBrand, isNarrowMobile && styles.navBrandNarrowMobile]}>
+          <Image
+            source={require('../../assets/logo-mark-64.png')}
+            style={[styles.navLogoMark, isMobile && styles.navLogoMarkMobile, isNarrowMobile && styles.navLogoMarkNarrowMobile]}
+            resizeMode="contain"
+          />
+          {!isNarrowMobile && (
+            <Text style={[styles.navLogoText, isMobile && styles.navLogoTextMobile, isNarrowMobile && styles.navLogoTextNarrowMobile]} numberOfLines={1}>
+              Bozzy
+            </Text>
+          )}
+        </View>
+
+        <View style={[styles.navButtons, isMobile && styles.navButtonsMobile, isNarrowMobile && styles.navButtonsNarrowMobile]}>
+          <TouchableOpacity onPress={onLogin} activeOpacity={0.7} style={[styles.navLoginButton, isNarrowMobile && styles.navLoginButtonNarrowMobile]}>
+            <Text style={[styles.navLinkText, isMobile && styles.navLinkTextMobile, isNarrowMobile && styles.navLinkTextNarrowMobile]}>Log in</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.navPrimaryButton, isMobile && styles.navPrimaryButtonMobile, isNarrowMobile && styles.navPrimaryButtonNarrowMobile]}
+            onPress={onCreateAccount}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.navPrimaryButtonText, isNarrowMobile && styles.navPrimaryButtonTextNarrowMobile]} numberOfLines={1}>{createAccountLabel}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+interface HeroStepsCardProps {
+  isMobile: boolean;
+  isStackedHero: boolean;
+}
+
+function HeroStepsCard({ isMobile, isStackedHero }: HeroStepsCardProps) {
+  return (
+    <View style={[styles.heroPanel, isStackedHero && styles.heroPanelStacked, isMobile && styles.heroPanelMobile]}>
+      <Text style={[styles.heroPanelTitle, isMobile && styles.heroPanelTitleMobile]}>Get started in 3 simple steps</Text>
+
+      <View style={styles.heroPanelSteps}>
+        {HERO_STEPS.map((step, index) => (
+          <View key={step.title} style={[styles.heroPanelStep, index > 0 && styles.heroPanelStepBorder]}>
+            <View style={styles.heroPanelStepNumberWrap}>
+              <Text style={styles.heroPanelStepNumber}>{index + 1}</Text>
+            </View>
+            <View style={styles.heroPanelStepContent}>
+              <Text style={styles.heroPanelStepTitle}>{step.title}</Text>
+              <Text style={styles.heroPanelStepText}>{step.description}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function StepCard({ number, title, description, isMobile }: StepCardProps) {
   return (
     <View style={[styles.stepCard, isMobile && styles.stepCardMobile]}>
@@ -399,16 +481,23 @@ function StepCard({ number, title, description, isMobile }: StepCardProps) {
   );
 }
 
-interface ProofPillProps {
+interface HeroProofCardProps {
+  Icon: React.ElementType;
+  iconColor: string;
+  iconBackground: string;
   label: string;
   value: string;
+  isMobile: boolean;
 }
 
-function ProofPill({ label, value }: ProofPillProps) {
+function HeroProofCard({ Icon, iconColor, iconBackground, label, value, isMobile }: HeroProofCardProps) {
   return (
-    <View style={styles.proofPill}>
-      <Text style={styles.proofPillLabel}>{label}</Text>
-      <Text style={styles.proofPillValue}>{value}</Text>
+    <View style={[styles.proofCard, isMobile && styles.proofCardMobile]}>
+      <View style={[styles.proofCardIconWrap, { backgroundColor: iconBackground }]}>
+        <Icon size={18} weight="bold" color={iconColor} />
+      </View>
+      <Text style={styles.proofCardLabel}>{label}</Text>
+      <Text style={styles.proofCardValue}>{value}</Text>
     </View>
   );
 }
@@ -532,15 +621,19 @@ const styles = StyleSheet.create({
   
   // Top Nav Bar
   navBar: {
-    backgroundColor: '#ffffff',
+    backgroundColor: landingPalette.surface.DEFAULT,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    borderBottomColor: landingPalette.border.muted,
+    paddingBottom: spacingNum[4],
+    paddingHorizontal: spacingNum[6],
   },
   navBarMobile: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingBottom: spacingNum[3],
+    paddingHorizontal: spacingNum[4],
+  },
+  navBarNarrowMobile: {
+    paddingBottom: 10,
+    paddingHorizontal: 12,
   },
   navContent: {
     flexDirection: 'row',
@@ -548,54 +641,136 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     alignSelf: 'center',
+    gap: spacingNum[4],
   },
   navContentMobile: {
     maxWidth: '100%',
   },
-  navLogo: {
-    fontSize: 20,
+  navContentNarrowMobile: {
+    gap: 8,
+  },
+  navBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+  },
+  navBrandNarrowMobile: {
+    minWidth: 0,
+    marginRight: 4,
+  },
+  navLogoMark: {
+    width: 26,
+    height: 26,
+    marginRight: 10,
+  },
+  navLogoMarkMobile: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
+  },
+  navLogoMarkNarrowMobile: {
+    width: 18,
+    height: 18,
+    marginRight: 6,
+  },
+  navLogoText: {
+    fontSize: 22,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: landingPalette.text.DEFAULT,
+    letterSpacing: -0.5,
+    lineHeight: 24,
+  },
+  navLogoTextMobile: {
+    fontSize: 19,
+    lineHeight: 22,
+  },
+  navLogoTextNarrowMobile: {
+    fontSize: 15,
+    lineHeight: 18,
   },
   navButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: spacingNum[3],
+    flexShrink: 0,
   },
   navButtonsMobile: {
-    gap: 12,
+    gap: spacingNum[2],
+  },
+  navButtonsNarrowMobile: {
+    gap: 6,
+    minWidth: 0,
+    flexShrink: 1,
+  },
+  navLoginButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  navLoginButtonNarrowMobile: {
+    paddingVertical: 6,
+    paddingHorizontal: 0,
   },
   navLinkText: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#1a1a1a',
+    fontWeight: '600',
+    color: landingPalette.text.muted,
+  },
+  navLinkTextMobile: {
+    fontSize: 14,
+  },
+  navLinkTextNarrowMobile: {
+    fontSize: 10,
   },
   navPrimaryButton: {
-    backgroundColor: '#0066FF',
+    backgroundColor: landingPalette.brand.DEFAULT,
     paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 6,
+    paddingHorizontal: 18,
+    borderRadius: radiusNum.full,
+    minHeight: 40,
+    justifyContent: 'center',
+    flexShrink: 1,
+  },
+  navPrimaryButtonMobile: {
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+  },
+  navPrimaryButtonNarrowMobile: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    minHeight: 32,
+    minWidth: 0,
   },
   navPrimaryButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
+    color: landingPalette.brand.foreground,
+    fontSize: 14,
     fontWeight: '600',
+  },
+  navPrimaryButtonTextNarrowMobile: {
+    fontSize: 10,
+  },
+
+  topSection: {
+    backgroundColor: landingPalette.surface.canvas,
+  },
+  topSectionMobile: {
+    backgroundColor: landingPalette.surface.canvas,
   },
 
   // Hero Section
   hero: {
-    backgroundColor: '#f9fafb',
-    paddingVertical: 96,
-    paddingHorizontal: 24,
+    paddingTop: spacingNum[20],
+    paddingBottom: spacingNum[20],
+    paddingHorizontal: spacingNum[6],
     alignItems: 'center',
   },
   heroMobile: {
-    paddingVertical: 64,
-    paddingHorizontal: 16,
+    paddingTop: spacingNum[16],
+    paddingBottom: spacingNum[16],
+    paddingHorizontal: spacingNum[4],
   },
   heroContent: {
     width: '100%',
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   heroContentMobile: {
     maxWidth: '100%',
@@ -603,59 +778,254 @@ const styles = StyleSheet.create({
   heroLayout: {
     width: '100%',
     flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 32,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacingNum[12],
   },
-  heroLayoutMobile: {
+  heroLayoutStacked: {
     flexDirection: 'column',
-    gap: 24,
+    alignItems: 'flex-start',
+    gap: spacingNum[6],
   },
   heroTextColumn: {
-    flex: 1.1,
+    flex: 1,
     alignItems: 'flex-start',
+    maxWidth: 640,
+    paddingRight: spacingNum[6],
   },
-  heroTextColumnMobile: {
-    alignItems: 'center',
-  },
-  heroTextCentered: {
-    textAlign: 'center',
+  heroTextColumnStacked: {
+    width: '100%',
+    maxWidth: '100%',
+    paddingRight: 0,
   },
   eyebrow: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#0066FF',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 18,
+    fontWeight: '600',
+    color: landingPalette.text.subtle,
+    letterSpacing: 0.2,
+    marginBottom: spacingNum[3],
     textAlign: 'left',
   },
   headline: {
     fontSize: 56,
     fontWeight: '800',
-    color: '#1a1a1a',
-    textAlign: 'center',
-    marginBottom: 24,
+    color: landingPalette.text.DEFAULT,
+    textAlign: 'left',
+    marginBottom: spacingNum[5],
     lineHeight: 64,
     letterSpacing: -1,
+    maxWidth: 620,
+  },
+  headlineStacked: {
+    fontSize: 48,
+    lineHeight: 56,
+    maxWidth: 720,
   },
   headlineMobile: {
-    fontSize: 36,
-    lineHeight: 42,
-    marginBottom: 20,
+    fontSize: 38,
+    lineHeight: 46,
   },
   subheadline: {
     fontSize: 20,
-    color: '#6b7280',
+    color: landingPalette.text.muted,
     textAlign: 'left',
-    marginBottom: 40,
+    marginBottom: spacingNum[7],
     lineHeight: 30,
-    maxWidth: 600,
+    maxWidth: 560,
+  },
+  subheadlineStacked: {
+    maxWidth: 680,
   },
   subheadlineMobile: {
     fontSize: 18,
-    lineHeight: 27,
-    marginBottom: 32,
-    textAlign: 'center',
+    lineHeight: 29,
+  },
+  heroCtaButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacingNum[4],
+    marginBottom: spacingNum[4],
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+  },
+  heroCtaButtonsMobile: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    width: '100%',
+    gap: spacingNum[3],
+    maxWidth: 400,
+  },
+  primaryButton: {
+    backgroundColor: landingPalette.brand.DEFAULT,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    minWidth: 200,
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  heroPrimaryButton: {
+    minHeight: 56,
+  },
+  primaryButtonMobile: {
+    width: '100%',
+    minWidth: 0,
+  },
+  primaryButtonText: {
+    color: landingPalette.brand.foreground,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  heroSecondaryButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    minWidth: 120,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroSecondaryButtonMobile: {
+    width: '100%',
+    minWidth: 0,
+  },
+  heroSecondaryButtonText: {
+    color: landingPalette.text.muted,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  trustBadge: {
+    color: landingPalette.text.subtle,
+    fontSize: 14,
+    textAlign: 'left',
+    lineHeight: 22,
+    maxWidth: 560,
+  },
+  heroPanel: {
+    flex: 0.82,
+    width: '100%',
+    maxWidth: 410,
+    backgroundColor: landingPalette.surface.DEFAULT,
+    borderRadius: 24,
+    padding: 26,
+    borderWidth: 1,
+    borderColor: landingPalette.border.muted,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.08,
+    shadowRadius: 28,
+    elevation: 4,
+  },
+  heroPanelStacked: {
+    maxWidth: 640,
+  },
+  heroPanelMobile: {
+    width: '100%',
+    padding: 20,
+  },
+  heroPanelTitle: {
+    color: landingPalette.text.DEFAULT,
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 36,
+    marginBottom: spacingNum[4],
+  },
+  heroPanelTitleMobile: {
+    fontSize: 24,
+    lineHeight: 31,
+  },
+  heroPanelSteps: {
+    gap: 0,
+  },
+  heroPanelStep: {
+    flexDirection: 'row',
+    gap: spacingNum[4],
+    alignItems: 'flex-start',
+    paddingVertical: spacingNum[4],
+  },
+  heroPanelStepBorder: {
+    borderTopWidth: 1,
+    borderTopColor: landingPalette.border.muted,
+  },
+  heroPanelStepNumberWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: landingPalette.brand.muted,
+  },
+  heroPanelStepNumber: {
+    color: landingPalette.brand.DEFAULT,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  heroPanelStepContent: {
+    flex: 1,
+  },
+  heroPanelStepTitle: {
+    color: landingPalette.text.DEFAULT,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  heroPanelStepText: {
+    color: landingPalette.text.muted,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  proofStrip: {
+    marginTop: spacingNum[10],
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacingNum[4],
+  },
+  proofStripMobile: {
+    marginTop: spacingNum[6],
+    flexDirection: 'column',
+  },
+  proofCard: {
+    flex: 1,
+    minWidth: 220,
+    backgroundColor: landingPalette.surface.DEFAULT,
+    borderWidth: 1,
+    borderColor: landingPalette.border.muted,
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 2,
+  },
+  proofCardMobile: {
+    width: '100%',
+    minWidth: 0,
+  },
+  proofCardIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacingNum[3],
+  },
+  proofCardLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: landingPalette.text.DEFAULT,
+    marginBottom: 6,
+  },
+  proofCardValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: landingPalette.text.muted,
+    lineHeight: 22,
   },
   ctaButtons: {
     flexDirection: 'row',
@@ -669,173 +1039,6 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 12,
     maxWidth: 400,
-  },
-  primaryButton: {
-    backgroundColor: '#0066FF',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    minWidth: 200,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  primaryButtonMobile: {
-    width: '100%',
-    minWidth: 0,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#0066FF',
-    minWidth: 200,
-    alignItems: 'center',
-  },
-  secondaryButtonMobile: {
-    width: '100%',
-    minWidth: 0,
-  },
-  secondaryButtonText: {
-    color: '#0066FF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  trustBadge: {
-    color: '#4b5563',
-    fontSize: 14,
-    textAlign: 'left',
-    lineHeight: 22,
-    maxWidth: 760,
-  },
-  heroPanel: {
-    flex: 0.9,
-    backgroundColor: '#0F172A',
-    borderRadius: 24,
-    padding: 28,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    elevation: 6,
-  },
-  heroPanelMobile: {
-    width: '100%',
-    padding: 22,
-  },
-  heroPanelEyebrow: {
-    color: '#93C5FD',
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  heroPanelTitle: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '700',
-    lineHeight: 30,
-    marginBottom: 20,
-  },
-  heroPanelSteps: {
-    gap: 14,
-  },
-  heroPanelStep: {
-    flexDirection: 'row',
-    gap: 14,
-    alignItems: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(148,163,184,0.18)',
-  },
-  heroPanelStepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    textAlign: 'center',
-    lineHeight: 28,
-    color: '#0F172A',
-    backgroundColor: '#FBBF24',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  heroPanelStepContent: {
-    flex: 1,
-  },
-  heroPanelStepTitle: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  heroPanelStepText: {
-    color: '#CBD5E1',
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  heroPanelFooter: {
-    marginTop: 18,
-    paddingTop: 18,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(148,163,184,0.18)',
-  },
-  heroPanelFooterText: {
-    color: '#94A3B8',
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  proofStrip: {
-    backgroundColor: '#f9fafb',
-    paddingHorizontal: 24,
-    paddingBottom: 28,
-  },
-  proofStripMobile: {
-    paddingHorizontal: 16,
-  },
-  proofStripContent: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'center',
-  },
-  proofPill: {
-    flexGrow: 1,
-    minWidth: 220,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-  },
-  proofPillLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  proofPillValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    lineHeight: 22,
   },
 
   // Section Styles
