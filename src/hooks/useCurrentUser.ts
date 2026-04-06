@@ -21,14 +21,35 @@ async function getCurrentUser(): Promise<User | null> {
     return userPromise;
   }
 
-  // Fetch user and cache result
-  userPromise = supabase.auth.getUser().then(({ data: { user } }) => {
-    cachedUser = user;
-    userPromise = null;
-    return user;
-  });
+  // Fetch session user and cache result
+  userPromise = supabase.auth.getSession()
+    .then(({ data: { session }, error }) => {
+      if (error) {
+        console.warn('[useCurrentUser] getSession error:', error.message);
+        cachedUser = null;
+        return null;
+      }
+
+      const user = session?.user ?? null;
+      cachedUser = user;
+      return user;
+    })
+    .catch((error) => {
+      console.error('[useCurrentUser] getSession exception:', error);
+      cachedUser = null;
+      return null;
+    })
+    .finally(() => {
+      userPromise = null;
+    });
 
   return userPromise;
+}
+
+async function refreshCurrentUser(): Promise<User | null> {
+  cachedUser = undefined;
+  userPromise = null;
+  return getCurrentUser();
 }
 
 /**
@@ -37,18 +58,24 @@ async function getCurrentUser(): Promise<User | null> {
  */
 export function useCurrentUser() {
   const [user, setUser] = useState<User | null>(cachedUser ?? null);
-  const [isLoading, setIsLoading] = useState(cachedUser === undefined);
+  const [isLoading, setIsLoading] = useState(cachedUser === undefined || cachedUser === null);
 
   useEffect(() => {
-    if (cachedUser !== undefined) {
-      setUser(cachedUser);
-      setIsLoading(false);
-    } else {
-      getCurrentUser().then((u) => {
-        setUser(u);
-        setIsLoading(false);
+    let mounted = true;
+
+    // Always re-sync from session on mount to avoid stale null/non-null cache.
+    // This prevents queries from staying disabled after auth state transitions.
+    setIsLoading(cachedUser === null || cachedUser === undefined);
+    refreshCurrentUser()
+      .then((nextUser: User | null) => {
+        if (!mounted) return;
+        setUser(nextUser);
+      })
+      .finally(() => {
+        if (mounted) {
+          setIsLoading(false);
+        }
       });
-    }
 
     const {
       data: { subscription },
@@ -60,6 +87,7 @@ export function useCurrentUser() {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
