@@ -18,6 +18,7 @@ import {
   SCHEDULE_C_SUMMARY_CSV_HEADERS,
   IRS_SCHEDULE_C_LINE_CODES,
 } from './schemas';
+import { getStandardMileageRate } from './mileageRates';
 
 // ============================================================================
 // CSV UTILITIES
@@ -97,7 +98,7 @@ export type ScheduleCCalculationInput = {
   standardOrItemized: 'standard' | 'itemized';
   includeTips: boolean;
   includeFeesAsDeduction: boolean;
-  mileageRate?: number; // IRS standard mileage rate (default 0.67 for 2025)
+  mileageRate?: number; // IRS standard mileage rate (defaults by tax year)
   taxBreakdown?: {
     selfEmployment: number;
     federalIncome: number;
@@ -113,7 +114,7 @@ export function calculateScheduleCSummary(
   input: ScheduleCCalculationInput
 ): ScheduleCSummaryRow {
   const { gigs, expenses, mileage, taxYear, filingStatus, stateOfResidence, standardOrItemized } = input;
-  const mileageRate = input.mileageRate || 0.67; // 2025 IRS rate
+  const mileageRate = input.mileageRate || getStandardMileageRate(taxYear);
 
   // ============================================================================
   // PART I: INCOME

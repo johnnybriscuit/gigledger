@@ -43,7 +43,9 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
     if (onNavigateToGigs) {
       onNavigateToGigs();
     }
-    // Don't open modal - just navigate to Gigs page
+    if (onOpenAddGigModal) {
+      setTimeout(() => onOpenAddGigModal(), 150);
+    }
     onComplete();
   };
 

@@ -9,7 +9,12 @@ import {
   verifyTrustedDevice,
   type MFAFactor,
 } from '../lib/mfa';
-import { trackLogin, trackSignUp } from '../lib/analytics';
+import {
+  consumePendingSignup,
+  trackEmailVerified,
+  trackLogin,
+  trackSignUp,
+} from '../lib/analytics';
 import { track } from '../lib/tracking';
 
 interface AuthCallbackScreenProps {
@@ -105,6 +110,8 @@ export function AuthCallbackScreen({
       }
 
       console.log('[AuthCallback] Session established for:', session.user.email);
+      const pendingSignupMethod = consumePendingSignup();
+      const isSignupCompletion = !!pendingSignupMethod;
 
       // Check if this is an OAuth login (Google)
       const isOAuth = session.user.app_metadata?.provider === 'google' || 
@@ -116,23 +123,19 @@ export function AuthCallbackScreen({
           email: session.user.email,
           provider: 'google',
         });
-        
-        // Track analytics - check if this is first login (signup) or returning user
-        const createdAt = new Date(session.user.created_at || '');
-        const now = new Date();
-        const isNewUser = (now.getTime() - createdAt.getTime()) < 60000; // Created within last minute
-        
-        if (isNewUser) {
-          trackSignUp('google');
-          track('sign_up', { method: 'google' });
-        } else {
-          trackLogin('google');
-          track('login', { method: 'google' });
+      }
+
+      if (isSignupCompletion && pendingSignupMethod) {
+        if (pendingSignupMethod !== 'google') {
+          trackEmailVerified({ method: pendingSignupMethod });
         }
+
+        trackSignUp(pendingSignupMethod);
+        track('sign_up', { method: pendingSignupMethod });
       } else {
-        // Magic link login
-        trackLogin('magic_link');
-        track('login', { method: 'magic_link' });
+        const loginMethod = isOAuth ? 'google' : 'magic_link';
+        trackLogin(loginMethod);
+        track('login', { method: loginMethod });
       }
 
       const verifiedFactor = await getVerifiedTOTPFactor();

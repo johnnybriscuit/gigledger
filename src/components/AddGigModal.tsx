@@ -45,13 +45,20 @@ import { getEffectiveTaxTreatment, getTaxTreatmentLabel, getTaxTreatmentShortLab
 import { resolvePlaceDetails } from '../lib/placeDetails';
 import { colors } from '../styles/theme';
 import { useTheme } from '../contexts/ThemeContext';
+import {
+  trackGigModalOpened,
+  trackGigValidationFailed,
+} from '../lib/analytics';
 
 interface AddGigModalProps {
   visible: boolean;
   onClose: () => void;
   onNavigateToSubscription?: () => void;
+  onNavigateToExpenses?: () => void;
+  onNavigateToMileage?: () => void;
   editingGig?: GigWithPayer | null;
   duplicatingGig?: GigWithPayer | null;
+  source?: 'dashboard' | 'gigs';
 }
 
 const PAYMENT_METHODS = ['Direct Deposit', 'Cash', 'Venmo', 'CashApp', 'Check', 'Other'] as const;
@@ -98,8 +105,19 @@ const COUNTRIES = [
   { code: 'NZ', name: 'New Zealand' },
 ];
 
-export function AddGigModal({ visible, onClose, onNavigateToSubscription, editingGig, duplicatingGig }: AddGigModalProps) {
+export function AddGigModal({
+  visible,
+  onClose,
+  onNavigateToSubscription,
+  onNavigateToExpenses,
+  onNavigateToMileage,
+  editingGig,
+  duplicatingGig,
+  source = 'dashboard',
+}: AddGigModalProps) {
   const { theme } = useTheme();
+  const grossAmountInputRef = useRef<TextInput>(null);
+  const hasTrackedOpenRef = useRef(false);
   const [payerId, setPayerId] = useState('');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
@@ -162,6 +180,33 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
   useEffect(() => {
     getSharedUserId().then(setUserId);
   }, []);
+
+  useEffect(() => {
+    if (!visible) {
+      hasTrackedOpenRef.current = false;
+      return;
+    }
+
+    if (editingGig || duplicatingGig || !payers || hasTrackedOpenRef.current) {
+      return;
+    }
+
+    trackGigModalOpened({
+      source,
+      has_payers: (payers?.length || 0) > 0,
+    });
+    hasTrackedOpenRef.current = true;
+  }, [visible, editingGig, duplicatingGig, payers, source]);
+
+  useEffect(() => {
+    if (!visible || editingGig || duplicatingGig) {
+      return;
+    }
+
+    if (payers && payers.length === 0) {
+      setShowAddPayerModal(true);
+    }
+  }, [visible, editingGig, duplicatingGig, payers]);
   
   // Fetch user profile with home address
   const { data: profile } = useProfile(userId || undefined);
@@ -593,12 +638,29 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
     }
     
     setFieldErrors(errors);
+
+    Object.keys(errors).forEach((field) => {
+      trackGigValidationFailed({ field, source: `${source}_gig_modal` });
+    });
+
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async () => {
     // Validate form
     if (!validateForm()) {
+      if (!payerId) {
+        if (payers && payers.length === 0) {
+          setShowAddPayerModal(true);
+        } else {
+          setShowPayerPicker(true);
+        }
+      } else if (!date) {
+        setShowDatePicker(true);
+      } else if (!grossAmount || parseFloat(grossAmount) < 0) {
+        setTimeout(() => grossAmountInputRef.current?.focus(), 100);
+      }
+
       Alert.alert(
         'Missing Required Fields',
         'Please fill in all required fields marked with *',
@@ -761,16 +823,33 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }
 
-      // Show success message
-      Alert.alert(
-        '✓ Success',
-        editingGig ? 'Gig updated successfully!' : 'Gig created successfully!',
-        [{ text: 'OK' }]
-      );
-      
       resetForm();
       setFieldErrors({});
       onClose();
+
+      if (editingGig) {
+        Alert.alert('✓ Success', 'Gig updated successfully!', [{ text: 'OK' }]);
+      } else {
+        Alert.alert(
+          'Gig recorded',
+          'Your income is on the books. What would you like to do next?',
+          [
+            { text: 'Done', style: 'cancel' },
+            ...(onNavigateToExpenses
+              ? [{
+                  text: 'Add Expense',
+                  onPress: () => onNavigateToExpenses(),
+                } as const]
+              : []),
+            ...(onNavigateToMileage
+              ? [{
+                  text: 'Add Mileage',
+                  onPress: () => onNavigateToMileage(),
+                } as const]
+              : []),
+          ]
+        );
+      }
     } catch (error: any) {
       if (error.code === 'FREE_PLAN_LIMIT_REACHED') {
         setShowUpgradeModal(true);
@@ -984,6 +1063,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               <View style={[styles.inputGroup, styles.flex1]}>
                 <Text style={styles.label}>Gross Amount *</Text>
                 <TextInput
+                  ref={grossAmountInputRef}
                   style={[styles.input, fieldErrors.grossAmount && styles.inputError]}
                   value={grossAmount}
                   onChangeText={(text) => {
@@ -1004,7 +1084,7 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
               <View style={[styles.inputGroup, styles.flex1]}>
                 <Text style={styles.label}>Date *</Text>
                 <TouchableOpacity
-                  style={styles.pickerButton}
+                  style={[styles.pickerButton, fieldErrors.date && styles.inputError]}
                   onPress={() => setShowDatePicker(true)}
                 >
                   <Text style={[styles.pickerButtonText, !date && styles.placeholderText]}>
@@ -1012,6 +1092,9 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
                   </Text>
                   <Text style={styles.pickerButtonIcon}>📅</Text>
                 </TouchableOpacity>
+                {fieldErrors.date && (
+                  <Text style={styles.errorText}>⚠️ {fieldErrors.date}</Text>
+                )}
               </View>
             </View>
 
@@ -1040,12 +1123,12 @@ export function AddGigModal({ visible, onClose, onNavigateToSubscription, editin
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Title *</Text>
+              <Text style={styles.label}>Title</Text>
               <TextInput
                 style={styles.input}
                 value={title}
                 onChangeText={setTitle}
-                placeholder="e.g., Friday Night Show (auto-generated if left empty)"
+                placeholder="Optional. We can generate one from payer + date."
                 placeholderTextColor={colors.text.subtle}
               />
             </View>

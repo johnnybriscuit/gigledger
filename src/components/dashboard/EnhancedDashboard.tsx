@@ -26,6 +26,7 @@ import { colors, spacing } from '../../styles/theme';
 import { useEffect } from 'react';
 import { UsageWidget } from '../UsageWidget';
 import { DashboardEmptyState } from './DashboardEmptyState';
+import { trackDashboardFirstRunViewed } from '../../lib/analytics';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -98,6 +99,12 @@ export function EnhancedDashboard({
   };
 
   const showFirstGigWelcome = data.isReady && data.allTimeGigsCount === 0;
+
+  useEffect(() => {
+    if (showFirstGigWelcome) {
+      trackDashboardFirstRunViewed();
+    }
+  }, [showFirstGigWelcome]);
 
   if (showFirstGigWelcome) {
     return (

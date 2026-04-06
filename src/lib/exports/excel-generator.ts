@@ -6,6 +6,7 @@
 
 import type { GigExportRow, ExpenseExportRow, MileageExportRow, PayerExportRow, ScheduleCSummaryRow } from './schemas';
 import type { WithholdingBreakdown } from '../tax/withholding';
+import { getStandardMileageRate } from './mileageRates';
 
 // Type aliases for easier use with actual data from hooks
 type GigExport = any; // Will use actual data from useExports hook
@@ -52,7 +53,8 @@ export function generateExcelData(input: ExcelGeneratorInput) {
     });
     
     // Mileage deduction
-    const mileageDeduction = mileage.reduce((sum, m) => sum + (m.deduction_amount || m.miles * 0.67), 0);
+    const mileageRate = getStandardMileageRate(taxYear);
+    const mileageDeduction = mileage.reduce((sum, m) => sum + (m.deduction_amount || m.miles * mileageRate), 0);
     
     // Map to Schedule C lines
     const advertising = expensesByCategory['Marketing'] || 0;

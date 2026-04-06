@@ -13,18 +13,15 @@ import { AuthCallbackScreen } from './src/screens/AuthCallbackScreen';
 import { CheckEmailScreen } from './src/screens/CheckEmailScreen';
 import { ForgotPasswordScreen } from './src/screens/ForgotPasswordScreen';
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
-import { MFAOnboardingScreen } from './src/screens/MFAOnboardingScreen';
+import { MFASetupScreen } from './src/screens/MFASetupScreen';
 import { MFAVerifyScreen } from './src/screens/MFAVerifyScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
-import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { TermsScreen } from './src/screens/TermsScreen';
 import { PrivacyScreen } from './src/screens/PrivacyScreen';
 import { SupportScreen } from './src/screens/SupportScreen';
 import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen';
 import { PublicLandingPage } from './src/screens/PublicLandingPage';
 import { PublicInvoiceView } from './src/screens/PublicInvoiceView';
-import { initializeUserData } from './src/services/profileService';
-import { invalidateUserQueries } from './src/lib/queryKeys';
 import { useAppBootstrap } from './src/hooks/useAppBootstrap';
 import { LoadingScreen } from './src/components/LoadingScreen';
 import { ErrorScreen } from './src/components/ErrorScreen';
@@ -33,6 +30,11 @@ import { enableQueryDebug } from './src/lib/queryDebug';
 import { trackPageView } from './src/lib/analytics';
 import { clearSharedUserId, syncSharedUserId } from './src/lib/sharedAuth';
 import { useTheme } from './src/contexts/ThemeContext';
+import {
+  trackMfaEnabled,
+  trackMfaPromptShown,
+  trackMfaSkipped,
+} from './src/lib/analytics';
 import type { Session } from '@supabase/supabase-js';
 import type { MFAFactor } from './src/lib/mfa';
 
@@ -64,6 +66,13 @@ function AppContent() {
   const { theme } = useTheme();
   const bootstrap = useAppBootstrap();
   const statusBarStyle = theme === 'dark' ? 'light' : 'dark';
+  const getAuthModeFromLocation = (): 'signin' | 'signup' => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.location.pathname === '/signup') return 'signup';
+    }
+    return 'signin';
+  };
+
   const getPublicInvoiceRoute = () => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') {
       return null;
@@ -83,6 +92,9 @@ function AppContent() {
   const getRouteFromLocation = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const pathname = window.location.pathname;
+      if (pathname === '/login' || pathname === '/signup') return 'auth';
+      if (pathname === '/auth/callback') return 'auth-callback';
+      if (pathname === '/dashboard') return 'dashboard';
       if (pathname === '/terms') return 'terms';
       if (pathname === '/privacy') return 'privacy';
       if (pathname === '/support') return 'support';
@@ -97,8 +109,7 @@ function AppContent() {
   const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-verify' | 'public-invoice' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>(getRouteFromLocation());
   const [authResolved, setAuthResolved] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
-  const [onboardingJustCompleted, setOnboardingJustCompleted] = useState(false);
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>(getAuthModeFromLocation());
   const [oauthCallbackUrl, setOauthCallbackUrl] = useState<string | null>(null);
   const [pendingMfaFactor, setPendingMfaFactor] = useState<MFAFactor | null>(null);
   const [publicInvoiceRoute, setPublicInvoiceRoute] = useState(initialPublicInvoiceRoute);
@@ -108,7 +119,8 @@ function AppContent() {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const routeToPath: Record<string, string> = {
         'landing': '/',
-        'auth': '/',
+        'auth': authMode === 'signup' ? '/signup' : '/login',
+        'dashboard': '/dashboard',
         'terms': '/terms',
         'privacy': '/privacy',
         'support': '/support',
@@ -124,7 +136,7 @@ function AppContent() {
         window.history.pushState({}, '', targetPath);
       }
     }
-  }, [currentRoute]);
+  }, [authMode, currentRoute]);
 
   // Keep the in-app route aligned with browser history navigation on web.
   useEffect(() => {
@@ -134,6 +146,7 @@ function AppContent() {
 
     const syncRouteFromLocation = () => {
       setCurrentRoute(getRouteFromLocation());
+      setAuthMode(getAuthModeFromLocation());
       setPublicInvoiceRoute(getPublicInvoiceRoute());
     };
 
@@ -377,6 +390,27 @@ function AppContent() {
     );
   }
 
+  if (currentRoute === 'auth-callback') {
+    return (
+      <>
+        <StatusBar style={statusBarStyle} />
+        <AuthCallbackScreen
+          oauthCallbackUrl={oauthCallbackUrl}
+          onNavigateToMFASetup={() => {
+            trackMfaPromptShown();
+            setCurrentRoute('mfa-setup');
+          }}
+          onNavigateToMFAVerify={(factor) => {
+            setPendingMfaFactor(factor);
+            setCurrentRoute('mfa-verify');
+          }}
+          onNavigateToDashboard={() => setCurrentRoute('dashboard')}
+          onNavigateToAuth={() => setCurrentRoute('auth')}
+        />
+      </>
+    );
+  }
+
   // AUTHENTICATED ROUTES - Bootstrap required beyond this point
   
   // Bootstrap loading state
@@ -471,6 +505,7 @@ function AppContent() {
         <StatusBar style={statusBarStyle} />
         <AuthScreen 
           initialMode={authMode}
+          onModeChange={setAuthMode}
           onNavigateToTerms={() => setCurrentRoute('terms')}
           onNavigateToPrivacy={() => setCurrentRoute('privacy')}
           onNavigateToSupport={() => setCurrentRoute('support')}
@@ -494,8 +529,15 @@ function AppContent() {
     return (
       <>
         <StatusBar style={statusBarStyle} />
-        <MFAOnboardingScreen 
-          onNavigateToDashboard={() => setCurrentRoute('dashboard')}
+        <MFASetupScreen
+          onComplete={() => {
+            trackMfaEnabled();
+            setCurrentRoute('dashboard');
+          }}
+          onSkip={() => {
+            trackMfaSkipped();
+            setCurrentRoute('dashboard');
+          }}
         />
       </>
     );
@@ -521,55 +563,19 @@ function AppContent() {
     );
   }
 
-  // Auth Callback (magic link handler)
-  if (currentRoute === 'auth-callback') {
-    return (
-      <>
-        <StatusBar style={statusBarStyle} />
-        <AuthCallbackScreen 
-          oauthCallbackUrl={oauthCallbackUrl}
-          onNavigateToMFASetup={() => setCurrentRoute('mfa-setup')}
-          onNavigateToMFAVerify={(factor) => {
-            setPendingMfaFactor(factor);
-            setCurrentRoute('mfa-verify');
-          }}
-          onNavigateToDashboard={() => setCurrentRoute('dashboard')}
-          onNavigateToAuth={() => setCurrentRoute('auth')}
-        />
-      </>
-    );
-  }
-
-  // Bootstrap ready - check if needs onboarding (unless just completed)
-  if (bootstrap.needsOnboarding && !onboardingJustCompleted) {
-    return (
-      <>
-        <StatusBar style={statusBarStyle} />
-        <OnboardingFlow
-          onComplete={() => {
-            console.log('🔵 [App] OnboardingFlow onComplete called');
-            console.log('🔵 [App] Setting onboardingJustCompleted flag to bypass needsOnboarding check');
-            // Invalidate user queries after onboarding
-            if (bootstrap.session?.user) {
-              console.log('🔵 [App] Invalidating user queries for:', bootstrap.session.user.id);
-              invalidateUserQueries(queryClient, bootstrap.session.user.id);
-            }
-            // Set flag to bypass onboarding check and render dashboard
-            setOnboardingJustCompleted(true);
-            console.log('🔵 [App] Flag set - component will re-render and show dashboard');
-          }}
-        />
-      </>
-    );
-  }
-
   console.log('🔵 [App] Rendering dashboard - bootstrap complete, onboarding not needed');
 
   return (
     <>
       <StatusBar style={statusBarStyle} />
       <UserProvider>
-        <DashboardScreen onNavigateToBusinessStructures={() => setCurrentRoute('business-structures')} />
+        <DashboardScreen
+          onNavigateToBusinessStructures={() => setCurrentRoute('business-structures')}
+          onNavigateToMFASetup={() => {
+            trackMfaPromptShown();
+            setCurrentRoute('mfa-setup');
+          }}
+        />
       </UserProvider>
     </>
   );

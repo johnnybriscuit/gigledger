@@ -763,6 +763,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         onClose={handleCloseModal}
         editingGig={editingGig}
         duplicatingGig={duplicatingGig}
+        source="gigs"
       />
       
       <CSVImportWizard

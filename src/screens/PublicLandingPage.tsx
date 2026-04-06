@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { trackHomepageCtaClicked } from '../lib/analytics';
 
 interface PublicLandingPageProps {
   onGetStarted: () => void;
@@ -29,6 +30,18 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
   const insets = useSafeAreaInsets();
   const navBarTopPadding = Platform.OS !== 'web' ? insets.top : 0;
 
+  const handleSignupCta = (
+    cta: 'hero_primary' | 'nav_primary' | 'pricing_free' | 'pricing_pro' | 'final_primary'
+  ) => {
+    trackHomepageCtaClicked({ cta, destination: 'signup' });
+    onGetStarted();
+  };
+
+  const handleLoginCta = (cta: 'hero_secondary' | 'nav_login' | 'final_login') => {
+    trackHomepageCtaClicked({ cta, destination: 'login' });
+    onSignIn();
+  };
+
   return (
     <View style={styles.container}>
       {/* Top Navigation Bar */}
@@ -36,15 +49,15 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
         <View style={[styles.navContent, { maxWidth }, isMobile && styles.navContentMobile]}>
           <Text style={styles.navLogo}>💼 Bozzy</Text>
           <View style={[styles.navButtons, isMobile && styles.navButtonsMobile]}>
-            <TouchableOpacity onPress={onSignIn} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => handleLoginCta('nav_login')} activeOpacity={0.7}>
               <Text style={styles.navLinkText}>Log in</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.navPrimaryButton} 
-              onPress={onGetStarted}
+              onPress={() => handleSignupCta('nav_primary')}
               activeOpacity={0.8}
             >
-              <Text style={styles.navPrimaryButtonText}>Get started</Text>
+              <Text style={styles.navPrimaryButtonText}>Create free account</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -58,33 +71,85 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
         {/* Hero Section */}
         <View style={[styles.hero, isMobile && styles.heroMobile]}>
           <View style={[styles.heroContent, { maxWidth }, isMobile && styles.heroContentMobile]}>
-            <Text style={[styles.headline, isMobile && styles.headlineMobile]}>
-              Know what you earned.{'\n'}Know what to set aside.
-            </Text>
-            
-            <Text style={[styles.subheadline, isMobile && styles.subheadlineMobile]}>
-              Track gigs, expenses, and exports so tax season isn't a scramble.
-            </Text>
-            
-            <View style={[styles.ctaButtons, isMobile && styles.ctaButtonsMobile]}>
-              <TouchableOpacity 
-                style={[styles.primaryButton, isMobile && styles.primaryButtonMobile]} 
-                onPress={onGetStarted}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.primaryButtonText}>Create free account</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile]} 
-                onPress={onSignIn}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.secondaryButtonText}>Log in</Text>
-              </TouchableOpacity>
+            <View style={[styles.heroLayout, isMobile && styles.heroLayoutMobile]}>
+              <View style={[styles.heroTextColumn, isMobile && styles.heroTextColumnMobile]}>
+                <Text style={[styles.eyebrow, isMobile && styles.heroTextCentered]}>
+                  For musicians first. Flexible enough for the rest of your gig work.
+                </Text>
+                <Text style={[styles.headline, isMobile && styles.headlineMobile]}>
+                  Track gigs.{'\n'}Know your tax set-aside.
+                </Text>
+
+                <Text style={[styles.subheadline, isMobile && styles.subheadlineMobile]}>
+                  Built for performers, freelancers, and self-employed gig workers who need clean income records before tax season turns messy.
+                </Text>
+
+                <View style={[styles.ctaButtons, isMobile && styles.ctaButtonsMobile]}>
+                  <TouchableOpacity 
+                    style={[styles.primaryButton, isMobile && styles.primaryButtonMobile]} 
+                    onPress={() => handleSignupCta('hero_primary')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.primaryButtonText}>Create free account</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.secondaryButton, isMobile && styles.secondaryButtonMobile]} 
+                    onPress={() => handleLoginCta('hero_secondary')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.secondaryButtonText}>Log in</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={[styles.trustBadge, isMobile && styles.heroTextCentered]}>
+                  No credit card required. Verify your email, land in the dashboard, and start with your first gig.
+                </Text>
+              </View>
+
+              <View style={[styles.heroPanel, isMobile && styles.heroPanelMobile]}>
+                <Text style={styles.heroPanelEyebrow}>What happens next</Text>
+                <Text style={styles.heroPanelTitle}>A cleaner first-run path</Text>
+
+                <View style={styles.heroPanelSteps}>
+                  <View style={styles.heroPanelStep}>
+                    <Text style={styles.heroPanelStepNumber}>1</Text>
+                    <View style={styles.heroPanelStepContent}>
+                      <Text style={styles.heroPanelStepTitle}>Create your account</Text>
+                      <Text style={styles.heroPanelStepText}>Use Google, password, or a magic link.</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.heroPanelStep}>
+                    <Text style={styles.heroPanelStepNumber}>2</Text>
+                    <View style={styles.heroPanelStepContent}>
+                      <Text style={styles.heroPanelStepTitle}>Add the first gig</Text>
+                      <Text style={styles.heroPanelStepText}>Amount, date, and payer first. Extra details can wait.</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.heroPanelStep}>
+                    <Text style={styles.heroPanelStepNumber}>3</Text>
+                    <View style={styles.heroPanelStepContent}>
+                      <Text style={styles.heroPanelStepTitle}>Stay tax-ready as you go</Text>
+                      <Text style={styles.heroPanelStepText}>Layer on mileage, expenses, and exports when you need them.</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.heroPanelFooter}>
+                  <Text style={styles.heroPanelFooterText}>Best fit for live-performance income, side gigs, and other self-employed work that needs simple records.</Text>
+                </View>
+              </View>
             </View>
-            
-            <Text style={styles.trustBadge}>✓ No credit card required to start</Text>
+          </View>
+        </View>
+
+        <View style={[styles.proofStrip, isMobile && styles.proofStripMobile]}>
+          <View style={[styles.sectionContent, { maxWidth }, styles.proofStripContent]}>
+            <ProofPill label="Fast first entry" value="Log your first gig in minutes" />
+            <ProofPill label="Tax-aware" value="See what to set aside while you work" />
+            <ProofPill label="CPA-ready" value="Export organized records when the year ends" />
           </View>
         </View>
 
@@ -92,32 +157,53 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
         <View style={[styles.section, isMobile && styles.sectionMobile]}>
           <View style={[styles.sectionContent, { maxWidth }]}>
             <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
-              Built for gig workers
+              What you get after signup
             </Text>
+            <Text style={styles.sectionLead}>
+              Use one workspace to stay on top of performance income first, then the rest of your self-employed workflow.
+            </Text>
+
+            <View style={[styles.valueGrid, isMobile && styles.valueGridMobile]}>
+              <ValueCard
+                title="A clean gig ledger"
+                description="Income, payer, payout status, and optional venue details in one place."
+                isMobile={isMobile}
+              />
+              <ValueCard
+                title="Tax set-aside visibility"
+                description="Know what to save before tax season sneaks up on you."
+                isMobile={isMobile}
+              />
+              <ValueCard
+                title="Records that compound"
+                description="Expenses, mileage, and exports build on the same gigs instead of living in separate tools."
+                isMobile={isMobile}
+              />
+            </View>
             
             <View style={[styles.benefitsGrid, isMobile && styles.benefitsGridMobile]}>
               <BenefitCard
                 icon="⚡"
                 title="Track gigs fast"
-                description="Log income in seconds. See what you've earned at a glance."
+                description="Capture the essentials first. Add details only when they matter."
                 isMobile={isMobile}
               />
               <BenefitCard
                 icon="💵"
                 title="See estimated set-aside"
-                description="Know how much to save for taxes. No surprises in April."
+                description="Get guidance while earnings are fresh instead of guessing later."
                 isMobile={isMobile}
               />
               <BenefitCard
                 icon="📤"
                 title="Export for CPA / TurboTax"
-                description="Generate reports your accountant or tax software needs."
+                description="Hand off cleaner records at tax time without rebuilding your books."
                 isMobile={isMobile}
               />
               <BenefitCard
                 icon="📅"
-                title="Stay organized all year"
-                description="Track expenses and mileage as you go. Tax-ready anytime."
+                title="Grow beyond gigs"
+                description="Track deductions and billing in the same account as your income."
                 isMobile={isMobile}
               />
             </View>
@@ -129,6 +215,9 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
           <View style={[styles.sectionContent, { maxWidth }]}>
             <Text style={[styles.sectionTitle, isMobile && styles.sectionTitleMobile]}>
               Simple, transparent pricing
+            </Text>
+            <Text style={styles.sectionLead}>
+              Start free until you outgrow the limits. Upgrade when you need exports, unlimited tracking, or a more complete tax-time handoff.
             </Text>
             
             <View style={[styles.pricingGrid, isMobile && styles.pricingGridMobile]}>
@@ -144,7 +233,7 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
                   'Tax estimates',
                 ]}
                 ctaText="Get started"
-                onPress={onGetStarted}
+                onPress={() => handleSignupCta('pricing_free')}
                 isMobile={isMobile}
                 isPopular={false}
               />
@@ -161,8 +250,8 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
                   'Advanced tax readiness',
                   'Priority support',
                 ]}
-                ctaText="Upgrade to Pro"
-                onPress={onGetStarted}
+                ctaText="Start free, upgrade later"
+                onPress={() => handleSignupCta('pricing_pro')}
                 isMobile={isMobile}
                 isPopular={true}
               />
@@ -251,17 +340,17 @@ export function PublicLandingPage({ onGetStarted, onSignIn, onNavigateToTerms, o
         <View style={[styles.ctaSection, isMobile && styles.ctaSectionMobile]}>
           <View style={[styles.sectionContent, { maxWidth }]}>
             <Text style={[styles.ctaTitle, isMobile && styles.ctaTitleMobile]}>
-              Ready to feel caught up in 5 minutes?
+              Start with one gig. Build the records from there.
             </Text>
             <View style={[styles.ctaButtons, isMobile && styles.ctaButtonsMobile]}>
               <TouchableOpacity 
                 style={[styles.primaryButton, styles.ctaButton, isMobile && styles.ctaButtonMobile]} 
-                onPress={onGetStarted}
+                onPress={() => handleSignupCta('final_primary')}
                 activeOpacity={0.8}
               >
                 <Text style={styles.ctaButtonText}>Create free account</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={onSignIn} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => handleLoginCta('final_login')} activeOpacity={0.7}>
                 <Text style={styles.ctaLinkText}>Log in</Text>
               </TouchableOpacity>
             </View>
@@ -306,6 +395,35 @@ function StepCard({ number, title, description, isMobile }: StepCardProps) {
       </View>
       <Text style={styles.stepTitle}>{title}</Text>
       <Text style={styles.stepDescription}>{description}</Text>
+    </View>
+  );
+}
+
+interface ProofPillProps {
+  label: string;
+  value: string;
+}
+
+function ProofPill({ label, value }: ProofPillProps) {
+  return (
+    <View style={styles.proofPill}>
+      <Text style={styles.proofPillLabel}>{label}</Text>
+      <Text style={styles.proofPillValue}>{value}</Text>
+    </View>
+  );
+}
+
+interface ValueCardProps {
+  title: string;
+  description: string;
+  isMobile: boolean;
+}
+
+function ValueCard({ title, description, isMobile }: ValueCardProps) {
+  return (
+    <View style={[styles.valueCard, isMobile && styles.valueCardMobile]}>
+      <Text style={styles.valueCardTitle}>{title}</Text>
+      <Text style={styles.valueCardDescription}>{description}</Text>
     </View>
   );
 }
@@ -482,6 +600,35 @@ const styles = StyleSheet.create({
   heroContentMobile: {
     maxWidth: '100%',
   },
+  heroLayout: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 32,
+  },
+  heroLayoutMobile: {
+    flexDirection: 'column',
+    gap: 24,
+  },
+  heroTextColumn: {
+    flex: 1.1,
+    alignItems: 'flex-start',
+  },
+  heroTextColumnMobile: {
+    alignItems: 'center',
+  },
+  heroTextCentered: {
+    textAlign: 'center',
+  },
+  eyebrow: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0066FF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 18,
+    textAlign: 'left',
+  },
   headline: {
     fontSize: 56,
     fontWeight: '800',
@@ -499,7 +646,7 @@ const styles = StyleSheet.create({
   subheadline: {
     fontSize: 20,
     color: '#6b7280',
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 40,
     lineHeight: 30,
     maxWidth: 600,
@@ -508,6 +655,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 27,
     marginBottom: 32,
+    textAlign: 'center',
   },
   ctaButtons: {
     flexDirection: 'row',
@@ -564,9 +712,130 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   trustBadge: {
-    color: '#6b7280',
+    color: '#4b5563',
     fontSize: 14,
+    textAlign: 'left',
+    lineHeight: 22,
+    maxWidth: 760,
+  },
+  heroPanel: {
+    flex: 0.9,
+    backgroundColor: '#0F172A',
+    borderRadius: 24,
+    padding: 28,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 6,
+  },
+  heroPanelMobile: {
+    width: '100%',
+    padding: 22,
+  },
+  heroPanelEyebrow: {
+    color: '#93C5FD',
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  heroPanelTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 30,
+    marginBottom: 20,
+  },
+  heroPanelSteps: {
+    gap: 14,
+  },
+  heroPanelStep: {
+    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(148,163,184,0.18)',
+  },
+  heroPanelStepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     textAlign: 'center',
+    lineHeight: 28,
+    color: '#0F172A',
+    backgroundColor: '#FBBF24',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  heroPanelStepContent: {
+    flex: 1,
+  },
+  heroPanelStepTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  heroPanelStepText: {
+    color: '#CBD5E1',
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  heroPanelFooter: {
+    marginTop: 18,
+    paddingTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(148,163,184,0.18)',
+  },
+  heroPanelFooterText: {
+    color: '#94A3B8',
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  proofStrip: {
+    backgroundColor: '#f9fafb',
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+  },
+  proofStripMobile: {
+    paddingHorizontal: 16,
+  },
+  proofStripContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  proofPill: {
+    flexGrow: 1,
+    minWidth: 220,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  proofPillLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  proofPillValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    lineHeight: 22,
   },
 
   // Section Styles
@@ -594,8 +863,47 @@ const styles = StyleSheet.create({
     fontSize: 32,
     marginBottom: 48,
   },
+  sectionLead: {
+    fontSize: 17,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 27,
+    maxWidth: 760,
+    alignSelf: 'center',
+    marginBottom: 28,
+  },
 
   // Benefits Section
+  valueGrid: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 24,
+  },
+  valueGridMobile: {
+    flexDirection: 'column',
+  },
+  valueCard: {
+    flex: 1,
+    backgroundColor: '#eff6ff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    padding: 22,
+  },
+  valueCardMobile: {
+    width: '100%',
+  },
+  valueCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  valueCardDescription: {
+    fontSize: 15,
+    color: '#475569',
+    lineHeight: 24,
+  },
   benefitsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

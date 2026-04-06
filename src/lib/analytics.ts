@@ -16,6 +16,12 @@ declare global {
   }
 }
 
+export type AuthMethod = 'google' | 'magic_link' | 'password';
+export type AuthMode = 'signin' | 'signup';
+
+const PENDING_SIGNUP_STORAGE_KEY = 'pending_signup_context_v1';
+const PENDING_SIGNUP_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Safely push an event to the GTM dataLayer
  * Only runs in browser context (not during SSR)
@@ -107,15 +113,77 @@ export function trackPageView(path: string, title?: string): void {
   });
 }
 
+function readPendingSignupContext(): { method: AuthMethod; createdAt: number } | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PENDING_SIGNUP_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as { method?: AuthMethod; createdAt?: number };
+    if (!parsed.method || typeof parsed.createdAt !== 'number') {
+      window.localStorage.removeItem(PENDING_SIGNUP_STORAGE_KEY);
+      return null;
+    }
+
+    if ((Date.now() - parsed.createdAt) > PENDING_SIGNUP_MAX_AGE_MS) {
+      window.localStorage.removeItem(PENDING_SIGNUP_STORAGE_KEY);
+      return null;
+    }
+
+    return {
+      method: parsed.method,
+      createdAt: parsed.createdAt,
+    };
+  } catch {
+    window.localStorage.removeItem(PENDING_SIGNUP_STORAGE_KEY);
+    return null;
+  }
+}
+
+export function rememberPendingSignup(method: AuthMethod): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(
+    PENDING_SIGNUP_STORAGE_KEY,
+    JSON.stringify({
+      method,
+      createdAt: Date.now(),
+    })
+  );
+}
+
+export function consumePendingSignup(): AuthMethod | null {
+  const pending = readPendingSignupContext();
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(PENDING_SIGNUP_STORAGE_KEY);
+  }
+  return pending?.method ?? null;
+}
+
+export function clearPendingSignup(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem(PENDING_SIGNUP_STORAGE_KEY);
+}
+
 // ============================================================================
 // AUTH EVENTS
 // ============================================================================
 
-export function trackSignUp(method: 'google' | 'magic_link' | 'password'): void {
+export function trackSignUp(method: AuthMethod): void {
   trackWithGTMCheck('sign_up', { method });
 }
 
-export function trackLogin(method: 'google' | 'magic_link' | 'password'): void {
+export function trackLogin(method: AuthMethod): void {
   console.log('🔐 [Analytics] trackLogin called with method:', method);
   console.log('🔐 [Analytics] window.dataLayer:', window.dataLayer);
   trackWithGTMCheck('login', { method });
@@ -123,6 +191,82 @@ export function trackLogin(method: 'google' | 'magic_link' | 'password'): void {
 
 export function trackLogout(): void {
   trackWithGTMCheck('logout');
+}
+
+export function trackHomepageCtaClicked(params: {
+  cta: 'hero_primary' | 'hero_secondary' | 'nav_primary' | 'nav_login' | 'pricing_free' | 'pricing_pro' | 'final_primary' | 'final_login';
+  destination: 'signup' | 'login';
+}): void {
+  trackWithGTMCheck('homepage_cta_clicked', params);
+}
+
+export function trackAuthViewed(params: {
+  mode: AuthMode;
+  route: '/login' | '/signup';
+}): void {
+  trackWithGTMCheck('auth_viewed', params);
+}
+
+export function trackAuthMethodSelected(params: {
+  mode: AuthMode;
+  method: AuthMethod;
+}): void {
+  trackWithGTMCheck('auth_method_selected', params);
+}
+
+export function trackMagicLinkSent(params: {
+  mode: AuthMode;
+}): void {
+  trackWithGTMCheck('magic_link_sent', params);
+}
+
+export function trackEmailVerified(params: {
+  method?: AuthMethod;
+}): void {
+  trackWithGTMCheck('email_verified', params);
+}
+
+export function trackMfaPromptShown(): void {
+  trackWithGTMCheck('mfa_prompt_shown');
+}
+
+export function trackMfaSkipped(): void {
+  trackWithGTMCheck('mfa_skipped');
+}
+
+export function trackMfaEnabled(): void {
+  trackWithGTMCheck('mfa_enabled');
+}
+
+export function trackDashboardFirstRunViewed(): void {
+  trackWithGTMCheck('dashboard_first_run_viewed');
+}
+
+export function trackDashboardPrimaryCtaClicked(params: {
+  cta: 'add_first_gig' | 'open_gigs' | 'add_contact';
+}): void {
+  trackWithGTMCheck('dashboard_primary_cta_clicked', params);
+}
+
+export function trackGigModalOpened(params: {
+  source: string;
+  has_payers: boolean;
+}): void {
+  trackWithGTMCheck('gig_modal_opened', params);
+}
+
+export function trackGigValidationFailed(params: {
+  field: string;
+  source?: string;
+}): void {
+  trackWithGTMCheck('gig_validation_failed', params);
+}
+
+export function trackFirstGigCreated(params: {
+  entity_id: string;
+  source?: string;
+}): void {
+  trackWithGTMCheck('first_gig_created', params);
 }
 
 export function trackOnboardingComplete(params: {

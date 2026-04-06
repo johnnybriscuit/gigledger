@@ -14,7 +14,8 @@ SELECT
     m.miles * CASE EXTRACT(YEAR FROM m.date)::INT
       WHEN 2023 THEN 0.655
       WHEN 2024 THEN 0.67
-      ELSE 0.70
+      WHEN 2025 THEN 0.70
+      ELSE 0.725
     END,
     2
   ) AS deduction_amount,
@@ -77,7 +78,8 @@ BEGIN
         miles * CASE EXTRACT(YEAR FROM date)::INT
           WHEN 2023 THEN 0.655
           WHEN 2024 THEN 0.67
-          ELSE 0.70
+          WHEN 2025 THEN 0.70
+          ELSE 0.725
         END,
         2
       )), 0) AS amount

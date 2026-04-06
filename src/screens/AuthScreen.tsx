@@ -7,7 +7,14 @@ import { logSecurityEvent } from '../lib/mfa';
 import { validatePassword } from '../lib/passwordValidation';
 import { PasswordStrengthMeter } from '../components/PasswordStrengthMeter';
 import { getBaseUrl } from '../lib/getBaseUrl';
-import { trackSignUp, trackLogin } from '../lib/analytics';
+import {
+  clearPendingSignup,
+  rememberPendingSignup,
+  trackAuthMethodSelected,
+  trackAuthViewed,
+  trackLogin,
+  trackMagicLinkSent,
+} from '../lib/analytics';
 import { track } from '../lib/tracking';
 import { env } from '../config/env';
 
@@ -18,17 +25,26 @@ interface AuthScreenProps {
   onNavigateToForgotPassword?: () => void;
   onNavigateToHome?: () => void;
   initialMode?: 'signin' | 'signup';
+  onModeChange?: (mode: 'signin' | 'signup') => void;
 }
 
 type AuthMode = 'signin' | 'signup';
-type AuthMethod = 'magic' | 'password';
+type AuthMethod = 'magic_link' | 'password';
 
-export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateToSupport, onNavigateToForgotPassword, onNavigateToHome, initialMode = 'signin' }: AuthScreenProps) {
+export function AuthScreen({
+  onNavigateToTerms,
+  onNavigateToPrivacy,
+  onNavigateToSupport,
+  onNavigateToForgotPassword,
+  onNavigateToHome,
+  initialMode = 'signin',
+  onModeChange,
+}: AuthScreenProps) {
   // Mode: Sign In or Create Account
   const [mode, setMode] = useState<AuthMode>(initialMode);
   
   // Method: Magic Link or Email + Password
-  const [method, setMethod] = useState<AuthMethod>('magic');
+  const [method, setMethod] = useState<AuthMethod>(initialMode === 'signup' ? 'password' : 'password');
   
   // Form state
   const [email, setEmail] = useState('');
@@ -60,6 +76,21 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
   // Google OAuth feature flag (default true)
   const GOOGLE_OAUTH_ENABLED = Constants.expoConfig?.extra?.googleOAuthEnabled !== false && 
                                 process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ENABLED !== 'false';
+  const headingTitle = mode === 'signup' ? 'Create your Bozzy account' : 'Welcome back';
+  const headingSubtitle = mode === 'signup'
+    ? 'Track gig income first, then layer in expenses, mileage, and exports when you need them.'
+    : 'Pick the fastest way back into your gig records and tax-ready dashboard.';
+  const authChecklist = mode === 'signup'
+    ? [
+        'Verify your email and land in the dashboard.',
+        'Add your first gig before filling in everything else.',
+        'Enable 2-step verification after signup if you want extra protection.',
+      ]
+    : [
+        'Use Google on web, a password, or a magic link from your inbox.',
+        'New users still verify email before entering the app.',
+        '2-step verification is supported for returning users too.',
+      ];
 
   const readJsonResponse = async (response: Response) => {
     const contentType = response.headers.get('content-type') || '';
@@ -106,6 +137,22 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
     
     fetchCsrfToken();
   }, [isSiteUrlMissing]);
+
+  useEffect(() => {
+    setMode(initialMode);
+    setMethod(initialMode === 'signup' ? 'password' : 'password');
+  }, [initialMode]);
+
+  useEffect(() => {
+    trackAuthViewed({
+      mode,
+      route: mode === 'signup' ? '/signup' : '/login',
+    });
+  }, [mode]);
+
+  useEffect(() => {
+    trackAuthMethodSelected({ mode, method });
+  }, [mode, method]);
   
   // Cooldown timer for magic link
   useEffect(() => {
@@ -120,10 +167,8 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
     setEmailError('');
     setPasswordError('');
     setEmailSent(false);
-    
-    // If switching to Create account mode and password is selected, switch to magic
-    if (mode === 'signup' && method === 'password') {
-      setMethod('magic');
+    if (mode === 'signin') {
+      clearPendingSignup();
     }
   }, [mode, method]);
 
@@ -202,9 +247,11 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         await logSecurityEvent('magic_link_sent', { email, mode });
 
         if (mode === 'signup') {
-          trackSignUp('magic_link');
-          track('sign_up', { method: 'magic_link' });
+          rememberPendingSignup('magic_link');
+        } else {
+          clearPendingSignup();
         }
+        trackMagicLinkSent({ mode });
 
         setEmailSent(true);
         setCooldown(60);
@@ -242,9 +289,11 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
           await logSecurityEvent('magic_link_sent', { email, mode });
           if (mode === 'signup') {
-            trackSignUp('magic_link');
-            track('sign_up', { method: 'magic_link' });
+            rememberPendingSignup('magic_link');
+          } else {
+            clearPendingSignup();
           }
+          trackMagicLinkSent({ mode });
           setEmailSent(true);
           setCooldown(60);
           return;
@@ -277,12 +326,12 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
       // Success
       await logSecurityEvent('magic_link_sent', { email, mode });
-      
-      // Track analytics event
       if (mode === 'signup') {
-        trackSignUp('magic_link');
-        track('sign_up', { method: 'magic_link' });
+        rememberPendingSignup('magic_link');
+      } else {
+        clearPendingSignup();
       }
+      trackMagicLinkSent({ mode });
       
       setEmailSent(true);
       setCooldown(60); // 60 second cooldown
@@ -312,6 +361,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
     try {
       if (mode === 'signup') {
+        rememberPendingSignup('password');
         let tokenToUse = csrfToken;
         if (serverApiAvailable && !tokenToUse) {
           console.log('[Auth] No CSRF token found for password signup, fetching now...');
@@ -334,8 +384,6 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
             localFallback: true,
           });
           await logSecurityEvent('password_signup', { email });
-          trackSignUp('password');
-          track('sign_up', { method: 'password' });
           setEmailSent(true);
           return;
         }
@@ -376,8 +424,6 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
               localFallback: true,
             });
             await logSecurityEvent('password_signup', { email });
-            trackSignUp('password');
-            track('sign_up', { method: 'password' });
             setEmailSent(true);
             return;
           }
@@ -433,16 +479,13 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         // Success - always navigate to Check Email screen for signups
         console.log('[Auth] Password signup successful', { emailConfirmationRequired: data.emailConfirmationRequired });
         await logSecurityEvent('password_signup', { email });
-        
-        // Track analytics event
-        trackSignUp('password');
-        track('sign_up', { method: 'password' });
 
         // Always show "Check your email" screen for signups
         // Even if emailConfirmationRequired is false, we want users to verify their email
         setEmailSent(true);
         console.log('[Auth] Showing Check Email screen - user must verify email before signing in');
       } else {
+        clearPendingSignup();
         // Sign in with password
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -462,6 +505,9 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
       }
     } catch (error: any) {
       console.error('[Auth] Password error:', error);
+      if (mode === 'signup') {
+        clearPendingSignup();
+      }
       
       if (error.message?.includes('Invalid login credentials')) {
         setPasswordError('Invalid email or password');
@@ -491,6 +537,11 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
     try {
       // Log OAuth start
       await logSecurityEvent('oauth_google_start', { provider: 'google' });
+      if (mode === 'signup') {
+        rememberPendingSignup('google');
+      } else {
+        clearPendingSignup();
+      }
 
       // Platform-aware redirect URL (environment-aware for preview/prod/localhost)
       const redirectUrl = Platform.OS === 'web' 
@@ -532,6 +583,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
       // Loading state will persist until redirect happens
     } catch (error: any) {
       console.error('[Auth] Google OAuth error:', error);
+      clearPendingSignup();
       
       // Check if provider is disabled
       const errorMessage = error.message?.toLowerCase() || '';
@@ -549,15 +601,48 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
   };
 
   const handleSubmit = () => {
-    if (method === 'magic') {
+    if (method === 'magic_link') {
       handleMagicLink();
     } else {
       handlePassword();
     }
   };
 
+  const handleResendSignupVerification = async () => {
+    if (cooldown > 0 || !email) {
+      return;
+    }
+
+    setLoading(true);
+    setEmailError('');
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${SITE_URL}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+
+      setCooldown(60);
+    } catch (error: any) {
+      setEmailError(error.message || 'Failed to resend verification email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changeMode = (nextMode: AuthMode) => {
+    setMode(nextMode);
+    onModeChange?.(nextMode);
+  };
+
   // Magic link confirmation screen
-  if (emailSent && method === 'magic') {
+  if (emailSent && (method === 'magic_link' || mode === 'signup')) {
+    const isPasswordSignup = mode === 'signup' && method === 'password';
     return (
       <ScrollView 
         style={styles.authPage}
@@ -567,25 +652,31 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         <View style={styles.authCard}>
           <View style={styles.successContainer}>
             <Text style={styles.successIcon}>✉️</Text>
-            <Text style={styles.successTitle}>Check your email</Text>
+            <Text style={styles.successTitle}>{isPasswordSignup ? 'Verify your email' : 'Check your email'}</Text>
             <Text style={styles.successMessage}>
-              We've sent a magic link to{' '}
+              {isPasswordSignup ? 'We sent a verification link to ' : 'We sent a magic link to '}
               <Text style={styles.emailHighlight}>{email}</Text>
             </Text>
             <Text style={styles.successInstructions}>
-              Click the link in the email to {mode === 'signup' ? 'create your account' : 'sign in'}. The link will expire in 1 hour.
+              {isPasswordSignup
+                ? 'Click the link in the email to activate your account. Once verified, you will land inside the app and can start with your first gig.'
+                : `Click the link in the email to ${mode === 'signup' ? 'create your account' : 'sign in'}. The link will expire in 1 hour.`}
             </Text>
 
             <TouchableOpacity
               style={[styles.resendButton, cooldown > 0 && styles.buttonDisabled]}
-              onPress={handleMagicLink}
+              onPress={isPasswordSignup ? handleResendSignupVerification : handleMagicLink}
               disabled={cooldown > 0 || loading}
             >
               {loading ? (
                 <ActivityIndicator color="#4F46E5" />
               ) : (
                 <Text style={styles.resendButtonText}>
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend magic link'}
+                  {cooldown > 0
+                    ? `Resend in ${cooldown}s`
+                    : isPasswordSignup
+                      ? 'Resend verification email'
+                      : 'Resend magic link'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -649,15 +740,28 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
 
         {/* Header */}
         <View style={styles.authHeader}>
-          <Text style={styles.authTitle}>Bozzy</Text>
-          <Text style={styles.authSubtitle}>Track your music income & expenses</Text>
+          <Text style={styles.authEyebrow}>For musicians and self-employed gig workers</Text>
+          <Text style={styles.authTitle}>{headingTitle}</Text>
+          <Text style={styles.authSubtitle}>{headingSubtitle}</Text>
+        </View>
+
+        <View style={styles.contextCard}>
+          <Text style={styles.contextCardTitle}>
+            {mode === 'signup' ? 'What happens next' : 'Choose the fastest path'}
+          </Text>
+          {authChecklist.map((item) => (
+            <View key={item} style={styles.contextRow}>
+              <Text style={styles.contextBullet}>•</Text>
+              <Text style={styles.contextText}>{item}</Text>
+            </View>
+          ))}
         </View>
 
         {/* Mode Tabs: Sign In | Create Account */}
         <View style={styles.modeTabs}>
           <TouchableOpacity
             style={[styles.modeTab, mode === 'signin' && styles.modeTabActive]}
-            onPress={() => setMode('signin')}
+            onPress={() => changeMode('signin')}
             accessibilityRole="tab"
             accessibilityState={{ selected: mode === 'signin' }}
           >
@@ -667,7 +771,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.modeTab, mode === 'signup' && styles.modeTabActive]}
-            onPress={() => setMode('signup')}
+            onPress={() => changeMode('signup')}
             accessibilityRole="tab"
             accessibilityState={{ selected: mode === 'signup' }}
           >
@@ -696,7 +800,11 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
                     <Text style={styles.googleIcon}>G</Text>
                     <View style={styles.googleTextContainer}>
                       <Text style={styles.googleButtonText}>Continue with Google</Text>
-                      <Text style={styles.googleSubtext}>We'll never post without your permission</Text>
+                      <Text style={styles.googleSubtext}>
+                        {mode === 'signup'
+                          ? 'Create your account with your existing Google login'
+                          : 'Use the Google account tied to your Bozzy login'}
+                      </Text>
                     </View>
                   </>
                 )}
@@ -712,41 +820,44 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           )}
 
           {/* Method Selector: Magic Link | Email + Password */}
-          {/* In Create account mode: only show Magic link */}
-          {/* In Sign in mode: show both Magic link and Email + Password */}
           <View style={styles.methodSelector}>
             <TouchableOpacity
-              style={[styles.methodOption, method === 'magic' && styles.methodOptionActive]}
-              onPress={() => setMethod('magic')}
+              style={[styles.methodOption, method === 'password' && styles.methodOptionActive]}
+              onPress={() => setMethod('password')}
               accessibilityRole="radio"
-              accessibilityState={{ checked: method === 'magic' }}
+              accessibilityState={{ checked: method === 'password' }}
             >
-              <View style={[styles.radio, method === 'magic' && styles.radioActive]}>
-                {method === 'magic' && <View style={styles.radioDot} />}
+              <View style={[styles.radio, method === 'password' && styles.radioActive]}>
+                {method === 'password' && <View style={styles.radioDot} />}
               </View>
               <View style={styles.methodContent}>
-                <Text style={styles.methodTitle}>Magic link</Text>
-                <Text style={styles.methodDescription}>Sign in with a link sent to your email</Text>
+                <Text style={styles.methodTitle}>Email and password</Text>
+                <Text style={styles.methodDescription}>
+                  {mode === 'signup'
+                    ? 'Best if you want a standard login you can reuse any time'
+                    : 'Use the password already attached to your account'}
+                </Text>
               </View>
             </TouchableOpacity>
 
-            {/* Only show Email + Password in Sign in mode */}
-            {mode === 'signin' && (
-              <TouchableOpacity
-                style={[styles.methodOption, method === 'password' && styles.methodOptionActive]}
-                onPress={() => setMethod('password')}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: method === 'password' }}
-              >
-                <View style={[styles.radio, method === 'password' && styles.radioActive]}>
-                  {method === 'password' && <View style={styles.radioDot} />}
-                </View>
-                <View style={styles.methodContent}>
-                  <Text style={styles.methodTitle}>Email + Password</Text>
-                  <Text style={styles.methodDescription}>Traditional email and password</Text>
-                </View>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[styles.methodOption, method === 'magic_link' && styles.methodOptionActive]}
+              onPress={() => setMethod('magic_link')}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: method === 'magic_link' }}
+            >
+              <View style={[styles.radio, method === 'magic_link' && styles.radioActive]}>
+                {method === 'magic_link' && <View style={styles.radioDot} />}
+              </View>
+              <View style={styles.methodContent}>
+                <Text style={styles.methodTitle}>Magic link</Text>
+                <Text style={styles.methodDescription}>
+                  {mode === 'signup'
+                    ? 'Skip password setup and create the account from your inbox'
+                    : 'Skip the password and sign in from the email we send'}
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Email Input */}
@@ -832,24 +943,26 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
           )}
 
           {/* Helper Text for Create Account */}
-          {mode === 'signup' && method === 'password' && (
+          {mode === 'signup' && (
             <Text style={styles.helperText}>
-              You'll receive a verification email to activate your account. After verifying, you will set up two-factor authentication.
+              {method === 'password'
+                ? 'You will verify your email before entering the app. After that, your dashboard will point you straight to adding the first gig.'
+                : 'We will email you a one-time signup link. After you confirm it, you will land in the dashboard and can add the first gig right away.'}
             </Text>
           )}
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.authSubmit, (loading || (method === 'magic' && cooldown > 0)) && styles.buttonDisabled]}
+            style={[styles.authSubmit, (loading || (method === 'magic_link' && cooldown > 0)) && styles.buttonDisabled]}
             onPress={handleSubmit}
-            disabled={loading || (method === 'magic' && cooldown > 0)}
+            disabled={loading || (method === 'magic_link' && cooldown > 0)}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.authSubmitText}>
-                {method === 'magic' 
-                  ? (cooldown > 0 ? `Wait ${cooldown}s` : `Send magic link`)
+                {method === 'magic_link' 
+                  ? (cooldown > 0 ? `Wait ${cooldown}s` : mode === 'signup' ? 'Email me a signup link' : 'Email me a sign-in link')
                   : (mode === 'signup' ? 'Create account' : 'Sign in')
                 }
               </Text>
@@ -872,7 +985,7 @@ export function AuthScreen({ onNavigateToTerms, onNavigateToPrivacy, onNavigateT
         {/* Footer */}
         <View style={styles.authFooter}>
           <Text style={styles.footerText}>
-            🔒 Secure authentication • Two-factor authentication available
+            Secure authentication. New accounts verify by email first, and 2-step verification can be enabled after signup.
           </Text>
           <View style={styles.footerLinks}>
             <Text style={styles.link} onPress={onNavigateToTerms}>Terms</Text>
@@ -903,8 +1016,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 480,
     backgroundColor: '#ffffff',
-    borderRadius: 12,
+    borderRadius: 20,
     padding: 32,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -924,23 +1039,63 @@ const styles = StyleSheet.create({
   },
   authHeader: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  authEyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4F46E5',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 10,
   },
   authTitle: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: 30,
+    fontWeight: '800',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   authSubtitle: {
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
+    lineHeight: 24,
+  },
+  contextCard: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  contextCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 10,
+  },
+  contextRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  contextBullet: {
+    color: '#4F46E5',
+    fontSize: 18,
+    lineHeight: 20,
+    marginRight: 8,
+  },
+  contextText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#475569',
+    lineHeight: 20,
   },
   modeTabs: {
     flexDirection: 'row',
     backgroundColor: '#f3f4f6',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 4,
     marginBottom: 24,
   },
@@ -1024,9 +1179,9 @@ const styles = StyleSheet.create({
   },
   methodOption: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: '#e5e7eb',
     marginBottom: 12,
@@ -1042,6 +1197,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#d1d5db',
     marginRight: 12,
+    marginTop: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1066,6 +1222,7 @@ const styles = StyleSheet.create({
   methodDescription: {
     fontSize: 13,
     color: '#6b7280',
+    lineHeight: 19,
   },
   inputGroup: {
     marginBottom: 20,
@@ -1122,7 +1279,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
     marginBottom: 16,
     paddingHorizontal: 8,
   },
@@ -1145,9 +1302,10 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: '#64748B',
     textAlign: 'center',
     marginBottom: 12,
+    lineHeight: 18,
   },
   footerLinks: {
     flexDirection: 'row',
@@ -1188,7 +1346,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
     marginBottom: 32,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   resendButton: {
     borderWidth: 2,

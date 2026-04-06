@@ -11,11 +11,13 @@ describe('mileage helpers', () => {
   it('uses historical IRS rates by entry date', () => {
     expect(getMileageRateForDate('2024-06-01')).toBe(0.67);
     expect(getMileageRateForDate('2025-06-01')).toBe(0.7);
+    expect(getMileageRateForDate('2026-06-01')).toBe(0.725);
   });
 
   it('falls back to the latest configured rate for unsupported years', () => {
-    expect(getStandardMileageRate(2026)).toBe(0.7);
-    expect(getMileageRateForDate('2026-01-15')).toBe(0.7);
+    expect(getStandardMileageRate(2026)).toBe(0.725);
+    expect(getStandardMileageRate(2027)).toBe(0.725);
+    expect(getMileageRateForDate('2027-01-15')).toBe(0.725);
   });
 
   it('calculates mixed-year mileage deductions accurately', () => {

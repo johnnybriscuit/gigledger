@@ -4,6 +4,7 @@ export const STANDARD_MILEAGE_RATES = {
   2023: 0.655,
   2024: 0.67,
   2025: 0.70,
+  2026: 0.725,
 } as const;
 
 export const MAX_REASONABLE_MILES_PER_TRIP = 10000;

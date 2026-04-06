@@ -6,7 +6,7 @@
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { getPlanAndUsage, createGigLimitError } from '../lib/planLimits';
-import { trackGigCreated, trackGigUpdated } from '../lib/analytics';
+import { trackFirstGigCreated, trackGigCreated, trackGigUpdated } from '../lib/analytics';
 import { track } from '../lib/tracking';
 
 type GigInsert = Database['public']['Tables']['gigs']['Insert'];
@@ -217,6 +217,8 @@ export async function createGigWithLines({
     throw createGigLimitError(planCheck);
   }
 
+  const isFirstGig = planCheck.usage.gigCount === 0;
+
   // 1. Create the gig
   const { data: createdGig, error: gigError } = await (supabase
     .from('gigs')
@@ -317,6 +319,9 @@ export async function createGigWithLines({
       entity_id: gigId,
       source: 'gig_modal'
     });
+    if (isFirstGig) {
+      trackFirstGigCreated({ entity_id: gigId, source: 'gig_modal' });
+    }
 
     return createdGig;
   } catch (error) {

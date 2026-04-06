@@ -11,6 +11,7 @@ import { ExportsScreen } from './ExportsScreen';
 import { AccountScreen } from './AccountScreen';
 import { SubscriptionScreen } from './SubscriptionScreen';
 import { InvoicesScreen } from './InvoicesScreen';
+import { SecuritySettingsScreen } from './SecuritySettingsScreen';
 // ToursScreen removed - now accessed from within Gigs page
 import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
@@ -29,14 +30,16 @@ import { colors, spacing, typography, radius } from '../styles/theme';
 import { AppShell } from '../components/layout/AppShell';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { DashboardTour } from '../components/DashboardTour';
+import { isMFAEnabled } from '../lib/mfa';
 
 type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
 
 interface DashboardScreenProps {
   onNavigateToBusinessStructures?: () => void;
+  onNavigateToMFASetup?: () => void;
 }
 
-export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScreenProps = {}) {
+export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMFASetup }: DashboardScreenProps = {}) {
   const { isMobile, width } = useResponsive();
   const isDesktopWidth = Platform.OS === 'web' && width >= 768;
   
@@ -67,6 +70,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
   const [showOnboardingToast, setShowOnboardingToast] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [selectedPayerId, setSelectedPayerId] = useState<string | null>(null);
+  const [showSecuritySettings, setShowSecuritySettings] = useState(false);
+  const [mfaEnabled, setMfaEnabled] = useState(true);
   
   // Fetch payers for filter
   const { data: payers = [] } = usePayers();
@@ -147,6 +152,19 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       checkTourStatus();
     }
   }, []);
+
+  useEffect(() => {
+    const loadMfaStatus = async () => {
+      try {
+        const enabled = await isMFAEnabled();
+        setMfaEnabled(enabled);
+      } catch (error) {
+        console.error('Error loading MFA status:', error);
+      }
+    };
+
+    void loadMfaStatus();
+  }, [activeTab]);
 
   const handleTourComplete = async () => {
     setShowTour(false);
@@ -244,9 +262,18 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
       case 'subscription':
         return <SubscriptionScreen />;
       case 'account':
-        return <AccountScreen 
+        if (showSecuritySettings) {
+          return (
+            <SecuritySettingsScreen
+              onBack={() => setShowSecuritySettings(false)}
+              onNavigateToMFASetup={() => onNavigateToMFASetup?.()}
+            />
+          );
+        }
+        return <AccountScreen
           onNavigateToBusinessStructures={onNavigateToBusinessStructures}
           onNavigateToInvoices={() => setActiveTab('invoices')}
+          onNavigateToSecuritySettings={() => setShowSecuritySettings(true)}
         />;
       default:
         return (
@@ -386,15 +413,42 @@ export function DashboardScreen({ onNavigateToBusinessStructures }: DashboardScr
         </View>
       )}
 
+      {activeTab === 'dashboard' && !mfaEnabled && (
+        <View style={styles.bannerContainer}>
+          <View style={styles.securityBanner}>
+            <View style={styles.securityBannerText}>
+              <Text style={styles.securityBannerTitle}>Protect your account with 2-step verification.</Text>
+              <Text style={styles.securityBannerBody}>You can finish it in about 30 seconds from Security Settings.</Text>
+            </View>
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={() => onNavigateToMFASetup?.()}
+            >
+              Enable 2FA
+            </Button>
+          </View>
+        </View>
+      )}
+
       {renderContent()}
 
       <AddGigModal
         visible={showAddGigModal}
         onClose={() => setShowAddGigModal(false)}
+        onNavigateToExpenses={() => {
+          setShowAddGigModal(false);
+          setActiveTab('expenses');
+        }}
+        onNavigateToMileage={() => {
+          setShowAddGigModal(false);
+          setActiveTab('mileage');
+        }}
         onNavigateToSubscription={() => {
           setShowAddGigModal(false);
           setActiveTab('subscription');
         }}
+        source="dashboard"
       />
 
       <AddExpenseModal
@@ -454,6 +508,29 @@ const styles = StyleSheet.create({
   bannerContainer: {
     paddingHorizontal: parseInt(spacing[5]),
     paddingTop: parseInt(spacing[4]),
+  },
+  securityBanner: {
+    backgroundColor: colors.surface.DEFAULT,
+    borderRadius: radius.lg ? parseInt(radius.lg) : 16,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    padding: parseInt(spacing[4]),
+    flexDirection: 'row',
+    gap: parseInt(spacing[4]),
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  securityBannerText: {
+    flex: 1,
+    gap: parseInt(spacing[1]),
+  },
+  securityBannerTitle: {
+    color: colors.text.DEFAULT,
+    fontWeight: '600',
+  },
+  securityBannerBody: {
+    color: colors.text.muted,
+    fontSize: 14,
   },
   tab: {
     paddingVertical: parseInt(spacing[3]) + 2,

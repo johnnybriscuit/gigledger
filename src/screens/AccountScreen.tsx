@@ -40,9 +40,14 @@ const ALL_PAYMENT_METHODS: { key: string; label: string }[] = [
 interface AccountScreenProps {
   onNavigateToBusinessStructures?: () => void;
   onNavigateToInvoices?: () => void;
+  onNavigateToSecuritySettings?: () => void;
 }
 
-export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvoices }: AccountScreenProps = {}) {
+export function AccountScreen({
+  onNavigateToBusinessStructures,
+  onNavigateToInvoices,
+  onNavigateToSecuritySettings,
+}: AccountScreenProps = {}) {
   const queryClient = useQueryClient();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingTaxSettings, setIsEditingTaxSettings] = useState(false);
@@ -627,6 +632,21 @@ export function AccountScreen({ onNavigateToBusinessStructures, onNavigateToInvo
           >
             <View style={styles.navActionIcon}><RNText style={{ fontSize: 18 }}>🧾</RNText></View>
             <RNText style={styles.navActionLabel}>Go to Invoice Settings</RNText>
+            <RNText style={styles.navActionArrow}>›</RNText>
+          </TouchableOpacity>
+        </View>
+
+        <RNText style={styles.sectionLabel}>Security</RNText>
+        <View style={styles.settingsCard}>
+          <TouchableOpacity
+            style={styles.navActionRow}
+            onPress={() => onNavigateToSecuritySettings ? onNavigateToSecuritySettings() : Alert.alert('Navigation', 'Open Security Settings.')}
+          >
+            <View style={styles.navActionIcon}><RNText style={{ fontSize: 18 }}>🔐</RNText></View>
+            <View style={styles.fieldLeft}>
+              <RNText style={styles.navActionLabel}>Security Settings</RNText>
+              <RNText style={styles.fieldValue}>Manage 2-step verification, backup codes, and trusted devices</RNText>
+            </View>
             <RNText style={styles.navActionArrow}>›</RNText>
           </TouchableOpacity>
         </View>

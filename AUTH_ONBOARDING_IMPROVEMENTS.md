@@ -1,5 +1,18 @@
 # Authentication & Onboarding Improvements
 
+## Current Status (2026-04-06)
+
+This document is partially historical. The current shipped onboarding flow is now:
+
+1. Homepage drives users to explicit `/signup` and `/login` routes.
+2. Signup supports Google, password, and magic-link entry.
+3. Password signup requires email verification before app entry.
+4. First-time users can skip MFA during initial activation and enable it later from Security Settings.
+5. New users land on the dashboard instead of a hard-gated onboarding flow.
+6. The primary activation path is adding the first gig from the dashboard.
+
+Use this section as the source of truth for the current funnel. The implementation notes below describe earlier iterations and are kept for repo history.
+
 ## Summary
 Implemented a unified authentication screen, 3-step onboarding flow, and fixed multi-tenant data isolation bug.
 

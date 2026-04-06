@@ -2,35 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { colors, spacingNum, radiusNum } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
-
-interface StepCardProps {
-  step: string;
-  title: string;
-  description: string;
-  buttonText: string;
-  onClick: () => void;
-  primary?: boolean;
-}
-
-const StepCard: React.FC<StepCardProps> = ({ step, title, description, buttonText, onClick, primary = false }) => {
-  return (
-    <View style={styles.stepCard}>
-      <View style={styles.stepHeader}>
-        <View style={styles.stepBadge}>
-          <Text style={styles.stepBadgeText}>{step}</Text>
-        </View>
-        <Text style={styles.stepTitle}>{title}</Text>
-      </View>
-      <Text style={styles.stepDescription}>{description}</Text>
-      <TouchableOpacity
-        style={[styles.stepButton, primary && styles.stepButtonPrimary]}
-        onPress={onClick}
-      >
-        <Text style={[styles.stepButtonText, primary && styles.stepButtonTextPrimary]}>{buttonText}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
+import { trackDashboardPrimaryCtaClicked } from '../../lib/analytics';
 
 interface DashboardEmptyStateProps {
   onAddContact: () => void;
@@ -50,40 +22,47 @@ export const DashboardEmptyState: React.FC<DashboardEmptyStateProps> = ({
       <View style={styles.header}>
         <Text style={styles.welcomeTitle}>Welcome to Bozzy 👋</Text>
         <Text style={styles.welcomeSubtitle}>
-          Let’s log your first gig so your dashboard, tax estimates, and reports can start working for you.
+          Start with one gig. That unlocks your dashboard, tax set-aside guidance, and the rest of your bookkeeping flow.
         </Text>
       </View>
 
-      <View style={[styles.stepsContainer, isMobile && styles.stepsContainerMobile]}>
-        <StepCard
-          step="1"
-          title="Add a contact"
-          description="Create a payer (venue, client, or platform) so your gig has someone attached to it."
-          buttonText="Add Contact"
-          onClick={onAddContact}
-        />
-
-        <StepCard
-          step="2"
-          title="Log your first gig"
-          description="Add date + amount to create your first income record. You can fill in extras later."
-          buttonText="+ Add Gig"
-          onClick={onAddGig}
-          primary
-        />
-
-        <StepCard
-          step="3"
-          title="Review your gigs"
-          description="Open the Gigs tab anytime to edit details, mark gigs paid, and keep everything organized."
-          buttonText="Open Gigs"
-          onClick={onOpenGigs}
-        />
+      <View style={[styles.primaryCard, isMobile && styles.primaryCardMobile]}>
+        <Text style={styles.primaryTitle}>Log your first gig</Text>
+        <Text style={styles.primaryDescription}>
+          Add the payer, amount, and date first. If you do not have a payer yet, Bozzy will help you create one inside the same flow.
+        </Text>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => {
+            trackDashboardPrimaryCtaClicked({ cta: 'add_first_gig' });
+            onAddGig();
+          }}
+        >
+          <Text style={styles.primaryButtonText}>Add your first gig</Text>
+        </TouchableOpacity>
+        <Text style={styles.primaryHint}>Optional details like venue, mileage, and notes can wait.</Text>
       </View>
 
-      <Text style={styles.exploreMessage}>
-        Tip: Start simple with one gig — you can always add more detail later.
-      </Text>
+      <View style={[styles.secondaryActions, isMobile && styles.secondaryActionsMobile]}>
+        <TouchableOpacity
+          style={styles.secondaryLink}
+          onPress={() => {
+            trackDashboardPrimaryCtaClicked({ cta: 'add_contact' });
+            onAddContact();
+          }}
+        >
+          <Text style={styles.secondaryLinkText}>Add a contact first</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.secondaryLink}
+          onPress={() => {
+            trackDashboardPrimaryCtaClicked({ cta: 'open_gigs' });
+            onOpenGigs();
+          }}
+        >
+          <Text style={styles.secondaryLinkText}>Open the Gigs page</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -97,7 +76,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: spacingNum[8],
+    marginBottom: spacingNum[6],
     maxWidth: 760,
   },
   welcomeTitle: {
@@ -113,80 +92,72 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  stepsContainer: {
-    flexDirection: 'row',
-    gap: spacingNum[5],
-    marginBottom: spacingNum[8],
-    maxWidth: 1200,
+  primaryCard: {
     width: '100%',
-  },
-  stepsContainerMobile: {
-    flexDirection: 'column',
-  },
-  stepCard: {
-    flex: 1,
+    maxWidth: 680,
     backgroundColor: colors.surface.DEFAULT,
-    borderRadius: radiusNum.lg,
-    padding: spacingNum[6],
+    borderRadius: radiusNum.xl,
+    padding: spacingNum[7],
     borderWidth: 1,
     borderColor: colors.border.DEFAULT,
-    minHeight: 220,
-  },
-  stepHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacingNum[3],
-  },
-  stepBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.brand.muted,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacingNum[3],
-  },
-  stepBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.brand.hover,
-  },
-  stepTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.DEFAULT,
-  },
-  stepDescription: {
-    fontSize: 14,
-    color: colors.text.muted,
     marginBottom: spacingNum[5],
-    lineHeight: 20,
-    flex: 1,
   },
-  stepButton: {
-    borderWidth: 1,
-    borderColor: colors.border.DEFAULT,
-    paddingHorizontal: spacingNum[5],
-    paddingVertical: spacingNum[3],
-    borderRadius: radiusNum.md,
-    alignItems: 'center',
+  primaryCardMobile: {
+    padding: spacingNum[6],
   },
-  stepButtonPrimary: {
+  primaryTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text.DEFAULT,
+    marginBottom: spacingNum[3],
+    textAlign: 'center',
+  },
+  primaryDescription: {
+    fontSize: 15,
+    color: colors.text.muted,
+    lineHeight: 24,
+    textAlign: 'center',
+    marginBottom: spacingNum[5],
+  },
+  primaryButton: {
     backgroundColor: colors.brand.DEFAULT,
     borderColor: colors.brand.DEFAULT,
+    paddingHorizontal: spacingNum[6],
+    paddingVertical: spacingNum[4],
+    borderRadius: radiusNum.md,
+    alignItems: 'center',
+    minWidth: 240,
   },
-  stepButtonText: {
-    color: colors.text.DEFAULT,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  stepButtonTextPrimary: {
+  primaryButtonText: {
     color: colors.brand.foreground,
+    fontSize: 15,
+    fontWeight: '700',
   },
-  exploreMessage: {
+  primaryHint: {
     fontSize: 14,
     color: colors.text.subtle,
     textAlign: 'center',
-    fontStyle: 'italic',
+    marginTop: spacingNum[4],
+  },
+  secondaryActions: {
+    flexDirection: 'row',
+    gap: spacingNum[3],
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  secondaryActionsMobile: {
+    flexDirection: 'column',
+    width: '100%',
+  },
+  secondaryLink: {
+    paddingHorizontal: spacingNum[4],
+    paddingVertical: spacingNum[3],
+  },
+  secondaryLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.brand.DEFAULT,
   },
 });
