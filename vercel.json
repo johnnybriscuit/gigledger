@@ -12,6 +12,15 @@
   ],
   "headers": [
     {
+      "source": "/((?!api/|_expo/|assets/|templates/).*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {

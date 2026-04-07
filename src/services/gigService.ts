@@ -116,8 +116,8 @@ export async function updateGigWithLines({
   const { error: deleteMileageError } = await supabase
     .from('mileage')
     .delete()
-    .eq('gig_id', gigId)
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .or(`gig_id.eq.${gigId},linked_gig_id.eq.${gigId}`);
 
   if (deleteMileageError) {
     console.error('Failed to delete old mileage:', deleteMileageError);

@@ -128,7 +128,7 @@
     "vitest": "^2.1.8"
   },
   "engines": {
-    "node": "24.x"
+    "node": "22.x"
   },
   "private": true
 }

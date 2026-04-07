@@ -40,7 +40,6 @@ export function useInvoices() {
           sent_at,
           viewed_at,
           paid_at,
-          public_token,
           created_at,
           updated_at,
           line_items:invoice_line_items(id, description, quantity, rate, amount, sort_order),

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAutoCalculatedInlineMileage,
+  inferStoredMileageAutoCalculated,
+  inferStoredMileageRoundTrip,
   syncAutoCalculatedInlineMileageRoundTrip,
 } from '../inlineMileage';
 
@@ -60,5 +62,37 @@ describe('inline mileage helpers', () => {
     expect(roundTripMileage.note).toBe('Calculated via Google Maps (round trip)');
     expect(roundTripMileage.roundTrip).toBe(true);
     expect(roundTripMileage.oneWayMiles).toBe('21.500');
+  });
+
+  it('infers round-trip state from persisted notes when the DB flag is missing', () => {
+    expect(
+      inferStoredMileageRoundTrip({
+        is_round_trip: null,
+        notes: 'Calculated via Google Maps (round trip)',
+      })
+    ).toBe(true);
+
+    expect(
+      inferStoredMileageRoundTrip({
+        is_round_trip: null,
+        notes: 'Calculated via Google Maps',
+      })
+    ).toBe(false);
+  });
+
+  it('infers auto-calculated state from persisted notes when the DB flag is missing', () => {
+    expect(
+      inferStoredMileageAutoCalculated({
+        is_auto_calculated: null,
+        notes: 'Calculated via Mapbox (round trip)',
+      })
+    ).toBe(true);
+
+    expect(
+      inferStoredMileageAutoCalculated({
+        is_auto_calculated: null,
+        notes: 'Manual venue parking lot estimate',
+      })
+    ).toBe(false);
   });
 });

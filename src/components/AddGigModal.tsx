@@ -47,6 +47,8 @@ import { colors } from '../styles/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   calculateInlineMileage,
+  inferStoredMileageAutoCalculated,
+  inferStoredMileageRoundTrip,
   syncAutoCalculatedInlineMileageRoundTrip,
   type InlineMileage,
 } from './gigs/inlineMileage';
@@ -389,8 +391,8 @@ export function AddGigModal({
       return;
     }
 
-    const roundTrip = tripMileage.is_round_trip ?? true;
-    const autoCalculated = tripMileage.is_auto_calculated ?? false;
+    const roundTrip = inferStoredMileageRoundTrip(tripMileage);
+    const autoCalculated = inferStoredMileageAutoCalculated(tripMileage);
 
     setDidDriveToGig(true);
     setDriveRoundTrip(roundTrip);
@@ -407,6 +409,24 @@ export function AddGigModal({
         ? (roundTrip ? Number(tripMileage.miles) / 2 : Number(tripMileage.miles)).toFixed(3)
         : undefined,
     });
+  };
+
+  const loadLatestGigMileage = async (gigId: string) => {
+    const { data: mileage, error } = await supabase
+      .from('mileage')
+      .select('*')
+      .or(`gig_id.eq.${gigId},linked_gig_id.eq.${gigId}`)
+      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const tripMileage = mileage?.[0];
+    if (!error && tripMileage) {
+      applyLoadedMileage(tripMileage);
+      return;
+    }
+
+    applyLoadedMileage(null);
   };
 
   // Handle duplicating gig (separate from editing)
@@ -459,25 +479,8 @@ export function AddGigModal({
         }
       };
       
-      // Load gig-related mileage
-      const loadGigMileage = async () => {
-        const { data: mileage, error } = await supabase
-          .from('mileage')
-          .select('*')
-          .eq('gig_id', duplicatingGig.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        const tripMileage = mileage?.[0];
-        if (!error && tripMileage) {
-          applyLoadedMileage(tripMileage);
-        } else {
-          applyLoadedMileage(null);
-        }
-      };
-      
       loadGigExpenses();
-      loadGigMileage();
+      void loadLatestGigMileage(duplicatingGig.id);
       
       // Note: Subcontractor payments are NOT automatically loaded when duplicating
       // They must be explicitly copied via the copySubcontractorPayments toggle
@@ -533,23 +536,6 @@ export function AddGigModal({
         }
       };
       
-      // Load gig-related mileage
-      const loadGigMileage = async () => {
-        const { data: mileage, error } = await supabase
-          .from('mileage')
-          .select('*')
-          .eq('gig_id', editingGig.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        const tripMileage = mileage?.[0];
-        if (!error && tripMileage) {
-          applyLoadedMileage(tripMileage);
-        } else {
-          applyLoadedMileage(null);
-        }
-      };
-      
       // Load gig-related subcontractor payments
       const loadGigSubcontractorPayments = async () => {
         const { data: payments, error } = await supabase
@@ -571,7 +557,7 @@ export function AddGigModal({
       };
       
       loadGigExpenses();
-      loadGigMileage();
+      void loadLatestGigMileage(editingGig.id);
       loadGigSubcontractorPayments();
     } else if (!duplicatingGig) {
       resetForm();

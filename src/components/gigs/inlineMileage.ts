@@ -11,6 +11,12 @@ export interface InlineMileage {
   oneWayMiles?: string;
 }
 
+interface StoredMileageMetadata {
+  is_round_trip?: boolean | null;
+  is_auto_calculated?: boolean | null;
+  notes?: string | null;
+}
+
 interface BuildAutoCalculatedInlineMileageInput {
   oneWayMiles: number;
   provider: DistanceProvider;
@@ -92,4 +98,20 @@ export function syncAutoCalculatedInlineMileageRoundTrip(
     note: `${baseNote}${roundTrip ? ' (round trip)' : ''}`,
     oneWayMiles: oneWayMiles.toFixed(3),
   };
+}
+
+export function inferStoredMileageRoundTrip(mileage: StoredMileageMetadata): boolean {
+  if (typeof mileage.is_round_trip === 'boolean') {
+    return mileage.is_round_trip;
+  }
+
+  return /\(round trip\)/i.test(mileage.notes || '');
+}
+
+export function inferStoredMileageAutoCalculated(mileage: StoredMileageMetadata): boolean {
+  if (typeof mileage.is_auto_calculated === 'boolean') {
+    return mileage.is_auto_calculated;
+  }
+
+  return /^Calculated via /i.test(mileage.notes || '');
 }
