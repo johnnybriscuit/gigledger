@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Invoice, InvoiceSettings, formatCurrency } from '../types/invoice';
 import { buildInvoiceViewModel } from '../utils/invoiceViewModel';
 import { PaymentMethodDetail } from '../hooks/usePaymentMethodDetails';
+import { confirmDialog } from '../lib/dialog';
 
 interface InvoiceTemplateProps {
   invoice: Invoice;
@@ -14,10 +15,10 @@ interface InvoiceTemplateProps {
 export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDeletePayment }: InvoiceTemplateProps) {
   // Build view model with correct calculations
   const viewModel = useMemo(
-    () => buildInvoiceViewModel(invoice, paymentMethodDetails),
-    [invoice, paymentMethodDetails]
+    () => buildInvoiceViewModel(invoice, paymentMethodDetails, settings),
+    [invoice, paymentMethodDetails, settings]
   );
-  const handleDeletePayment = (paymentId: string, paymentAmount: number) => {
+  const handleDeletePayment = async (paymentId: string, paymentAmount: number) => {
     console.log('Delete payment clicked:', paymentId, paymentAmount);
     
     if (!onDeletePayment) {
@@ -25,8 +26,8 @@ export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDel
       return;
     }
 
-    // Use window.confirm for web compatibility
-    const confirmed = window.confirm(
+    const confirmed = await confirmDialog(
+      'Delete Payment',
       `Are you sure you want to delete this payment of ${formatCurrency(paymentAmount, invoice.currency)}? This will update the invoice status.`
     );
 
@@ -158,12 +159,12 @@ export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDel
           </View>
         )}
 
-        {viewModel.paymentMethods.length > 0 && (
+        {viewModel.paymentMethodDisplays.length > 0 && (
           <View style={styles.termsSection}>
             <Text style={styles.termsSectionLabel}>Payment Methods Accepted:</Text>
-            {viewModel.paymentMethods.map((pm, index) => (
+            {viewModel.paymentMethodDisplays.map((pm, index) => (
               <Text key={index} style={styles.termsSectionText}>
-                {pm.displayText}
+                {pm.label}: {pm.details}
               </Text>
             ))}
           </View>
@@ -196,7 +197,7 @@ export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDel
                   </Text>
                   {onDeletePayment && (
                     <TouchableOpacity
-                      onPress={() => handleDeletePayment(payment.id, payment.amount)}
+                      onPress={() => void handleDeletePayment(payment.id, payment.amount)}
                       style={styles.deletePaymentButton}
                     >
                       <Text style={styles.deletePaymentText}>✕ Undo</Text>

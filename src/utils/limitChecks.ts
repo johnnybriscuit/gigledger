@@ -9,6 +9,7 @@ import {
 export interface LimitCheckResult {
   allowed: boolean;
   message?: string;
+  incremented?: boolean;
 }
 
 interface SubscriptionSnapshot {
@@ -73,7 +74,7 @@ export async function checkAndIncrementLimit(
 
     const paidUser = await isPaidUser(userId, profile.plan);
     if (paidUser) {
-      return { allowed: true };
+      return { allowed: true, incremented: false };
     }
   
   const normalizedPlan = normalizePlan(profile.plan, profile.legacy_free_plan === true);
@@ -96,7 +97,7 @@ export async function checkAndIncrementLimit(
         };
       }
     }
-    return { allowed: true };
+    return { allowed: true, incremented: false };
   }
   
   const usedField = `${limitType}_used_this_month` as keyof typeof profile;
@@ -124,12 +125,12 @@ export async function checkAndIncrementLimit(
     return { allowed: false, message: 'Error updating usage counter' };
   }
   
-  return { allowed: true };
+  return { allowed: true, incremented: true };
   
   } catch (error) {
     console.error('Unexpected error in checkAndIncrementLimit:', error);
     // Allow action on unexpected errors (graceful degradation)
-    return { allowed: true };
+    return { allowed: true, incremented: false };
   }
 }
 
@@ -150,7 +151,7 @@ export async function checkLimit(
 
   const paidUser = await isPaidUser(userId, profile.plan);
   if (paidUser) {
-    return { allowed: true };
+    return { allowed: true, incremented: false };
   }
   
   const normalizedPlan = normalizePlan(profile.plan, profile.legacy_free_plan === true);
@@ -191,7 +192,7 @@ export async function checkLimit(
     };
   }
   
-  return { allowed: true };
+  return { allowed: true, incremented: false };
 }
 
 function getNextResetDate(): Date {

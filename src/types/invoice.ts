@@ -163,6 +163,7 @@ export interface InvoiceFormData {
   client_address?: string;
   invoice_date: string;
   due_date: string;
+  currency?: string;
   payment_terms?: string;
   notes?: string;
   private_notes?: string;
@@ -290,12 +291,27 @@ export function formatCurrency(amount: number | null | undefined, currency: stri
 }
 
 export function calculateDueDate(invoiceDate: string, paymentTerms: string): string {
-  const date = new Date(invoiceDate);
+  const date = parseDateOnly(invoiceDate);
   const preset = PAYMENT_TERM_PRESETS.find(p => p.value === paymentTerms);
   
   if (preset && preset.days !== null) {
     date.setDate(date.getDate() + preset.days);
   }
   
-  return date.toISOString().split('T')[0];
+  return formatDateOnly(date);
+}
+
+function parseDateOnly(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  if (!year || !month || !day) {
+    return new Date(dateString);
+  }
+  return new Date(year, month - 1, day);
+}
+
+function formatDateOnly(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

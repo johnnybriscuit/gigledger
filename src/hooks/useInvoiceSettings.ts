@@ -89,21 +89,39 @@ export function useInvoiceSettings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      if (!settings) {
-        throw new Error('Invoice settings not initialized');
+      const maxRetries = 5;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const { data: latestSettings, error: settingsError } = await supabase
+          .from('invoice_settings')
+          .select('invoice_prefix, next_invoice_number')
+          .eq('user_id', user.id)
+          .single();
+
+        if (settingsError || !latestSettings) {
+          throw settingsError ?? new Error('Invoice settings not initialized');
+        }
+
+        const nextNumber = latestSettings.next_invoice_number;
+        const invoiceNumber = `${latestSettings.invoice_prefix}${new Date().getFullYear()}-${String(nextNumber).padStart(3, '0')}`;
+
+        const { data: updatedRows, error: updateError } = await supabase
+          .from('invoice_settings')
+          .update({ next_invoice_number: nextNumber + 1 })
+          .eq('user_id', user.id)
+          .eq('next_invoice_number', nextNumber)
+          .select('next_invoice_number');
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        if (updatedRows && updatedRows.length > 0) {
+          await fetchSettings();
+          return invoiceNumber;
+        }
       }
 
-      const invoiceNumber = `${settings.invoice_prefix}${new Date().getFullYear()}-${String(settings.next_invoice_number).padStart(3, '0')}`;
-
-      await supabase
-        .from('invoice_settings')
-        .update({ next_invoice_number: settings.next_invoice_number + 1 })
-        .eq('user_id', user.id);
-
-      // Invalidate query to refetch settings
-      await fetchSettings();
-
-      return invoiceNumber;
+      throw new Error('Could not reserve invoice number. Please try again.');
     } catch (err) {
       console.error('Error getting next invoice number:', err);
       throw err;

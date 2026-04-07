@@ -39,7 +39,7 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
   const isEmpty = invoices.length === 0;
 
   const filteredInvoices = useMemo(() => {
-    let filtered = invoices;
+    let filtered = [...invoices];
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter(inv => inv.status === statusFilter);
@@ -50,7 +50,8 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
       filtered = filtered.filter(inv =>
         inv.invoice_number.toLowerCase().includes(query) ||
         inv.client_name.toLowerCase().includes(query) ||
-        inv.client_company?.toLowerCase().includes(query)
+        inv.client_company?.toLowerCase().includes(query) ||
+        false
       );
     }
 
@@ -92,10 +93,10 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
     const unpaidInvoices = invoices.filter(inv => 
       inv.status !== 'paid' && inv.status !== 'cancelled'
     );
-    const totalOutstanding = unpaidInvoices.reduce((sum, inv) => sum + (inv.balance_due || inv.total_amount), 0);
+    const totalOutstanding = unpaidInvoices.reduce((sum, inv) => sum + (inv.balance_due ?? inv.total_amount), 0);
     
     const overdueInvoices = invoices.filter(inv => inv.status === 'overdue');
-    const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + (inv.balance_due || inv.total_amount), 0);
+    const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + (inv.balance_due ?? inv.total_amount), 0);
 
     const thisMonth = new Date();
     thisMonth.setDate(1);

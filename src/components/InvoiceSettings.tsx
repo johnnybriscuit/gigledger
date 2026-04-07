@@ -5,6 +5,7 @@ import { PaymentMethodDetail, PAYMENT_METHODS, COLOR_SCHEMES, FONT_STYLES, LAYOU
 import { PaymentMethodsConfig } from '../types/paymentMethods';
 import { PaymentMethodsEditor } from './PaymentMethodsEditor';
 import { getPaymentMethodsConfig, validatePaymentMethodsConfig } from '../utils/paymentMethodsMigration';
+import { showAlert } from '../lib/dialog';
 
 interface InvoiceSettingsProps {
   onSuccess?: () => void;
@@ -58,14 +59,14 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
 
   const handleSave = async () => {
     if (!formData.business_name || !formData.email) {
-      window.alert('Error\n\nBusiness name and email are required');
+      showAlert('Error', 'Business name and email are required');
       return;
     }
 
     // Validate payment methods
     const paymentErrors = validatePaymentMethodsConfig(paymentMethodsConfig);
     if (paymentErrors.length > 0) {
-      window.alert(`Error\n\nPlease fix payment method errors:\n${paymentErrors.map(e => `- ${e.message}`).join('\n')}`);
+      showAlert('Error', `Please fix payment method errors:\n${paymentErrors.map(e => `- ${e.message}`).join('\n')}`);
       return;
     }
 
@@ -80,10 +81,10 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
 
       if (settings) {
         await updateSettings(settingsData);
-        window.alert('Success\n\nInvoice settings updated successfully');
+        showAlert('Success', 'Invoice settings updated successfully');
       } else {
         await createSettings(settingsData);
-        window.alert('Success\n\nInvoice settings created successfully');
+        showAlert('Success', 'Invoice settings created successfully');
       }
       
       // Navigate back to invoices list after successful save
@@ -91,7 +92,7 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
         onSuccess();
       }
     } catch (error) {
-      window.alert('Error\n\nFailed to save invoice settings');
+      showAlert('Error', 'Failed to save invoice settings');
       console.error(error);
     } finally {
       setSaving(false);

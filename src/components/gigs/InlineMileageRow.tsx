@@ -1,143 +1,72 @@
 /**
- * Inline mileage row for Add Gig modal
- * Shows mileage input with IRS rate deduction preview
- * Supports automatic calculation from home address to venue
+ * Detailed mileage editor for the Add Gig modal.
+ * The parent modal owns the top-level drive question and auto-calc flow.
  */
 
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { IRS_MILEAGE_RATE, calculateMileageDeduction } from '../../hooks/useTaxEstimate';
-import { drivingMiles, formatProvider, type LatLng } from '../../lib/geo';
-
-export interface InlineMileage {
-  miles: string;
-  note?: string;
-  venueAddress?: string;
-  startLocation?: string;
-  endLocation?: string;
-  roundTrip?: boolean;
-  isAutoCalculated?: boolean;
-  oneWayMiles?: string;
-}
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import {
+  calculateMileageDeduction,
+  getMileageRateForDate,
+  getMileageRateYearForDate,
+} from '../../lib/mileage';
+import { colors } from '../../styles/theme';
+import type { InlineMileage } from './inlineMileage';
 
 interface InlineMileageRowProps {
   mileage: InlineMileage | null;
   onChange: (mileage: InlineMileage | null) => void;
-  homeAddress?: {
-    full: string | null;
-    lat: number | null;
-    lng: number | null;
-  } | null;
-  venueLocation?: LatLng | null; // Venue lat/lng from autocomplete
-  venueAddress?: string | null;
+  date?: string | Date | null;
 }
 
-function hasCoordinates(location: LatLng | null | undefined): location is LatLng {
-  return typeof location?.lat === 'number' && typeof location?.lng === 'number';
+function formatMileageRate(rate: number): string {
+  return Number.isInteger(rate * 100) ? rate.toFixed(2) : rate.toFixed(3);
 }
 
-export function InlineMileageRow({ mileage, onChange, homeAddress, venueLocation, venueAddress }: InlineMileageRowProps) {
-  const [calculating, setCalculating] = React.useState(false);
-  
+export function InlineMileageRow({ mileage, onChange, date }: InlineMileageRowProps) {
   const miles = parseFloat(mileage?.miles || '0');
-  const deduction = calculateMileageDeduction(miles);
-  const roundTrip = mileage?.roundTrip ?? true;
-  const homeCoordinates = (
-    typeof homeAddress?.lat === 'number' && typeof homeAddress?.lng === 'number'
-      ? { lat: homeAddress.lat, lng: homeAddress.lng }
-      : null
-  );
-  const canAutoCalculate = Boolean(
-    hasCoordinates(homeCoordinates) &&
-      hasCoordinates(venueLocation) &&
-      homeAddress?.full &&
-      venueAddress
-  );
-
-  const handleAutoCalculate = async () => {
-    if (!homeCoordinates || !hasCoordinates(venueLocation) || !homeAddress?.full || !venueAddress) {
-      return;
-    }
-    
-    setCalculating(true);
-    try {
-      const result = await drivingMiles(
-        homeCoordinates,
-        { lat: venueLocation.lat, lng: venueLocation.lng }
-      );
-
-      onChange({
-        miles: (roundTrip ? result.miles * 2 : result.miles).toFixed(1),
-        note: `Calculated via ${formatProvider(result.provider)}${roundTrip ? ' (round trip)' : ''}`,
-        startLocation: homeAddress.full,
-        endLocation: venueAddress,
-        venueAddress,
-        roundTrip,
-        isAutoCalculated: true,
-        oneWayMiles: result.miles.toFixed(3),
-      });
-    } catch (error: any) {
-      console.error('Error calculating mileage:', error);
-      alert('Failed to calculate mileage. Please enter manually.');
-    } finally {
-      setCalculating(false);
-    }
-  };
+  const deduction = calculateMileageDeduction(miles, date);
+  const mileageRate = getMileageRateForDate(date);
+  const mileageYear = getMileageRateYearForDate(date);
 
   const handleMilesChange = (text: string) => {
     const parsedMiles = parseFloat(text);
+
     if (!text || Number.isNaN(parsedMiles) || parsedMiles <= 0) {
       onChange(null);
-    } else {
-      onChange({
-        miles: text,
-        note: mileage?.note || '',
-        startLocation: mileage?.startLocation,
-        endLocation: mileage?.endLocation,
-        venueAddress: mileage?.venueAddress,
-        roundTrip: mileage?.roundTrip ?? true,
-        isAutoCalculated: false,
-        oneWayMiles: undefined,
-      });
+      return;
     }
+
+    onChange({
+      miles: text,
+      note: mileage?.note || '',
+      startLocation: mileage?.startLocation,
+      endLocation: mileage?.endLocation,
+      venueAddress: mileage?.venueAddress,
+      roundTrip: mileage?.roundTrip ?? true,
+      isAutoCalculated: false,
+      oneWayMiles: undefined,
+    });
   };
 
   const handleNoteChange = (text: string) => {
-    if (mileage) {
-      onChange({
-        ...mileage,
-        note: text,
-      });
-    }
-  };
-
-  const toggleRoundTrip = () => {
-    if (mileage?.isAutoCalculated) {
-      const oneWayMiles = parseFloat(mileage.oneWayMiles || mileage.miles || '0');
-      if (!Number.isNaN(oneWayMiles) && oneWayMiles > 0) {
-        const baseNote = mileage.note?.replace(' (round trip)', '') || 'Calculated mileage';
-        onChange({
-          ...mileage,
-          miles: (!roundTrip ? oneWayMiles * 2 : oneWayMiles).toFixed(1),
-          roundTrip: !roundTrip,
-          note: `${baseNote}${!roundTrip ? ' (round trip)' : ''}`,
-        });
-        return;
-      }
+    if (!mileage) {
+      return;
     }
 
-    if (mileage) {
-      onChange({
-        ...mileage,
-        roundTrip: !roundTrip,
-      });
-    }
+    onChange({
+      ...mileage,
+      note: text,
+    });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mileage</Text>
+        <View>
+          <Text style={styles.title}>Mileage Details</Text>
+          <Text style={styles.subtitle}>Manual override and notes for this gig trip</Text>
+        </View>
         {miles > 0 && (
           <Text style={styles.deduction}>
             -${deduction.toFixed(2)} deduction
@@ -145,73 +74,44 @@ export function InlineMileageRow({ mileage, onChange, homeAddress, venueLocation
         )}
       </View>
 
-      {/* Auto Calculate Button */}
-      {canAutoCalculate && (
-        <View>
-          <TouchableOpacity
-            style={styles.autoButton}
-            onPress={handleAutoCalculate}
-            disabled={calculating}
-          >
-            {calculating ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.autoButtonText}>
-                📍 Auto-Calculate {roundTrip ? 'Round Trip' : 'One Way'}
-              </Text>
-            )}
-          </TouchableOpacity>
-          
-          {/* Round Trip Toggle Below Button */}
-          <TouchableOpacity
-            style={styles.roundTripToggleRow}
-            onPress={toggleRoundTrip}
-          >
-            <View style={[styles.checkbox, roundTrip && styles.checkboxChecked]}>
-              {roundTrip && <Text style={styles.checkmark}>✓</Text>}
-            </View>
-            <Text style={styles.roundTripText}>Round trip (default)</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {!canAutoCalculate && homeAddress?.full && !venueAddress && (
-        <Text style={styles.hint}>Add venue location to auto-calculate mileage</Text>
-      )}
-
-      {!homeAddress?.full && (
-        <Text style={styles.hint}>Add home address in Account settings to enable auto-calculate</Text>
-      )}
-      
-      {homeAddress?.full &&
-        (typeof homeAddress.lat !== 'number' || typeof homeAddress.lng !== 'number') && (
-        <Text style={styles.hint}>Home address missing coordinates. Please re-select in Account settings.</Text>
+      {mileage?.isAutoCalculated && (
+        <Text style={styles.autoCalculatedHint}>
+          Auto-calculated. Editing miles below will switch this trip to manual mileage.
+        </Text>
       )}
 
       <View style={styles.inputRow}>
-        <TextInput
-          style={[styles.input, styles.milesInput]}
-          value={mileage?.miles || ''}
-          onChangeText={handleMilesChange}
-          placeholder="0"
-          placeholderTextColor="#9ca3af"
-          keyboardType="decimal-pad"
-        />
-        <Text style={styles.milesLabel}>miles</Text>
-        <TextInput
-          style={[styles.input, styles.noteInput]}
-          value={mileage?.note || ''}
-          onChangeText={handleNoteChange}
-          placeholder="Note (optional)"
-          placeholderTextColor="#9ca3af"
-        />
+        <View style={styles.milesGroup}>
+          <Text style={styles.fieldLabel}>Miles</Text>
+          <View style={styles.milesInputRow}>
+            <TextInput
+              style={[styles.input, styles.milesInput]}
+              value={mileage?.miles || ''}
+              onChangeText={handleMilesChange}
+              placeholder="0.0"
+              placeholderTextColor={colors.text.subtle}
+              keyboardType="decimal-pad"
+            />
+            <Text style={styles.milesLabel}>miles</Text>
+          </View>
+        </View>
+
+        <View style={styles.noteGroup}>
+          <Text style={styles.fieldLabel}>Note</Text>
+          <TextInput
+            style={[styles.input, styles.noteInput, !mileage && styles.inputDisabled]}
+            value={mileage?.note || ''}
+            onChangeText={handleNoteChange}
+            placeholder={mileage ? 'Note (optional)' : 'Add miles first'}
+            placeholderTextColor={colors.text.subtle}
+            editable={Boolean(mileage)}
+          />
+        </View>
       </View>
 
-      {miles > 0 && (
-        <Text style={styles.rateInfo}>
-          @ ${IRS_MILEAGE_RATE.toFixed(2)}/mile (IRS 2025 rate)
-        </Text>
-      )}
+      <Text style={styles.rateInfo}>
+        @ ${formatMileageRate(mileageRate)}/mile (IRS {mileageYear} rate)
+      </Text>
     </View>
   );
 }
@@ -223,100 +123,78 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 12,
     marginBottom: 8,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text.DEFAULT,
+  },
+  subtitle: {
+    fontSize: 12,
+    color: colors.text.muted,
+    marginTop: 2,
   },
   deduction: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10b981',
+    color: colors.success.DEFAULT,
   },
-  autoButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  autoButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  roundTripToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-    paddingLeft: 4,
-  },
-  roundTripToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxChecked: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
-  checkmark: {
-    color: '#fff',
+  autoCalculatedHint: {
     fontSize: 12,
-    fontWeight: '700',
-  },
-  roundTripText: {
-    fontSize: 13,
-    color: '#374151',
-  },
-  hint: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-    marginBottom: 8,
+    color: colors.brand.DEFAULT,
+    marginBottom: 10,
   },
   inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  milesGroup: {
+    width: 120,
+  },
+  noteGroup: {
+    flex: 1,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    color: colors.text.muted,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  milesInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 6,
-    padding: 10,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     fontSize: 14,
-    color: '#111827',
+    color: colors.text.DEFAULT,
+  },
+  inputDisabled: {
+    opacity: 0.65,
   },
   milesInput: {
-    width: 80,
-  },
-  milesLabel: {
-    fontSize: 14,
-    color: '#6b7280',
+    width: 82,
   },
   noteInput: {
-    flex: 1,
+    width: '100%',
+  },
+  milesLabel: {
+    fontSize: 13,
+    color: colors.text.muted,
   },
   rateInfo: {
     fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
+    color: colors.text.muted,
+    marginTop: 8,
   },
 });

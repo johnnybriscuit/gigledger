@@ -15,6 +15,35 @@ serve(async (req) => {
   try {
     const { invoiceId, recipientEmail, message } = await req.json()
 
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
+
+    // Validate caller identity with anon client
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
+    )
+
+    const { data: { user: authUser }, error: authError } = await authClient.auth.getUser()
+    if (authError || !authUser) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
+
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -30,6 +59,13 @@ serve(async (req) => {
 
     if (invoiceError || !invoice) {
       throw new Error('Invoice not found')
+    }
+
+    if (invoice.user_id !== authUser.id) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      )
     }
 
     // Fetch invoice settings
@@ -106,8 +142,9 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
   }
@@ -119,6 +156,23 @@ function formatPaymentMethodsForEmail(config: any, invoiceNumber: string): strin
     return '';
   }
 
+  const esc = (text: unknown) =>
+    String(text ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+
+  const safeUrl = (raw: unknown) => {
+    const value = String(raw ?? '').trim();
+    if (!value) return '#';
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return esc(value);
+    }
+    return '#';
+  }
+
   const displays: string[] = [];
   const defaultNote = `Invoice #${invoiceNumber}`;
 
@@ -127,49 +181,50 @@ function formatPaymentMethodsForEmail(config: any, invoiceNumber: string): strin
 
     switch (method.type) {
       case 'cash':
-        displays.push(`<strong>Cash:</strong> ${method.instructions || 'Cash accepted in person.'}`);
+        displays.push(`<strong>Cash:</strong> ${esc(method.instructions || 'Cash accepted in person.')}`);
         break;
       case 'check':
-        const checkParts = [`Check payable to: ${method.payableTo}`];
-        if (method.memo) checkParts.push(`Memo: ${method.memo}`);
-        else if (invoiceNumber) checkParts.push(`Memo: ${invoiceNumber}`);
-        if (method.mailingAddress) checkParts.push(`Mail to: ${method.mailingAddress}`);
+        const checkParts = [`Check payable to: ${esc(method.payableTo)}`];
+        if (method.memo) checkParts.push(`Memo: ${esc(method.memo)}`);
+        else if (invoiceNumber) checkParts.push(`Memo: ${esc(invoiceNumber)}`);
+        if (method.mailingAddress) checkParts.push(`Mail to: ${esc(method.mailingAddress)}`);
         displays.push(`<strong>Check:</strong> ${checkParts.join(' • ')}`);
         break;
       case 'venmo':
-        displays.push(`<strong>Venmo:</strong> ${method.handle} • Note: ${method.note || defaultNote}`);
+        displays.push(`<strong>Venmo:</strong> ${esc(method.handle)} • Note: ${esc(method.note || defaultNote)}`);
         break;
       case 'zelle':
-        displays.push(`<strong>Zelle:</strong> ${method.contact} • Note: ${method.note || defaultNote}`);
+        displays.push(`<strong>Zelle:</strong> ${esc(method.contact)} • Note: ${esc(method.note || defaultNote)}`);
         break;
       case 'paypal':
-        displays.push(`<strong>PayPal:</strong> ${method.contact} • Note: ${method.note || defaultNote}`);
+        displays.push(`<strong>PayPal:</strong> ${esc(method.contact)} • Note: ${esc(method.note || defaultNote)}`);
         break;
       case 'cashapp':
-        displays.push(`<strong>Cash App:</strong> ${method.cashtag} • Note: ${method.note || defaultNote}`);
+        displays.push(`<strong>Cash App:</strong> ${esc(method.cashtag)} • Note: ${esc(method.note || defaultNote)}`);
         break;
       case 'wire':
         if (method.includeBankDetailsOnInvoice && (method.accountHolder || method.bankName)) {
           const wireParts = [];
-          if (method.accountHolder) wireParts.push(`Account Holder: ${method.accountHolder}`);
-          if (method.bankName) wireParts.push(`Bank: ${method.bankName}`);
-          if (method.routingNumber) wireParts.push(`Routing: ${method.routingNumber}`);
+          if (method.accountHolder) wireParts.push(`Account Holder: ${esc(method.accountHolder)}`);
+          if (method.bankName) wireParts.push(`Bank: ${esc(method.bankName)}`);
+          if (method.routingNumber) wireParts.push(`Routing: ${esc(method.routingNumber)}`);
           if (method.accountNumber) {
             const masked = method.accountNumber.length > 4 ? '****' + method.accountNumber.slice(-4) : method.accountNumber;
-            wireParts.push(`Account: ${masked}`);
+            wireParts.push(`Account: ${esc(masked)}`);
           }
-          if (method.swift) wireParts.push(`SWIFT: ${method.swift}`);
-          if (method.reference) wireParts.push(`Reference: ${method.reference}`);
-          else if (invoiceNumber) wireParts.push(`Reference: ${invoiceNumber}`);
+          if (method.swift) wireParts.push(`SWIFT: ${esc(method.swift)}`);
+          if (method.reference) wireParts.push(`Reference: ${esc(method.reference)}`);
+          else if (invoiceNumber) wireParts.push(`Reference: ${esc(invoiceNumber)}`);
           displays.push(`<strong>Wire Transfer:</strong> ${wireParts.join(' • ')}`);
         } else {
-          displays.push(`<strong>Wire Transfer:</strong> ${method.instructions || 'Contact support@bozzygigs.com for wire instructions.'}`);
+          displays.push(`<strong>Wire Transfer:</strong> ${esc(method.instructions || 'Contact support@bozzygigs.com for wire instructions.')}`);
         }
         break;
       case 'card':
-        const cardParts = [`Pay here: <a href="${method.paymentUrl}">${method.paymentUrl}</a>`];
-        if (method.acceptedCards) cardParts.push(`Accepted: ${method.acceptedCards}`);
-        if (method.note) cardParts.push(method.note);
+        const paymentUrl = safeUrl(method.paymentUrl);
+        const cardParts = [`Pay here: <a href="${paymentUrl}">${paymentUrl}</a>`];
+        if (method.acceptedCards) cardParts.push(`Accepted: ${esc(method.acceptedCards)}`);
+        if (method.note) cardParts.push(esc(method.note));
         displays.push(`<strong>Credit/Debit Card:</strong> ${cardParts.join(' • ')}`);
         break;
     }
@@ -179,6 +234,14 @@ function formatPaymentMethodsForEmail(config: any, invoiceNumber: string): strin
 }
 
 function generateInvoiceHTML(invoice: any, settings: any, customMessage: string): string {
+  const escapeHtml = (text: string) =>
+    text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -224,13 +287,13 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
     </head>
     <body>
       <div class="header">
-        <div class="company-name">${settings.business_name}</div>
-        ${settings.email ? `<div>${settings.email}</div>` : ''}
-        ${settings.phone ? `<div>${settings.phone}</div>` : ''}
+        <div class="company-name">${escapeHtml(settings.business_name || '')}</div>
+        ${settings.email ? `<div>${escapeHtml(settings.email)}</div>` : ''}
+        ${settings.phone ? `<div>${escapeHtml(settings.phone)}</div>` : ''}
       </div>
 
       <div class="message">
-        ${customMessage.split('\n').map(line => `<p>${line}</p>`).join('')}
+        ${String(customMessage || '').split('\n').map(line => `<p>${escapeHtml(line)}</p>`).join('')}
       </div>
 
       <div class="invoice-details">
@@ -246,9 +309,9 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
         <div class="detail-row">
           <span class="label">Bill To:</span>
           <div>
-            <div><strong>${invoice.client_name}</strong></div>
-            ${invoice.client_company ? `<div>${invoice.client_company}</div>` : ''}
-            ${invoice.client_email ? `<div>${invoice.client_email}</div>` : ''}
+            <div><strong>${escapeHtml(invoice.client_name || '')}</strong></div>
+            ${invoice.client_company ? `<div>${escapeHtml(invoice.client_company)}</div>` : ''}
+            ${invoice.client_email ? `<div>${escapeHtml(invoice.client_email)}</div>` : ''}
           </div>
         </div>
       </div>
@@ -266,7 +329,7 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
           <tbody>
             ${invoice.invoice_line_items?.map((item: any) => `
               <tr>
-                <td>${item.description}</td>
+                <td>${escapeHtml(String(item.description || ''))}</td>
                 <td style="text-align: right;">${item.quantity}</td>
                 <td style="text-align: right;">${formatCurrency(item.rate)}</td>
                 <td style="text-align: right;">${formatCurrency(item.quantity * item.rate)}</td>
@@ -315,7 +378,7 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
       ${invoice.notes ? `
         <div style="margin-top: 30px; padding: 15px; background: #f9fafb; border-radius: 6px;">
           <strong>Notes:</strong>
-          <p>${invoice.notes}</p>
+          <p>${escapeHtml(String(invoice.notes))}</p>
         </div>
       ` : ''}
 

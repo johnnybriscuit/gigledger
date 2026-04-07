@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { InvoiceList } from '../components/InvoiceList';
 import { InvoiceForm } from '../components/InvoiceForm';
 import { InvoiceTemplate } from '../components/InvoiceTemplate';
@@ -12,13 +12,13 @@ import { UsageLimitBanner } from '../components/UsageLimitBanner';
 import { useInvoicesDataAggregated } from '../hooks/useInvoicesDataAggregated';
 import { useInvoices } from '../hooks/useInvoices';
 import { useEntitlements } from '../hooks/useEntitlements';
-import { useCurrentUser } from '../hooks/useCurrentUser';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
-import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
+import { getDateRangeConfig } from '../lib/dateRangeUtils';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { confirmDialog, showAlert } from '../lib/dialog';
+import { parseStoredDate } from '../lib/date';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
@@ -29,7 +29,7 @@ interface InvoicesScreenProps {
 
 export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }: InvoicesScreenProps = {}) {
   // Use aggregated hook to fetch all data in parallel
-  const { data: aggregatedData, isLoading: aggregatedLoading } = useInvoicesDataAggregated();
+  const { data: aggregatedData, isLoading: aggregatedLoading, error: aggregatedError } = useInvoicesDataAggregated();
   
   // Extract data from aggregated response
   const settings = aggregatedData?.settings;
@@ -40,7 +40,14 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
   
   // Still need useInvoices for mutations (updateInvoiceStatus, deleteInvoice, deletePayment)
-  const { invoices: allInvoices, loading: invoicesLoading, updateInvoiceStatus, deleteInvoice, deletePayment } = useInvoices();
+  const {
+    invoices: allInvoices,
+    loading: invoicesLoading,
+    error: invoicesError,
+    deleteInvoice,
+    deletePayment,
+    refetch: refetchInvoices,
+  } = useInvoices();
 
   // Client-side date filtering — useInvoices fetches all, we filter here
   const invoices = dateRange
@@ -49,7 +56,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
         // Filter invoices by invoice_date field
         return allInvoices.filter(invoice => {
           if (!invoice.invoice_date) return false;
-          const invoiceDate = new Date(invoice.invoice_date);
+          const invoiceDate = parseStoredDate(invoice.invoice_date);
           return invoiceDate >= startDate && invoiceDate <= endDate;
         });
       })()
@@ -66,9 +73,6 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [paywallReason, setPaywallReason] = useState<'invoice_limit' | 'export_limit'>('invoice_limit');
-
-  // Get user from shared cache
-  const { data: user } = useCurrentUser();
 
   const handleSelectInvoice = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
@@ -161,6 +165,11 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   };
 
   const handleDownload = () => {
+    if (Platform.OS !== 'web') {
+      showAlert('Web only', 'Downloading invoice files is currently available on web.');
+      return;
+    }
+
     if (!entitlements.can.exportData) {
       setPaywallReason('export_limit');
       setShowPaywallModal(true);
@@ -172,6 +181,11 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   };
 
   const handlePrint = () => {
+    if (Platform.OS !== 'web') {
+      showAlert('Web only', 'Printing invoices is currently available on web.');
+      return;
+    }
+
     if (selectedInvoice && settings) {
       printInvoice(selectedInvoice, settings, paymentMethods);
     }
@@ -181,9 +195,13 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     setShowPaymentModal(true);
   };
 
-  const handleEmailSuccess = () => {
+  const handleEmailSuccess = async () => {
+    const sentAt = new Date().toISOString();
+    setSelectedInvoice((prev) => prev ? { ...prev, status: 'sent', sent_at: prev.sent_at ?? sentAt } : prev);
+
+    await refetchInvoices();
     setShowEmailModal(false);
-    Alert.alert('Success', 'Invoice sent successfully');
+    showAlert('Success', 'Invoice sent successfully');
   };
 
   const handleRepeat = () => {
@@ -207,6 +225,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   };
 
   const handlePaymentSuccess = () => {
+    void refetchInvoices();
     setShowPaymentModal(false);
     setViewMode('list');
     setSelectedInvoice(null);
@@ -228,6 +247,19 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     return (
       <View style={styles.container}>
         <Text>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (aggregatedError || invoicesError) {
+    const message = (aggregatedError as Error | undefined)?.message
+      ?? (invoicesError as Error | undefined)?.message
+      ?? 'Failed to load invoices';
+
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorTitle}>Error loading invoices</Text>
+        <Text style={styles.errorMessage}>{message}</Text>
       </View>
     );
   }
@@ -501,6 +533,13 @@ const styles = StyleSheet.create({
   bannerContainer: {
     paddingHorizontal: 10,
     paddingTop: 16,
+  },
+  errorTitle: {
+    margin: 16,
+    fontWeight: '600',
+  },
+  errorMessage: {
+    marginHorizontal: 16,
   },
   actionBar: {
     flexDirection: 'row',

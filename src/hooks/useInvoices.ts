@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Invoice, InvoiceFormData, InvoiceLineItem, InvoiceStatus } from '../types/invoice';
-import { getCachedUserId } from '../lib/sharedAuth';
 import { useUserId } from './useCurrentUser';
 
 export function useInvoices() {
@@ -26,17 +25,25 @@ export function useInvoices() {
           invoice_date,
           due_date,
           status,
+          subtotal,
           total_amount,
+          tax_amount,
           tax_rate,
           discount_amount,
+          currency,
           notes,
           private_notes,
           payment_terms,
           accepted_payment_methods,
+          payment_methods_config,
+          sent_at,
+          viewed_at,
+          paid_at,
+          public_token,
           created_at,
           updated_at,
-          line_items:invoice_line_items(id, description, quantity, rate),
-          payments:invoice_payments(id, amount, payment_date, payment_method)
+          line_items:invoice_line_items(id, description, quantity, rate, amount, sort_order),
+          payments:invoice_payments(id, amount, payment_date, payment_method, reference_number, notes, created_at)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
@@ -63,7 +70,10 @@ export function useInvoices() {
   });
 
   const fetchInvoices = async () => {
-    queryClient.invalidateQueries({ queryKey: ['invoices', userId] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['invoices', userId] }),
+      queryClient.invalidateQueries({ queryKey: ['invoices_aggregated', userId] }),
+    ]);
   };
 
   const createInvoice = async (formData: InvoiceFormData, invoiceNumber: string) => {
@@ -101,6 +111,7 @@ export function useInvoices() {
           tax_amount: taxAmount,
           discount_amount: formData.discount_amount,
           total_amount: totalAmount,
+          currency: formData.currency ?? 'USD',
           payment_terms: formData.payment_terms,
           notes: formData.notes,
           private_notes: formData.private_notes,
@@ -121,7 +132,14 @@ export function useInvoices() {
         .from('invoice_line_items')
         .insert(lineItemsWithInvoiceId as any);
 
-      if (lineItemsError) throw lineItemsError;
+      if (lineItemsError) {
+        await supabase
+          .from('invoices' as any)
+          .delete()
+          .eq('id', invoice.id)
+          .eq('user_id', user.id);
+        throw lineItemsError;
+      }
 
       await fetchInvoices();
       
@@ -144,6 +162,14 @@ export function useInvoices() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      const { data: existingLineItems, error: existingLineItemsError } = await supabase
+        .from('invoice_line_items' as any)
+        .select('description, quantity, rate, amount, sort_order')
+        .eq('invoice_id', invoiceId)
+        .order('sort_order', { ascending: true });
+
+      if (existingLineItemsError) throw existingLineItemsError;
+
       let updateData: any = {
         client_id: formData.client_id,
         client_name: formData.client_name,
@@ -157,14 +183,19 @@ export function useInvoices() {
         private_notes: formData.private_notes,
         tax_rate: formData.tax_rate,
         discount_amount: formData.discount_amount,
-        accepted_payment_methods: formData.accepted_payment_methods
+        accepted_payment_methods: formData.accepted_payment_methods,
+        currency: formData.currency,
       };
 
       if (formData.line_items) {
-        await supabase
+        const { error: deleteLineItemsError } = await supabase
           .from('invoice_line_items' as any)
           .delete()
           .eq('invoice_id', invoiceId);
+
+        if (deleteLineItemsError) {
+          throw deleteLineItemsError;
+        }
 
         const lineItems = formData.line_items.map((item, index) => ({
           invoice_id: invoiceId,
@@ -183,9 +214,28 @@ export function useInvoices() {
         updateData.tax_amount = taxAmount;
         updateData.total_amount = totalAmount;
 
-        await supabase
+        const { error: insertLineItemsError } = await supabase
           .from('invoice_line_items' as any)
           .insert(lineItems);
+
+        if (insertLineItemsError) {
+          if (existingLineItems && existingLineItems.length > 0) {
+            const restorePayload = existingLineItems.map((item: any) => ({
+              invoice_id: invoiceId,
+              description: item.description,
+              quantity: item.quantity,
+              rate: item.rate,
+              amount: item.amount,
+              sort_order: item.sort_order,
+            }));
+
+            await supabase
+              .from('invoice_line_items' as any)
+              .insert(restorePayload);
+          }
+
+          throw insertLineItemsError;
+        }
       }
 
       const { error: updateError } = await supabase

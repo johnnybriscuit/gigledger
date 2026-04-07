@@ -5,12 +5,12 @@ import { useInvoices } from '../hooks/useInvoices';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { usePayers } from '../hooks/usePayers';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
-import { useEntitlements } from '../hooks/useEntitlements';
-import { supabase } from '../lib/supabase';
-import { useQuery } from '@tanstack/react-query';
 import { InvoiceFormData, PAYMENT_TERM_PRESETS, calculateDueDate, PaymentMethodDetail, PAYMENT_METHODS } from '../types/invoice';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getSharedUserId } from '../lib/sharedAuth';
+import { useUserId } from '../hooks/useCurrentUser';
+import { parseStoredDate } from '../lib/date';
+import { supabase } from '../lib/supabase';
 
 interface InvoiceFormProps {
   invoiceId?: string;
@@ -24,17 +24,10 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
   const { createInvoice, updateInvoice, invoices } = useInvoices();
   const { settings, getNextInvoiceNumber } = useInvoiceSettings();
   const { payers } = usePayers();
-  const entitlements = useEntitlements();
+  const userId = useUserId();
   
-  // Fetch user and payment method details
-  const { data: user } = useQuery({
-    queryKey: ['user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-  });
-  const { data: paymentMethods = [] } = usePaymentMethodDetails(user?.id);
+  // Fetch payment method details for current user
+  const { data: paymentMethods = [] } = usePaymentMethodDetails(userId || undefined);
   
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<InvoiceFormData>({
@@ -44,6 +37,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
     client_address: '',
     invoice_date: new Date().toISOString().split('T')[0],
     due_date: calculateDueDate(new Date().toISOString().split('T')[0], 'Net 30'),
+    currency: settings?.default_currency || 'USD',
     payment_terms: 'Net 30',
     notes: '',
     private_notes: '',
@@ -65,6 +59,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
           client_address: invoice.client_address,
           invoice_date: invoice.invoice_date,
           due_date: invoice.due_date,
+          currency: invoice.currency,
           payment_terms: invoice.payment_terms,
           notes: invoice.notes,
           private_notes: invoice.private_notes,
@@ -106,6 +101,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
         // Dates (TODAY + calculated due date)
         invoice_date: today,
         due_date: newDueDate,
+        currency: duplicatingInvoice.currency || settings?.default_currency || 'USD',
         // Terms and settings (safe to copy)
         payment_terms: duplicatingInvoice.payment_terms,
         notes: duplicatingInvoice.notes,
@@ -124,7 +120,23 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
         // SAFETY: sent/paid/payment metadata NOT copied (not in formData)
       });
     }
-  }, [invoiceId, duplicatingInvoice, invoices]);
+  }, [invoiceId, duplicatingInvoice, invoices, settings?.default_currency]);
+
+  useEffect(() => {
+    if (invoiceId || duplicatingInvoice || !settings) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      currency: prev.currency || settings.default_currency || 'USD',
+      tax_rate: prev.tax_rate ?? settings.default_tax_rate,
+      payment_terms: prev.payment_terms || settings.default_payment_terms || 'Net 30',
+      due_date: prev.due_date || calculateDueDate(prev.invoice_date, settings.default_payment_terms || 'Net 30'),
+      accepted_payment_methods:
+        prev.accepted_payment_methods && prev.accepted_payment_methods.length > 0
+          ? prev.accepted_payment_methods
+          : (settings.accepted_payment_methods || []),
+    }));
+  }, [settings, invoiceId, duplicatingInvoice]);
 
   const addLineItem = () => {
     setFormData({
@@ -201,6 +213,11 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
     return calculateSubtotal() + calculateTax() - (formData.discount_amount || 0);
   };
 
+  const isValidDateString = (value?: string) => {
+    if (!value) return false;
+    return /^\d{4}-\d{2}-\d{2}$/.test(value);
+  };
+
   const handleSave = async () => {
     if (!formData.client_name) {
       Alert.alert('Error', 'Client name is required');
@@ -212,6 +229,38 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
       return;
     }
 
+    if (!isValidDateString(formData.invoice_date) || !isValidDateString(formData.due_date)) {
+      Alert.alert('Error', 'Invoice date and due date must be in YYYY-MM-DD format');
+      return;
+    }
+
+    const invoiceDate = parseStoredDate(formData.invoice_date);
+    const dueDate = parseStoredDate(formData.due_date);
+    if (dueDate < invoiceDate) {
+      Alert.alert('Error', 'Due date cannot be earlier than invoice date');
+      return;
+    }
+
+    if (formData.tax_rate !== undefined && (formData.tax_rate < 0 || formData.tax_rate > 100)) {
+      Alert.alert('Error', 'Tax rate must be between 0 and 100');
+      return;
+    }
+
+    if ((formData.discount_amount || 0) < 0) {
+      Alert.alert('Error', 'Discount cannot be negative');
+      return;
+    }
+
+    if ((formData.line_items || []).some(item => item.quantity <= 0 || item.rate < 0 || !Number.isFinite(item.quantity) || !Number.isFinite(item.rate))) {
+      Alert.alert('Error', 'Each line item must have quantity > 0 and rate >= 0');
+      return;
+    }
+
+    if (calculateTotal() < 0) {
+      Alert.alert('Error', 'Total cannot be negative. Reduce discount or adjust line items.');
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -220,12 +269,12 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
         Alert.alert('Success', 'Invoice updated successfully');
       } else {
         // Check limit before creating new invoice
-        const userId = await getSharedUserId();
-        if (!userId) {
+        const sharedUserId = await getSharedUserId();
+        if (!sharedUserId) {
           throw new Error('User not authenticated');
         }
         
-        const limitCheck = await checkAndIncrementLimit(userId, 'invoices');
+        const limitCheck = await checkAndIncrementLimit(sharedUserId, 'invoices');
         
         if (!limitCheck.allowed) {
           Alert.alert(
@@ -237,9 +286,32 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
           );
           return;
         }
-        
-        const invoiceNumber = await getNextInvoiceNumber();
-        await createInvoice(formData, invoiceNumber);
+
+        try {
+          const invoiceNumber = await getNextInvoiceNumber();
+          await createInvoice(formData, invoiceNumber);
+        } catch (createError) {
+          if (limitCheck.incremented) {
+            await supabase
+              .from('profiles')
+              .select('invoices_used_this_month')
+              .eq('id', sharedUserId)
+              .single()
+              .then(async ({ data }) => {
+                const nextCount = Math.max(0, (data?.invoices_used_this_month || 0) - 1);
+                await supabase
+                  .from('profiles')
+                  .update({ invoices_used_this_month: nextCount })
+                  .eq('id', sharedUserId);
+              })
+              .catch(() => {
+                // Best-effort rollback only
+              });
+          }
+
+          throw createError;
+        }
+
         Alert.alert('Success', 'Invoice created successfully');
       }
 

@@ -22,7 +22,7 @@ import { useWithholding } from '../hooks/useWithholding';
 import { formatWithholdingBreakdown } from '../lib/tax/withholding';
 import { hasCompletedTaxProfile } from '../services/taxService';
 import { InlineExpensesList, type InlineExpense } from './gigs/InlineExpensesList';
-import { InlineMileageRow, type InlineMileage } from './gigs/InlineMileageRow';
+import { InlineMileageRow } from './gigs/InlineMileageRow';
 import { InlineSubcontractorPayments, type InlineSubcontractorPayment } from './gigs/InlineSubcontractorPayments';
 import { SubcontractorFormModal } from './SubcontractorFormModal';
 import { VenuePlacesInput } from './VenuePlacesInput';
@@ -45,6 +45,11 @@ import { getEffectiveTaxTreatment, getTaxTreatmentLabel, getTaxTreatmentShortLab
 import { resolvePlaceDetails } from '../lib/placeDetails';
 import { colors } from '../styles/theme';
 import { useTheme } from '../contexts/ThemeContext';
+import {
+  calculateInlineMileage,
+  syncAutoCalculatedInlineMileageRoundTrip,
+  type InlineMileage,
+} from './gigs/inlineMileage';
 import {
   trackGigModalOpened,
   trackGigValidationFailed,
@@ -105,6 +110,18 @@ const COUNTRIES = [
   { code: 'NZ', name: 'New Zealand' },
 ];
 
+type MileageCalculationStatus =
+  | 'idle'
+  | 'missing-home'
+  | 'missing-venue'
+  | 'calculating'
+  | 'ready'
+  | 'error';
+
+function hasCoordinates(location: { lat?: number | null; lng?: number | null } | null | undefined): location is { lat: number; lng: number } {
+  return typeof location?.lat === 'number' && typeof location?.lng === 'number';
+}
+
 export function AddGigModal({
   visible,
   onClose,
@@ -118,6 +135,7 @@ export function AddGigModal({
   const { theme } = useTheme();
   const grossAmountInputRef = useRef<TextInput>(null);
   const hasTrackedOpenRef = useRef(false);
+  const lastAutoMileageRouteKeyRef = useRef<string | null>(null);
   const [payerId, setPayerId] = useState('');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
@@ -147,6 +165,9 @@ export function AddGigModal({
   const [notes, setNotes] = useState('');
   const [inlineExpenses, setInlineExpenses] = useState<InlineExpense[]>([]);
   const [inlineMileage, setInlineMileage] = useState<InlineMileage | null>(null);
+  const [didDriveToGig, setDidDriveToGig] = useState(false);
+  const [driveRoundTrip, setDriveRoundTrip] = useState(true);
+  const [mileageCalculationStatus, setMileageCalculationStatus] = useState<MileageCalculationStatus>('idle');
   const [inlineSubcontractorPayments, setInlineSubcontractorPayments] = useState<InlineSubcontractorPayment[]>([]);
   const [copyExpenses, setCopyExpenses] = useState(false);
   const [copySubcontractorPayments, setCopySubcontractorPayments] = useState(false);
@@ -213,13 +234,29 @@ export function AddGigModal({
   
   // Calculate totals for inline items
   const totalExpenses = inlineExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
-  const mileageDeduction = inlineMileage ? calculateMileageDeduction(parseFloat(inlineMileage.miles) || 0, date) : 0;
+  const mileageDeduction = didDriveToGig && inlineMileage
+    ? calculateMileageDeduction(parseFloat(inlineMileage.miles) || 0, date)
+    : 0;
   const totalSubcontractorPayments = inlineSubcontractorPayments.reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0);
   
   // Construct venue address from form fields
   const venueAddress = [location, city, state].filter(Boolean).join(', ');
   const resolvedVenueAddress = venueDetails?.formatted_address || venueAddress || location || null;
   const resolvedHomeAddress = profile?.home_address_full || profile?.home_address || null;
+  const rawHomeCoordinates = {
+    lat: profile?.home_address_lat,
+    lng: profile?.home_address_lng,
+  };
+  const homeCoordinates = hasCoordinates(rawHomeCoordinates)
+    ? rawHomeCoordinates
+    : null;
+  const venueCoordinates = hasCoordinates(venueDetails?.location)
+    ? venueDetails.location
+    : hasCoordinates(cityDetails?.location)
+      ? cityDetails.location
+      : null;
+  const mileageMiles = parseFloat(inlineMileage?.miles || '0');
+  const hasMileageReady = Number.isFinite(mileageMiles) && mileageMiles > 0;
   
   // Calculate net amount before tax
   const netBeforeTax = (parseFloat(grossAmount) || 0) 
@@ -343,6 +380,37 @@ export function AddGigModal({
     }
   }, [taxProfile, ytdData, grossAmount, tips, perDiem, otherIncome, fees, totalExpenses, mileageDeduction]);
 
+  const applyLoadedMileage = (tripMileage: any) => {
+    lastAutoMileageRouteKeyRef.current = null;
+
+    if (!tripMileage) {
+      setDidDriveToGig(false);
+      setDriveRoundTrip(true);
+      setMileageCalculationStatus('idle');
+      setInlineMileage(null);
+      return;
+    }
+
+    const roundTrip = tripMileage.is_round_trip ?? true;
+    const autoCalculated = tripMileage.is_auto_calculated ?? false;
+
+    setDidDriveToGig(true);
+    setDriveRoundTrip(roundTrip);
+    setMileageCalculationStatus('ready');
+    setInlineMileage({
+      miles: tripMileage.miles.toString(),
+      note: tripMileage.notes || '',
+      startLocation: tripMileage.start_location || undefined,
+      endLocation: tripMileage.end_location || undefined,
+      venueAddress: tripMileage.end_location || undefined,
+      roundTrip,
+      isAutoCalculated: autoCalculated,
+      oneWayMiles: autoCalculated
+        ? (roundTrip ? Number(tripMileage.miles) / 2 : Number(tripMileage.miles)).toFixed(3)
+        : undefined,
+    });
+  };
+
   // Handle duplicating gig (separate from editing)
   useEffect(() => {
     if (duplicatingGig) {
@@ -350,7 +418,7 @@ export function AddGigModal({
       setCityDetails(null);
       setVenueError('');
       setCityError('');
-      setInlineMileage(null);
+      applyLoadedMileage(null);
       setPayerId(duplicatingGig.payer_id);
       setDate(toUtcDateString(new Date())); // Default to today for duplicates
       setTitle(duplicatingGig.title || '');
@@ -404,18 +472,9 @@ export function AddGigModal({
         
         const tripMileage = mileage?.[0];
         if (!error && tripMileage) {
-          setInlineMileage({
-            miles: tripMileage.miles.toString(),
-            note: tripMileage.notes || '',
-            startLocation: tripMileage.start_location || undefined,
-            endLocation: tripMileage.end_location || undefined,
-            venueAddress: tripMileage.end_location || undefined,
-            roundTrip: tripMileage.is_round_trip ?? undefined,
-            isAutoCalculated: tripMileage.is_auto_calculated ?? undefined,
-            oneWayMiles: tripMileage.is_round_trip ? (tripMileage.miles / 2).toString() : tripMileage.miles.toString(),
-          });
+          applyLoadedMileage(tripMileage);
         } else {
-          setInlineMileage(null);
+          applyLoadedMileage(null);
         }
       };
       
@@ -434,7 +493,7 @@ export function AddGigModal({
       setCityDetails(null);
       setVenueError('');
       setCityError('');
-      setInlineMileage(null);
+      applyLoadedMileage(null);
       setPayerId(editingGig.payer_id);
       setDate(editingGig.date);
       setTitle(editingGig.title || '');
@@ -487,18 +546,9 @@ export function AddGigModal({
         
         const tripMileage = mileage?.[0];
         if (!error && tripMileage) {
-          setInlineMileage({
-            miles: tripMileage.miles.toString(),
-            note: tripMileage.notes || '',
-            startLocation: tripMileage.start_location || undefined,
-            endLocation: tripMileage.end_location || undefined,
-            venueAddress: tripMileage.end_location || undefined,
-            roundTrip: tripMileage.is_round_trip ?? undefined,
-            isAutoCalculated: tripMileage.is_auto_calculated ?? undefined,
-            oneWayMiles: tripMileage.is_round_trip ? (tripMileage.miles / 2).toString() : tripMileage.miles.toString(),
-          });
+          applyLoadedMileage(tripMileage);
         } else {
-          setInlineMileage(null);
+          applyLoadedMileage(null);
         }
       };
       
@@ -556,6 +606,10 @@ export function AddGigModal({
     setEndTime('');
     setInlineExpenses([]);
     setInlineMileage(null);
+    setDidDriveToGig(false);
+    setDriveRoundTrip(true);
+    setMileageCalculationStatus('idle');
+    lastAutoMileageRouteKeyRef.current = null;
     setInlineSubcontractorPayments([]);
     setCopyExpenses(false);
     setCopySubcontractorPayments(false);
@@ -573,6 +627,158 @@ export function AddGigModal({
   const handleDateChange = (selectedDate: Date) => {
     setDate(toUtcDateString(selectedDate));
   };
+
+  const handleDriveToggle = () => {
+    const nextDidDrive = !didDriveToGig;
+
+    setDidDriveToGig(nextDidDrive);
+
+    if (!nextDidDrive) {
+      setMileageCalculationStatus('idle');
+      return;
+    }
+
+    if (hasMileageReady) {
+      setMileageCalculationStatus('ready');
+      return;
+    }
+
+    if (!resolvedHomeAddress || !homeCoordinates) {
+      setMileageCalculationStatus('missing-home');
+      return;
+    }
+
+    if (!resolvedVenueAddress || !venueCoordinates) {
+      setMileageCalculationStatus('missing-venue');
+      return;
+    }
+
+    setMileageCalculationStatus('calculating');
+  };
+
+  const handleDriveRoundTripToggle = () => {
+    const nextRoundTrip = !driveRoundTrip;
+    setDriveRoundTrip(nextRoundTrip);
+    setInlineMileage((currentMileage) =>
+      currentMileage ? syncAutoCalculatedInlineMileageRoundTrip(currentMileage, nextRoundTrip) : currentMileage
+    );
+  };
+
+  const handleInlineMileageChange = (mileage: InlineMileage | null) => {
+    if (!mileage) {
+      setInlineMileage(null);
+      if (!didDriveToGig) {
+        setMileageCalculationStatus('idle');
+      } else if (!resolvedHomeAddress || !homeCoordinates) {
+        setMileageCalculationStatus('missing-home');
+      } else if (!resolvedVenueAddress || !venueCoordinates) {
+        setMileageCalculationStatus('missing-venue');
+      } else {
+        setMileageCalculationStatus('idle');
+      }
+      return;
+    }
+
+    setInlineMileage({
+      ...mileage,
+      roundTrip: driveRoundTrip,
+      startLocation: mileage.startLocation || resolvedHomeAddress || undefined,
+      endLocation: mileage.endLocation || resolvedVenueAddress || undefined,
+      venueAddress: mileage.venueAddress || resolvedVenueAddress || undefined,
+    });
+    setMileageCalculationStatus('ready');
+  };
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    if (!didDriveToGig) {
+      setMileageCalculationStatus('idle');
+      return;
+    }
+
+    if (!resolvedHomeAddress || !homeCoordinates) {
+      setMileageCalculationStatus('missing-home');
+      return;
+    }
+
+    if (!resolvedVenueAddress || !venueCoordinates) {
+      setMileageCalculationStatus('missing-venue');
+      return;
+    }
+
+    const routeKey = [
+      resolvedHomeAddress,
+      homeCoordinates.lat,
+      homeCoordinates.lng,
+      resolvedVenueAddress,
+      venueCoordinates.lat,
+      venueCoordinates.lng,
+    ].join('|');
+
+    if (
+      routeKey === lastAutoMileageRouteKeyRef.current &&
+      inlineMileage?.isAutoCalculated &&
+      inlineMileage.oneWayMiles
+    ) {
+      const syncedMileage = syncAutoCalculatedInlineMileageRoundTrip(inlineMileage, driveRoundTrip);
+
+      if (
+        syncedMileage.miles !== inlineMileage.miles ||
+        syncedMileage.roundTrip !== inlineMileage.roundTrip ||
+        syncedMileage.note !== inlineMileage.note
+      ) {
+        setInlineMileage(syncedMileage);
+      }
+
+      setMileageCalculationStatus('ready');
+      return;
+    }
+
+    let cancelled = false;
+    setMileageCalculationStatus('calculating');
+
+    void calculateInlineMileage({
+      homeCoordinates: homeCoordinates!,
+      venueCoordinates: venueCoordinates!,
+      homeAddress: resolvedHomeAddress!,
+      venueAddress: resolvedVenueAddress!,
+      roundTrip: driveRoundTrip,
+    })
+      .then((autoMileage) => {
+        if (cancelled) {
+          return;
+        }
+
+        lastAutoMileageRouteKeyRef.current = routeKey;
+        setInlineMileage(autoMileage);
+        setMileageCalculationStatus('ready');
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        console.error('Failed to auto-calculate gig mileage:', error);
+        setMileageCalculationStatus('error');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    visible,
+    didDriveToGig,
+    driveRoundTrip,
+    resolvedHomeAddress,
+    homeCoordinates?.lat,
+    homeCoordinates?.lng,
+    resolvedVenueAddress,
+    venueCoordinates?.lat,
+    venueCoordinates?.lng,
+  ]);
 
   const filteredStates = US_STATES.filter(s => 
     s.name.toLowerCase().includes(stateSearch.toLowerCase()) ||
@@ -725,14 +931,14 @@ export function AddGigModal({
         }));
 
       // Prepare inline mileage data (used for both create and edit)
-      const mileageData = inlineMileage ? {
+      const mileageData = didDriveToGig && inlineMileage ? {
         miles: parseFloat(inlineMileage.miles) || 0,
         note: inlineMileage.note,
         startLocation: inlineMileage.startLocation || resolvedHomeAddress || undefined,
         endLocation: inlineMileage.endLocation || resolvedVenueAddress || undefined,
         purpose: validated.title || generateDefaultTitle(),
         isAutoCalculated: inlineMileage.isAutoCalculated ?? false,
-        roundTrip: inlineMileage.roundTrip ?? true,
+        roundTrip: driveRoundTrip,
       } : undefined;
 
       // Prepare subcontractor payments data (used for both create and edit)
@@ -827,6 +1033,8 @@ export function AddGigModal({
       setFieldErrors({});
       onClose();
 
+      const hasSavedMileage = Boolean(mileageData && mileageData.miles > 0);
+
       if (editingGig) {
         Alert.alert('✓ Success', 'Gig updated successfully!', [{ text: 'OK' }]);
       } else {
@@ -843,7 +1051,7 @@ export function AddGigModal({
               : []),
             ...(onNavigateToMileage
               ? [{
-                  text: 'Add Mileage',
+                  text: hasSavedMileage ? 'View Mileage' : 'Add Mileage',
                   onPress: () => onNavigateToMileage(),
                 } as const]
               : []),
@@ -865,6 +1073,37 @@ export function AddGigModal({
   };
 
   const totalGigPay = calculateTotalGigPay();
+  const mileageStatusText = (() => {
+    if (!didDriveToGig) {
+      return '';
+    }
+
+    if (mileageCalculationStatus === 'calculating') {
+      return 'Calculating mileage...';
+    }
+
+    if (hasMileageReady) {
+      return inlineMileage?.isAutoCalculated ? 'Miles ready' : 'Manual miles ready';
+    }
+
+    switch (mileageCalculationStatus) {
+      case 'missing-home':
+        return 'Add your home address in Settings to auto-calculate.';
+      case 'missing-venue':
+        return 'Add or select a venue to auto-calculate mileage.';
+      case 'error':
+        return 'Could not calculate. Enter miles manually below.';
+      default:
+        return 'Mileage will appear on the Mileage page after you save this gig.';
+    }
+  })();
+  const mileageStatusStyle = hasMileageReady
+    ? styles.driveStatusReady
+    : mileageCalculationStatus === 'error'
+      ? styles.driveStatusError
+      : mileageCalculationStatus === 'calculating'
+        ? styles.driveStatusCalculating
+        : styles.driveStatusMuted;
 
   return (
     <Modal
@@ -890,6 +1129,57 @@ export function AddGigModal({
               <Text style={styles.sectionTitle}>Quick Add</Text>
               <Text style={styles.sectionDescription}>Required fields to get started</Text>
               <Text style={styles.scrollHint}>↓ Scroll down for optional details (venue, tips/fees, subs, mileage)</Text>
+
+              <View style={styles.driveCard}>
+                <View style={styles.toggleRow}>
+                  <View style={styles.toggleLabel}>
+                    <Text style={styles.driveCardTitle}>Did you drive to this gig?</Text>
+                    <Text style={styles.driveCardSubtitle}>
+                      We&apos;ll save this trip to Mileage when you save the gig.
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.toggle, didDriveToGig && styles.toggleActive]}
+                    onPress={handleDriveToggle}
+                  >
+                    <View style={[styles.toggleThumb, didDriveToGig && styles.toggleThumbActive]} />
+                  </TouchableOpacity>
+                </View>
+
+                {didDriveToGig && (
+                  <View style={styles.driveCardBody}>
+                    <TouchableOpacity
+                      style={styles.checkboxContainer}
+                      onPress={handleDriveRoundTripToggle}
+                    >
+                      <View style={[styles.checkbox, driveRoundTrip && styles.checkboxChecked]}>
+                        {driveRoundTrip && <Text style={styles.checkmark}>✓</Text>}
+                      </View>
+                      <Text style={styles.checkboxLabel}>Round trip</Text>
+                    </TouchableOpacity>
+
+                    <Text style={[styles.driveStatusText, mileageStatusStyle]}>
+                      {mileageStatusText}
+                    </Text>
+
+                    {hasMileageReady && (
+                      <View style={styles.driveSummaryRow}>
+                        <Text style={styles.driveSummaryMetric}>
+                          {mileageMiles.toFixed(1)} miles
+                        </Text>
+                        <Text style={styles.driveSummaryDivider}>•</Text>
+                        <Text style={styles.driveSummaryMetric}>
+                          -${mileageDeduction.toFixed(2)} deduction
+                        </Text>
+                      </View>
+                    )}
+
+                    <Text style={styles.driveCardHint}>
+                      Use the Mileage section in Deductions below to edit miles or notes manually.
+                    </Text>
+                  </View>
+                )}
+              </View>
               
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Payer *</Text>
@@ -1418,17 +1708,17 @@ export function AddGigModal({
               />
 
               {/* Inline Mileage */}
-              <InlineMileageRow
-                mileage={inlineMileage}
-                onChange={setInlineMileage}
-                homeAddress={profile ? {
-                  full: resolvedHomeAddress,
-                  lat: profile.home_address_lat,
-                  lng: profile.home_address_lng,
-                } : null}
-                venueLocation={venueDetails?.location || cityDetails?.location || null}
-                venueAddress={resolvedVenueAddress}
-              />
+              {didDriveToGig ? (
+                <InlineMileageRow
+                  mileage={inlineMileage}
+                  onChange={handleInlineMileageChange}
+                  date={date}
+                />
+              ) : (
+                <Text style={styles.helperText}>
+                  Turn on &quot;Did you drive to this gig?&quot; above if you want to track gig mileage.
+                </Text>
+              )}
             </Accordion>
 
             {/* ACCORDION: NOTES */}
@@ -1762,6 +2052,69 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     marginBottom: 16,
   },
+  driveCard: {
+    backgroundColor: colors.surface.muted,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 18,
+  },
+  driveCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text.DEFAULT,
+    marginBottom: 4,
+  },
+  driveCardSubtitle: {
+    fontSize: 12,
+    color: colors.text.muted,
+    lineHeight: 18,
+  },
+  driveCardBody: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.DEFAULT,
+  },
+  driveStatusText: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  driveStatusReady: {
+    color: colors.success.DEFAULT,
+  },
+  driveStatusCalculating: {
+    color: colors.brand.DEFAULT,
+  },
+  driveStatusError: {
+    color: colors.danger.DEFAULT,
+  },
+  driveStatusMuted: {
+    color: colors.text.muted,
+  },
+  driveSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  driveSummaryMetric: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text.DEFAULT,
+  },
+  driveSummaryDivider: {
+    fontSize: 13,
+    color: colors.text.subtle,
+  },
+  driveCardHint: {
+    fontSize: 12,
+    color: colors.text.subtle,
+    lineHeight: 18,
+  },
   inputGroup: {
     marginBottom: 20,
   },
@@ -2025,7 +2378,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.elevated,
     borderTopWidth: 1,
     borderTopColor: colors.border.DEFAULT,
-    shadowColor: '#000',
+    shadowColor: colors.overlay.DEFAULT,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -2499,7 +2852,7 @@ const styles = StyleSheet.create({
     height: 27,
     borderRadius: 14,
     backgroundColor: colors.surface.DEFAULT,
-    shadowColor: '#000',
+    shadowColor: colors.overlay.DEFAULT,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
