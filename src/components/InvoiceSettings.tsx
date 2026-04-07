@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
-import { PaymentMethodDetail, PAYMENT_METHODS, COLOR_SCHEMES, FONT_STYLES, LAYOUT_STYLES, CURRENCIES } from '../types/invoice';
+import { COLOR_SCHEMES, FONT_STYLES, LAYOUT_STYLES, CURRENCIES } from '../types/invoice';
 import { PaymentMethodsConfig } from '../types/paymentMethods';
 import { PaymentMethodsEditor } from './PaymentMethodsEditor';
-import { getPaymentMethodsConfig, validatePaymentMethodsConfig } from '../utils/paymentMethodsMigration';
+import { getPaymentMethodsConfig, snapshotAcceptedPaymentMethods, validatePaymentMethodsConfig } from '../utils/paymentMethodsMigration';
 import { showAlert } from '../lib/dialog';
 
 interface InvoiceSettingsProps {
@@ -28,7 +28,6 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
     font_style: 'modern',
     layout_style: 'classic',
   });
-  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<PaymentMethodDetail[]>([]);
   const [paymentMethodsConfig, setPaymentMethodsConfig] = useState<PaymentMethodsConfig>({ enabled: false, methods: [] });
   const [saving, setSaving] = useState(false);
 
@@ -49,8 +48,7 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
         font_style: settings.font_style,
         layout_style: settings.layout_style,
       });
-      setSelectedPaymentMethods(settings.accepted_payment_methods || []);
-      
+
       // Load payment methods config (migrating from old format if needed)
       const config = getPaymentMethodsConfig(settings);
       setPaymentMethodsConfig(config);
@@ -75,7 +73,7 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
       const settingsData = {
         ...formData,
         default_tax_rate: formData.default_tax_rate ? parseFloat(formData.default_tax_rate) : undefined,
-        accepted_payment_methods: selectedPaymentMethods, // Keep for backward compatibility
+        accepted_payment_methods: snapshotAcceptedPaymentMethods(paymentMethodsConfig),
         payment_methods_config: paymentMethodsConfig, // New structured config
       };
 
@@ -97,23 +95,6 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
     } finally {
       setSaving(false);
     }
-  };
-
-  const togglePaymentMethod = (method: string) => {
-    const exists = selectedPaymentMethods.find(pm => pm.method === method);
-    if (exists) {
-      setSelectedPaymentMethods(selectedPaymentMethods.filter(pm => pm.method !== method));
-    } else {
-      setSelectedPaymentMethods([...selectedPaymentMethods, { method: method as any, details: '' }]);
-    }
-  };
-
-  const updatePaymentMethodDetails = (method: string, details: string) => {
-    setSelectedPaymentMethods(
-      selectedPaymentMethods.map(pm =>
-        pm.method === method ? { ...pm, details } : pm
-      )
-    );
   };
 
   if (loading) {

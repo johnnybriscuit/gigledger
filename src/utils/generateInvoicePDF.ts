@@ -1,6 +1,8 @@
 import { Invoice, InvoiceSettings, formatCurrency } from '../types/invoice';
 import { PaymentMethodDetail } from '../hooks/usePaymentMethodDetails';
 import { buildInvoiceViewModel } from './invoiceViewModel';
+import { formatStoredDate } from '../lib/date';
+import { getEffectiveInvoiceStatus } from './invoiceCalculations';
 
 // HTML sanitization helper to prevent injection attacks
 function escapeHtml(text: string): string {
@@ -17,6 +19,7 @@ function escapeHtml(text: string): string {
 export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, paymentMethodDetails?: PaymentMethodDetail[]): string {
   // Build view model with correct calculations (pass settings for new payment methods)
   const viewModel = buildInvoiceViewModel(invoice, paymentMethodDetails, settings);
+  const invoiceStatus = getEffectiveInvoiceStatus(invoice);
   
   const getColorScheme = () => {
     switch (settings.color_scheme) {
@@ -280,16 +283,16 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, 
 </head>
 <body>
   <div class="invoice">
-    ${invoice.status === 'paid' ? '<div class="paid-stamp">PAID</div>' : ''}
+    ${invoiceStatus === 'paid' ? '<div class="paid-stamp">PAID</div>' : ''}
     
     <div class="header">
-      <div class="business-name">${settings.business_name}</div>
+      <div class="business-name">${escapeHtml(settings.business_name)}</div>
       <div class="contact-info">
-        ${settings.email ? `${settings.email}<br>` : ''}
-        ${settings.phone ? `${settings.phone}<br>` : ''}
-        ${settings.address ? `${settings.address}<br>` : ''}
-        ${settings.website ? `${settings.website}<br>` : ''}
-        ${settings.tax_id ? `Tax ID: ${settings.tax_id}` : ''}
+        ${settings.email ? `${escapeHtml(settings.email)}<br>` : ''}
+        ${settings.phone ? `${escapeHtml(settings.phone)}<br>` : ''}
+        ${settings.address ? `${escapeHtml(settings.address)}<br>` : ''}
+        ${settings.website ? `${escapeHtml(settings.website)}<br>` : ''}
+        ${settings.tax_id ? `Tax ID: ${escapeHtml(settings.tax_id)}` : ''}
       </div>
     </div>
     
@@ -301,25 +304,25 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, 
       <div>
         <div class="info-row">
           <span class="info-label">Invoice #:</span>
-          <span class="info-value">${invoice.invoice_number}</span>
+          <span class="info-value">${escapeHtml(invoice.invoice_number)}</span>
         </div>
         <div class="info-row">
           <span class="info-label">Date:</span>
-          <span class="info-value">${new Date(invoice.invoice_date).toLocaleDateString()}</span>
+          <span class="info-value">${formatStoredDate(invoice.invoice_date)}</span>
         </div>
         <div class="info-row">
           <span class="info-label">Due Date:</span>
-          <span class="info-value">${new Date(invoice.due_date).toLocaleDateString()}</span>
+          <span class="info-value">${formatStoredDate(invoice.due_date)}</span>
         </div>
       </div>
     </div>
     
     <div class="bill-to">
       <div class="bill-to-label">Bill To:</div>
-      <div class="client-name">${invoice.client_name}</div>
-      ${invoice.client_company ? `<div class="client-info">${invoice.client_company}</div>` : ''}
-      ${invoice.client_address ? `<div class="client-info">${invoice.client_address}</div>` : ''}
-      ${invoice.client_email ? `<div class="client-info">${invoice.client_email}</div>` : ''}
+      <div class="client-name">${escapeHtml(invoice.client_name)}</div>
+      ${invoice.client_company ? `<div class="client-info">${escapeHtml(invoice.client_company)}</div>` : ''}
+      ${invoice.client_address ? `<div class="client-info">${escapeHtml(invoice.client_address)}</div>` : ''}
+      ${invoice.client_email ? `<div class="client-info">${escapeHtml(invoice.client_email)}</div>` : ''}
     </div>
     
     <table>
@@ -372,7 +375,7 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, 
     <div class="terms-section">
       ${invoice.payment_terms ? `
         <div class="terms-label">Payment Terms:</div>
-        <div class="terms-text">${invoice.payment_terms}</div>
+        <div class="terms-text">${escapeHtml(invoice.payment_terms)}</div>
       ` : ''}
       
       ${viewModel.paymentMethodDisplays.length > 0 ? `
@@ -384,7 +387,7 @@ export function generateInvoicePDF(invoice: Invoice, settings: InvoiceSettings, 
       
       ${invoice.notes ? `
         <div class="terms-label">Notes:</div>
-        <div class="terms-text">${invoice.notes}</div>
+        <div class="terms-text">${escapeHtml(invoice.notes)}</div>
       ` : ''}
     </div>
     

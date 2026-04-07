@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { InvoiceList } from '../components/InvoiceList';
 import { InvoiceForm } from '../components/InvoiceForm';
@@ -6,10 +6,8 @@ import { InvoiceTemplate } from '../components/InvoiceTemplate';
 import { InvoiceSettings } from '../components/InvoiceSettings';
 import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { SendInvoiceModal } from '../components/SendInvoiceModal';
-import { DuplicateInvoiceModal } from '../components/DuplicateInvoiceModal';
 import { PaywallModal } from '../components/PaywallModal';
 import { UsageLimitBanner } from '../components/UsageLimitBanner';
-import { useInvoicesDataAggregated } from '../hooks/useInvoicesDataAggregated';
 import { useInvoices } from '../hooks/useInvoices';
 import { useEntitlements } from '../hooks/useEntitlements';
 import { Invoice } from '../types/invoice';
@@ -19,6 +17,9 @@ import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { confirmDialog, showAlert } from '../lib/dialog';
 import { parseStoredDate } from '../lib/date';
+import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
+import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
+import { useUserId } from '../hooks/useCurrentUser';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
@@ -28,13 +29,9 @@ interface InvoicesScreenProps {
 }
 
 export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }: InvoicesScreenProps = {}) {
-  // Use aggregated hook to fetch all data in parallel
-  const { data: aggregatedData, isLoading: aggregatedLoading, error: aggregatedError } = useInvoicesDataAggregated();
-  
-  // Extract data from aggregated response
-  const settings = aggregatedData?.settings;
-  const settingsLoading = aggregatedLoading;
-  const paymentMethods = aggregatedData?.paymentMethods || [];
+  const userId = useUserId();
+  const { settings, loading: settingsLoading, error: settingsError } = useInvoiceSettings();
+  const { data: paymentMethods = [], error: paymentMethodsError } = usePaymentMethodDetails(userId || undefined);
   
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
@@ -66,16 +63,19 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   const entitlements = useEntitlements();
   
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [duplicatingInvoice, setDuplicatingInvoice] = useState<Invoice | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [paywallReason, setPaywallReason] = useState<'invoice_limit' | 'export_limit'>('invoice_limit');
+  const selectedInvoice = useMemo(
+    () => allInvoices.find((invoice) => invoice.id === selectedInvoiceId) ?? null,
+    [allInvoices, selectedInvoiceId]
+  );
 
   const handleSelectInvoice = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
+    setSelectedInvoiceId(invoice.id);
     setViewMode('view');
   };
 
@@ -116,7 +116,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       }
       
       console.log('🔵 Opening invoice create form');
-      setSelectedInvoice(null);
+      setSelectedInvoiceId(null);
       setViewMode('create');
     } catch (error) {
       console.error('🔴 Error in handleCreateNew:', error);
@@ -152,7 +152,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       await deleteInvoice(selectedInvoice.id);
       console.log('✓ Delete successful, updating UI');
       setViewMode('list');
-      setSelectedInvoice(null);
+      setSelectedInvoiceId(null);
       showAlert('Success', 'Invoice deleted successfully');
     } catch (error) {
       console.error('❌ Delete failed:', error);
@@ -196,9 +196,6 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   };
 
   const handleEmailSuccess = async () => {
-    const sentAt = new Date().toISOString();
-    setSelectedInvoice((prev) => prev ? { ...prev, status: 'sent', sent_at: prev.sent_at ?? sentAt } : prev);
-
     await refetchInvoices();
     setShowEmailModal(false);
     showAlert('Success', 'Invoice sent successfully');
@@ -210,25 +207,16 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     setViewMode('create');
   };
 
-  const handleDuplicate = () => {
-    setShowDuplicateModal(true);
-  };
-
-  const handleDuplicateSuccess = (newInvoiceId: string) => {
-    setShowDuplicateModal(false);
-    setViewMode('list');
-  };
-
   const handleFormSuccess = () => {
     setViewMode('list');
-    setSelectedInvoice(null);
+    setSelectedInvoiceId(null);
   };
 
   const handlePaymentSuccess = () => {
     void refetchInvoices();
     setShowPaymentModal(false);
     setViewMode('list');
-    setSelectedInvoice(null);
+    setSelectedInvoiceId(null);
   };
 
   const handleDeletePayment = async (paymentId: string) => {
@@ -236,7 +224,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       await deletePayment(paymentId);
       // Navigate back to list so user can see updated invoice status
       setViewMode('list');
-      setSelectedInvoice(null);
+      setSelectedInvoiceId(null);
       showAlert('Success', 'Payment deleted successfully. Invoice status updated.');
     } catch (error: any) {
       showAlert('Error', error.message || 'Failed to delete payment');
@@ -251,8 +239,9 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     );
   }
 
-  if (aggregatedError || invoicesError) {
-    const message = (aggregatedError as Error | undefined)?.message
+  if (settingsError || paymentMethodsError || invoicesError) {
+    const message = (settingsError as Error | undefined)?.message
+      ?? (paymentMethodsError as Error | undefined)?.message
       ?? (invoicesError as Error | undefined)?.message
       ?? 'Failed to load invoices';
 
@@ -380,7 +369,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handleDownload}>
-              <Text style={styles.actionButtonText}>📥 Download</Text>
+              <Text style={styles.actionButtonText}>📥 Export HTML</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handlePrint}>
@@ -430,15 +419,6 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
               visible={showEmailModal}
               onClose={() => setShowEmailModal(false)}
               onSuccess={handleEmailSuccess}
-            />
-          )}
-
-          {showDuplicateModal && (
-            <DuplicateInvoiceModal
-              invoice={selectedInvoice}
-              visible={showDuplicateModal}
-              onClose={() => setShowDuplicateModal(false)}
-              onSuccess={handleDuplicateSuccess}
             />
           )}
 

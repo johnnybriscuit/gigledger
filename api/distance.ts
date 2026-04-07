@@ -5,6 +5,18 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+function getFirstQueryValue(value: string | string[] | undefined): string | null {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return typeof value[0] === 'string' ? value[0] : null;
+  }
+
+  return null;
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -14,12 +26,20 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { origin, destination } = req.query;
+  const origin = getFirstQueryValue(req.query.origin);
+  const destination = getFirstQueryValue(req.query.destination);
+  const originLat = getFirstQueryValue(req.query.origin_lat);
+  const originLng = getFirstQueryValue(req.query.origin_lng);
+  const destinationLat = getFirstQueryValue(req.query.destination_lat);
+  const destinationLng = getFirstQueryValue(req.query.destination_lng);
+
+  const hasAddressInputs = Boolean(origin && destination);
+  const hasCoordinateInputs = Boolean(originLat && originLng && destinationLat && destinationLng);
 
   // Validate required parameters
-  if (!origin || !destination) {
+  if (!hasAddressInputs && !hasCoordinateInputs) {
     return res.status(400).json({ 
-      error: 'Missing required parameters: origin and destination' 
+      error: 'Missing required parameters: origin/destination or origin_lat/origin_lng/destination_lat/destination_lng',
     });
   }
 
@@ -35,8 +55,22 @@ export default async function handler(
   }
 
   try {
+    const origins = hasCoordinateInputs
+      ? `${originLat},${originLng}`
+      : origin!;
+    const destinations = hasCoordinateInputs
+      ? `${destinationLat},${destinationLng}`
+      : destination!;
+
     // Call Google Maps Distance Matrix API
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin as string)}&destinations=${encodeURIComponent(destination as string)}&key=${apiKey}`;
+    const params = new URLSearchParams({
+      origins,
+      destinations,
+      mode: 'driving',
+      units: 'imperial',
+      key: apiKey,
+    });
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?${params.toString()}`;
     
     const response = await fetch(url);
     

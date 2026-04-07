@@ -50,6 +50,21 @@ export function isDateOnlyString(value: string): boolean {
 }
 
 /**
+ * Format a stored date string for display without timezone drift.
+ */
+export function formatStoredDate(
+  dateString: string,
+  locale: string = 'en-US',
+  options?: Intl.DateTimeFormatOptions
+): string {
+  return new Intl.DateTimeFormat(locale, options ?? {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(parseStoredDate(dateString));
+}
+
+/**
  * Format a Date object for display
  * @param date - Date object to format
  * @param formatString - Format string (default: 'MMM d, yyyy')
@@ -66,6 +81,13 @@ export function formatDateForDisplay(date: Date, formatString: string = 'MMM d, 
 export function getToday(): Date {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+/**
+ * Get today's local calendar date in yyyy-MM-dd format.
+ */
+export function getTodayDateString(): string {
+  return toUtcDateString(getToday());
 }
 
 /**

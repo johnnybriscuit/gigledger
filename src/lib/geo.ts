@@ -1,7 +1,9 @@
 /**
  * Geolocation and distance calculation utilities
- * Supports multiple providers: Google Maps, Mapbox, Haversine fallback
+ * Supports routed-distance providers only.
  */
+
+import { getBaseUrl } from './getBaseUrl';
 
 export interface LatLng {
   lat: number;
@@ -17,23 +19,21 @@ export interface DistanceResult {
 
 /**
  * Calculate driving distance between two points
- * Uses provider pipeline: Google Maps → Mapbox → Haversine
+ * Uses provider pipeline: server-side Google route proxy → Mapbox
+ * Throws when no routed driving distance is available.
  */
 export async function drivingMiles(
   origin: LatLng,
   dest: LatLng
 ): Promise<DistanceResult> {
-  // Try Google Maps Distance Matrix API
-  const googleKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (googleKey) {
-    try {
-      const result = await googleDistanceMatrix(origin, dest, googleKey);
-      if (result !== null) {
-        return { miles: result, provider: 'google' };
-      }
-    } catch (err) {
-      console.warn('Google Distance Matrix failed, trying fallback:', err);
+  // Prefer the server-side proxy so routed mileage does not depend on exposed client keys.
+  try {
+    const result = await googleDistanceMatrixViaProxy(origin, dest);
+    if (result !== null) {
+      return { miles: result, provider: 'google' };
     }
+  } catch (err) {
+    console.warn('Google Distance Matrix proxy failed, trying fallback:', err);
   }
 
   // Try Mapbox Directions API
@@ -45,46 +45,40 @@ export async function drivingMiles(
         return { miles: result, provider: 'mapbox' };
       }
     } catch (err) {
-      console.warn('Mapbox Directions failed, using haversine:', err);
+      console.warn('Mapbox Directions failed:', err);
     }
   }
 
-  // Fallback to haversine (great-circle distance)
-  const miles = haversineDistance(origin, dest);
-  return { miles, provider: 'haversine' };
+  throw new Error('NO_DRIVING_ROUTE');
 }
 
 /**
- * Google Maps Distance Matrix API
+ * Google Maps Distance Matrix API via same-origin/server-side proxy.
  * Returns driving distance in miles, or null if unavailable
  */
-async function googleDistanceMatrix(
-  origin: LatLng,
-  dest: LatLng,
-  apiKey: string
-): Promise<number | null> {
-  const url = new URL('https://maps.googleapis.com/maps/api/distancematrix/json');
-  url.searchParams.set('origins', `${origin.lat},${origin.lng}`);
-  url.searchParams.set('destinations', `${dest.lat},${dest.lng}`);
-  url.searchParams.set('mode', 'driving');
-  url.searchParams.set('units', 'imperial');
-  url.searchParams.set('key', apiKey);
+async function googleDistanceMatrixViaProxy(origin: LatLng, dest: LatLng): Promise<number | null> {
+  const isWeb = typeof window !== 'undefined' && Boolean(window.location?.origin);
+  const url = new URL('/api/distance', isWeb ? window.location.origin : getBaseUrl());
+  url.searchParams.set('origin_lat', String(origin.lat));
+  url.searchParams.set('origin_lng', String(origin.lng));
+  url.searchParams.set('destination_lat', String(dest.lat));
+  url.searchParams.set('destination_lng', String(dest.lng));
 
   const response = await fetch(url.toString());
   if (!response.ok) {
-    throw new Error(`Google API error: ${response.status}`);
+    throw new Error(`Google proxy error: ${response.status}`);
   }
 
   const data = await response.json();
-  
+
   if (data.status !== 'OK') {
-    console.warn('Google Distance Matrix status:', data.status);
+    console.warn('Google Distance Matrix proxy status:', data.status);
     return null;
   }
 
   const element = data.rows?.[0]?.elements?.[0];
   if (element?.status !== 'OK') {
-    console.warn('Google Distance Matrix element status:', element?.status);
+    console.warn('Google Distance Matrix proxy element status:', element?.status);
     return null;
   }
 
@@ -131,30 +125,6 @@ async function mapboxDirections(
   }
 
   return meters * 0.000621371; // meters to miles
-}
-
-/**
- * Haversine formula for great-circle distance
- * Returns distance in miles (as the crow flies)
- */
-function haversineDistance(origin: LatLng, dest: LatLng): number {
-  const R = 3958.8; // Earth's radius in miles
-  const dLat = toRadians(dest.lat - origin.lat);
-  const dLng = toRadians(dest.lng - origin.lng);
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(origin.lat)) *
-      Math.cos(toRadians(dest.lat)) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function toRadians(degrees: number): number {
-  return degrees * (Math.PI / 180);
 }
 
 /**

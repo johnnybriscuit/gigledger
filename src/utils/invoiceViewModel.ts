@@ -1,8 +1,9 @@
-import { Invoice, InvoiceLineItem, formatCurrency, InvoiceSettings } from '../types/invoice';
+import { Invoice, formatCurrency, InvoiceSettings } from '../types/invoice';
 import { PaymentMethodDetail } from '../hooks/usePaymentMethodDetails';
 import { PaymentMethodDisplay } from '../types/paymentMethods';
 import { formatPaymentMethodsForDisplay } from './formatPaymentMethods';
 import { getPaymentMethodsConfig } from './paymentMethodsMigration';
+import { calculateInvoiceTotals, calculateLineItemAmount } from './invoiceCalculations';
 
 /**
  * Computed line item with guaranteed correct amount calculation
@@ -60,7 +61,7 @@ export function buildInvoiceViewModel(
   const lineItems: ComputedLineItem[] = (invoice.line_items || []).map((item) => {
     const qty = Number(item.quantity ?? 0);
     const rate = Number(item.rate ?? 0);
-    const amount = qty * rate;
+    const amount = calculateLineItemAmount(qty, rate);
     
     return {
       id: item.id,
@@ -72,17 +73,11 @@ export function buildInvoiceViewModel(
   });
   
   // Compute subtotal from line items
-  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-  
-  // Tax calculation
-  const taxRate = Number(invoice.tax_rate ?? 0);
-  const taxAmount = taxRate > 0 ? (subtotal * taxRate) / 100 : 0;
-  
-  // Discount
-  const discountAmount = Number(invoice.discount_amount ?? 0);
-  
-  // Total due
-  const totalDue = subtotal + taxAmount - discountAmount;
+  const totals = calculateInvoiceTotals(lineItems, invoice.tax_rate, invoice.discount_amount);
+  const subtotal = totals.subtotal;
+  const taxAmount = totals.taxAmount;
+  const discountAmount = totals.discountAmount;
+  const totalDue = totals.totalAmount;
   
   // Resolve payment methods with details (legacy support)
   const paymentMethods: ResolvedPaymentMethod[] = (invoice.accepted_payment_methods || []).map((pm) => {
@@ -112,8 +107,16 @@ export function buildInvoiceViewModel(
   
   // New structured payment method displays
   let paymentMethodDisplays: PaymentMethodDisplay[] = [];
-  
-  if (settings) {
+  const hasInvoicePaymentSnapshot = (invoice.accepted_payment_methods || []).some((pm) => pm.details?.trim());
+
+  if (hasInvoicePaymentSnapshot && paymentMethods.length > 0) {
+    paymentMethodDisplays = paymentMethods.map(pm => ({
+      label: pm.method,
+      details: pm.displayText.includes(':')
+        ? pm.displayText.split(':').slice(1).join(':').trim()
+        : pm.displayText,
+    }));
+  } else if (settings) {
     // Try to get payment methods config from settings
     const config = getPaymentMethodsConfig(settings);
     if (config && config.methods.length > 0) {

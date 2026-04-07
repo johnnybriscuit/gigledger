@@ -252,9 +252,7 @@ export function AddGigModal({
     : null;
   const venueCoordinates = hasCoordinates(venueDetails?.location)
     ? venueDetails.location
-    : hasCoordinates(cityDetails?.location)
-      ? cityDetails.location
-      : null;
+    : null;
   const mileageMiles = parseFloat(inlineMileage?.miles || '0');
   const hasMileageReady = Number.isFinite(mileageMiles) && mileageMiles > 0;
   
@@ -1090,7 +1088,7 @@ export function AddGigModal({
       case 'missing-home':
         return 'Add your home address in Settings to auto-calculate.';
       case 'missing-venue':
-        return 'Add or select a venue to auto-calculate mileage.';
+        return 'Select a venue from suggestions to auto-calculate mileage.';
       case 'error':
         return 'Could not calculate. Enter miles manually below.';
       default:

@@ -6,6 +6,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function roundCurrency(value: number): number {
+  const sign = value < 0 ? -1 : 1
+  const abs = Math.abs(value)
+  return sign * Math.round(abs * 100 + Number.EPSILON) / 100
+}
+
+function formatStoredDate(dateString: string): string {
+  const parts = String(dateString || '').split('-').map(Number)
+  if (parts.length === 3 && parts.every(Number.isFinite)) {
+    const [year, month, day] = parts
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(Date.UTC(year, month - 1, day)))
+  }
+
+  return new Date(dateString).toLocaleDateString('en-US')
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -128,14 +149,23 @@ serve(async (req) => {
       throw new Error(`Failed to send email: ${error}`)
     }
 
-    // Update invoice status to 'sent'
-    await supabaseClient
-      .from('invoices')
-      .update({
-        status: 'sent',
-        sent_at: new Date().toISOString()
-      })
-      .eq('id', invoiceId)
+    const sentAt = new Date().toISOString()
+    const nextStatus = invoice.status === 'draft' ? 'sent' : invoice.status
+    const nextInvoiceUpdate: Record<string, string> = {}
+
+    if (!invoice.sent_at) {
+      nextInvoiceUpdate.sent_at = sentAt
+    }
+    if (nextStatus !== invoice.status) {
+      nextInvoiceUpdate.status = nextStatus
+    }
+
+    if (Object.keys(nextInvoiceUpdate).length > 0) {
+      await supabaseClient
+        .from('invoices')
+        .update(nextInvoiceUpdate)
+        .eq('id', invoiceId)
+    }
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -245,21 +275,25 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: settings.default_currency || 'USD'
+      currency: invoice.currency || settings.default_currency || 'USD'
     }).format(amount)
   }
 
-  const subtotal = invoice.invoice_line_items?.reduce((sum: number, item: any) => 
-    sum + (item.quantity * item.rate), 0) || 0
-  const tax = invoice.tax_rate ? subtotal * (invoice.tax_rate / 100) : 0
-  const total = subtotal + tax - (invoice.discount_amount || 0)
+  const subtotal = roundCurrency(invoice.invoice_line_items?.reduce((sum: number, item: any) =>
+    sum + roundCurrency(Number(item.quantity || 0) * Number(item.rate || 0)), 0) || 0)
+  const tax = invoice.tax_rate ? roundCurrency(subtotal * (invoice.tax_rate / 100)) : 0
+  const discount = roundCurrency(invoice.discount_amount || 0)
+  const total = roundCurrency(subtotal + tax - discount)
 
   const publicUrl = Deno.env.get('NEXT_PUBLIC_APP_URL') || 'https://gigledger-ten.vercel.app'
 
-  // Format payment methods using structured config
-  const paymentMethodsHtml = settings.payment_methods_config 
-    ? formatPaymentMethodsForEmail(settings.payment_methods_config, invoice.invoice_number)
-    : '';
+  const paymentMethodsHtml = Array.isArray(invoice.accepted_payment_methods) && invoice.accepted_payment_methods.some((pm: any) => String(pm.details || '').trim())
+    ? invoice.accepted_payment_methods
+        .map((pm: any) => `<strong>${escapeHtml(String(pm.method || ''))}:</strong> ${escapeHtml(String(pm.details || ''))}`)
+        .join('<br>')
+    : settings.payment_methods_config
+      ? formatPaymentMethodsForEmail(settings.payment_methods_config, invoice.invoice_number)
+      : ''
 
   return `
     <!DOCTYPE html>
@@ -300,11 +334,11 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
         <h2>Invoice ${invoice.invoice_number}</h2>
         <div class="detail-row">
           <span class="label">Invoice Date:</span>
-          <span>${new Date(invoice.invoice_date).toLocaleDateString()}</span>
+          <span>${formatStoredDate(invoice.invoice_date)}</span>
         </div>
         <div class="detail-row">
           <span class="label">Due Date:</span>
-          <span>${new Date(invoice.due_date).toLocaleDateString()}</span>
+          <span>${formatStoredDate(invoice.due_date)}</span>
         </div>
         <div class="detail-row">
           <span class="label">Bill To:</span>
@@ -353,7 +387,7 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
         ${invoice.discount_amount ? `
           <div class="total-row">
             <span class="label">Discount:</span>
-            <span>-${formatCurrency(invoice.discount_amount)}</span>
+            <span>-${formatCurrency(discount)}</span>
           </div>
         ` : ''}
         <div class="total-row grand-total">

@@ -5,12 +5,14 @@ import { useInvoices } from '../hooks/useInvoices';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { usePayers } from '../hooks/usePayers';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
-import { InvoiceFormData, PAYMENT_TERM_PRESETS, calculateDueDate, PaymentMethodDetail, PAYMENT_METHODS } from '../types/invoice';
+import { InvoiceFormData, PAYMENT_TERM_PRESETS, calculateDueDate, PAYMENT_METHODS } from '../types/invoice';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getSharedUserId } from '../lib/sharedAuth';
 import { useUserId } from '../hooks/useCurrentUser';
-import { parseStoredDate } from '../lib/date';
+import { getTodayDateString, parseStoredDate } from '../lib/date';
 import { supabase } from '../lib/supabase';
+import { getPaymentMethodsConfig, snapshotAcceptedPaymentMethods } from '../utils/paymentMethodsMigration';
+import { calculateInvoiceTotals, roundCurrencyAmount } from '../utils/invoiceCalculations';
 
 interface InvoiceFormProps {
   invoiceId?: string;
@@ -30,20 +32,22 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
   const { data: paymentMethods = [] } = usePaymentMethodDetails(userId || undefined);
   
   const [saving, setSaving] = useState(false);
+  const [dueDateManuallyEdited, setDueDateManuallyEdited] = useState(false);
+  const today = getTodayDateString();
   const [formData, setFormData] = useState<InvoiceFormData>({
     client_name: '',
     client_email: '',
     client_company: '',
     client_address: '',
-    invoice_date: new Date().toISOString().split('T')[0],
-    due_date: calculateDueDate(new Date().toISOString().split('T')[0], 'Net 30'),
+    invoice_date: today,
+    due_date: calculateDueDate(today, 'Net 30'),
     currency: settings?.default_currency || 'USD',
     payment_terms: 'Net 30',
     notes: '',
     private_notes: '',
     tax_rate: settings?.default_tax_rate,
     discount_amount: 0,
-    accepted_payment_methods: settings?.accepted_payment_methods || [],
+    accepted_payment_methods: snapshotAcceptedPaymentMethods(getPaymentMethodsConfig(settings || {})),
     line_items: [{ description: '', quantity: 1, rate: 0 }]
   });
 
@@ -72,23 +76,27 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
             rate: item.rate
           })) || [{ description: '', quantity: 1, rate: 0 }]
         });
+        setDueDateManuallyEdited(false);
       }
     } else if (duplicatingInvoice) {
       // SAFETY: Prefill from duplicating invoice with strict safe defaults
       // - New invoice_date = TODAY
       // - New due_date = calculated from original delta
       // - DO NOT copy: invoice_number (generated fresh), status (defaults to draft), payment metadata
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDateString();
       
       // Calculate due date delta from original invoice
       let newDueDate = calculateDueDate(today, formData.payment_terms || 'Net 30');
       if (duplicatingInvoice.invoice_date && duplicatingInvoice.due_date) {
-        const originalInvoiceDate = new Date(duplicatingInvoice.invoice_date);
-        const originalDueDate = new Date(duplicatingInvoice.due_date);
+        const originalInvoiceDate = parseStoredDate(duplicatingInvoice.invoice_date);
+        const originalDueDate = parseStoredDate(duplicatingInvoice.due_date);
         const deltaDays = Math.round((originalDueDate.getTime() - originalInvoiceDate.getTime()) / (1000 * 60 * 60 * 24));
-        const newDueDateObj = new Date(today);
+        const newDueDateObj = parseStoredDate(today);
         newDueDateObj.setDate(newDueDateObj.getDate() + deltaDays);
-        newDueDate = newDueDateObj.toISOString().split('T')[0];
+        const year = newDueDateObj.getFullYear();
+        const month = String(newDueDateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(newDueDateObj.getDate()).padStart(2, '0');
+        newDueDate = `${year}-${month}-${day}`;
       }
       
       setFormData({
@@ -119,6 +127,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
         // SAFETY: status NOT copied (will default to 'draft' during create)
         // SAFETY: sent/paid/payment metadata NOT copied (not in formData)
       });
+      setDueDateManuallyEdited(false);
     }
   }, [invoiceId, duplicatingInvoice, invoices, settings?.default_currency]);
 
@@ -134,7 +143,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
       accepted_payment_methods:
         prev.accepted_payment_methods && prev.accepted_payment_methods.length > 0
           ? prev.accepted_payment_methods
-          : (settings.accepted_payment_methods || []),
+          : snapshotAcceptedPaymentMethods(getPaymentMethodsConfig(settings)),
     }));
   }, [settings, invoiceId, duplicatingInvoice]);
 
@@ -176,6 +185,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
   };
 
   const handlePaymentTermChange = (term: string) => {
+    setDueDateManuallyEdited(false);
     setFormData({
       ...formData,
       payment_terms: term,
@@ -200,17 +210,15 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
   };
 
   const calculateSubtotal = () => {
-    if (!formData.line_items) return 0;
-    return formData.line_items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
+    return calculateInvoiceTotals(formData.line_items || [], formData.tax_rate, formData.discount_amount).subtotal;
   };
 
   const calculateTax = () => {
-    if (!formData.tax_rate) return 0;
-    return calculateSubtotal() * (formData.tax_rate / 100);
+    return calculateInvoiceTotals(formData.line_items || [], formData.tax_rate, formData.discount_amount).taxAmount;
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax() - (formData.discount_amount || 0);
+    return calculateInvoiceTotals(formData.line_items || [], formData.tax_rate, formData.discount_amount).totalAmount;
   };
 
   const isValidDateString = (value?: string) => {
@@ -218,13 +226,49 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
     return /^\d{4}-\d{2}-\d{2}$/.test(value);
   };
 
+  const isValidEmail = (value?: string) => {
+    if (!value) return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  };
+
+  const buildPreparedFormData = (invoiceNumber?: string): InvoiceFormData => {
+    const config = settings ? getPaymentMethodsConfig(settings) : null;
+
+    return {
+      ...formData,
+      client_name: formData.client_name.trim(),
+      client_email: formData.client_email?.trim() || '',
+      client_company: formData.client_company?.trim() || '',
+      client_address: formData.client_address?.trim() || '',
+      notes: formData.notes?.trim() || '',
+      private_notes: formData.private_notes?.trim() || '',
+      tax_rate: formData.tax_rate === undefined ? undefined : Number(formData.tax_rate),
+      discount_amount: roundCurrencyAmount(formData.discount_amount ?? 0),
+      accepted_payment_methods: snapshotAcceptedPaymentMethods(
+        config,
+        invoiceNumber,
+        formData.accepted_payment_methods
+      ),
+      line_items: (formData.line_items || []).map((item) => ({
+        description: item.description.trim(),
+        quantity: Number(item.quantity),
+        rate: roundCurrencyAmount(item.rate),
+      })),
+    };
+  };
+
   const handleSave = async () => {
-    if (!formData.client_name) {
+    if (!formData.client_name.trim()) {
       Alert.alert('Error', 'Client name is required');
       return;
     }
 
-    if (formData.line_items.some(item => !item.description)) {
+    if (!isValidEmail(formData.client_email)) {
+      Alert.alert('Error', 'Please enter a valid client email address');
+      return;
+    }
+
+    if (formData.line_items.some(item => !item.description.trim())) {
       Alert.alert('Error', 'All line items must have a description');
       return;
     }
@@ -265,7 +309,8 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
       setSaving(true);
 
       if (invoiceId) {
-        await updateInvoice(invoiceId, formData);
+        const currentInvoice = invoices.find((invoice) => invoice.id === invoiceId);
+        await updateInvoice(invoiceId, buildPreparedFormData(currentInvoice?.invoice_number));
         Alert.alert('Success', 'Invoice updated successfully');
       } else {
         // Check limit before creating new invoice
@@ -289,7 +334,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
 
         try {
           const invoiceNumber = await getNextInvoiceNumber();
-          await createInvoice(formData, invoiceNumber);
+          await createInvoice(buildPreparedFormData(invoiceNumber), invoiceNumber);
         } catch (createError) {
           if (limitCheck.incremented) {
             await supabase
@@ -408,7 +453,16 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
         <TextInput
           style={styles.input}
           value={formData.invoice_date}
-          onChangeText={(text) => setFormData({ ...formData, invoice_date: text })}
+          onChangeText={(text) => {
+            setFormData((prev) => ({
+              ...prev,
+              invoice_date: text,
+              due_date:
+                !dueDateManuallyEdited && prev.payment_terms !== 'custom' && isValidDateString(text)
+                  ? calculateDueDate(text, prev.payment_terms || 'Net 30')
+                  : prev.due_date,
+            }));
+          }}
           placeholder="YYYY-MM-DD"
         />
 
@@ -437,7 +491,10 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
         <TextInput
           style={styles.input}
           value={formData.due_date}
-          onChangeText={(text) => setFormData({ ...formData, due_date: text })}
+          onChangeText={(text) => {
+            setDueDateManuallyEdited(true);
+            setFormData({ ...formData, due_date: text });
+          }}
           placeholder="YYYY-MM-DD"
         />
       </View>

@@ -96,7 +96,7 @@ export function PublicInvoiceView({ invoiceId, token }: PublicInvoiceViewProps) 
         <Text style={styles.headerTitle}>Invoice {invoice.invoice_number}</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.actionButton} onPress={handleDownload}>
-            <Text style={styles.actionButtonText}>📥 Download</Text>
+            <Text style={styles.actionButtonText}>📥 Export HTML</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={handlePrint}>
             <Text style={styles.actionButtonText}>🖨️ Print</Text>

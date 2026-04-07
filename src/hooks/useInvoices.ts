@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { Invoice, InvoiceFormData, InvoiceLineItem, InvoiceStatus } from '../types/invoice';
+import { Invoice, InvoiceFormData, InvoiceStatus } from '../types/invoice';
 import { useUserId } from './useCurrentUser';
+import { calculateInvoiceTotals, getEffectiveInvoiceStatus, roundCurrencyAmount } from '../utils/invoiceCalculations';
+import { getTodayDateString, parseStoredDate } from '../lib/date';
 
 export function useInvoices() {
   const queryClient = useQueryClient();
@@ -35,7 +37,6 @@ export function useInvoices() {
           private_notes,
           payment_terms,
           accepted_payment_methods,
-          payment_methods_config,
           sent_at,
           viewed_at,
           paid_at,
@@ -51,11 +52,33 @@ export function useInvoices() {
       if (fetchError) throw fetchError;
 
       const invoicesWithCalculations = (invoicesData || []).map((invoice: any) => {
-        const totalPaid = invoice.payments?.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0) || 0;
+        const lineItems = [...(invoice.line_items || [])].sort(
+          (a: any, b: any) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
+        );
+        const payments = [...(invoice.payments || [])].sort((a: any, b: any) => {
+          const dateDiff = parseStoredDate(b.payment_date).getTime() - parseStoredDate(a.payment_date).getTime();
+          if (dateDiff !== 0) return dateDiff;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+        const totalPaid = roundCurrencyAmount(
+          payments.reduce((sum: number, payment: any) => sum + Number(payment.amount ?? 0), 0)
+        );
+        const balanceDue = roundCurrencyAmount(Number(invoice.total_amount ?? 0) - totalPaid);
+        const status = getEffectiveInvoiceStatus({
+          status: invoice.status,
+          due_date: invoice.due_date,
+          total_amount: Number(invoice.total_amount ?? 0),
+          total_paid: totalPaid,
+          balance_due: balanceDue,
+        });
+
         return {
           ...invoice,
+          status,
+          line_items: lineItems,
+          payments,
           total_paid: totalPaid,
-          balance_due: parseFloat(invoice.total_amount) - totalPaid
+          balance_due: balanceDue,
         };
       });
 
@@ -83,15 +106,13 @@ export function useInvoices() {
 
       const lineItems = formData.line_items.map((item, index) => ({
         description: item.description,
-        quantity: item.quantity,
-        rate: item.rate,
-        amount: item.quantity * item.rate,
+        quantity: Number(item.quantity),
+        rate: Number(item.rate),
+        amount: roundCurrencyAmount(Number(item.quantity) * Number(item.rate)),
         sort_order: index
       }));
 
-      const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-      const taxAmount = formData.tax_rate ? subtotal * (formData.tax_rate / 100) : 0;
-      const totalAmount = subtotal + taxAmount - (formData.discount_amount || 0);
+      const totals = calculateInvoiceTotals(lineItems, formData.tax_rate, formData.discount_amount);
 
       const { data: invoiceData, error: invoiceError } = await supabase
         .from('invoices' as any)
@@ -106,11 +127,11 @@ export function useInvoices() {
           invoice_date: formData.invoice_date,
           due_date: formData.due_date,
           status: 'draft',
-          subtotal,
+          subtotal: totals.subtotal,
           tax_rate: formData.tax_rate,
-          tax_amount: taxAmount,
-          discount_amount: formData.discount_amount,
-          total_amount: totalAmount,
+          tax_amount: totals.taxAmount,
+          discount_amount: totals.discountAmount,
+          total_amount: totals.totalAmount,
           currency: formData.currency ?? 'USD',
           payment_terms: formData.payment_terms,
           notes: formData.notes,
@@ -200,19 +221,18 @@ export function useInvoices() {
         const lineItems = formData.line_items.map((item, index) => ({
           invoice_id: invoiceId,
           description: item.description,
-          quantity: item.quantity,
-          rate: item.rate,
-          amount: item.quantity * item.rate,
+          quantity: Number(item.quantity),
+          rate: Number(item.rate),
+          amount: roundCurrencyAmount(Number(item.quantity) * Number(item.rate)),
           sort_order: index
         }));
 
-        const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-        const taxAmount = formData.tax_rate ? subtotal * (formData.tax_rate / 100) : 0;
-        const totalAmount = subtotal + taxAmount - (formData.discount_amount || 0);
+        const totals = calculateInvoiceTotals(lineItems, formData.tax_rate, formData.discount_amount);
 
-        updateData.subtotal = subtotal;
-        updateData.tax_amount = taxAmount;
-        updateData.total_amount = totalAmount;
+        updateData.subtotal = totals.subtotal;
+        updateData.tax_amount = totals.taxAmount;
+        updateData.discount_amount = totals.discountAmount;
+        updateData.total_amount = totals.totalAmount;
 
         const { error: insertLineItemsError } = await supabase
           .from('invoice_line_items' as any)
@@ -341,7 +361,8 @@ export function useInvoices() {
         .from('invoice_payments' as any)
         .insert({
           invoice_id: invoiceId,
-          ...paymentData
+          ...paymentData,
+          amount: roundCurrencyAmount(paymentData.amount),
         })
         .select();
 
@@ -387,6 +408,20 @@ export function useInvoices() {
     try {
       const invoice = invoices.find(i => i.id === invoiceId);
       if (!invoice) throw new Error('Invoice not found');
+      const today = getTodayDateString();
+      let dueDate = today;
+
+      if (invoice.invoice_date && invoice.due_date) {
+        const originalInvoiceDate = parseStoredDate(invoice.invoice_date);
+        const originalDueDate = parseStoredDate(invoice.due_date);
+        const deltaDays = Math.round((originalDueDate.getTime() - originalInvoiceDate.getTime()) / (1000 * 60 * 60 * 24));
+        const nextDueDate = parseStoredDate(today);
+        nextDueDate.setDate(nextDueDate.getDate() + deltaDays);
+        const year = nextDueDate.getFullYear();
+        const month = String(nextDueDate.getMonth() + 1).padStart(2, '0');
+        const day = String(nextDueDate.getDate()).padStart(2, '0');
+        dueDate = `${year}-${month}-${day}`;
+      }
 
       const formData: InvoiceFormData = {
         client_id: invoice.client_id,
@@ -394,8 +429,8 @@ export function useInvoices() {
         client_email: invoice.client_email,
         client_company: invoice.client_company,
         client_address: invoice.client_address,
-        invoice_date: new Date().toISOString().split('T')[0],
-        due_date: invoice.due_date,
+        invoice_date: today,
+        due_date: dueDate,
         payment_terms: invoice.payment_terms,
         notes: invoice.notes,
         private_notes: invoice.private_notes,

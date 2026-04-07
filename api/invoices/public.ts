@@ -61,6 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         currency,
         payment_terms,
         notes,
+        accepted_payment_methods,
         sent_at,
         viewed_at,
         paid_at,
@@ -143,10 +144,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         currency: invoice.currency,
         payment_terms: invoice.payment_terms ?? undefined,
         notes: invoice.notes ?? undefined,
+        accepted_payment_methods: (invoice.accepted_payment_methods as PublicInvoicePayload['invoice']['accepted_payment_methods']) ?? [],
         sent_at: invoice.sent_at ?? undefined,
         viewed_at: invoiceViewedAt ?? undefined,
         paid_at: invoice.paid_at ?? undefined,
-        line_items: (invoice.invoice_line_items ?? []).map((item) => ({
+        line_items: (invoice.invoice_line_items ?? [])
+          .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
+          .map((item) => ({
           id: item.id,
           description: item.description,
           quantity: Number(item.quantity ?? 0),
@@ -154,7 +158,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           amount: Number(item.amount ?? 0),
           sort_order: item.sort_order,
         })),
-        payments: payments.map((payment) => ({
+        payments: [...payments]
+          .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())
+          .map((payment) => ({
           id: payment.id,
           payment_date: payment.payment_date,
           amount: Number(payment.amount ?? 0),

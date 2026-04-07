@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, TextInput, useWindowDimensions, Platform } from 'react-native';
-import { Invoice, InvoiceStatus, getStatusColor, getStatusLabel, formatCurrency } from '../types/invoice';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, useWindowDimensions, Platform } from 'react-native';
+import { Invoice, InvoiceStatus, getStatusLabel, formatCurrency } from '../types/invoice';
 import { OnboardingHelperCard } from './OnboardingHelperCard';
+import { formatStoredDate, parseStoredDate } from '../lib/date';
+import { getEffectiveInvoiceStatus } from '../utils/invoiceCalculations';
 
 // Design tokens
 const T = {
@@ -37,20 +39,21 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
   const isMobile = Platform.OS !== 'web' || width < 768;
 
   const isEmpty = invoices.length === 0;
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const filteredInvoices = useMemo(() => {
     let filtered = [...invoices];
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(inv => inv.status === statusFilter);
+      filtered = filtered.filter(inv => getEffectiveInvoiceStatus(inv) === statusFilter);
     }
 
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    if (normalizedSearchQuery) {
       filtered = filtered.filter(inv =>
-        inv.invoice_number.toLowerCase().includes(query) ||
-        inv.client_name.toLowerCase().includes(query) ||
-        inv.client_company?.toLowerCase().includes(query) ||
+        inv.invoice_number.toLowerCase().includes(normalizedSearchQuery) ||
+        inv.client_name.toLowerCase().includes(normalizedSearchQuery) ||
+        inv.client_company?.toLowerCase().includes(normalizedSearchQuery) ||
+        inv.client_email?.toLowerCase().includes(normalizedSearchQuery) ||
         false
       );
     }
@@ -60,15 +63,15 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
         case 'amount':
           return b.total_amount - a.total_amount;
         case 'due_date':
-          return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+          return parseStoredDate(a.due_date).getTime() - parseStoredDate(b.due_date).getTime();
         case 'date':
         default:
-          return new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime();
+          return parseStoredDate(b.invoice_date).getTime() - parseStoredDate(a.invoice_date).getTime();
       }
     });
 
     return filtered;
-  }, [invoices, statusFilter, searchQuery, sortBy]);
+  }, [invoices, normalizedSearchQuery, sortBy, statusFilter]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -83,7 +86,8 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
     };
 
     invoices.forEach(inv => {
-      counts[inv.status] = (counts[inv.status] || 0) + 1;
+      const status = getEffectiveInvoiceStatus(inv);
+      counts[status] = (counts[status] || 0) + 1;
     });
 
     return counts;
@@ -91,11 +95,11 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
 
   const metrics = useMemo(() => {
     const unpaidInvoices = invoices.filter(inv => 
-      inv.status !== 'paid' && inv.status !== 'cancelled'
+      !['paid', 'cancelled'].includes(getEffectiveInvoiceStatus(inv))
     );
     const totalOutstanding = unpaidInvoices.reduce((sum, inv) => sum + (inv.balance_due ?? inv.total_amount), 0);
     
-    const overdueInvoices = invoices.filter(inv => inv.status === 'overdue');
+    const overdueInvoices = invoices.filter(inv => getEffectiveInvoiceStatus(inv) === 'overdue');
     const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + (inv.balance_due ?? inv.total_amount), 0);
 
     const thisMonth = new Date();
@@ -103,7 +107,7 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
     thisMonth.setHours(0, 0, 0, 0);
     
     const paidThisMonth = invoices.filter(inv => 
-      inv.status === 'paid' && 
+      getEffectiveInvoiceStatus(inv) === 'paid' && 
       inv.paid_at && 
       new Date(inv.paid_at) >= thisMonth
     );
@@ -209,8 +213,7 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
   };
 
   const formatDateShort = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return formatStoredDate(dateStr, 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   return (
@@ -294,10 +297,13 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
       >
         {([
           { key: 'all', label: `All (${statusCounts.all})` },
+          { key: 'draft', label: `Draft (${statusCounts.draft})` },
           { key: 'sent', label: `Sent (${statusCounts.sent})` },
+          { key: 'viewed', label: `Viewed (${statusCounts.viewed})` },
+          { key: 'partially_paid', label: `Partial (${statusCounts.partially_paid})` },
           { key: 'overdue', label: `Overdue (${statusCounts.overdue})` },
           { key: 'paid', label: `Paid (${statusCounts.paid})` },
-          { key: 'draft', label: `Draft (${statusCounts.draft})` },
+          { key: 'cancelled', label: `Cancelled (${statusCounts.cancelled})` },
         ] as const).map(({ key, label }) => (
           <TouchableOpacity
             key={key}
@@ -335,100 +341,104 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
             )
           ) : (
             filteredInvoices.map((invoice) => (
-              isMobile ? (
-                <TouchableOpacity
-                  key={invoice.id}
-                  style={styles.invoiceCardMobile}
-                  onPress={() => onSelectInvoice?.(invoice)}
-                  activeOpacity={0.75}
-                >
-                  {/* Top section */}
-                  <View style={styles.cardTopRow}>
-                    <View style={styles.cardLeft}>
-                      <Text style={styles.cardInvoiceNumber}>{invoice.invoice_number}</Text>
-                      <Text style={styles.cardClientName} numberOfLines={1}>{invoice.client_name}</Text>
-                      {invoice.client_company && (
-                        <Text style={styles.cardBandName}>{invoice.client_company}</Text>
-                      )}
-                    </View>
-                    <View style={styles.cardRight}>
-                      <Text style={styles.cardAmount}>{formatAmount(invoice.total_amount)}</Text>
-                      <View style={[styles.cardStatusBadge, getStatusBadgeStyle(invoice.status)]}>
-                        <Text style={[styles.cardStatusText, { color: getStatusTextColor(invoice.status) }]}>
-                          {getStatusLabel(invoice.status).toUpperCase()}
-                        </Text>
+              (() => {
+                const status = getEffectiveInvoiceStatus(invoice);
+
+                return isMobile ? (
+                  <TouchableOpacity
+                    key={invoice.id}
+                    style={styles.invoiceCardMobile}
+                    onPress={() => onSelectInvoice?.(invoice)}
+                    activeOpacity={0.75}
+                  >
+                    {/* Top section */}
+                    <View style={styles.cardTopRow}>
+                      <View style={styles.cardLeft}>
+                        <Text style={styles.cardInvoiceNumber}>{invoice.invoice_number}</Text>
+                        <Text style={styles.cardClientName} numberOfLines={1}>{invoice.client_name}</Text>
+                        {invoice.client_company && (
+                          <Text style={styles.cardBandName}>{invoice.client_company}</Text>
+                        )}
+                      </View>
+                      <View style={styles.cardRight}>
+                        <Text style={styles.cardAmount}>{formatAmount(invoice.total_amount)}</Text>
+                        <View style={[styles.cardStatusBadge, getStatusBadgeStyle(status)]}>
+                          <Text style={[styles.cardStatusText, { color: getStatusTextColor(status) }]}>
+                            {getStatusLabel(status).toUpperCase()}
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                  </View>
 
-                  {/* Divider */}
-                  <View style={styles.cardDivider} />
+                    {/* Divider */}
+                    <View style={styles.cardDivider} />
 
-                  {/* Date rows */}
-                  <View style={styles.cardDates}>
-                    <View style={styles.dateRow}>
-                      <Text style={styles.dateLabel}>Invoice Date</Text>
-                      <Text style={styles.dateValue}>{formatDateShort(invoice.invoice_date)}</Text>
-                    </View>
-                    <View style={styles.dateRow}>
-                      <Text style={styles.dateLabel}>Due Date</Text>
-                      <Text style={styles.dateValue}>{formatDateShort(invoice.due_date)}</Text>
-                    </View>
-                    {invoice.balance_due !== undefined && invoice.balance_due > 0 && invoice.status !== 'paid' && (
+                    {/* Date rows */}
+                    <View style={styles.cardDates}>
                       <View style={styles.dateRow}>
-                        <Text style={styles.dateLabel}>Balance Due</Text>
-                        <Text style={[styles.dateValue, styles.balanceDueValue]}>
-                          {formatAmount(invoice.balance_due)}
-                        </Text>
+                        <Text style={styles.dateLabel}>Invoice Date</Text>
+                        <Text style={styles.dateValue}>{formatDateShort(invoice.invoice_date)}</Text>
                       </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  key={invoice.id}
-                  style={styles.invoiceCard}
-                  onPress={() => onSelectInvoice?.(invoice)}
-                >
-                  <View style={styles.invoiceHeader}>
-                    <View>
-                      <Text style={styles.invoiceNumber}>{invoice.invoice_number}</Text>
-                      <Text style={styles.clientName}>{invoice.client_name}</Text>
-                      {invoice.client_company && (
-                        <Text style={styles.clientCompany}>{invoice.client_company}</Text>
+                      <View style={styles.dateRow}>
+                        <Text style={styles.dateLabel}>Due Date</Text>
+                        <Text style={styles.dateValue}>{formatDateShort(invoice.due_date)}</Text>
+                      </View>
+                      {invoice.balance_due !== undefined && invoice.balance_due > 0 && status !== 'paid' && (
+                        <View style={styles.dateRow}>
+                          <Text style={styles.dateLabel}>Balance Due</Text>
+                          <Text style={[styles.dateValue, styles.balanceDueValue]}>
+                            {formatAmount(invoice.balance_due)}
+                          </Text>
+                        </View>
                       )}
                     </View>
-                    <View style={styles.invoiceHeaderRight}>
-                      <Text style={styles.invoiceAmount}>{formatCurrency(invoice.total_amount)}</Text>
-                      <View style={[styles.statusBadge, getStatusBadgeStyle(invoice.status)]}>
-                        <Text style={[styles.statusText, { color: getStatusTextColor(invoice.status) }]}>
-                          {getStatusLabel(invoice.status)}
-                        </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    key={invoice.id}
+                    style={styles.invoiceCard}
+                    onPress={() => onSelectInvoice?.(invoice)}
+                  >
+                    <View style={styles.invoiceHeader}>
+                      <View>
+                        <Text style={styles.invoiceNumber}>{invoice.invoice_number}</Text>
+                        <Text style={styles.clientName}>{invoice.client_name}</Text>
+                        {invoice.client_company && (
+                          <Text style={styles.clientCompany}>{invoice.client_company}</Text>
+                        )}
+                      </View>
+                      <View style={styles.invoiceHeaderRight}>
+                        <Text style={styles.invoiceAmount}>{formatCurrency(invoice.total_amount)}</Text>
+                        <View style={[styles.statusBadge, getStatusBadgeStyle(status)]}>
+                          <Text style={[styles.statusText, { color: getStatusTextColor(status) }]}>
+                            {getStatusLabel(status)}
+                          </Text>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                  <View style={styles.invoiceDetails}>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Invoice Date:</Text>
-                      <Text style={styles.detailValue}>{new Date(invoice.invoice_date).toLocaleDateString()}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Due Date:</Text>
-                      <Text style={[styles.detailValue, invoice.status === 'overdue' && styles.detailValueOverdue]}>
-                        {new Date(invoice.due_date).toLocaleDateString()}
-                      </Text>
-                    </View>
-                    {invoice.balance_due !== undefined && invoice.balance_due > 0 && invoice.status !== 'paid' && (
+                    <View style={styles.invoiceDetails}>
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Balance Due:</Text>
-                        <Text style={[styles.detailValue, styles.balanceDue]}>
-                          {formatCurrency(invoice.balance_due)}
+                        <Text style={styles.detailLabel}>Invoice Date:</Text>
+                        <Text style={styles.detailValue}>{formatStoredDate(invoice.invoice_date)}</Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Due Date:</Text>
+                        <Text style={[styles.detailValue, status === 'overdue' && styles.detailValueOverdue]}>
+                          {formatStoredDate(invoice.due_date)}
                         </Text>
                       </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              )
+                      {invoice.balance_due !== undefined && invoice.balance_due > 0 && status !== 'paid' && (
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Balance Due:</Text>
+                          <Text style={[styles.detailValue, styles.balanceDue]}>
+                            {formatCurrency(invoice.balance_due)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })()
             ))
           )}
         </ScrollView>

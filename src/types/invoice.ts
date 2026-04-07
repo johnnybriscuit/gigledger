@@ -125,6 +125,7 @@ export interface PublicInvoicePayload {
     | 'currency'
     | 'payment_terms'
     | 'notes'
+    | 'accepted_payment_methods'
     | 'sent_at'
     | 'viewed_at'
     | 'paid_at'

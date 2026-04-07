@@ -11,6 +11,7 @@ import {
   PaymentMethodConfig,
   PaymentMethodType 
 } from '../types/paymentMethods';
+import { formatPaymentMethodsForDisplay } from './formatPaymentMethods';
 
 /**
  * Maps old payment method names to new type identifiers
@@ -24,6 +25,17 @@ const OLD_TO_NEW_TYPE_MAP: Record<string, PaymentMethodType> = {
   'Cash App': 'cashapp',
   'Wire Transfer': 'wire',
   'Credit Card': 'card',
+};
+
+const NEW_TO_OLD_TYPE_MAP: Record<PaymentMethodType, PaymentMethodDetail['method']> = {
+  cash: 'Cash',
+  check: 'Check',
+  venmo: 'Venmo',
+  zelle: 'Zelle',
+  paypal: 'PayPal',
+  cashapp: 'Cash App',
+  wire: 'Wire Transfer',
+  card: 'Credit Card',
 };
 
 /**
@@ -235,6 +247,51 @@ export function getPaymentMethodsConfig(
   };
 }
 
+export function snapshotAcceptedPaymentMethods(
+  config: PaymentMethodsConfig | null | undefined,
+  invoiceNumber?: string,
+  selectedMethods?: PaymentMethodDetail[] | null
+): PaymentMethodDetail[] {
+  const selectedSet = new Set((selectedMethods || []).map((method) => method.method));
+  const selectedLookup = new Map((selectedMethods || []).map((method) => [method.method, method]));
+
+  const configLookup = new Map(
+    (config?.methods || [])
+      .filter((method) => method.enabled)
+      .map((method) => [NEW_TO_OLD_TYPE_MAP[method.type], method] as const)
+  );
+
+  const orderedMethods: PaymentMethodDetail['method'][] = [];
+  for (const method of selectedMethods || []) {
+    if (!orderedMethods.includes(method.method)) {
+      orderedMethods.push(method.method);
+    }
+  }
+  for (const method of configLookup.keys()) {
+    if (!selectedSet.size || selectedSet.has(method)) {
+      orderedMethods.push(method);
+    }
+  }
+
+  const uniqueMethods = orderedMethods.filter((method, index) => orderedMethods.indexOf(method) === index);
+  const displays = formatPaymentMethodsForDisplay(config, invoiceNumber);
+
+  const detailsByMethod = new Map<PaymentMethodDetail['method'], string>();
+  for (const method of config?.methods || []) {
+    if (!method.enabled) continue;
+    const legacyMethod = NEW_TO_OLD_TYPE_MAP[method.type];
+    const display = displays.find((item) => item.label === legacyMethod || normalizeMethodLabel(item.label) === legacyMethod);
+    if (display?.details) {
+      detailsByMethod.set(legacyMethod, display.details);
+    }
+  }
+
+  return uniqueMethods.map((method) => ({
+    method,
+    details: detailsByMethod.get(method) ?? selectedLookup.get(method)?.details ?? '',
+  }));
+}
+
 /**
  * Validates that all required fields are present for enabled methods
  * 
@@ -315,4 +372,13 @@ export function validatePaymentMethodsConfig(
   }
 
   return errors;
+}
+
+function normalizeMethodLabel(label: string): PaymentMethodDetail['method'] {
+  switch (label) {
+    case 'Credit/Debit Card':
+      return 'Credit Card';
+    default:
+      return label as PaymentMethodDetail['method'];
+  }
 }

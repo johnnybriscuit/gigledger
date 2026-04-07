@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, Alert, Acti
 import { useInvoices } from '../hooks/useInvoices';
 import { Invoice, PAYMENT_METHODS, formatCurrency } from '../types/invoice';
 import { generatePaymentRef } from '../utils/paymentReference';
+import { getTodayDateString, parseStoredDate } from '../lib/date';
+import { roundCurrencyAmount } from '../utils/invoiceCalculations';
 
 interface RecordPaymentModalProps {
   invoice: Invoice;
@@ -15,7 +17,7 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
   const { recordPayment } = useInvoices();
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    payment_date: new Date().toISOString().split('T')[0],
+    payment_date: getTodayDateString(),
     amount: invoice.balance_due?.toString() || invoice.total_amount.toString(),
     payment_method: '',
     reference_number: '',
@@ -63,6 +65,17 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
       return;
     }
 
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(formData.payment_date)) {
+      Alert.alert('Validation Error', 'Payment date must be in YYYY-MM-DD format');
+      return;
+    }
+
+    const parsedPaymentDate = parseStoredDate(formData.payment_date);
+    if (Number.isNaN(parsedPaymentDate.getTime())) {
+      Alert.alert('Validation Error', 'Please enter a valid payment date');
+      return;
+    }
+
     const balanceDue = invoice.balance_due ?? invoice.total_amount;
     if (amount > balanceDue) {
       Alert.alert('Validation Error', `Payment amount cannot exceed balance due (${formatCurrency(balanceDue, invoice.currency)})`);
@@ -73,7 +86,7 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
       setSaving(true);
       console.log('Recording payment with data:', {
         payment_date: formData.payment_date,
-        amount,
+        amount: roundCurrencyAmount(amount),
         payment_method: formData.payment_method,
         reference_number: formData.reference_number || undefined,
         notes: formData.notes || undefined
@@ -81,7 +94,7 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
       
       await recordPayment(invoice.id, {
         payment_date: formData.payment_date,
-        amount,
+        amount: roundCurrencyAmount(amount),
         payment_method: formData.payment_method,
         reference_number: formData.reference_number || undefined,
         notes: formData.notes || undefined
@@ -101,7 +114,7 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
 
   const handleClose = () => {
     setFormData({
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: getTodayDateString(),
       amount: invoice.balance_due?.toString() || invoice.total_amount.toString(),
       payment_method: '',
       reference_number: '',

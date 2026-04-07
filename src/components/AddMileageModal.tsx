@@ -184,11 +184,11 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
         setIsAutoCalculated(true);
         setAutoCalculatedOneWayMiles(result.miles);
       } else {
-        setCoordsError('Couldn\'t calculate miles right now — please try again.');
+        setCoordsError('Couldn\'t calculate a driving route right now. Please try again or enter miles manually.');
       }
     } catch (error) {
       console.error('Distance calculation error:', error);
-      setCoordsError('Couldn\'t calculate miles right now — please try again.');
+      setCoordsError('Couldn\'t calculate a driving route right now. Please try again or enter miles manually.');
     } finally {
       setIsCalculating(false);
     }
@@ -458,7 +458,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               )}
               {isAutoCalculated && (
                 <Text style={styles.autoCalculatedHint}>
-                  ✓ Auto-calculated
+                  ✓ Auto-calculated from a driving route
                 </Text>
               )}
             </View>

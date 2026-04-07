@@ -4,6 +4,8 @@ import { Invoice, InvoiceSettings, formatCurrency } from '../types/invoice';
 import { buildInvoiceViewModel } from '../utils/invoiceViewModel';
 import { PaymentMethodDetail } from '../hooks/usePaymentMethodDetails';
 import { confirmDialog } from '../lib/dialog';
+import { formatStoredDate } from '../lib/date';
+import { getEffectiveInvoiceStatus } from '../utils/invoiceCalculations';
 
 interface InvoiceTemplateProps {
   invoice: Invoice;
@@ -18,6 +20,7 @@ export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDel
     () => buildInvoiceViewModel(invoice, paymentMethodDetails, settings),
     [invoice, paymentMethodDetails, settings]
   );
+  const invoiceStatus = getEffectiveInvoiceStatus(invoice);
   const handleDeletePayment = async (paymentId: string, paymentAmount: number) => {
     console.log('Delete payment clicked:', paymentId, paymentAmount);
     
@@ -80,11 +83,11 @@ export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDel
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Date:</Text>
-            <Text style={styles.infoValue}>{new Date(invoice.invoice_date).toLocaleDateString()}</Text>
+            <Text style={styles.infoValue}>{formatStoredDate(invoice.invoice_date)}</Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Due Date:</Text>
-            <Text style={styles.infoValue}>{new Date(invoice.due_date).toLocaleDateString()}</Text>
+            <Text style={styles.infoValue}>{formatStoredDate(invoice.due_date)}</Text>
           </View>
         </View>
 
@@ -144,7 +147,7 @@ export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDel
           </View>
         </View>
 
-        {invoice.status === 'paid' && (
+        {invoiceStatus === 'paid' && (
           <View style={styles.paidStamp}>
             <Text style={styles.paidStampText}>PAID</Text>
           </View>
@@ -184,7 +187,7 @@ export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDel
               <View key={payment.id} style={styles.paymentRow}>
                 <View style={styles.paymentInfo}>
                   <Text style={styles.paymentDate}>
-                    {new Date(payment.payment_date).toLocaleDateString()}
+                    {formatStoredDate(payment.payment_date)}
                   </Text>
                   <Text style={styles.paymentMethod}>{payment.payment_method}</Text>
                   {payment.reference_number && (

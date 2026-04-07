@@ -33,7 +33,7 @@ export function useInvoiceSettings() {
   });
 
   const fetchSettings = async () => {
-    queryClient.invalidateQueries({ queryKey: ['invoice_settings', userId] });
+    return queryClient.invalidateQueries({ queryKey: ['invoice_settings', userId] });
   };
 
   const createSettings = async (settingsData: Partial<InvoiceSettings>) => {
