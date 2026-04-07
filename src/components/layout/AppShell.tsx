@@ -514,7 +514,7 @@ export function AppShell({
         {/* Header with page title and actions */}
         {/* On mobile the title is already in the native header bar — only show it on desktop web */}
         {((!isMobile && pageTitle) || headerActions) && (
-          <View style={[styles.header, isMobile && styles.headerMobile]}>
+          <View style={[styles.header, isDesktopWeb && styles.headerDesktop, isMobile && styles.headerMobile]}>
             <View style={styles.headerLeft}>
               {!isMobile && pageTitle && (
                 <Text style={[styles.pageTitle, isMobile && styles.pageTitleMobile]}>
@@ -580,6 +580,15 @@ export function AppShell({
 }
 
 const SIDEBAR_WIDTH = 240;
+const SIDEBAR_TOP_PADDING = spacingNum[8];
+const SIDEBAR_LOGO_ROW_CONTENT_HEIGHT = 24;
+const SIDEBAR_LOGO_ROW_BOTTOM_PADDING = spacingNum[8];
+const TOP_ROW_DIVIDER_WIDTH = 1;
+const DESKTOP_TOP_ROW_HEIGHT =
+  SIDEBAR_TOP_PADDING +
+  SIDEBAR_LOGO_ROW_CONTENT_HEIGHT +
+  SIDEBAR_LOGO_ROW_BOTTOM_PADDING +
+  TOP_ROW_DIVIDER_WIDTH;
 
 const styles = StyleSheet.create({
   container: {
@@ -926,11 +935,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     ...Platform.select({
       web: {
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
         zIndex: 10,
         position: 'relative' as any,
       },
     }),
+  },
+  headerDesktop: {
+    height: DESKTOP_TOP_ROW_HEIGHT,
+    paddingVertical: 0,
   },
   headerMobile: {
     paddingHorizontal: spacingNum[4],
