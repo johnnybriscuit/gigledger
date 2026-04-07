@@ -161,8 +161,8 @@ async function fetchAddressViaProxy(address: string): Promise<PlaceDetailsResult
   const isWeb = typeof window !== 'undefined' && Boolean(window.location?.origin);
 
   const urls = isWeb
-    ? [`/api/places/geocode?address=${encoded}`, `${getBaseUrl()}/api/places/geocode?address=${encoded}`]
-    : [`${getBaseUrl()}/api/places/geocode?address=${encoded}`];
+    ? [`/api/places/details?address=${encoded}`, `${getBaseUrl()}/api/places/details?address=${encoded}`]
+    : [`${getBaseUrl()}/api/places/details?address=${encoded}`];
 
   for (const url of urls) {
     try {

@@ -4,7 +4,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyProxyHeaders, enforceProxyAccess, parseAllowedOrigins } from './_lib/proxySecurity';
+import { applyProxyHeaders, enforceProxyAccess, parseAllowedOrigins } from '../src/lib/proxySecurity';
 
 function getFirstQueryValue(value: string | string[] | undefined): string | null {
   if (typeof value === 'string') {

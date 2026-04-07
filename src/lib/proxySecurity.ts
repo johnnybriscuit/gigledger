@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { checkIdentifierRateLimit, getClientIp } from '../../src/lib/rateLimit';
+import { checkIdentifierRateLimit, getClientIp } from './rateLimit';
 
 export const DEFAULT_PROXY_ALLOWED_ORIGINS = [
   'http://localhost:8090',

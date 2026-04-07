@@ -4,7 +4,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { applyProxyHeaders, enforceProxyAccess, parseAllowedOrigins } from '../_lib/proxySecurity';
+import { applyProxyHeaders, enforceProxyAccess, parseAllowedOrigins } from '../../src/lib/proxySecurity';
 
 const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 type AutocompletePrediction = {
