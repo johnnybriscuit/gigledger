@@ -42,7 +42,7 @@ import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getEffectiveTaxTreatment, getTaxTreatmentLabel, getTaxTreatmentShortLabel, getDefaultAmountType } from '../lib/taxTreatment';
-import { resolvePlaceDetails } from '../lib/placeDetails';
+import { resolveAddressDetails, resolvePlaceDetails } from '../lib/placeDetails';
 import { colors } from '../styles/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -138,6 +138,8 @@ export function AddGigModal({
   const grossAmountInputRef = useRef<TextInput>(null);
   const hasTrackedOpenRef = useRef(false);
   const lastAutoMileageRouteKeyRef = useRef<string | null>(null);
+  const lastHydratedVenueAddressRef = useRef<string | null>(null);
+  const failedHydratedVenueAddressRef = useRef<string | null>(null);
   const [payerId, setPayerId] = useState('');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
@@ -243,6 +245,7 @@ export function AddGigModal({
   
   // Construct venue address from form fields
   const venueAddress = [location, city, state].filter(Boolean).join(', ');
+  const venueLookupAddress = [location, city, state, country].filter(Boolean).join(', ');
   const resolvedVenueAddress = venueDetails?.formatted_address || venueAddress || location || null;
   const resolvedHomeAddress = profile?.home_address_full || profile?.home_address || null;
   const rawHomeCoordinates = {
@@ -255,6 +258,13 @@ export function AddGigModal({
   const venueCoordinates = hasCoordinates(venueDetails?.location)
     ? venueDetails.location
     : null;
+  const canHydrateVenueCoordinatesFromStoredAddress = Boolean(
+    (editingGig || duplicatingGig) &&
+    location.trim() &&
+    venueLookupAddress.trim() &&
+    !venueCoordinates
+  );
+  const hasFailedStoredVenueHydration = failedHydratedVenueAddressRef.current === venueLookupAddress;
   const mileageMiles = parseFloat(inlineMileage?.miles || '0');
   const hasMileageReady = Number.isFinite(mileageMiles) && mileageMiles > 0;
   
@@ -432,6 +442,8 @@ export function AddGigModal({
   // Handle duplicating gig (separate from editing)
   useEffect(() => {
     if (duplicatingGig) {
+      lastHydratedVenueAddressRef.current = null;
+      failedHydratedVenueAddressRef.current = null;
       setVenueDetails(null);
       setCityDetails(null);
       setVenueError('');
@@ -490,6 +502,8 @@ export function AddGigModal({
 
   useEffect(() => {
     if (editingGig) {
+      lastHydratedVenueAddressRef.current = null;
+      failedHydratedVenueAddressRef.current = null;
       setVenueDetails(null);
       setCityDetails(null);
       setVenueError('');
@@ -565,6 +579,8 @@ export function AddGigModal({
   }, [editingGig, visible]);
 
   const resetForm = () => {
+    lastHydratedVenueAddressRef.current = null;
+    failedHydratedVenueAddressRef.current = null;
     setPayerId('');
     setDate(toUtcDateString(new Date())); // Today's date in UTC format
     setTitle('');
@@ -618,6 +634,8 @@ export function AddGigModal({
     setDidDriveToGig(nextDidDrive);
 
     if (!nextDidDrive) {
+      lastHydratedVenueAddressRef.current = null;
+      failedHydratedVenueAddressRef.current = null;
       setMileageCalculationStatus('idle');
       return;
     }
@@ -633,6 +651,10 @@ export function AddGigModal({
     }
 
     if (!resolvedVenueAddress || !venueCoordinates) {
+      if (canHydrateVenueCoordinatesFromStoredAddress && !hasFailedStoredVenueHydration) {
+        setMileageCalculationStatus('calculating');
+        return;
+      }
       setMileageCalculationStatus('missing-venue');
       return;
     }
@@ -655,6 +677,8 @@ export function AddGigModal({
         setMileageCalculationStatus('idle');
       } else if (!resolvedHomeAddress || !homeCoordinates) {
         setMileageCalculationStatus('missing-home');
+      } else if (canHydrateVenueCoordinatesFromStoredAddress && !hasFailedStoredVenueHydration) {
+        setMileageCalculationStatus('calculating');
       } else if (!resolvedVenueAddress || !venueCoordinates) {
         setMileageCalculationStatus('missing-venue');
       } else {
@@ -688,7 +712,17 @@ export function AddGigModal({
       return;
     }
 
-    if (!resolvedVenueAddress || !venueCoordinates) {
+    if (!resolvedVenueAddress) {
+      setMileageCalculationStatus('missing-venue');
+      return;
+    }
+
+    if (!venueCoordinates) {
+      if (canHydrateVenueCoordinatesFromStoredAddress && !hasFailedStoredVenueHydration) {
+        setMileageCalculationStatus('calculating');
+        return;
+      }
+
       setMileageCalculationStatus('missing-venue');
       return;
     }
@@ -762,6 +796,71 @@ export function AddGigModal({
     resolvedVenueAddress,
     venueCoordinates?.lat,
     venueCoordinates?.lng,
+    canHydrateVenueCoordinatesFromStoredAddress,
+    hasFailedStoredVenueHydration,
+  ]);
+
+  useEffect(() => {
+    if (!visible || !didDriveToGig || venueCoordinates) {
+      return;
+    }
+
+    if (!canHydrateVenueCoordinatesFromStoredAddress) {
+      return;
+    }
+
+    if (lastHydratedVenueAddressRef.current === venueLookupAddress) {
+      return;
+    }
+
+    let cancelled = false;
+    lastHydratedVenueAddressRef.current = venueLookupAddress;
+    failedHydratedVenueAddressRef.current = null;
+
+    void resolveAddressDetails(venueLookupAddress)
+      .then((details) => {
+        if (cancelled) {
+          return;
+        }
+
+        if (!details?.location) {
+          failedHydratedVenueAddressRef.current = venueLookupAddress;
+          setMileageCalculationStatus('missing-venue');
+          return;
+        }
+
+        failedHydratedVenueAddressRef.current = null;
+        setVenueDetails((current: any) => ({
+          ...(current || {}),
+          ...details,
+          formatted_address: details.formatted_address || current?.formatted_address || venueLookupAddress,
+          location: details.location,
+          parts: {
+            ...(current?.parts || {}),
+            ...(details.parts || {}),
+          },
+        }));
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        failedHydratedVenueAddressRef.current = venueLookupAddress;
+        console.error('Failed to resolve saved gig venue details:', error);
+        setMileageCalculationStatus('missing-venue');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    visible,
+    didDriveToGig,
+    venueCoordinates?.lat,
+    venueCoordinates?.lng,
+    canHydrateVenueCoordinatesFromStoredAddress,
+    venueLookupAddress,
   ]);
 
   const filteredStates = US_STATES.filter(s => 

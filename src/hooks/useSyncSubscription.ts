@@ -4,19 +4,18 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { getSharedUser } from '../lib/sharedAuth';
 
 export function useSyncSubscription() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getSharedUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase.functions.invoke('sync-subscription', {
-        body: {
-          userId: user.id,
-        },
+        body: {},
       });
 
       if (error) {

@@ -4,7 +4,10 @@
  * This file contains all tax rates, brackets, and deductions for tax year 2025.
  * 
  * FEDERAL: Official 2025 values from IRS Revenue Procedure 2024-40 ✅
- * STATE TODO: Update with official 2025 values from:
+ * STATES: mixed support. Some entries are still planning estimates and must not be
+ * treated as filing-ready tax tables until verified against the relevant state source.
+ *
+ * Verification targets:
  * - California: CA Franchise Tax Board annual tables
  * - New York: NY Dept of Taxation + NYC Finance + Yonkers
  * - Maryland: MD Comptroller state brackets + county piggyback rates
@@ -66,7 +69,9 @@ export interface TaxConfig2025 {
 /**
  * 2025 Tax Configuration
  * 
- * PLACEHOLDER VALUES - Update with official 2025 numbers when available
+ * Mixed 2025 configuration:
+ * - Federal values are verified.
+ * - State values marked TODO remain planning estimates for reserve guidance only.
  */
 const config2025: TaxConfig2025 = {
   // ============================================================================

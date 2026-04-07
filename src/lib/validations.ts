@@ -33,7 +33,7 @@ export const gigSchema = z.object({
   fees: z.number().min(0, 'Must be 0 or greater').default(0),
   per_diem: z.number().min(0, 'Must be 0 or greater').default(0),
   other_income: z.number().min(0, 'Must be 0 or greater').default(0),
-  net_amount: z.number().min(0, 'Must be 0 or greater'),
+  net_amount: z.number(),
   payment_method: z.string().optional(),
   invoice_link: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   paid: z.boolean().default(false),

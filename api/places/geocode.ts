@@ -1,6 +1,6 @@
 /**
- * Google Place Details Proxy
- * Fetches detailed place information and normalizes address components
+ * Google Geocoding Proxy
+ * Resolves a free-form address into normalized address parts and coordinates.
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -16,12 +16,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  // Only allow GET requests
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const allowed = await enforceProxyAccess(req, res, 'places-details', {
+  const allowed = await enforceProxyAccess(req, res, 'places-geocode', {
     limit: Number(process.env.GOOGLE_PROXY_RATE_LIMIT || 30),
     windowMs: Number(process.env.GOOGLE_PROXY_RATE_LIMIT_WINDOW_MS || 60_000),
     allowedOrigins,
@@ -31,42 +30,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { place_id } = req.query;
+    const { address } = req.query;
 
-    if (!place_id || typeof place_id !== 'string') {
-      return res.status(400).json({ error: 'Query parameter "place_id" is required' });
+    if (!address || typeof address !== 'string') {
+      return res.status(400).json({ error: 'Query parameter "address" is required' });
     }
 
     if (!GOOGLE_API_KEY) {
       console.error('GOOGLE_MAPS_API_KEY is not configured');
-      return res.status(500).json({ error: 'Places API not configured' });
+      return res.status(500).json({ error: 'Geocoding API not configured' });
     }
 
-    // Build Google Place Details API URL
     const params = new URLSearchParams({
-      place_id,
+      address,
       key: GOOGLE_API_KEY,
-      fields: 'formatted_address,address_components,geometry/location,name,types',
     });
 
-    const googleUrl = `https://maps.googleapis.com/maps/api/place/details/json?${params.toString()}`;
-
-    console.log('Place Details request:', { place_id });
-
+    const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`;
     const response = await fetch(googleUrl);
     const data = await response.json();
 
-    if (data.status !== 'OK') {
-      console.error('Google Places API error:', data.status, data.error_message);
-      return res.status(502).json({ 
-        error: 'Places API error',
-        status: data.status 
+    if (data.status !== 'OK' || !Array.isArray(data.results) || data.results.length === 0) {
+      console.error('Google Geocoding API error:', data.status, data.error_message);
+      return res.status(502).json({
+        error: 'Geocoding API error',
+        status: data.status,
       });
     }
 
-    const result = data.result;
-
-    // Extract and normalize address components
+    const result = data.results[0];
     const parts: {
       street_number?: string;
       route?: string;
@@ -89,33 +81,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } else if (types.includes('locality')) {
           parts.city = value;
         } else if (types.includes('administrative_area_level_1')) {
-          parts.state = shortValue; // Use short name for state (e.g., "FL" instead of "Florida")
+          parts.state = shortValue;
         } else if (types.includes('postal_code')) {
           parts.postal_code = value;
         } else if (types.includes('country')) {
-          parts.country = shortValue; // Use short name for country (e.g., "US")
+          parts.country = shortValue;
         }
       }
     }
 
-    // Normalize response
-    const normalized = {
-      place_id: result.place_id,
-      name: result.name || '',
+    return res.status(200).json({
+      place_id: result.place_id || '',
       formatted_address: result.formatted_address || '',
-      location: result.geometry?.location ? {
-        lat: result.geometry.location.lat,
-        lng: result.geometry.location.lng,
-      } : null,
+      location: result.geometry?.location
+        ? {
+            lat: result.geometry.location.lat,
+            lng: result.geometry.location.lng,
+          }
+        : null,
       parts,
-    };
-
-    return res.status(200).json(normalized);
-
+    });
   } catch (error: unknown) {
-    console.error('Place details error:', error instanceof Error ? error.message : error);
-    return res.status(500).json({ 
-      error: 'Failed to fetch place details',
+    console.error('Geocode error:', error instanceof Error ? error.message : error);
+    return res.status(500).json({
+      error: 'Failed to geocode address',
     });
   }
 }

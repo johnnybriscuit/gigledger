@@ -1,15 +1,17 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import Stripe from 'https://esm.sh/stripe@14.21.0'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+import {
+  corsHeaders,
+  createServiceClient,
+  errorResponse,
+  getAuthenticatedUser,
+  jsonResponse,
+  resolveAuthorizedRequestUserId,
+} from '../_shared/auth.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY_PROD') || Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
 })
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,48 +19,27 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json()
+    const user = await getAuthenticatedUser(req)
+    const { userId: requestedUserId } = await req.json()
+    const userId = resolveAuthorizedRequestUserId(user.id, requestedUserId)
 
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing userId' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    if (!user.email) {
+      return jsonResponse({ error: 'Authenticated user email is unavailable' }, 400)
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Get user's email to search Stripe
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', userId)
-      .single()
-
-    if (!profile?.email) {
-      return new Response(
-        JSON.stringify({ error: 'User email not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const supabase = createServiceClient()
 
     // Search for customer in Stripe by email
     const customers = await stripe.customers.list({
-      email: profile.email,
+      email: user.email,
       limit: 1,
     })
 
     if (customers.data.length === 0) {
-      return new Response(
-        JSON.stringify({ 
+      return jsonResponse({
           message: 'No Stripe customer found',
           plan: 'free'
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        })
     }
 
     const customer = customers.data[0]
@@ -71,13 +52,10 @@ serve(async (req) => {
     })
 
     if (subscriptions.data.length === 0) {
-      return new Response(
-        JSON.stringify({ 
+      return jsonResponse({
           message: 'No subscription found',
           plan: 'free'
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        })
     }
 
     const stripeSubscription = subscriptions.data[0]
@@ -105,25 +83,15 @@ serve(async (req) => {
 
     if (upsertError) {
       console.error('Error upserting subscription:', upsertError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to save subscription', details: upsertError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return jsonResponse({ error: 'Failed to save subscription' }, 500)
     }
 
-    return new Response(
-      JSON.stringify({ 
+    return jsonResponse({
         message: 'Subscription synced successfully',
         plan: tier,
         status: stripeSubscription.status
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (error: any) {
-    console.error('Error syncing subscription:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      })
+  } catch (error) {
+    return errorResponse(error, 'Error syncing subscription:')
   }
 })

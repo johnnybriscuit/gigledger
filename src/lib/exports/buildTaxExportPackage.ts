@@ -18,20 +18,23 @@ import { mapCategoryToScheduleCRef } from './scheduleCRefMapping';
 import { getStandardMileageRate } from './mileageRates';
 import { roundCents } from './rounding';
 import { getScheduleCLineName } from './scheduleCLineNames';
-import {
-  getEffectiveTaxTreatment,
-  filterGigsForScheduleC,
-  splitGigsByTaxTreatment,
-} from '../taxTreatment';
-import type { TaxTreatment } from '../taxTreatment';
+import { getEffectiveTaxTreatment } from '../taxTreatment';
+import { getMileageRateForDate } from '../mileage';
 
 type GigRow = Database['public']['Tables']['gigs']['Row'];
 type ExpenseDbRow = Database['public']['Tables']['expenses']['Row'];
 type MileageExportRow = Database['public']['Views']['v_mileage_export']['Row'];
 type InvoiceDbRow = Database['public']['Tables']['invoices']['Row'];
 type InvoicePaymentRow = Database['public']['Tables']['invoice_payments']['Row'];
+type InvoicePaymentQueryRow = InvoicePaymentRow & {
+  invoice: Pick<InvoiceDbRow, 'id' | 'invoice_number' | 'client_name' | 'currency'> | null;
+};
 type SubcontractorPaymentRow = Database['public']['Tables']['gig_subcontractor_payments']['Row'];
 type SubcontractorRow = Database['public']['Tables']['subcontractors']['Row'];
+type SubcontractorPaymentQueryRow = SubcontractorPaymentRow & {
+  subcontractor: Pick<SubcontractorRow, 'id' | 'name'> | null;
+  gig: Pick<GigRow, 'date'> | null;
+};
 type PayerRow = Database['public']['Tables']['payers']['Row'];
 
 type BuildTaxExportPackageOptions = {
@@ -98,7 +101,7 @@ export function buildTaxExportPackageFromData(input: {
   const incomeRows: IncomeRow[] = [];
 
   for (const gig of input.gigs) {
-    const isPaid = (gig as any).paid === true;
+    const isPaid = gig.paid === true;
     if (!isPaid) continue;
 
     const gross = (gig.gross_amount || 0) + (input.includeTips ? (gig.tips || 0) : 0) + (gig.per_diem || 0) + (gig.other_income || 0);
@@ -222,10 +225,10 @@ export function buildTaxExportPackageFromData(input: {
     }
   }
 
-  const mileageRate = getStandardMileageRate(input.taxYear);
   const mileageRows: MileageRow[] = input.mileage.map((m) => {
     const miles = m.miles || 0;
-    const deduction = typeof m.deduction_amount === 'number' ? m.deduction_amount : roundCents(miles * mileageRate);
+    const rate = getMileageRateForDate(m.date);
+    const deduction = typeof m.deduction_amount === 'number' ? m.deduction_amount : roundCents(miles * rate);
 
     return {
       id: `${m.user_id || 'unknown'}:${m.date || input.dateStart}:${m.miles || 0}:${m.destination || ''}`,
@@ -234,7 +237,7 @@ export function buildTaxExportPackageFromData(input: {
       destination: m.destination || null,
       purpose: m.purpose || null,
       miles,
-      rate: mileageRate,
+      rate,
       deductionAmount: roundCents(deduction),
       currency,
       isEstimate: true,
@@ -402,14 +405,22 @@ export function buildTaxExportPackageFromData(input: {
   // Derive mileage summary
   const totalMiles = roundCents(mileageRows.reduce((sum, r) => sum + r.miles, 0));
   const hasAnyEstimate = mileageRows.some(r => r.isEstimate);
+  const mileageRatesUsed = Array.from(new Set(mileageRows.map((row) => row.rate)));
+  const summaryRate =
+    mileageRatesUsed.length === 1 ? mileageRatesUsed[0] : getStandardMileageRate(input.taxYear);
   const mileageSummary: MileageSummary = {
     taxYear: input.taxYear,
     totalBusinessMiles: totalMiles,
-    standardRateUsed: mileageRate,
+    standardRateUsed: summaryRate,
     mileageDeductionAmount: mileageDeductionTotal,
     entriesCount: mileageRows.length,
     isEstimateAny: hasAnyEstimate,
-    notes: 'Vehicle info not collected; keep your odometer records. Standard mileage rate applied.',
+    notes:
+      mileageRatesUsed.length > 1
+        ? `Vehicle info not collected; keep your odometer records. Multiple IRS standard mileage rates were applied (${mileageRatesUsed
+            .map((rate) => rate.toFixed(3))
+            .join(', ')}).`
+        : 'Vehicle info not collected; keep your odometer records. Standard mileage rate applied.',
   };
 
   // Build Schedule C line items with manual-entry friendly amounts
@@ -549,7 +560,7 @@ export async function buildTaxExportPackage(options: BuildTaxExportPackageOption
       .gte('date', dateStart)
       .lte('date', dateEnd),
     supabase
-      .from('invoices' as any)
+      .from('invoices')
       .select('*')
       .eq('user_id', options.userId)
       .gte('invoice_date', dateStart)
@@ -584,18 +595,18 @@ export async function buildTaxExportPackage(options: BuildTaxExportPackageOption
   for (const inv of invoices) assertUsdCurrency(inv.currency);
 
   // invoice_payments already joined to invoices (with user_id filter) via the query above
-  const invoicePayments = ((invoicePaymentsRes.data || []) as any[]).map((p) => {
-    const inv = p.invoice as Pick<InvoiceDbRow, 'id' | 'invoice_number' | 'client_name' | 'currency'> | null;
+  const invoicePayments = ((invoicePaymentsRes.data || []) as InvoicePaymentQueryRow[]).map((payment) => {
+    const inv = payment.invoice;
     assertUsdCurrency(inv?.currency);
     return {
-      ...p,
+      ...payment,
       invoice: inv ?? null,
     } as InvoicePaymentRow & {
       invoice?: Pick<InvoiceDbRow, 'id' | 'invoice_number' | 'client_name' | 'currency'> | null;
     };
   });
 
-  const subcontractorPayments = (subcontractorPaymentsRes.data || []) as any[];
+  const subcontractorPayments = (subcontractorPaymentsRes.data || []) as SubcontractorPaymentQueryRow[];
   const payers = (payersRes.data || []) as PayerRow[];
 
   return buildTaxExportPackageFromData({

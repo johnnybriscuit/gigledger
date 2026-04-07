@@ -19,6 +19,7 @@ import {
   IRS_SCHEDULE_C_LINE_CODES,
 } from './schemas';
 import { getStandardMileageRate } from './mileageRates';
+import { SS_WAGE_BASE_2025 } from '../tax/constants';
 
 // ============================================================================
 // CSV UTILITIES
@@ -299,7 +300,6 @@ export function calculateScheduleCSummary(
   } else {
     // Fallback: simplified calculations (should rarely be used)
     // Estimated SE tax (15.3% of SE tax basis, capped at SS wage base)
-    const SS_WAGE_BASE_2025 = 168600;
     const ssTax = Math.min(seTaxBasis, SS_WAGE_BASE_2025) * 0.124; // 12.4% SS
     const medicareTax = seTaxBasis * 0.029; // 2.9% Medicare
     estSETax = ssTax + medicareTax;

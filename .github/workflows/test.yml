@@ -24,6 +24,9 @@ jobs:
       
       - name: Run type check
         run: npm run typecheck
+
+      - name: Verify schema artifacts
+        run: npm run verify:schema
       
       - name: Run tests
         run: npm test

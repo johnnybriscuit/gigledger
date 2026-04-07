@@ -7,6 +7,8 @@ The tax withholding system calculates recommended tax set-aside amounts for self
 - **Self-Employment Tax** (15.3% up to Social Security wage base)
 - **State Income Tax** (varies by state, supports both flat and progressive brackets)
 
+These calculations are planning estimates for cash-reserve guidance. They are not filing-ready tax advice.
+
 ## Data Model
 
 ### `profiles` Table Updates
@@ -187,9 +189,9 @@ expect(ca.stateIncome).toBeGreaterThan(0);
    - TODO: Implement Additional Medicare Tax (0.9% over threshold)
    - TODO: Handle multiple income sources for SS cap
    
-3. **State Tax Rates**: PLACEHOLDER values seeded
-   - TODO: Replace with actual 2025 rates before production
-   - TODO: Verify all state rates with official sources
+3. **State Tax Rates**: Mixed support
+   - Some state rows are still planning-estimate defaults
+   - Verify each state against official 2025 source material before treating results as filing-ready
 
 4. **Not Tax Advice**: All estimates are for planning only
    - Users should consult tax professionals

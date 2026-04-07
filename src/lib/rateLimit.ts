@@ -102,6 +102,10 @@ function getRateLimitKey(ip: string, email: string, action: string): string {
   return `ratelimit:${action}:${ipHash}:${emailHash}`;
 }
 
+function getIdentifierRateLimitKey(identifier: string, action: string): string {
+  return `ratelimit:${action}:${hashValue(identifier)}`;
+}
+
 /**
  * Check rate limit (in-memory fallback)
  */
@@ -184,6 +188,16 @@ export async function checkRateLimit(
   windowMs: number = 600000 // 10 minutes
 ): Promise<{ allowed: boolean; remaining: number }> {
   const key = getRateLimitKey(ip, email, action);
+  return checkRateLimitRedis(key, limit, windowMs);
+}
+
+export async function checkIdentifierRateLimit(
+  identifier: string,
+  action: string,
+  limit: number = 5,
+  windowMs: number = 600000
+): Promise<{ allowed: boolean; remaining: number }> {
+  const key = getIdentifierRateLimitKey(identifier, action);
   return checkRateLimitRedis(key, limit, windowMs);
 }
 

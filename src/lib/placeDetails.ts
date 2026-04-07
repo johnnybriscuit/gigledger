@@ -68,6 +68,25 @@ function normalizeProxyResponse(data: any): PlaceDetailsResult | null {
   };
 }
 
+function normalizeGeocodeResponse(data: any): PlaceDetailsResult | null {
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  const location =
+    typeof data.location?.lat === 'number' && typeof data.location?.lng === 'number'
+      ? { lat: data.location.lat, lng: data.location.lng }
+      : null;
+
+  return {
+    place_id: typeof data.place_id === 'string' ? data.place_id : '',
+    name: '',
+    formatted_address: typeof data.formatted_address === 'string' ? data.formatted_address : '',
+    location,
+    parts: typeof data.parts === 'object' && data.parts ? data.parts : {},
+  };
+}
+
 async function fetchViaProxy(placeId: string): Promise<PlaceDetailsResult | null> {
   const encoded = encodeURIComponent(placeId);
   const isWeb = typeof window !== 'undefined' && Boolean(window.location?.origin);
@@ -137,6 +156,74 @@ async function fetchViaGoogle(placeId: string): Promise<PlaceDetailsResult | nul
   }
 }
 
+async function fetchAddressViaProxy(address: string): Promise<PlaceDetailsResult | null> {
+  const encoded = encodeURIComponent(address);
+  const isWeb = typeof window !== 'undefined' && Boolean(window.location?.origin);
+
+  const urls = isWeb
+    ? [`/api/places/geocode?address=${encoded}`, `${getBaseUrl()}/api/places/geocode?address=${encoded}`]
+    : [`${getBaseUrl()}/api/places/geocode?address=${encoded}`];
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) continue;
+
+      const data = await response.json();
+      const normalized = normalizeGeocodeResponse(data);
+      if (normalized) return normalized;
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+async function fetchAddressViaGoogle(address: string): Promise<PlaceDetailsResult | null> {
+  const apiKey =
+    Constants.expoConfig?.extra?.googleMapsApiKey || process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  if (!apiKey) {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    address,
+    key: apiKey,
+  });
+
+  try {
+    const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`);
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    const result = Array.isArray(data?.results) ? data.results[0] : null;
+
+    if (data?.status !== 'OK' || !result) {
+      return null;
+    }
+
+    return {
+      place_id: typeof result.place_id === 'string' ? result.place_id : '',
+      name: '',
+      formatted_address: typeof result.formatted_address === 'string' ? result.formatted_address : '',
+      location:
+        typeof result.geometry?.location?.lat === 'number' && typeof result.geometry?.location?.lng === 'number'
+          ? {
+              lat: result.geometry.location.lat,
+              lng: result.geometry.location.lng,
+            }
+          : null,
+      parts: normalizeGoogleAddressParts(result.address_components),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function resolvePlaceDetails(placeId: string): Promise<PlaceDetailsResult | null> {
   if (!placeId) {
     return null;
@@ -148,6 +235,24 @@ export async function resolvePlaceDetails(placeId: string): Promise<PlaceDetails
   }
 
   const googleResult = await fetchViaGoogle(placeId);
+  if (googleResult?.location) {
+    return googleResult;
+  }
+
+  return proxyResult ?? googleResult;
+}
+
+export async function resolveAddressDetails(address: string): Promise<PlaceDetailsResult | null> {
+  if (!address?.trim()) {
+    return null;
+  }
+
+  const proxyResult = await fetchAddressViaProxy(address);
+  if (proxyResult?.location) {
+    return proxyResult;
+  }
+
+  const googleResult = await fetchAddressViaGoogle(address);
   if (googleResult?.location) {
     return googleResult;
   }

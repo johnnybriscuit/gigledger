@@ -5,6 +5,7 @@
 
 import type { GigExportRow, ExpenseExportRow, MileageExportRow } from './schemas';
 import { getGigDisplayName } from '../gigDisplayName';
+import type { TaxExportPackage } from './taxExportPackage';
 
 export type ValidationIssue = {
   type: 'error' | 'warning';
@@ -187,6 +188,138 @@ export function validateExportData(
         id: trip.trip_id,
         field: 'destination',
         message: `Mileage trip is missing destination location.`,
+      });
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+    summary: {
+      totalIssues: errors.length + warnings.length,
+      blockingErrors: errors.length,
+      warnings: warnings.length,
+    },
+  };
+}
+
+export function validateTaxExportPackage(pkg: TaxExportPackage): ValidationResult {
+  const errors: ValidationIssue[] = [];
+  const warnings: ValidationIssue[] = [];
+
+  for (const expense of pkg.expenseRows) {
+    if (typeof expense.scheduleCRefNumber !== 'number') {
+      errors.push({
+        type: 'error',
+        category: 'expense',
+        id: expense.id,
+        field: 'scheduleCRefNumber',
+        message: `Expense "${expense.description}" is missing a Schedule C reference number.`,
+      });
+    }
+
+    if (expense.amount < 0) {
+      errors.push({
+        type: 'error',
+        category: 'expense',
+        id: expense.id,
+        field: 'amount',
+        message: `Expense "${expense.description}" has negative amount: $${expense.amount}. Amounts must be positive.`,
+      });
+    }
+
+    if (!isValidDate(expense.date)) {
+      errors.push({
+        type: 'error',
+        category: 'expense',
+        id: expense.id,
+        field: 'date',
+        message: `Expense "${expense.description}" has invalid date: ${expense.date}`,
+      });
+    }
+  }
+
+  for (const income of pkg.incomeRows) {
+    if (income.amount < 0) {
+      errors.push({
+        type: 'error',
+        category: 'gig',
+        id: income.id,
+        field: 'amount',
+        message: `Income row "${income.description}" has negative gross amount: $${income.amount}`,
+      });
+    }
+
+    if (!isValidDate(income.receivedDate)) {
+      errors.push({
+        type: 'error',
+        category: 'gig',
+        id: income.id,
+        field: 'receivedDate',
+        message: `Income row "${income.description}" has invalid date: ${income.receivedDate}`,
+      });
+    }
+
+    if (income.source === 'gig' && (!income.payerName || income.payerName.trim() === '')) {
+      warnings.push({
+        type: 'warning',
+        category: 'gig',
+        id: income.id,
+        field: 'payerName',
+        message: `Income row "${income.description}" is missing payer name. This may be needed for 1099 reconciliation.`,
+      });
+    }
+  }
+
+  for (const trip of pkg.mileageRows) {
+    if (trip.miles < 0) {
+      errors.push({
+        type: 'error',
+        category: 'mileage',
+        id: trip.id,
+        field: 'miles',
+        message: `Mileage trip has negative miles: ${trip.miles}`,
+      });
+    }
+
+    if (!isValidDate(trip.date)) {
+      errors.push({
+        type: 'error',
+        category: 'mileage',
+        id: trip.id,
+        field: 'date',
+        message: `Mileage trip has invalid date: ${trip.date}`,
+      });
+    }
+
+    if (!trip.purpose || trip.purpose.trim() === '') {
+      warnings.push({
+        type: 'warning',
+        category: 'mileage',
+        id: trip.id,
+        field: 'purpose',
+        message: `Mileage trip from "${trip.origin}" to "${trip.destination}" is missing business purpose.`,
+      });
+    }
+
+    if (!trip.origin || trip.origin.trim() === '') {
+      warnings.push({
+        type: 'warning',
+        category: 'mileage',
+        id: trip.id,
+        field: 'origin',
+        message: 'Mileage trip is missing origin location.',
+      });
+    }
+
+    if (!trip.destination || trip.destination.trim() === '') {
+      warnings.push({
+        type: 'warning',
+        category: 'mileage',
+        id: trip.id,
+        field: 'destination',
+        message: 'Mileage trip is missing destination location.',
       });
     }
   }

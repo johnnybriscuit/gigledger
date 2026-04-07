@@ -1,9 +1,8 @@
-import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
-import { getCachedUserId } from '../lib/sharedAuth';
+import { getCachedUserId, getSharedUser } from '../lib/sharedAuth';
 import { useUserId } from './useCurrentUser';
 import { getPlanAndUsage, createGigLimitError } from '../lib/planLimits';
 
@@ -38,19 +37,29 @@ export interface GigWithPayer extends Gig {
   }>;
 }
 
-export function useGigs() {
+export interface GigQueryFilters {
+  startDate?: string;
+  endDate?: string;
+}
+
+type GigLimitError = Error & {
+  code?: string;
+};
+
+export function useGigs(filters?: GigQueryFilters) {
   const userId = useUserId();
-  const queryClient = useQueryClient();
   
   console.log('[useGigs] userId:', userId, 'enabled:', !!userId);
   
   const result = useQuery({
-    queryKey: userId ? queryKeys.gigs(userId) : ['gigs-loading'],
+    queryKey: userId
+      ? [...queryKeys.gigs(userId), filters?.startDate ?? null, filters?.endDate ?? null]
+      : ['gigs-loading'],
     queryFn: async () => {
       console.log('[useGigs] queryFn called, userId:', userId);
       if (!userId) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('gigs')
         .select(`
           *,
@@ -59,8 +68,17 @@ export function useGigs() {
           mileage:mileage!mileage_gig_id_fkey(id, date, miles, notes),
           subcontractor_payments:gig_subcontractor_payments(id, subcontractor_id, amount, note)
         `)
-        .eq('user_id', userId)
-        .order('date', { ascending: false });
+        .eq('user_id', userId);
+
+      if (filters?.startDate) {
+        query = query.gte('date', filters.startDate);
+      }
+
+      if (filters?.endDate) {
+        query = query.lte('date', filters.endDate);
+      }
+
+      const { data, error } = await query.order('date', { ascending: false });
 
       console.log('[useGigs] Query result:', data?.length, 'gigs, error:', error);
       if (error) throw error;
@@ -82,14 +100,14 @@ export function useCreateGig() {
 
   return useMutation({
     mutationFn: async (gig: Omit<GigInsert, 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getSharedUser();
       if (!user) throw new Error('Not authenticated');
 
       // Check plan limits before creating gig
       const planCheck = await getPlanAndUsage(supabase, user.id);
 
       if (!planCheck.canCreateGigs) {
-        const error: any = createGigLimitError(planCheck);
+        const error = createGigLimitError(planCheck) as GigLimitError;
         error.code = 'FREE_PLAN_LIMIT_REACHED';
         throw error;
       }

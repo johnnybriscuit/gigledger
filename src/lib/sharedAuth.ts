@@ -1,96 +1,87 @@
-/**
- * Shared Auth Singleton
- * 
- * Problem: Each hook (useGigs, useExpenses, etc.) was calling supabase.auth.getUser()
- * in its own useEffect. When 10 components use these hooks, that's 50+ duplicate auth calls.
- * 
- * Solution: This singleton ensures only ONE auth call happens, no matter how many
- * hooks or components request the userId. All subsequent calls return the cached value.
- * 
- * Usage in hooks:
- * ```typescript
- * import { getSharedUserId } from '../lib/sharedAuth';
- * 
- * export function useGigs() {
- *   const [userId, setUserId] = useState<string | null>(null);
- *   
- *   useEffect(() => {
- *     getSharedUserId().then(setUserId);  // Shared, deduplicated call
- *   }, []);
- *   
- *   return useQuery({...});
- * }
- * ```
- */
-
 import { supabase } from './supabase';
+import type { User } from '@supabase/supabase-js';
 
-// Cached userId - shared across all hooks
-let cachedUserId: string | null = null;
-
-// In-flight auth promise - prevents duplicate requests
-let authPromise: Promise<string | null> | null = null;
+let cachedUser: User | null | undefined = undefined;
+let authPromise: Promise<User | null> | null = null;
 
 /**
- * Get the current user's ID with automatic deduplication
- * 
- * - First call: Fetches from Supabase and caches the result
- * - Subsequent calls: Returns cached value immediately
- * - Concurrent calls: Share the same promise (no duplicate requests)
- * 
- * @returns Promise<string | null> - User ID or null if not authenticated
+ * Shared, deduplicated user lookup.
  */
-export async function getSharedUserId(): Promise<string | null> {
-  // If we already have it cached, return immediately (no network call)
-  if (cachedUserId !== null) {
-    return cachedUserId;
+export async function getSharedUser(): Promise<User | null> {
+  if (cachedUser !== undefined) {
+    return cachedUser;
   }
-  
-  // If we're already fetching, return the same promise (deduplicate concurrent calls)
+
   if (authPromise) {
     return authPromise;
   }
-  
-  // Otherwise, fetch it once and cache the result
-  authPromise = supabase.auth.getUser()
+
+  authPromise = supabase.auth
+    .getUser()
     .then(({ data: { user } }) => {
-      cachedUserId = user?.id || null;
-      authPromise = null; // Clear the in-flight promise
-      return cachedUserId;
+      cachedUser = user ?? null;
+      authPromise = null;
+      return cachedUser;
     })
     .catch((error) => {
-      console.error('Shared auth error:', error);
-      authPromise = null; // Clear the promise on error
+      console.error('[sharedAuth] getUser failed:', error);
+      cachedUser = null;
+      authPromise = null;
       return null;
     });
-  
+
   return authPromise;
 }
 
 /**
- * Clear the cached userId
- * Call this when the user signs out to ensure fresh auth on next login
+ * Get the current user's ID with automatic deduplication.
  */
-export function clearSharedUserId() {
-  cachedUserId = null;
-  authPromise = null;
+export async function getSharedUserId(): Promise<string | null> {
+  const user = await getSharedUser();
+  return user?.id ?? null;
+}
+
+export function getCachedUser(): User | null | undefined {
+  return cachedUser;
 }
 
 /**
- * Sync the cache with the latest auth state.
- * Use this on sign-in, sign-out, and session restoration so hooks don't read a stale user id.
- */
-export function syncSharedUserId(userId: string | null) {
-  cachedUserId = userId;
-  authPromise = null;
-}
-
-/**
- * Get the cached userId synchronously (if available)
- * Returns null if not yet fetched
- * 
- * @returns string | null - Cached user ID or null
+ * Get the cached userId synchronously when available.
  */
 export function getCachedUserId(): string | null {
-  return cachedUserId;
+  return cachedUser?.id ?? null;
+}
+
+/**
+ * Clear the shared auth cache after sign out or auth failures.
+ */
+export function clearSharedUserId() {
+  cachedUser = undefined;
+  authPromise = null;
+}
+
+export function clearSharedUser() {
+  clearSharedUserId();
+}
+
+/**
+ * Sync the cache with the latest authenticated user.
+ */
+export function syncSharedUser(user: User | null) {
+  cachedUser = user;
+  authPromise = null;
+}
+
+/**
+ * Backwards-compatible id-only cache sync for existing callers.
+ */
+export function syncSharedUserId(userId: string | null) {
+  if (!userId) {
+    cachedUser = null;
+    authPromise = null;
+    return;
+  }
+
+  cachedUser = cachedUser?.id === userId ? cachedUser : ({ id: userId } as User);
+  authPromise = null;
 }

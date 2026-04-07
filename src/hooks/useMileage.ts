@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
-import { getCachedUserId } from '../lib/sharedAuth';
+import { getCachedUserId, getSharedUser } from '../lib/sharedAuth';
 import { useUserId } from './useCurrentUser';
 import {
   calculateMileageDeduction as calculateMileageDeductionForDate,
@@ -17,19 +17,35 @@ type MileageUpdate = Database['public']['Tables']['mileage']['Update'];
 export const IRS_MILEAGE_RATE_YEAR = getLatestSupportedMileageYear();
 export const IRS_MILEAGE_RATE = getStandardMileageRate();
 
-export function useMileage() {
+export interface MileageQueryFilters {
+  startDate?: string;
+  endDate?: string;
+}
+
+export function useMileage(filters?: MileageQueryFilters) {
   const userId = useUserId();
   
   return useQuery({
-    queryKey: userId ? queryKeys.mileage(userId) : ['mileage-loading'],
+    queryKey: userId
+      ? [...queryKeys.mileage(userId), filters?.startDate ?? null, filters?.endDate ?? null]
+      : ['mileage-loading'],
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated');
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('mileage')
         .select('*')
-        .eq('user_id', userId)
-        .order('date', { ascending: false});
+        .eq('user_id', userId);
+
+      if (filters?.startDate) {
+        query = query.gte('date', filters.startDate);
+      }
+
+      if (filters?.endDate) {
+        query = query.lte('date', filters.endDate);
+      }
+
+      const { data, error } = await query.order('date', { ascending: false});
 
       if (error) throw error;
       return data as Mileage[];
@@ -46,7 +62,7 @@ export function useCreateMileage() {
 
   return useMutation({
     mutationFn: async (mileage: Omit<MileageInsert, 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getSharedUser();
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase

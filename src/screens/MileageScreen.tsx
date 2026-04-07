@@ -21,7 +21,7 @@ import {
 import { AddMileageModal } from '../components/AddMileageModal';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 import { toUtcDateString } from '../lib/date';
-import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
+import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { colors } from '../styles/theme';
@@ -37,16 +37,16 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
   
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
-  
-  const { data: allMileage, isLoading, error, refetch } = useMileage();
 
-  // Client-side date filtering — useMileage fetches all, we filter here
-  const mileage = dateRange
-    ? (() => {
-        const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
-        return filterByDateRange(allMileage, startDate, endDate);
-      })()
-    : allMileage;
+  const queryDateRange = dateRange ? dateRangeToStrings(dateRange, customStart, customEnd) : null;
+  const { data: mileage, isLoading, error, refetch } = useMileage(
+    queryDateRange
+      ? {
+          startDate: queryDateRange.startDate,
+          endDate: queryDateRange.endDate,
+        }
+      : undefined
+  );
   const deleteMileage = useDeleteMileage();
   const createMileage = useCreateMileage();
 
@@ -139,7 +139,7 @@ export function MileageScreen({ onNavigateToAccount }: MileageScreenProps = {}) 
   const totalMiles = mileage?.reduce((sum, item) => sum + item.miles, 0) || 0;
   const totalDeduction = sumMileageDeduction(mileage || []);
   const tripCount = mileage?.length || 0;
-  const hasAnyTrips = (allMileage?.length || 0) > 0;
+  const hasAnyTrips = tripCount > 0;
   const hasTrips = tripCount > 0;
 
   const renderTrip = ({ item }: { item: any }) => {

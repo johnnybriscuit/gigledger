@@ -74,9 +74,8 @@ END $$;
 -- (No policies for INSERT/UPDATE/DELETE means only service role can do these operations)
 
 -- 4. Seed initial tax rates for 2025
--- ⚠️ WARNING: These are PLACEHOLDER rates for development only!
--- TODO: Replace with actual 2025 state tax rates before production deployment
--- TODO: Consult IRS and state revenue department publications for accurate rates
+-- ⚠️ WARNING: These rows are planning-estimate defaults for reserve guidance only.
+-- They are not filing-ready tax tables and must be verified before any tax-filing use.
 
 INSERT INTO state_tax_rates (state_code, effective_year, type, flat_rate, brackets, notes)
 VALUES
@@ -90,13 +89,13 @@ VALUES
   ('WY', 2025, 'flat', 0, NULL, 'PLACEHOLDER: Wyoming has no state income tax'),
   ('AK', 2025, 'flat', 0, NULL, 'PLACEHOLDER: Alaska has no state income tax'),
   
-  -- Flat tax states (PLACEHOLDER RATES - verify before production!)
+  -- Flat tax states (planning estimates unless separately verified)
   ('MD', 2025, 'flat', 0.0475, NULL, 'PLACEHOLDER: Maryland flat rate ~4.75% - VERIFY ACTUAL RATE'),
   ('IL', 2025, 'flat', 0.0495, NULL, 'PLACEHOLDER: Illinois flat rate ~4.95% - VERIFY ACTUAL RATE'),
   ('PA', 2025, 'flat', 0.0307, NULL, 'PLACEHOLDER: Pennsylvania flat rate ~3.07% - VERIFY ACTUAL RATE'),
   ('CO', 2025, 'flat', 0.044, NULL, 'PLACEHOLDER: Colorado flat rate ~4.4% - VERIFY ACTUAL RATE'),
   
-  -- Progressive bracket states (PLACEHOLDER BRACKETS - verify before production!)
+  -- Progressive bracket states (planning estimates unless separately verified)
   ('CA', 2025, 'bracket', NULL, 
    '[
      {"upTo": 10000, "rate": 0.01},

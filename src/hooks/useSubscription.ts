@@ -2,16 +2,14 @@
  * Hook for managing user subscriptions
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { useState, useEffect } from 'react';
-import { getSharedUserId } from '../lib/sharedAuth';
+import { getSharedUser, getSharedUserId } from '../lib/sharedAuth';
 import Constants from 'expo-constants';
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || Constants.expoConfig?.extra?.supabaseUrl;
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || Constants.expoConfig?.extra?.supabaseAnonKey;
 
 export type SubscriptionTier = 'free' | 'monthly' | 'yearly';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
@@ -72,7 +70,7 @@ export function useSubscription() {
 export function useCreateCheckoutSession() {
   return useMutation({
     mutationFn: async ({ priceId, tier }: { priceId: string; tier: 'monthly' | 'yearly' }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getSharedUser();
       if (!user) throw new Error('Not authenticated');
 
       const url = `${SUPABASE_URL}/functions/v1/create-stripe-checkout`;
@@ -81,8 +79,7 @@ export function useCreateCheckoutSession() {
       const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
         body: {
           priceId,
-          userId: user.id,
-          userEmail: user.email,
+          tier,
         },
       });
 
@@ -103,16 +100,14 @@ export function useCreateCheckoutSession() {
 export function useCreatePortalSession() {
   return useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getSharedUser();
       if (!user) throw new Error('Not authenticated');
 
       const url = `${SUPABASE_URL}/functions/v1/create-stripe-portal`;
       console.log('[Stripe] Creating portal session at:', url);
 
       const { data, error } = await supabase.functions.invoke('create-stripe-portal', {
-        body: {
-          userId: user.id,
-        },
+        body: {},
       });
 
       if (error) {

@@ -28,7 +28,7 @@ import { ErrorScreen } from './src/components/ErrorScreen';
 import { perf } from './src/lib/performance';
 import { enableQueryDebug } from './src/lib/queryDebug';
 import { trackPageView } from './src/lib/analytics';
-import { clearSharedUserId, syncSharedUserId } from './src/lib/sharedAuth';
+import { clearSharedUserId, syncSharedUser } from './src/lib/sharedAuth';
 import { useTheme } from './src/contexts/ThemeContext';
 import {
   trackMfaEnabled,
@@ -190,7 +190,7 @@ function AppContent() {
           }
           
           console.log('✅ [Auth] Session validated successfully');
-          syncSharedUserId(user.id);
+          syncSharedUser(user);
         }
         
         setSession(currentSession);
@@ -236,7 +236,7 @@ function AppContent() {
       setSession(newSession);
       setAuthResolved(true);
       if (newSession?.user?.id) {
-        syncSharedUserId(newSession.user.id);
+        syncSharedUser(newSession.user);
       } else {
         clearSharedUserId();
       }

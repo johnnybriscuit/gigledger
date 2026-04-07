@@ -142,9 +142,37 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
     }
   };
 
+  const actionsRow = (
+    <View style={[styles.actionsRow, isMobile && styles.actionsRowMobile]}>
+      <View style={styles.actionsTextWrap}>
+        <Text style={styles.actionsEyebrow}>Invoices</Text>
+        <Text style={styles.actionsTitle}>Create and manage client invoices</Text>
+      </View>
+      <View style={[styles.actionsButtons, isMobile && styles.actionsButtonsMobile]}>
+        {onOpenSettings && (
+          <TouchableOpacity
+            style={[styles.btnGhost, isMobile && styles.actionButtonMobile]}
+            onPress={onOpenSettings}
+          >
+            <Text style={styles.btnGhostText}>Settings</Text>
+          </TouchableOpacity>
+        )}
+        {onCreateNew && (
+          <TouchableOpacity
+            style={[styles.btnPrimary, isMobile && styles.actionButtonMobile]}
+            onPress={onCreateNew}
+          >
+            <Text style={styles.btnPrimaryText}>+ Create Invoice</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.container}>
+        {actionsRow}
         {/* Loading skeleton */}
         <View style={styles.metricsRow}>
           <View style={[styles.metricCard, styles.skeletonCard]}>
@@ -182,6 +210,7 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
   if (isEmpty) {
     return (
       <View style={styles.container}>
+        {actionsRow}
         <View style={[styles.emptyStateHero, isMobile && styles.emptyStateHeroMobile]}>
           <Text style={[styles.emptyStateTitle, isMobile && styles.emptyStateTitleMobile]}>
             Create your first invoice
@@ -218,6 +247,8 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
 
   return (
     <View style={styles.container}>
+      {actionsRow}
+
       {/* Stats card */}
       <View style={isMobile ? styles.statsCardMobile : styles.compactMetricsStrip}>
         <View style={styles.statCol}>
@@ -241,21 +272,6 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
           </Text>
         </View>
       </View>
-
-      {/* Section header row — mobile only */}
-      {isMobile && (
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeaderLabel}>ALL INVOICES</Text>
-          <View style={styles.sectionHeaderActions}>
-            <TouchableOpacity style={styles.btnGhost} onPress={onOpenSettings}>
-              <Text style={styles.btnGhostText}>Edit Template</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.btnPrimary} onPress={onCreateNew}>
-              <Text style={styles.btnPrimaryText}>+ Create Invoice</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
       {/* Search + sort row */}
       <View style={[styles.searchSortRow, isMobile && styles.searchSortRowMobile]}>
@@ -539,6 +555,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     alignItems: 'center',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 10,
+    paddingBottom: 14,
+  },
+  actionsRowMobile: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    paddingTop: 4,
+  },
+  actionsTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  actionsEyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: T.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  actionsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: T.textPrimary,
+  },
+  actionsButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  actionsButtonsMobile: {
+    width: '100%',
+  },
+  actionButtonMobile: {
+    flex: 1,
+    justifyContent: 'center',
   },
   btnGhost: {
     backgroundColor: T.surface,

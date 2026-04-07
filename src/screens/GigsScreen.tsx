@@ -27,7 +27,7 @@ import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 import { getGigDisplayName } from '../lib/gigDisplayName';
-import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
+import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
 import { generateICSFile, downloadICSFile, generateICSFilename } from '../utils/calendar';
 import { addGigToCalendar } from '../utils/nativeCalendar';
 import { useDateRange } from '../hooks/useDateRange';
@@ -296,16 +296,16 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
-  
-  const { data: allGigs, isLoading, error } = useGigs();
 
-  // Client-side date filtering — useGigs fetches all, we filter here
-  const gigs = dateRange
-    ? (() => {
-        const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
-        return filterByDateRange(allGigs, startDate, endDate);
-      })()
-    : allGigs;
+  const queryDateRange = dateRange ? dateRangeToStrings(dateRange, customStart, customEnd) : null;
+  const { data: gigs, isLoading, error } = useGigs(
+    queryDateRange
+      ? {
+          startDate: queryDateRange.startDate,
+          endDate: queryDateRange.endDate,
+        }
+      : undefined
+  );
   const { data: payers } = usePayers();
   const { data: tours, isLoading: toursLoading } = useTours();
   

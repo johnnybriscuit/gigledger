@@ -1,15 +1,16 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import Stripe from 'https://esm.sh/stripe@14.21.0'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
+import {
+  corsHeaders,
+  errorResponse,
+  getAuthenticatedUser,
+  jsonResponse,
+  resolveAuthorizedRequestUserId,
+} from '../_shared/auth.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY_PROD') || Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
 })
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,18 +18,22 @@ serve(async (req) => {
   }
 
   try {
-    const { priceId, userId, userEmail } = await req.json()
+    const user = await getAuthenticatedUser(req)
+    const { priceId, userId: requestedUserId } = await req.json()
 
-    if (!priceId || !userId || !userEmail) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    resolveAuthorizedRequestUserId(user.id, requestedUserId)
+
+    if (!priceId || typeof priceId !== 'string') {
+      return jsonResponse({ error: 'Missing required field: priceId' }, 400)
+    }
+
+    if (!user.email) {
+      return jsonResponse({ error: 'Authenticated user email is unavailable' }, 400)
     }
 
     const session = await stripe.checkout.sessions.create({
-      customer_email: userEmail,
-      client_reference_id: userId,
+      customer_email: user.email,
+      client_reference_id: user.id,
       line_items: [
         {
           price: priceId,
@@ -39,19 +44,12 @@ serve(async (req) => {
       success_url: `${Deno.env.get('SITE_URL') || 'https://bozzygigs.com'}/subscription?success=true`,
       cancel_url: `${Deno.env.get('SITE_URL') || 'https://bozzygigs.com'}/subscription?canceled=true`,
       metadata: {
-        userId,
+        userId: user.id,
       },
     })
 
-    return new Response(
-      JSON.stringify({ url: session.url }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (error: any) {
-    console.error('Error creating checkout session:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return jsonResponse({ url: session.url })
+  } catch (error) {
+    return errorResponse(error, 'Error creating checkout session:')
   }
 })

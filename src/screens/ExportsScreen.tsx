@@ -10,29 +10,19 @@ import {
 import { Text } from '../ui';
 import { colors } from '../styles/theme';
 import { HowToImportModal, type TaxSoftware } from '../components/HowToImportModal';
-import { useAllExportData, type ExportFilters } from '../hooks/useExports';
 import { generateCSVBundle } from '../lib/exports/csv-bundle-generator';
 import { downloadExcelFromPackage } from '../lib/exports/excel-generator-canonical';
 import { downloadJSONBackup as downloadJSONBackupCanonical } from '../lib/exports/json-backup-generator';
 import { generateScheduleCSummaryPdf } from '../lib/exports/taxpdf';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import { canExport } from '../config/plans';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getSharedUserId } from '../lib/sharedAuth';
 import { UpgradeModal } from '../components/UpgradeModal';
 import {
-  validateExportData,
-  getValidationSummary,
+  validateTaxExportPackage,
   type ValidationResult,
 } from '../lib/exports/validator';
-import {
-  generateTXF,
-  downloadTXF,
-  getTXFImportInstructions,
-} from '../lib/exports/txf-generator';
-import type { GigExportRow, ExpenseExportRow, MileageExportRow } from '../lib/exports/schemas';
-import { useWithholding } from '../hooks/useWithholding';
+import { getTXFImportInstructions } from '../lib/exports/txf-generator';
 import { useTaxExportPackage } from '../hooks/useTaxExportPackage';
 import { generateTXFv042 } from '../lib/exports/txf-v042-generator';
 import { generateTaxActPackZip } from '../lib/exports/taxact-pack';
@@ -41,12 +31,19 @@ import { downloadTXF as downloadTXFWeb, downloadZip } from '../lib/exports/webDo
 import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
 import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
-import { getMileageRateForDate, sumMileageDeduction } from '../lib/mileage';
 
 interface ExportsScreenProps {
   dateRange?: DateRange;
   customStart?: Date;
   customEnd?: Date;
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
 }
 
 export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScreenProps = {}) {
@@ -83,123 +80,35 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
   const [showHowToImport, setShowHowToImport] = useState(false);
   const [selectedSoftware, setSelectedSoftware] = useState<TaxSoftware | null>(null);
   const [showLegacySection, setShowLegacySection] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showTaxPrepChecklist, setShowTaxPrepChecklist] = useState(false);
-  const [expandedGuidance, setExpandedGuidance] = useState<string | null>(null);
   const [taxExportError, setTaxExportError] = useState<string | null>(null);
 
-  // Fetch user's plan
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      const { data } = await supabase
-        .from('profiles')
-        .select('plan')
-        .eq('id', user.id)
-        .single();
-      return data;
-    },
-  });
-
-  const userPlan = profile?.plan || 'free';
-
   // Get current user ID for tax export package
-  const { data: currentUserData } = useQuery({
+  const { data: currentUserId } = useQuery<string | null>({
     queryKey: ['currentUser'],
-    queryFn: async () => await supabase.auth.getUser(),
+    queryFn: async () => await getSharedUserId(),
   });
-
-  const currentUserId = currentUserData?.data?.user?.id || '';
-
-  // Build filters
-  const filters: ExportFilters = {
-    startDate: customDateRange ? startDate : `${taxYear}-01-01`,
-    endDate: customDateRange ? endDate : `${taxYear}-12-31`,
-    includeTips,
-    includeFees,
-  };
-
-  // Fetch all export data (legacy)
-  const { gigs, expenses, mileage, payers, scheduleC, isLoading, isError } = useAllExportData(filters);
+  const resolvedCurrentUserId = currentUserId ?? '';
 
   // Fetch canonical tax export package (new) — respects all filter state
   const taxPackage = useTaxExportPackage({
-    userId: currentUserId,
+    userId: resolvedCurrentUserId,
     taxYear,
     timezone: 'America/New_York',
     includeTips,
     includeFees,
     dateStart: customDateRange ? startDate : undefined,
     dateEnd: customDateRange ? endDate : undefined,
-    enabled: !!currentUserId,
+    enabled: !!resolvedCurrentUserId,
   });
-  
-  // Calculate net profit for tax estimation (same as dashboard)
-  const netProfit = useMemo(() => {
-    if (!gigs.data || !expenses.data || !mileage.data) return 0;
-    
-    const totalGross = gigs.data.reduce((sum, g) => sum + (g.gross_amount || 0), 0);
-    const totalTips = gigs.data.reduce((sum, g) => sum + (g.tips || 0), 0);
-    const totalPerDiem = gigs.data.reduce((sum, g) => sum + (g.per_diem || 0), 0);
-    const totalOtherIncome = gigs.data.reduce((sum, g) => sum + (g.other_income || 0), 0);
-    const totalFees = gigs.data.reduce((sum, g) => sum + (g.fees || 0), 0);
-    const totalIncome = totalGross + totalTips + totalPerDiem + totalOtherIncome - totalFees;
-    
-    const totalExpenses = expenses.data.reduce((sum, e) => sum + e.amount, 0);
-    const totalMileageDeduction = sumMileageDeduction(mileage.data);
-    const totalDeductions = totalExpenses + totalMileageDeduction;
-    
-    return totalIncome - totalDeductions;
-  }, [gigs.data, expenses.data, mileage.data]);
-  
-  // Get tax breakdown using same hook as dashboard
-  const { breakdown: taxBreakdown } = useWithholding(netProfit);
 
-  // Run validation when data loads
-  useEffect(() => {
-    if (gigs.data && expenses.data && mileage.data) {
-      // Transform data to export format (simplified for now)
-      const gigsExport = gigs.data.map(g => ({
-        ...g,
-        gig_id: g.user_id, // Placeholder
-        title: g.payer || 'Gig',
-        payer_name: g.payer,
-        payer_ein_or_ssn: null,
-        city: g.city_state?.split(',')[0] || null,
-        state: g.city_state?.split(',')[1]?.trim() || null,
-        country: 'US',
-        payment_method: null,
-        invoice_url: null,
-        paid: true,
-        withholding_federal: 0,
-        withholding_state: 0,
-      })) as GigExportRow[];
-
-      const expensesExport = expenses.data.map(e => ({
-        ...e,
-        expense_id: e.user_id, // Placeholder
-        merchant: e.vendor,
-        gl_category: e.category,
-        irs_schedule_c_line: '27a', // Default to Other
-        meals_percent_allowed: e.category === 'Meals' ? 0.5 : 1,
-        linked_gig_id: null,
-      })) as ExpenseExportRow[];
-
-      const mileageExport = mileage.data.map(m => ({
-        ...m,
-        trip_id: m.user_id, // Placeholder
-        business_miles: m.miles,
-        vehicle: null,
-        standard_rate: getMileageRateForDate(m.date),
-        calculated_deduction: m.deduction_amount,
-      })) as MileageExportRow[];
-
-      const result = validateExportData(gigsExport, expensesExport, mileageExport);
-      setValidationResult(result);
+  const validationResult: ValidationResult | null = useMemo(() => {
+    if (!taxPackage.data) {
+      return null;
     }
-  }, [gigs.data, expenses.data, mileage.data]);
+
+    return validateTaxExportPackage(taxPackage.data);
+  }, [taxPackage.data]);
 
   const handleDownloadCSVs = async () => {
     setTaxExportError(null);
@@ -232,9 +141,9 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
       trackExportCreated({ export_type: 'csv_bundle', source: 'exports_screen' });
       
       Alert.alert('CSV Bundle Downloaded', 'Your ZIP file contains 7 CSV files for CPA sharing and tax prep.');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('CSV export error:', error);
-      Alert.alert('Export Error', error.message || 'Failed to generate CSV bundle');
+      Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate CSV bundle'));
     }
   };
 
@@ -269,9 +178,9 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
       trackExportCreated({ export_type: 'json_backup', source: 'exports_screen' });
       
       Alert.alert('Success', 'JSON backup downloaded successfully.');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('JSON export error:', error);
-      Alert.alert('Export Error', error.message || 'Failed to generate JSON backup');
+      Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate JSON backup'));
     }
   };
 
@@ -306,9 +215,9 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
       trackExportCreated({ export_type: 'excel', source: 'exports_screen' });
       
       Alert.alert('Success', 'Excel file has been downloaded!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Excel export error:', error);
-      Alert.alert('Export Error', error.message || 'Failed to generate Excel file');
+      Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate Excel file'));
     }
   };
 
@@ -345,194 +254,9 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
       await downloadBinaryFile(pdfBytes, `ScheduleC_Summary_${taxYear}.pdf`, 'application/pdf');
 
       Alert.alert('Success', 'PDF has been downloaded!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('PDF export error:', error);
-      Alert.alert('Export Error', error.message || 'Failed to generate PDF');
-    }
-  };
-
-  const handleDownloadTXF = async () => {
-    // Check export limit
-    const userId = await getSharedUserId();
-    if (!userId) {
-      Alert.alert('Error', 'User not authenticated');
-      return;
-    }
-    
-    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
-    
-    if (!limitCheck.allowed) {
-      Alert.alert(
-        '⚠️ Monthly Limit Reached',
-        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
-        [
-          { text: 'OK', style: 'cancel' },
-        ]
-      );
-      return;
-    }
-
-    if (!validationResult?.isValid) {
-      Alert.alert(
-        'Validation Required',
-        'Please fix all blocking errors before exporting. Tap "View Issues" to see details.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'View Issues', onPress: () => setShowValidationDetails(true) },
-        ]
-      );
-      return;
-    }
-
-    // Generate and download TXF file
-    try {
-      console.log('Generating TXF file...');
-      
-      // Get user profile for taxpayer info
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-      
-      const taxpayerName = profileData?.full_name || 'Taxpayer';
-      
-      // Check if data is loaded
-      if (!gigs.data || !expenses.data || !mileage.data) {
-        throw new Error('Export data not loaded yet. Please wait.');
-      }
-      
-      // Transform data to export format (same as validation)
-      const gigsExport = gigs.data.map(g => ({
-        ...g,
-        gig_id: g.user_id,
-        title: g.payer || 'Gig',
-        payer_name: g.payer,
-        payer_ein_or_ssn: null,
-        city: g.city_state?.split(',')[0] || null,
-        state: g.city_state?.split(',')[1]?.trim() || null,
-        country: 'US',
-        payment_method: null,
-        invoice_url: null,
-        paid: true,
-        withholding_federal: 0,
-        withholding_state: 0,
-      })) as GigExportRow[];
-
-      const expensesExport = expenses.data.map(e => ({
-        ...e,
-        expense_id: e.user_id,
-        merchant: e.vendor,
-        gl_category: e.category,
-        irs_schedule_c_line: '27a',
-        meals_percent_allowed: e.category === 'Meals' ? 0.5 : 1,
-        linked_gig_id: null,
-      })) as ExpenseExportRow[];
-      
-      // Calculate Schedule C summary from raw data
-      const grossReceipts = gigs.data.reduce((sum, g) => sum + (g.gross_amount || 0) + (g.tips || 0) + (g.per_diem || 0) + (g.other_income || 0), 0);
-      const fees = gigs.data.reduce((sum, g) => sum + (g.fees || 0), 0);
-      const totalIncome = grossReceipts - fees;
-      
-      const expensesByCategory: Record<string, number> = {};
-      expenses.data.forEach(e => {
-        const cat = e.category || 'Other';
-        expensesByCategory[cat] = (expensesByCategory[cat] || 0) + e.amount;
-      });
-      
-      const mileageDeduction = mileage.data.reduce((sum, m) => sum + (m.deduction_amount || 0), 0);
-      
-      const advertising = expensesByCategory['Marketing'] || 0;
-      const carTruck = mileageDeduction;
-      const supplies = expensesByCategory['Supplies'] || 0;
-      const travel = (expensesByCategory['Travel'] || 0) + (expensesByCategory['Lodging'] || 0);
-      const meals = (expensesByCategory['Meals'] || 0) * 0.5;
-      const officeExpense = expensesByCategory['Software'] || 0;
-      const legalProfessional = expensesByCategory['Fees'] || 0;
-      const otherExpenses = Object.entries(expensesByCategory)
-        .filter(([cat]) => !['Marketing', 'Supplies', 'Travel', 'Lodging', 'Meals', 'Software', 'Fees'].includes(cat))
-        .reduce((sum, [, amount]) => sum + amount, 0);
-      
-      const totalExpenses = advertising + carTruck + supplies + travel + meals + officeExpense + legalProfessional + otherExpenses;
-      const netProfit = totalIncome - totalExpenses;
-      
-      const seTax = taxBreakdown?.selfEmployment || 0;
-      const estimatedIncomeTax = taxBreakdown?.federalIncome || 0;
-      const estimatedStateTax = taxBreakdown?.stateIncome || 0;
-      const totalTax = taxBreakdown?.total || 0;
-      
-      const scheduleCSummaryData = {
-        tax_year: taxYear,
-        filing_status: 'single' as const,
-        state_of_residence: 'XX',
-        standard_or_itemized: 'itemized' as const,
-        gross_receipts: grossReceipts - fees,
-        returns_and_allowances: 0,
-        other_income: 0,
-        total_income: totalIncome,
-        advertising,
-        car_truck: carTruck,
-        commissions: 0,
-        contract_labor: 0,
-        depreciation: 0,
-        employee_benefit: 0,
-        insurance_other: 0,
-        interest_mortgage: 0,
-        interest_other: 0,
-        legal_professional: legalProfessional,
-        office_expense: officeExpense,
-        rent_vehicles: 0,
-        rent_other: 0,
-        repairs_maintenance: 0,
-        supplies,
-        taxes_licenses: 0,
-        travel,
-        meals_allowed: meals,
-        utilities: 0,
-        wages: 0,
-        other_expenses_total: otherExpenses,
-        total_expenses: totalExpenses,
-        net_profit: netProfit,
-        se_tax_basis: netProfit * 0.9235,
-        est_se_tax: seTax,
-        est_federal_income_tax: estimatedIncomeTax,
-        est_state_income_tax: estimatedStateTax,
-        est_total_tax: totalTax,
-        set_aside_suggested: totalTax,
-      };
-      
-      // Generate TXF content
-      const txfContent = generateTXF({
-        taxYear,
-        taxpayerName,
-        gigs: gigsExport,
-        expenses: expensesExport,
-        scheduleCSummary: scheduleCSummaryData,
-      });
-      
-      // Download the file
-      await downloadTXF(txfContent, taxYear);
-      
-      console.log('TXF file downloaded successfully');
-      
-      // Show success message with instructions
-      Alert.alert(
-        'TXF Export Complete',
-        'Your TXF file has been downloaded. This file can be imported into TurboTax Desktop (NOT TurboTax Online).\n\nTap "View Instructions" to see how to import it.',
-        [
-          { 
-            text: 'View Instructions', 
-            onPress: () => setShowTXFInfo(true)
-          },
-          { text: 'Done' },
-        ]
-      );
-    } catch (error: any) {
-      console.error('TXF export error:', error);
-      Alert.alert('Export Error', error.message || 'Failed to generate TXF file');
+      Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate PDF'));
     }
   };
 
@@ -563,13 +287,13 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         'Your TXF file has been downloaded. This file can be imported into TurboTax Desktop (NOT TurboTax Online).\n\nThese exports organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
         [{ text: 'OK' }]
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('TurboTax TXF export error:', error);
       if (error instanceof TaxExportError && error.code === 'NON_USD_CURRENCY') {
         setTaxExportError(error.message);
         Alert.alert('Currency Error', error.message);
       } else {
-        Alert.alert('Export Error', error.message || 'Failed to generate TurboTax TXF file');
+        Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate TurboTax TXF file'));
       }
     }
   };
@@ -601,13 +325,13 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         'Your TXF file has been downloaded. This file can be imported into H&R Block Desktop.\n\nThese exports organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
         [{ text: 'OK' }]
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('H&R Block TXF export error:', error);
       if (error instanceof TaxExportError && error.code === 'NON_USD_CURRENCY') {
         setTaxExportError(error.message);
         Alert.alert('Currency Error', error.message);
       } else {
-        Alert.alert('Export Error', error.message || 'Failed to generate H&R Block TXF file');
+        Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate H&R Block TXF file'));
       }
     }
   };
@@ -641,13 +365,13 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
           { text: 'Done' },
         ]
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('TaxAct pack export error:', error);
       if (error instanceof TaxExportError && error.code === 'NON_USD_CURRENCY') {
         setTaxExportError(error.message);
         Alert.alert('Currency Error', error.message);
       } else {
-        Alert.alert('Export Error', error.message || 'Failed to generate TaxAct pack');
+        Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate TaxAct pack'));
       }
     }
   };
@@ -676,13 +400,13 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         'Your ZIP file includes Schedule C summary, detail CSVs, PDF, and step-by-step README for manual entry into TurboTax Online.\n\nIMPORTANT: TurboTax Online does NOT support TXF import. Use the included files for manual entry.\n\nOrganized for tax prep. Not tax advice. Verify totals and consult a tax professional if needed.',
         [{ text: 'OK' }]
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('TurboTax Online pack export error:', error);
       if (error instanceof TaxExportError && error.code === 'NON_USD_CURRENCY') {
         setTaxExportError(error.message);
         Alert.alert('Currency Error', error.message);
       } else {
-        Alert.alert('Export Error', error.message || 'Failed to generate TurboTax Online pack');
+        Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate TurboTax Online pack'));
       }
     }
   };
@@ -691,20 +415,48 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
 
   const warningCount = validationResult?.warnings?.length ?? 0;
   const hasWarnings = warningCount > 0;
+  const blockingErrorCount = validationResult?.errors.length ?? 0;
+  const gigCount = taxPackage.data?.incomeRows.filter((row) => row.source === 'gig').length ?? 0;
+  const expenseCount = taxPackage.data?.expenseRows.length ?? 0;
+  const mileageCount = taxPackage.data?.mileageRows.length ?? 0;
+  const payerCount = taxPackage.data?.payerSummaryRows.length ?? 0;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
 
       {/* ── Summary bar ─────────────────────────────── */}
       <StatsSummaryBar
-        style={{ marginBottom: 14 }}
+        style={styles.summaryBar}
         items={[
-          { label: 'GIGS', value: isLoading ? '—' : (gigs.data?.length ?? 0) },
-          { label: 'EXPENSES', value: isLoading ? '—' : (expenses.data?.length ?? 0) },
-          { label: 'MILEAGE', value: isLoading ? '—' : (mileage.data?.length ?? 0) },
-          { label: 'PAYERS', value: isLoading ? '—' : (payers.data?.length ?? 0) },
+          { label: 'GIGS', value: taxPackage.isLoading ? '—' : gigCount },
+          { label: 'EXPENSES', value: taxPackage.isLoading ? '—' : expenseCount },
+          { label: 'MILEAGE', value: taxPackage.isLoading ? '—' : mileageCount },
+          { label: 'PAYERS', value: taxPackage.isLoading ? '—' : payerCount },
         ]}
       />
+
+      {blockingErrorCount > 0 && (
+        <View style={styles.errorCallout}>
+          <Text style={styles.errorCalloutIcon}>❌</Text>
+          <View style={styles.warningCalloutBody}>
+            <Text style={styles.warningCalloutTitle}>{blockingErrorCount} blocking issues found</Text>
+            <Text style={styles.warningCalloutDesc}>Review these records before filing or sharing exports.</Text>
+            <TouchableOpacity onPress={() => setShowValidationDetails(true)}>
+              <Text style={styles.warningCalloutLink}>View Blocking Issues →</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {taxExportError && (
+        <View style={styles.errorCallout}>
+          <Text style={styles.errorCalloutIcon}>💱</Text>
+          <View style={styles.warningCalloutBody}>
+            <Text style={styles.warningCalloutTitle}>Export blocked</Text>
+            <Text style={styles.warningCalloutDesc}>{taxExportError}</Text>
+          </View>
+        </View>
+      )}
 
       {/* ── Warning callout (conditional) ───────────── */}
       {hasWarnings && (
@@ -916,11 +668,32 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         <Text style={styles.checklistArrow}>›</Text>
       </TouchableOpacity>
 
+      {showTaxPrepChecklist && (
+        <View style={styles.checklistCard}>
+          <Text style={styles.checklistCardTitle}>Before you file or send to a preparer</Text>
+          <Text style={styles.checklistCardItem}>1. Review blocking issues and warnings.</Text>
+          <Text style={styles.checklistCardItem}>2. Confirm W-2 gigs are excluded from Schedule C totals.</Text>
+          <Text style={styles.checklistCardItem}>3. Verify mileage purposes, origins, and destinations.</Text>
+          <Text style={styles.checklistCardItem}>4. Review large equipment purchases for depreciation treatment.</Text>
+          <Text style={styles.checklistCardItem}>5. Treat withholding outputs as planning estimates unless your tax data has been verified.</Text>
+        </View>
+      )}
+
       {/* ── Legacy / Troubleshooting ─────────────── */}
       <TouchableOpacity style={styles.legacyRow} onPress={() => setShowLegacySection(!showLegacySection)} activeOpacity={0.8}>
         <Text style={styles.legacyRowLabel}>Legacy / Troubleshooting</Text>
         <Text style={styles.legacyRowArrow}>›</Text>
       </TouchableOpacity>
+
+      {showLegacySection && (
+        <View style={styles.legacyCard}>
+          <Text style={styles.legacyCardTitle}>Legacy exports retired</Text>
+          <Text style={styles.legacyCardBody}>
+            The older handcrafted TXF/export path has been removed from the primary workflow.
+            Use the canonical tax-software exports above so validation, mileage, and Schedule C totals all come from the same package.
+          </Text>
+        </View>
+      )}
 
       {/* ── Disclaimer ───────────────────────────── */}
       <View style={styles.disclaimer}>
@@ -1062,6 +835,7 @@ const T = {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.bg },
   contentContainer: { paddingBottom: 40 },
+  summaryBar: { marginBottom: 14 },
 
   // ── Warning callout ──────────────────────────────
   warningCallout: {
@@ -1091,6 +865,17 @@ const styles = StyleSheet.create({
     color: T.accent,
     marginTop: 8,
   },
+  errorCallout: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginHorizontal: 10,
+    marginBottom: 12,
+    backgroundColor: T.dangerLight,
+    borderRadius: 14,
+    padding: 14,
+  },
+  errorCalloutIcon: { fontSize: 18, flexShrink: 0, marginTop: 1 },
 
   // ── Section label ────────────────────────────────
   sectionLabel: {
@@ -1296,6 +1081,28 @@ const styles = StyleSheet.create({
     color: T.accent,
   },
   checklistArrow: { fontSize: 18, color: T.accent },
+  checklistCard: {
+    marginHorizontal: 10,
+    marginTop: -6,
+    marginBottom: 16,
+    backgroundColor: T.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: T.border,
+    padding: 14,
+  },
+  checklistCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: T.textPrimary,
+    marginBottom: 8,
+  },
+  checklistCardItem: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: T.textSecondary,
+    marginBottom: 4,
+  },
 
   // ── Legacy row ───────────────────────────────────
   legacyRow: {
@@ -1317,6 +1124,27 @@ const styles = StyleSheet.create({
     color: T.textMuted,
   },
   legacyRowArrow: { fontSize: 18, color: T.textMuted },
+  legacyCard: {
+    marginHorizontal: 10,
+    marginTop: -6,
+    marginBottom: 16,
+    backgroundColor: T.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: T.border,
+    padding: 14,
+  },
+  legacyCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: T.textPrimary,
+    marginBottom: 6,
+  },
+  legacyCardBody: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: T.textSecondary,
+  },
 
   // ── Disclaimer ───────────────────────────────────
   disclaimer: {

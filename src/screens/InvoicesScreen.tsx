@@ -12,11 +12,10 @@ import { useInvoices } from '../hooks/useInvoices';
 import { useEntitlements } from '../hooks/useEntitlements';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
-import { getDateRangeConfig } from '../lib/dateRangeUtils';
+import { dateRangeToStrings } from '../lib/dateRangeUtils';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { confirmDialog, showAlert } from '../lib/dialog';
-import { parseStoredDate } from '../lib/date';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
 import { useUserId } from '../hooks/useCurrentUser';
@@ -35,6 +34,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
+  const queryDateRange = dateRange ? dateRangeToStrings(dateRange, customStart, customEnd) : null;
   
   // Still need useInvoices for mutations (updateInvoiceStatus, deleteInvoice, deletePayment)
   const {
@@ -44,20 +44,15 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     deleteInvoice,
     deletePayment,
     refetch: refetchInvoices,
-  } = useInvoices();
-
-  // Client-side date filtering — useInvoices fetches all, we filter here
-  const invoices = dateRange
-    ? (() => {
-        const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
-        // Filter invoices by invoice_date field
-        return allInvoices.filter(invoice => {
-          if (!invoice.invoice_date) return false;
-          const invoiceDate = parseStoredDate(invoice.invoice_date);
-          return invoiceDate >= startDate && invoiceDate <= endDate;
-        });
-      })()
-    : allInvoices;
+  } = useInvoices(
+    queryDateRange
+      ? {
+          startDate: queryDateRange.startDate,
+          endDate: queryDateRange.endDate,
+        }
+      : undefined
+  );
+  const invoices = allInvoices;
   
   // Use entitlements hook for complex entitlements logic (will use cached subscription data)
   const entitlements = useEntitlements();

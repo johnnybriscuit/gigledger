@@ -15,6 +15,7 @@
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
     "verify:tax-treatment": "tsx scripts/verify-tax-treatment-exports.ts",
+    "verify:schema": "node scripts/verify-schema-artifacts.mjs",
     "scan:secrets": "tsx scripts/scan-secrets.ts",
     "typecheck": "tsc --noEmit",
     "supabase:types": "supabase gen types typescript --local > src/types/database.types.ts",

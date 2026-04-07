@@ -4,6 +4,7 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { applyProxyHeaders, enforceProxyAccess, parseAllowedOrigins } from './_lib/proxySecurity';
 
 function getFirstQueryValue(value: string | string[] | undefined): string | null {
   if (typeof value === 'string') {
@@ -21,9 +22,25 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_PROXY_ORIGINS);
+
+  if (req.method === 'OPTIONS') {
+    applyProxyHeaders(req, res, allowedOrigins);
+    return res.status(200).end();
+  }
+
   // Only allow GET requests
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const allowed = await enforceProxyAccess(req, res, 'distance-matrix', {
+    limit: Number(process.env.GOOGLE_PROXY_RATE_LIMIT || 30),
+    windowMs: Number(process.env.GOOGLE_PROXY_RATE_LIMIT_WINDOW_MS || 60_000),
+    allowedOrigins,
+  });
+  if (!allowed) {
+    return;
   }
 
   const origin = getFirstQueryValue(req.query.origin);
@@ -76,7 +93,7 @@ export default async function handler(
     
     if (!response.ok) {
       console.error('Google Maps API error:', response.status, response.statusText);
-      return res.status(response.status).json({ 
+      return res.status(502).json({ 
         error: 'Google Maps API error',
         code: 'API_ERROR'
       });
@@ -95,12 +112,11 @@ export default async function handler(
 
     // Return the response
     return res.status(200).json(data);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error calling Google Maps API:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
       code: 'SERVER_ERROR',
-      message: error.message 
     });
   }
 }

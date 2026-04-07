@@ -26,7 +26,7 @@ import { H3, Text } from '../ui';
 import { colors } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
 import { DeductionInfoCard } from '../components/DeductionInfoCard';
-import { type DateRange, getDateRangeConfig, filterByDateRange } from '../lib/dateRangeUtils';
+import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
@@ -81,16 +81,16 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
   
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
-  
-  const { data: allExpenses, isLoading, error } = useExpenses();
 
-  // Client-side date filtering — useExpenses fetches all, we filter here
-  const expenses = dateRange
-    ? (() => {
-        const { startDate, endDate } = getDateRangeConfig(dateRange, customStart, customEnd);
-        return filterByDateRange(allExpenses, startDate, endDate);
-      })()
-    : allExpenses;
+  const queryDateRange = dateRange ? dateRangeToStrings(dateRange, customStart, customEnd) : null;
+  const { data: expenses, isLoading, error } = useExpenses(
+    queryDateRange
+      ? {
+          startDate: queryDateRange.startDate,
+          endDate: queryDateRange.endDate,
+        }
+      : undefined
+  );
   const { data: activeRecurring } = useActiveRecurringExpenses();
   const deleteExpense = useDeleteExpense();
   const quickAdd = useQuickAddExpense();

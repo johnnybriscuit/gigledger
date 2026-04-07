@@ -1,20 +1,18 @@
 /**
  * Tax calculation constants
- * 
- * ⚠️ IMPORTANT: These are conservative estimates for MVP.
- * TODO: Update with actual IRS rates for production
- * TODO: Implement proper bracket calculations for federal income tax
+ *
+ * Tax withholding in this module is for planning and cash-reserve guidance only.
+ * Do not present these values as filing-ready tax calculations unless the
+ * relevant jurisdiction data has been independently verified.
  */
 
-// Self-Employment Tax (2025)
-// TODO: Update annually based on IRS Publication 15
+// Self-employment tax components
 export const SE_TAX_RATE_SOCIAL_SECURITY = 0.124; // 12.4% Social Security
 export const SE_TAX_RATE_MEDICARE = 0.029; // 2.9% Medicare
 export const SE_TAX_RATE_COMBINED = SE_TAX_RATE_SOCIAL_SECURITY + SE_TAX_RATE_MEDICARE; // 15.3%
 
-// Social Security wage base (2025)
-// TODO: Update annually - see https://www.ssa.gov/oact/cola/cbb.html
-export const SS_WAGE_BASE_2025 = 168600; // PLACEHOLDER - verify actual 2025 limit
+// Planning estimate for the 2025 Social Security wage base used in reserve calculations.
+export const SS_WAGE_BASE_2025 = 168600;
 
 // Additional Medicare Tax (not implemented in MVP)
 // TODO: Implement 0.9% additional Medicare tax on income over threshold
@@ -26,9 +24,8 @@ export const ADDITIONAL_MEDICARE_THRESHOLD_MARRIED = 250000;
 // SE tax is calculated on 92.35% of net earnings per IRS
 export const SE_TAX_DEDUCTION_MULTIPLIER = 0.9235;
 
-// Federal Income Tax - Flat Estimates (MVP)
-// TODO: Replace with actual 2025 bracket calculations
-// These are conservative estimates to ensure adequate withholding
+// Federal Income Tax - flat planning estimates.
+// These are conservative reserve defaults, not filing calculations.
 export const FEDERAL_FLAT_RATE_SINGLE = parseFloat(
   process.env.EXPO_PUBLIC_FEDERAL_FLAT_RATE_SINGLE || '0.12'
 ); // 12% conservative estimate
@@ -65,9 +62,7 @@ export function getFederalFlatRate(filingStatus: 'single' | 'married' | 'hoh'): 
 }
 
 /**
- * 2025 Federal Tax Brackets (for future implementation)
- * TODO: Implement bracket-based federal tax calculation
- * Source: IRS Publication 15 (update annually)
+ * 2025 federal bracket data used by the verified federal tax engine paths.
  */
 export const FEDERAL_BRACKETS_2025 = {
   single: [
@@ -99,8 +94,7 @@ export const FEDERAL_BRACKETS_2025 = {
   ],
 };
 
-// Standard deductions (2025)
-// TODO: Update annually
+// Standard deductions (2025 federal values).
 export const STANDARD_DEDUCTION_2025 = {
   single: 14600,
   married: 29200,

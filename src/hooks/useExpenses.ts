@@ -3,27 +3,43 @@ import { supabase } from '../lib/supabase';
 import type { Database } from '../types/database.types';
 import { queryKeys } from '../lib/queryKeys';
 import { getPlanAndUsage, createExpenseLimitError } from '../lib/planLimits';
-import { getCachedUserId } from '../lib/sharedAuth';
+import { getCachedUserId, getSharedUser } from '../lib/sharedAuth';
 import { useUserId } from './useCurrentUser';
 
 type Expense = Database['public']['Tables']['expenses']['Row'];
 type ExpenseInsert = Database['public']['Tables']['expenses']['Insert'];
 type ExpenseUpdate = Database['public']['Tables']['expenses']['Update'];
 
-export function useExpenses() {
+export interface ExpenseQueryFilters {
+  startDate?: string;
+  endDate?: string;
+}
+
+export function useExpenses(filters?: ExpenseQueryFilters) {
   const userId = useUserId();
   
   return useQuery({
-    queryKey: userId ? queryKeys.expenses(userId) : ['expenses-loading'],
+    queryKey: userId
+      ? [...queryKeys.expenses(userId), filters?.startDate ?? null, filters?.endDate ?? null]
+      : ['expenses-loading'],
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('expenses')
         .select('*')
         .eq('user_id', userId)
-        .or('is_draft.is.null,is_draft.eq.false')
-        .order('date', { ascending: false });
+        .or('is_draft.is.null,is_draft.eq.false');
+
+      if (filters?.startDate) {
+        query = query.gte('date', filters.startDate);
+      }
+
+      if (filters?.endDate) {
+        query = query.lte('date', filters.endDate);
+      }
+
+      const { data, error } = await query.order('date', { ascending: false });
 
       if (error) throw error;
       return data as Expense[];
@@ -40,7 +56,7 @@ export function useCreateExpense() {
 
   return useMutation({
     mutationFn: async (expense: Omit<ExpenseInsert, 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getSharedUser();
       if (!user) throw new Error('Not authenticated');
 
       // Check plan limits before creating expense
@@ -81,7 +97,8 @@ export function useUpdateExpense() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: ExpenseUpdate & { id: string }) => {
       // Remove user_id from updates to prevent RLS policy violations
-      const { user_id, ...safeUpdates } = updates as any;
+      const safeUpdates = { ...updates } as Partial<ExpenseUpdate> & { user_id?: string };
+      delete safeUpdates.user_id;
       
       const { data, error } = await supabase
         .from('expenses')
@@ -136,8 +153,8 @@ export function useDeleteExpense() {
 
 // Upload receipt to Supabase Storage
 export async function uploadReceipt(expenseId: string, file: File): Promise<string> {
-  const { data: { user }, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !user?.id) throw new Error('Not authenticated');
+  const user = await getSharedUser();
+  if (!user?.id) throw new Error('Not authenticated');
 
   const userId = user.id;
   
@@ -168,7 +185,7 @@ export async function uploadReceipt(expenseId: string, file: File): Promise<stri
 
 // Create draft expense for receipt-first flow
 export async function createDraftExpense(): Promise<string> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSharedUser();
   if (!user) throw new Error('Not authenticated');
 
   const today = new Date().toISOString().split('T')[0];
@@ -192,7 +209,7 @@ export async function createDraftExpense(): Promise<string> {
 
 // Delete draft expense (on cancel)
 export async function deleteDraftExpense(expenseId: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSharedUser();
   if (!user) return;
 
   // Delete receipt from storage first

@@ -5,6 +5,7 @@
  */
 
 import { supabase } from './supabase';
+import type { Json } from '../types/database.types';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
@@ -45,7 +46,7 @@ export interface TrustedDevice {
 export interface SecurityEvent {
   id: string;
   event_type: string;
-  event_data: any;
+  event_data: Json | null;
   ip_address: string | null;
   user_agent: string | null;
   success: boolean;
@@ -97,7 +98,7 @@ export async function verifyTOTPEnrollment(
   code: string
 ): Promise<boolean> {
   try {
-    const { data, error } = await supabase.auth.mfa.challengeAndVerify({
+    const { error } = await supabase.auth.mfa.challengeAndVerify({
       factorId,
       code,
     });
@@ -198,7 +199,7 @@ export async function verifyMFAChallenge(
   code: string
 ): Promise<boolean> {
   try {
-    const { data, error } = await supabase.auth.mfa.verify({
+    const { error } = await supabase.auth.mfa.verify({
       factorId,
       challengeId,
       code,
@@ -232,14 +233,15 @@ export async function verifyMFAChallenge(
 /**
  * Generate secure backup codes
  */
-function generateBackupCode(): string {
+async function generateBackupCode(): Promise<string> {
   // Generate 8-character alphanumeric code (e.g., "A3F7-K9M2")
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude ambiguous chars
+  const randomBytes = await Crypto.getRandomBytesAsync(8);
   let code = '';
   
   for (let i = 0; i < 8; i++) {
     if (i === 4) code += '-'; // Add separator
-    const randomIndex = Math.floor(Math.random() * chars.length);
+    const randomIndex = randomBytes[i] % chars.length;
     code += chars[randomIndex];
   }
   
@@ -262,7 +264,7 @@ export async function generateBackupCodes(count: number = 10): Promise<BackupCod
 
     // Generate codes
     for (let i = 0; i < count; i++) {
-      const code = generateBackupCode();
+      const code = await generateBackupCode();
       const hash = await bcrypt.hash(code, 10);
       
       codes.push({ code });
@@ -601,18 +603,19 @@ export async function removeAllTrustedDevices(): Promise<void> {
  */
 export async function logSecurityEvent(
   eventType: string,
-  eventData: any = {},
+  eventData: Json = {},
   success: boolean = true,
   ipAddress?: string,
   userAgent?: string
 ): Promise<void> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
     await supabase
       .from('security_events')
       .insert({
-        user_id: user?.id || null,
+        user_id: user.id,
         event_type: eventType,
         event_data: eventData,
         ip_address: ipAddress || null,
