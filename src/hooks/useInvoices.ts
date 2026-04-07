@@ -25,6 +25,38 @@ type InvoiceQueryRow = InvoiceRow & {
   payments: InvoicePaymentRow[] | null;
 };
 
+const INVOICE_SELECT_FIELDS = [
+  'id',
+  'invoice_number',
+  'client_id',
+  'client_name',
+  'client_email',
+  'client_company',
+  'client_address',
+  'gig_id',
+  'user_id',
+  'invoice_date',
+  'due_date',
+  'status',
+  'subtotal',
+  'total_amount',
+  'tax_amount',
+  'tax_rate',
+  'discount_amount',
+  'currency',
+  'notes',
+  'private_notes',
+  'payment_terms',
+  'accepted_payment_methods',
+  'sent_at',
+  'viewed_at',
+  'paid_at',
+  'created_at',
+  'updated_at',
+  'line_items:invoice_line_items(id, description, quantity, rate, amount, sort_order)',
+  'payments:invoice_payments(id, amount, payment_date, payment_method, reference_number, notes, created_at)',
+] as const;
+
 function toJson(value: unknown): Json {
   return value as Json;
 }
@@ -126,6 +158,32 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function buildInvoiceSelect(includePublicToken: boolean): string {
+  return (includePublicToken
+    ? [...INVOICE_SELECT_FIELDS.slice(0, 7), 'public_token', ...INVOICE_SELECT_FIELDS.slice(7)]
+    : [...INVOICE_SELECT_FIELDS]
+  ).join(',\n          ');
+}
+
+function isMissingPublicTokenColumnError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const maybeError = error as { code?: string; message?: string };
+  const message = maybeError.message?.toLowerCase() ?? '';
+
+  return (
+    message.includes('public_token')
+    && (
+      maybeError.code === '42703'
+      || message.includes('column invoices.public_token does not exist')
+      || message.includes('column "public_token" does not exist')
+      || message.includes('column public_token does not exist')
+    )
+  );
+}
+
 export function useInvoices(filters?: InvoiceQueryFilters) {
   const queryClient = useQueryClient();
   const userId = useUserId();
@@ -135,55 +193,46 @@ export function useInvoices(filters?: InvoiceQueryFilters) {
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated');
 
-      let query = supabase
-        .from('invoices')
-        .select(`
-          id,
-          invoice_number,
-          client_id,
-          client_name,
-          client_email,
-          client_company,
-          client_address,
-          public_token,
-          gig_id,
-          user_id,
-          invoice_date,
-          due_date,
-          status,
-          subtotal,
-          total_amount,
-          tax_amount,
-          tax_rate,
-          discount_amount,
-          currency,
-          notes,
-          private_notes,
-          payment_terms,
-          accepted_payment_methods,
-          sent_at,
-          viewed_at,
-          paid_at,
-          created_at,
-          updated_at,
-          line_items:invoice_line_items(id, description, quantity, rate, amount, sort_order),
-          payments:invoice_payments(id, amount, payment_date, payment_method, reference_number, notes, created_at)
-        `)
-        .eq('user_id', userId);
+      const fetchInvoiceRows = async (includePublicToken: boolean): Promise<InvoiceQueryRow[]> => {
+        let query = supabase
+          .from('invoices' as any)
+          .select(buildInvoiceSelect(includePublicToken))
+          .eq('user_id', userId);
 
-      if (filters?.startDate) {
-        query = query.gte('invoice_date', filters.startDate);
+        if (filters?.startDate) {
+          query = query.gte('invoice_date', filters.startDate);
+        }
+
+        if (filters?.endDate) {
+          query = query.lte('invoice_date', filters.endDate);
+        }
+
+        const { data, error: fetchError } = await query.order('created_at', { ascending: false });
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        return ((data || []) as unknown) as InvoiceQueryRow[];
+      };
+
+      let invoicesData: InvoiceQueryRow[];
+
+      try {
+        invoicesData = await fetchInvoiceRows(true);
+      } catch (error) {
+        if (!isMissingPublicTokenColumnError(error)) {
+          throw error;
+        }
+
+        console.warn(
+          '[Invoices] Missing invoices.public_token column. Retrying without public links; apply the latest Supabase migrations to restore full invoicing features.',
+          error
+        );
+        invoicesData = await fetchInvoiceRows(false);
       }
 
-      if (filters?.endDate) {
-        query = query.lte('invoice_date', filters.endDate);
-      }
-
-      const { data: invoicesData, error: fetchError } = await query.order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-
-      const invoicesWithCalculations = ((invoicesData || []) as InvoiceQueryRow[]).map((invoice) => {
+      const invoicesWithCalculations = invoicesData.map((invoice) => {
         const lineItems = [...(invoice.line_items || [])].sort(
           (a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
         );

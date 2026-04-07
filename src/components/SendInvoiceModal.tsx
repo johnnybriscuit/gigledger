@@ -95,6 +95,12 @@ export function SendInvoiceModal({ invoice, visible, onClose, onSuccess }: SendI
           'The email service is not yet set up. Please contact support or manually send the invoice to your client.',
           [{ text: 'OK' }]
         );
+      } else if (errorMessage.includes('public_token') && errorMessage.includes('does not exist')) {
+        Alert.alert(
+          'Database Migration Required',
+          'The database is missing the invoice public link column. Apply the latest Supabase migrations, then try sending again.',
+          [{ text: 'OK' }]
+        );
       } else {
         Alert.alert('Error', errorMessage);
       }
