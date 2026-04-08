@@ -195,6 +195,59 @@ export async function checkLimit(
   return { allowed: true, incremented: false };
 }
 
+export async function incrementLimitUsage(
+  userId: string,
+  limitType: LimitType
+): Promise<LimitCheckResult> {
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('plan, legacy_free_plan, gigs_used_this_month, expenses_used_this_month, invoices_used_this_month, exports_used_this_month')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching profile for usage increment:', error);
+      if (error.message?.includes('column') || error.code === '42703') {
+        return { allowed: true, incremented: false };
+      }
+      return { allowed: false, message: 'Profile not found' };
+    }
+
+    if (!profile) {
+      return { allowed: false, message: 'Profile not found' };
+    }
+
+    const paidUser = await isPaidUser(userId, profile.plan);
+    if (paidUser) {
+      return { allowed: true, incremented: false };
+    }
+
+    const normalizedPlan = normalizePlan(profile.plan, profile.legacy_free_plan === true);
+    if (normalizedPlan === PLAN_NAMES.LEGACY_FREE) {
+      return { allowed: true, incremented: false };
+    }
+
+    const usedField = `${limitType}_used_this_month` as keyof typeof profile;
+    const used = (profile[usedField] as number) || 0;
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ [usedField]: used + 1 })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('Error incrementing usage counter:', updateError);
+      return { allowed: false, message: 'Error updating usage counter' };
+    }
+
+    return { allowed: true, incremented: true };
+  } catch (error) {
+    console.error('Unexpected error in incrementLimitUsage:', error);
+    return { allowed: true, incremented: false };
+  }
+}
+
 function getNextResetDate(): Date {
   const today = new Date();
   return new Date(today.getFullYear(), today.getMonth() + 1, 1);

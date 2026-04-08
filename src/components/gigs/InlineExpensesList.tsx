@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { colors, radius, spacing, typography } from '../../styles/theme';
 
 export interface InlineExpense {
   id: string; // Temporary ID for UI
@@ -110,7 +111,7 @@ export function InlineExpensesList({ expenses, onChange }: InlineExpensesListPro
                 value={expense.description}
                 onChangeText={(text) => updateExpense(expense.id, { description: text })}
                 placeholder="e.g., Gas for tour"
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.text.subtle}
               />
 
               {/* Amount and Note */}
@@ -120,7 +121,7 @@ export function InlineExpensesList({ expenses, onChange }: InlineExpensesListPro
                   value={expense.amount}
                   onChangeText={(text) => updateExpense(expense.id, { amount: text })}
                   placeholder="0.00"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.text.subtle}
                   keyboardType="decimal-pad"
                 />
                 <TextInput
@@ -128,7 +129,7 @@ export function InlineExpensesList({ expenses, onChange }: InlineExpensesListPro
                   value={expense.note}
                   onChangeText={(text) => updateExpense(expense.id, { note: text })}
                   placeholder="Note (optional)"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.text.subtle}
                 />
                 <TouchableOpacity
                   style={styles.removeButton}
@@ -151,83 +152,83 @@ export function InlineExpensesList({ expenses, onChange }: InlineExpensesListPro
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: parseInt(spacing[4]),
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: parseInt(typography.fontSize.body.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.DEFAULT,
   },
   total: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ef4444',
+    fontSize: parseInt(typography.fontSize.body.size),
+    fontWeight: typography.fontWeight.bold,
+    color: colors.danger.DEFAULT,
   },
   emptyText: {
-    fontSize: 14,
-    color: '#9ca3af',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.subtle,
     fontStyle: 'italic',
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   list: {
-    gap: 12,
+    gap: parseInt(spacing[3]),
   },
   expenseRow: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: colors.surface.muted,
+    borderRadius: parseInt(radius.md),
+    padding: parseInt(spacing[3]),
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
   },
   categoryScroll: {
-    marginBottom: 8,
+    marginBottom: parseInt(spacing[2]),
   },
   categoryChip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: parseInt(spacing[3]),
     paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#fff',
+    borderRadius: parseInt(radius.full),
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    marginRight: 8,
+    borderColor: colors.border.DEFAULT,
+    marginRight: parseInt(spacing[2]),
   },
   categoryChipActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: colors.brand.DEFAULT,
+    borderColor: colors.brand.DEFAULT,
   },
   categoryChipText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#374151',
+    fontSize: parseInt(typography.fontSize.caption.size),
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.muted,
   },
   categoryChipTextActive: {
-    color: '#fff',
+    color: colors.brand.foreground,
   },
   inputRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: parseInt(spacing[2]),
     alignItems: 'center',
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 6,
-    padding: 8,
-    fontSize: 14,
-    color: '#111827',
+    borderColor: colors.border.DEFAULT,
+    borderRadius: parseInt(radius.sm),
+    padding: parseInt(spacing[2]),
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.DEFAULT,
   },
   amountInput: {
     width: 80,
   },
   descriptionInput: {
-    marginBottom: 8,
+    marginBottom: parseInt(spacing[2]),
   },
   noteInput: {
     flex: 1,
@@ -236,28 +237,28 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#fee2e2',
+    backgroundColor: colors.danger.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   removeButtonText: {
     fontSize: 16,
-    color: '#ef4444',
-    fontWeight: '600',
+    color: colors.danger.DEFAULT,
+    fontWeight: typography.fontWeight.semibold,
   },
   addButton: {
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.md),
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.border.DEFAULT,
     borderStyle: 'dashed',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: parseInt(spacing[2]),
   },
   addButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.brand.DEFAULT,
   },
 });

@@ -135,7 +135,7 @@ export function VenuePlacesInput({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       
       <GooglePlacesTextInput
         apiKey={apiKey || ''}
@@ -190,11 +190,11 @@ const placesStyles: GooglePlacesTextInputStyles = {
     height: 48,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border.DEFAULT,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#111827',
-    backgroundColor: '#FFFFFF', // 🔒 Solid input background
+    color: colors.text.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
     ...Platform.select({
       web: {
         // @ts-ignore - web-only property
@@ -203,13 +203,13 @@ const placesStyles: GooglePlacesTextInputStyles = {
     }),
   },
   suggestionsContainer: {
-    backgroundColor: '#FFFFFF', // 🔒 FULLY OPAQUE - no alpha channel
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 12,
     marginTop: 4,
     maxHeight: 260,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
+    borderColor: colors.border.DEFAULT,
+    shadowColor: colors.overlay.DEFAULT,
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -226,24 +226,24 @@ const placesStyles: GooglePlacesTextInputStyles = {
     }),
   },
   suggestionsList: {
-    backgroundColor: '#FFFFFF', // 🔒 List itself also solid
+    backgroundColor: colors.surface.DEFAULT,
   },
   suggestionItem: {
-    backgroundColor: '#FFFFFF', // 🔒 Each row solid white
+    backgroundColor: colors.surface.DEFAULT,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border.muted,
   },
   suggestionText: {
     main: {
       fontSize: 16,
-      color: '#111827',
+      color: colors.text.DEFAULT,
       fontWeight: '500' as any,
     },
     secondary: {
       fontSize: 13,
-      color: '#6B7280',
+      color: colors.text.muted,
     },
   },
 };

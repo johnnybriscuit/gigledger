@@ -10,41 +10,39 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useCreateGig, useUpdateGig, type GigWithPayer } from '../hooks/useGigs';
+import type { GigWithPayer } from '../hooks/useGigs';
 import { usePayers, type Payer } from '../hooks/usePayers';
 import { useProfile } from '../hooks/useProfile';
-import { useSubscription } from '../hooks/useSubscription';
-import { useResponsiveButtonText, BUTTON_TEXT } from '../hooks/useResponsiveButtonText';
-import { getResolvedPlan } from '../lib/businessStructure';
-import { gigSchema, type GigFormData } from '../lib/validations';
+import { gigSchema } from '../lib/validations';
 import { PayerFormModal } from './PayerFormModal';
-import { useWithholding } from '../hooks/useWithholding';
-import { formatWithholdingBreakdown } from '../lib/tax/withholding';
-import { hasCompletedTaxProfile } from '../services/taxService';
 import { InlineExpensesList, type InlineExpense } from './gigs/InlineExpensesList';
 import { InlineMileageRow } from './gigs/InlineMileageRow';
 import { InlineSubcontractorPayments, type InlineSubcontractorPayment } from './gigs/InlineSubcontractorPayments';
 import { SubcontractorFormModal } from './SubcontractorFormModal';
 import { VenuePlacesInput } from './VenuePlacesInput';
-import { useTaxEstimate, calculateMileageDeduction } from '../hooks/useTaxEstimate';
+import { calculateMileageDeduction } from '../hooks/useTaxEstimate';
 import { createGigWithLines, updateGigWithLines } from '../services/gigService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { getSharedUserId } from '../lib/sharedAuth';
 import { useTaxProfile } from '../hooks/useTaxProfile';
-import { taxDeltaForGig, formatTaxAmount, formatTaxRate } from '../tax/engine';
-import { TaxSummary } from './gigs/TaxSummary';
-import type { TaxEstimate } from './gigs/TaxSummary';
+import { taxDeltaForGig } from '../tax/engine';
 import { StickySummary } from './gigs/StickySummary';
 import { Accordion } from './ui/Accordion';
 import { UpgradeModal } from './UpgradeModal';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
-import { checkAndIncrementLimit } from '../utils/limitChecks';
-import { getEffectiveTaxTreatment, getTaxTreatmentLabel, getTaxTreatmentShortLabel, getDefaultAmountType } from '../lib/taxTreatment';
+import { checkLimit, incrementLimitUsage } from '../utils/limitChecks';
+import { getEffectiveTaxTreatment, getTaxTreatmentShortLabel } from '../lib/taxTreatment';
 import { resolveAddressDetails, resolvePlaceDetails } from '../lib/placeDetails';
 import { colors } from '../styles/theme';
 import { useTheme } from '../contexts/ThemeContext';
+import { useResponsive } from '../hooks/useResponsive';
+import { Button, Field } from '../ui';
+import { CoreDetailsSection } from './gigs/addGig/CoreDetailsSection';
+import { LocationDetailsSection } from './gigs/addGig/LocationDetailsSection';
+import { PayBreakdownSection } from './gigs/addGig/PayBreakdownSection';
+import { TaxWithholdingSection } from './gigs/addGig/TaxWithholdingSection';
 import {
   calculateInlineMileage,
   inferStoredMileageAutoCalculated,
@@ -143,7 +141,6 @@ export function AddGigModal({
   const [payerId, setPayerId] = useState('');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
-  const [showTaxBreakdown, setShowTaxBreakdown] = useState(false);
   const [location, setLocation] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
@@ -174,7 +171,6 @@ export function AddGigModal({
   const [mileageCalculationStatus, setMileageCalculationStatus] = useState<MileageCalculationStatus>('idle');
   const [inlineSubcontractorPayments, setInlineSubcontractorPayments] = useState<InlineSubcontractorPayment[]>([]);
   const [copyExpenses, setCopyExpenses] = useState(false);
-  const [copySubcontractorPayments, setCopySubcontractorPayments] = useState(false);
   const [showAddPayerModal, setShowAddPayerModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showEditPayerModal, setShowEditPayerModal] = useState(false);
@@ -189,16 +185,13 @@ export function AddGigModal({
   }>({});
   const [taxTreatmentOverride, setTaxTreatmentOverride] = useState<'w2' | 'contractor_1099' | 'other' | null>(null);
   const [showTaxTreatmentOverride, setShowTaxTreatmentOverride] = useState(false);
-  const [netAmountW2, setNetAmountW2] = useState('');
-  const [withholdingAmountW2, setWithholdingAmountW2] = useState('');
-  const [showW2Details, setShowW2Details] = useState(false);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: payers } = usePayers();
-  const createGig = useCreateGig();
-  const updateGig = useUpdateGig();
   const queryClient = useQueryClient();
+  const { isMobile } = useResponsive();
   
   const [userId, setUserId] = useState<string | null>(null);
   
@@ -276,23 +269,8 @@ export function AddGigModal({
     - (parseFloat(fees) || 0)
     - totalExpenses
     - mileageDeduction;
-  
-  // Get tax estimate
-  const { estimate: taxEstimate } = useTaxEstimate(netBeforeTax);
-  
-  // Legacy withholding for backward compatibility
-  const withholdingAmount = netBeforeTax;
-  const { breakdown: withholdingBreakdown, loading: withholdingLoading, hasProfile } = useWithholding(withholdingAmount);
 
   const { data: taxProfile } = useTaxProfile();
-  const { data: subscription } = useSubscription();
-  
-  const plan = getResolvedPlan({
-    subscriptionTier: subscription?.tier,
-    subscriptionStatus: subscription?.status,
-  });
-  
-  const businessStructure = profile?.business_structure || 'individual';
   
   // Get YTD data for tax calculation
   const { data: ytdData } = useQuery<{
@@ -388,7 +366,7 @@ export function AddGigModal({
       console.error('Error calculating tax set-aside:', error);
       return null;
     }
-  }, [taxProfile, ytdData, grossAmount, tips, perDiem, otherIncome, fees, totalExpenses, mileageDeduction]);
+  }, [taxProfile, ytdData, grossAmount, tips, perDiem, otherIncome, fees, totalExpenses, mileageDeduction, totalSubcontractorPayments]);
 
   const applyLoadedMileage = (tripMileage: any) => {
     lastAutoMileageRouteKeyRef.current = null;
@@ -612,20 +590,20 @@ export function AddGigModal({
     lastAutoMileageRouteKeyRef.current = null;
     setInlineSubcontractorPayments([]);
     setCopyExpenses(false);
-    setCopySubcontractorPayments(false);
     setFieldErrors({});
     setTaxTreatmentOverride(null);
     setShowTaxTreatmentOverride(false);
-    setNetAmountW2('');
-    setWithholdingAmountW2('');
-    setShowW2Details(false);
     setStateSearch('');
     setCountrySearch('');
+    setIsSubmitting(false);
   };
 
   // Date picker handler
   const handleDateChange = (selectedDate: Date) => {
     setDate(toUtcDateString(selectedDate));
+    if (fieldErrors.date) {
+      setFieldErrors({ ...fieldErrors, date: undefined });
+    }
   };
 
   const handleDriveToggle = () => {
@@ -873,39 +851,6 @@ export function AddGigModal({
     c.code.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
-  // Calculate total gig pay (gross income before expenses & taxes)
-  const calculateTotalGigPay = () => {
-    const gross = parseFloat(grossAmount) || 0;
-    const tipAmount = parseFloat(tips) || 0;
-    const feeAmount = parseFloat(fees) || 0;
-    const perDiemAmount = parseFloat(perDiem) || 0;
-    const otherIncomeAmount = parseFloat(otherIncome) || 0;
-    return gross + tipAmount + perDiemAmount + otherIncomeAmount - feeAmount;
-  };
-
-  // Generate human-readable breakdown (omit zero values)
-  const generatePayBreakdown = () => {
-    const gross = parseFloat(grossAmount) || 0;
-    const tipAmount = parseFloat(tips) || 0;
-    const feeAmount = parseFloat(fees) || 0;
-    const perDiemAmount = parseFloat(perDiem) || 0;
-    const otherIncomeAmount = parseFloat(otherIncome) || 0;
-
-    const parts: string[] = [];
-    
-    if (gross > 0) parts.push(`Base $${gross.toFixed(2)}`);
-    if (tipAmount > 0) parts.push(`Tips $${tipAmount.toFixed(2)}`);
-    if (perDiemAmount > 0) parts.push(`Per Diem $${perDiemAmount.toFixed(2)}`);
-    if (otherIncomeAmount > 0) parts.push(`Other $${otherIncomeAmount.toFixed(2)}`);
-    if (feeAmount > 0) parts.push(`Fees −$${feeAmount.toFixed(2)}`);
-
-    if (parts.length === 0) return '$0.00';
-    if (parts.length === 1 && feeAmount === 0) return parts[0];
-    
-    const total = calculateTotalGigPay();
-    return `${parts.join(' + ').replace(' + Fees', ' − Fees')} = $${total.toFixed(2)}`;
-  };
-
   const generateDefaultTitle = () => {
     const payer = payers?.find(p => p.id === payerId);
     const payerName = payer?.name || 'Gig';
@@ -923,7 +868,7 @@ export function AddGigModal({
       errors.date = 'Date is required';
     }
     if (!grossAmount || parseFloat(grossAmount) < 0) {
-      errors.grossAmount = 'Gross amount must be 0 or greater';
+      errors.grossAmount = 'Base pay must be 0 or greater';
     }
     
     setFieldErrors(errors);
@@ -958,6 +903,8 @@ export function AddGigModal({
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       const formData: any = {
         payer_id: payerId,
@@ -981,8 +928,6 @@ export function AddGigModal({
         taxes_withheld: taxesWithheld,
         notes: notes || undefined,
         tax_treatment: taxTreatmentOverride || undefined,
-        net_amount_w2: netAmountW2 ? parseFloat(netAmountW2) : undefined,
-        withholding_amount: withholdingAmountW2 ? parseFloat(withholdingAmountW2) : undefined,
         start_time: startTime || undefined,
         end_time: endTime || undefined,
       };
@@ -1055,15 +1000,14 @@ export function AddGigModal({
         queryClient.invalidateQueries({ queryKey: ['mileage'] });
         queryClient.invalidateQueries({ queryKey: ['gig-subcontractor-payments'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['ytd-tax-data'] });
       } else {
-        // Check limit before creating new gig
         const userId = await getSharedUserId();
         if (!userId) {
           throw new Error('User not authenticated');
         }
-        
-        const limitCheck = await checkAndIncrementLimit(userId, 'gigs');
-        
+
+        const limitCheck = await checkLimit(userId, 'gigs');
         if (!limitCheck.allowed) {
           Alert.alert(
             '⚠️ Monthly Limit Reached',
@@ -1083,8 +1027,7 @@ export function AddGigModal({
           );
           return;
         }
-        
-        // Create gig with inline items
+
         console.log('Creating gig with data:', {
           gig: validated,
           expenses: expensesData,
@@ -1103,6 +1046,11 @@ export function AddGigModal({
           console.error('Error creating gig:', createError);
           throw createError;
         }
+
+        const usageIncrement = await incrementLimitUsage(userId, 'gigs');
+        if (!usageIncrement.allowed) {
+          console.warn('Gig saved but monthly usage counter did not increment:', usageIncrement.message);
+        }
         
         // Invalidate queries to refresh the UI
         queryClient.invalidateQueries({ queryKey: ['gigs'] });
@@ -1110,6 +1058,7 @@ export function AddGigModal({
         queryClient.invalidateQueries({ queryKey: ['mileage'] });
         queryClient.invalidateQueries({ queryKey: ['gig-subcontractor-payments'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['ytd-tax-data'] });
       }
 
       resetForm();
@@ -1142,7 +1091,7 @@ export function AddGigModal({
         );
       }
     } catch (error: any) {
-      if (error.code === 'FREE_PLAN_LIMIT_REACHED') {
+      if (error.code === 'FREE_PLAN_LIMIT_REACHED' || error.code === 'GIG_LIMIT_REACHED') {
         setShowUpgradeModal(true);
         return;
       }
@@ -1152,10 +1101,10 @@ export function AddGigModal({
       } else {
         Alert.alert('Error', error.message || 'Failed to save gig');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  const totalGigPay = calculateTotalGigPay();
   const mileageStatusText = (() => {
     if (!didDriveToGig) {
       return '';
@@ -1187,6 +1136,15 @@ export function AddGigModal({
       : mileageCalculationStatus === 'calculating'
         ? styles.driveStatusCalculating
         : styles.driveStatusMuted;
+  const selectedPayer = payers?.find((payer) => payer.id === payerId) || null;
+  const effectiveTaxTreatment = selectedPayer
+    ? getEffectiveTaxTreatment(
+        { tax_treatment: taxTreatmentOverride },
+        { tax_treatment: selectedPayer.tax_treatment }
+      )
+    : null;
+  const needsManualLocationDetails = Boolean(location.trim() && !venueDetails && !city && !state);
+  const footerTaxEstimateAvailable = Boolean(gigSetAside && taxProfile);
 
   return (
     <Modal
@@ -1207,30 +1165,182 @@ export function AddGigModal({
           </View>
 
           <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-            {/* QUICK ADD SECTION - Always Visible */}
-            <View style={styles.quickAddSection}>
-              <Text style={styles.sectionTitle}>Quick Add</Text>
-              <Text style={styles.sectionDescription}>Required fields to get started</Text>
-              <Text style={styles.scrollHint}>↓ Scroll down for optional details (venue, tips/fees, subs, mileage)</Text>
+            <CoreDetailsSection
+              isStacked={isMobile}
+              payerField={
+                payers && payers.length === 0 ? (
+                  <Field label="Payer" required error={fieldErrors.payerId}>
+                    <View style={styles.emptyPayerContainer}>
+                      <Text style={styles.emptyPayerText}>No payers yet</Text>
+                      <Button size="sm" onPress={() => setShowAddPayerModal(true)}>
+                        + Add New Payer
+                      </Button>
+                    </View>
+                  </Field>
+                ) : (
+                  <Field label="Payer" required error={fieldErrors.payerId}>
+                    <View style={styles.payerFieldShell}>
+                      <TouchableOpacity
+                        style={[styles.pickerButton, fieldErrors.payerId && styles.inputError]}
+                        onPress={() => setShowPayerPicker(true)}
+                      >
+                        <Text style={[styles.pickerButtonText, !payerId && styles.placeholderText]}>
+                          {selectedPayer?.name || 'Select payer'}
+                        </Text>
+                        <Text style={styles.pickerButtonIcon}>▼</Text>
+                      </TouchableOpacity>
 
-              <View style={styles.driveCard}>
-                <View style={styles.toggleRow}>
-                  <View style={styles.toggleLabel}>
-                    <Text style={styles.driveCardTitle}>Did you drive to this gig?</Text>
-                    <Text style={styles.driveCardSubtitle}>
-                      We&apos;ll save this trip to Mileage when you save the gig.
-                    </Text>
+                      <View style={[styles.payerActions, isMobile && styles.payerActionsStacked]}>
+                        <Button variant="ghost" size="sm" onPress={() => setShowAddPayerModal(true)}>
+                          + New payer
+                        </Button>
+                        {selectedPayer ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onPress={() => {
+                              setEditingPayer(selectedPayer);
+                              setShowEditPayerModal(true);
+                            }}
+                          >
+                            Edit payer
+                          </Button>
+                        ) : null}
+                      </View>
+                    </View>
+                  </Field>
+                )
+              }
+              basePayField={
+                <Field label="Base Pay" required error={fieldErrors.grossAmount}>
+                  <View style={[styles.amountInputShell, fieldErrors.grossAmount && styles.inputError]}>
+                    <Text style={styles.currencyPrefix}>$</Text>
+                    <TextInput
+                      ref={grossAmountInputRef}
+                      style={styles.amountInput}
+                      value={grossAmount}
+                      onChangeText={(text) => {
+                        setGrossAmount(text);
+                        if (fieldErrors.grossAmount && text && parseFloat(text) >= 0) {
+                          setFieldErrors({ ...fieldErrors, grossAmount: undefined });
+                        }
+                      }}
+                      placeholder="0.00"
+                      placeholderTextColor={colors.text.subtle}
+                      keyboardType="decimal-pad"
+                    />
                   </View>
+                </Field>
+              }
+              dateField={
+                <Field label="Date" required error={fieldErrors.date}>
                   <TouchableOpacity
-                    style={[styles.toggle, didDriveToGig && styles.toggleActive]}
-                    onPress={handleDriveToggle}
+                    style={[styles.pickerButton, fieldErrors.date && styles.inputError]}
+                    onPress={() => setShowDatePicker(true)}
                   >
-                    <View style={[styles.toggleThumb, didDriveToGig && styles.toggleThumbActive]} />
+                    <Text style={[styles.pickerButtonText, !date && styles.placeholderText]}>
+                      {date || 'Select date'}
+                    </Text>
+                    <Text style={styles.pickerButtonIcon}>📅</Text>
                   </TouchableOpacity>
-                </View>
+                </Field>
+              }
+              titleField={
+                <Field label="Title" help="Optional. We can suggest one from payer + date if you leave it blank.">
+                  <TextInput
+                    style={styles.input}
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholder="Optional title"
+                    placeholderTextColor={colors.text.subtle}
+                  />
+                </Field>
+              }
+              venueField={
+                <Field label="Venue">
+                  <VenuePlacesInput
+                    label=""
+                    placeholder="Search for a venue or type it manually..."
+                    types="establishment"
+                    value={location}
+                    onChange={(text: string) => {
+                      setLocation(text);
+                      setVenueDetails(null);
+                      setVenueError('');
+                    }}
+                    onSelect={async (item: { description: string; place_id: string; lat?: number; lng?: number }) => {
+                      setLocation(item.description);
+                      setVenueError('');
 
-                {didDriveToGig && (
-                  <View style={styles.driveCardBody}>
+                      if (typeof item.lat === 'number' && typeof item.lng === 'number') {
+                        setVenueDetails((prev: any) => ({
+                          ...(prev || {}),
+                          formatted_address: prev?.formatted_address || item.description,
+                          location: { lat: item.lat, lng: item.lng },
+                          parts: prev?.parts || {},
+                        }));
+                      }
+
+                      try {
+                        const details = await resolvePlaceDetails(item.place_id);
+
+                        if (details) {
+                          setVenueDetails(details);
+
+                          if (details.parts?.city) {
+                            setCity(details.parts.city);
+                          }
+                          if (details.parts?.state) {
+                            setState(details.parts.state);
+                          }
+                          if (details.parts?.country) {
+                            setCountry(details.parts.country);
+                          }
+                        } else {
+                          setVenueError('Could not load venue details. You can still save or fill location details below.');
+                        }
+                      } catch (error) {
+                        console.error('Error fetching venue details:', error);
+                        setVenueError('Could not load venue details. You can still save or fill location details below.');
+                      }
+                    }}
+                    error={venueError}
+                    locationBias={cityDetails?.location}
+                  />
+                </Field>
+              }
+              venueHelper={
+                needsManualLocationDetails ? (
+                  <Text style={styles.helperText}>
+                    Need city, state, country, or an invoice link? Open the optional location details below.
+                  </Text>
+                ) : null
+              }
+              paidField={
+                <TouchableOpacity
+                  style={styles.checkboxContainer}
+                  onPress={() => setPaid(!paid)}
+                >
+                  <View style={[styles.checkbox, paid && styles.checkboxChecked]}>
+                    {paid && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Mark as paid</Text>
+                </TouchableOpacity>
+              }
+              didDriveField={
+                <TouchableOpacity
+                  style={styles.checkboxContainer}
+                  onPress={handleDriveToggle}
+                >
+                  <View style={[styles.checkbox, didDriveToGig && styles.checkboxChecked]}>
+                    {didDriveToGig && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.checkboxLabel}>I drove to this gig</Text>
+                </TouchableOpacity>
+              }
+              mileageCard={
+                didDriveToGig ? (
+                  <View style={styles.drivePreviewCard}>
                     <TouchableOpacity
                       style={styles.checkboxContainer}
                       onPress={handleDriveRoundTripToggle}
@@ -1245,445 +1355,152 @@ export function AddGigModal({
                       {mileageStatusText}
                     </Text>
 
-                    {hasMileageReady && (
+                    {hasMileageReady ? (
                       <View style={styles.driveSummaryRow}>
-                        <Text style={styles.driveSummaryMetric}>
-                          {mileageMiles.toFixed(1)} miles
-                        </Text>
+                        <Text style={styles.driveSummaryMetric}>{mileageMiles.toFixed(1)} miles</Text>
                         <Text style={styles.driveSummaryDivider}>•</Text>
-                        <Text style={styles.driveSummaryMetric}>
-                          -${mileageDeduction.toFixed(2)} deduction
-                        </Text>
+                        <Text style={styles.driveSummaryMetric}>-{`$${mileageDeduction.toFixed(2)}`} deduction</Text>
                       </View>
-                    )}
+                    ) : null}
 
                     <Text style={styles.driveCardHint}>
-                      Use the Mileage section in Deductions below to edit miles or notes manually.
+                      Use Deductions below to edit miles or notes manually before you save.
                     </Text>
                   </View>
-                )}
-              </View>
-              
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Payer *</Text>
-              
-              {payers && payers.length === 0 ? (
-                <View style={styles.emptyPayerContainer}>
-                  <Text style={styles.emptyPayerText}>No payers yet</Text>
-                  <TouchableOpacity
-                    style={styles.addPayerButton}
-                    onPress={() => setShowAddPayerModal(true)}
-                  >
-                    <Text style={styles.addPayerButtonText}>+ Add New Payer</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={[styles.pickerButton, fieldErrors.payerId && styles.inputError]}
-                    onPress={() => setShowPayerPicker(true)}
-                  >
-                    <Text style={[styles.pickerButtonText, !payerId && styles.placeholderText]}>
-                      {payerId 
-                        ? payers?.find(p => p.id === payerId)?.name || 'Select payer'
-                        : 'Select payer'}
-                    </Text>
-                    <Text style={styles.pickerButtonIcon}>▼</Text>
-                  </TouchableOpacity>
-                  {fieldErrors.payerId && (
-                    <Text style={styles.errorText}>⚠️ {fieldErrors.payerId}</Text>
-                  )}
-                  
-                  <View style={styles.payerActions}>
-                    <TouchableOpacity
-                      style={styles.addPayerLink}
-                      onPress={() => setShowAddPayerModal(true)}
-                    >
-                      <Text style={styles.addPayerLinkText}>+ Add new payer</Text>
-                    </TouchableOpacity>
-                    
-                    {payerId && (
-                      <TouchableOpacity
-                        style={styles.editPayerLink}
-                        onPress={() => {
-                          const payer = payers?.find(p => p.id === payerId);
-                          if (payer) {
-                            setEditingPayer(payer);
-                            setShowEditPayerModal(true);
+                ) : null
+              }
+            />
+
+            <LocationDetailsSection
+              isStacked={isMobile}
+              startTimeField={
+                <Field label="Start time">
+                  <TextInput
+                    style={styles.input}
+                    value={startTime}
+                    onChangeText={setStartTime}
+                    placeholder="19:00"
+                    placeholderTextColor={colors.text.subtle}
+                  />
+                </Field>
+              }
+              endTimeField={
+                <Field label="End time">
+                  <TextInput
+                    style={styles.input}
+                    value={endTime}
+                    onChangeText={setEndTime}
+                    placeholder="21:00"
+                    placeholderTextColor={colors.text.subtle}
+                  />
+                </Field>
+              }
+              invoiceField={
+                <Field label="Invoice link">
+                  <TextInput
+                    style={styles.input}
+                    value={invoiceLink}
+                    onChangeText={setInvoiceLink}
+                    placeholder="https://..."
+                    placeholderTextColor={colors.text.subtle}
+                    keyboardType="url"
+                    autoCapitalize="none"
+                  />
+                </Field>
+              }
+              locationFields={
+                <View style={styles.locationDetailsGroup}>
+                  <Text style={styles.helperText}>
+                    Venue lookup usually fills these in. Adjust them only if you need more precise reporting.
+                  </Text>
+
+                  <View style={styles.inputGroup}>
+                    <Field label="City">
+                      <VenuePlacesInput
+                        label=""
+                        placeholder="Search for a city..."
+                        types="(cities)"
+                        value={city}
+                        onChange={(text: string) => {
+                          setCity(text);
+                          setCityDetails(null);
+                          setCityError('');
+                        }}
+                        onSelect={async (item: { description: string; place_id: string; lat?: number; lng?: number }) => {
+                          setCity(item.description);
+                          setCityError('');
+
+                          if (typeof item.lat === 'number' && typeof item.lng === 'number') {
+                            setCityDetails((prev: any) => ({
+                              ...(prev || {}),
+                              formatted_address: prev?.formatted_address || item.description,
+                              location: { lat: item.lat, lng: item.lng },
+                              parts: prev?.parts || {},
+                            }));
+                          }
+
+                          try {
+                            const details = await resolvePlaceDetails(item.place_id);
+
+                            if (details) {
+                              setCityDetails(details);
+
+                              if (details.parts?.state) {
+                                setState(details.parts.state);
+                              }
+                              if (details.parts?.country) {
+                                setCountry(details.parts.country);
+                              }
+                            } else {
+                              setCityError('Could not load city details. Fill the fields manually if needed.');
+                            }
+                          } catch (error) {
+                            console.error('Error fetching city details:', error);
+                            setCityError('Could not load city details. Fill the fields manually if needed.');
                           }
                         }}
-                      >
-                        <Text style={styles.editPayerLinkText}>Edit payer</Text>
-                      </TouchableOpacity>
-                    )}
+                        error={cityError}
+                      />
+                    </Field>
                   </View>
-                  
-                  {!payerId && (
-                    <View style={styles.reminderBox}>
-                      <Text style={styles.reminderIcon}>⚠️</Text>
-                      <Text style={styles.reminderText}>
-                        Please select a payer (who's paying you for this gig)
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {payerId && (() => {
-                    const selectedPayer = payers?.find(p => p.id === payerId);
-                    if (!selectedPayer) return null;
-                    
-                    const effectiveTreatment = getEffectiveTaxTreatment(
-                      { tax_treatment: taxTreatmentOverride },
-                      { tax_treatment: selectedPayer.tax_treatment }
-                    );
-                    
-                    return (
-                      <View style={styles.taxTreatmentSection}>
-                        <View style={styles.taxTreatmentBadgeRow}>
-                          <Text style={styles.taxTreatmentLabel}>Tax Treatment:</Text>
-                          <View style={[
-                            styles.taxTreatmentBadge,
-                            effectiveTreatment === 'w2' && styles.taxTreatmentBadgeW2,
-                            effectiveTreatment === 'contractor_1099' && styles.taxTreatmentBadge1099,
-                          ]}>
-                            <Text style={styles.taxTreatmentBadgeText}>
-                              {getTaxTreatmentShortLabel(effectiveTreatment)}
-                            </Text>
-                          </View>
-                          {taxTreatmentOverride && (
-                            <Text style={styles.taxTreatmentOverrideNote}>(Override)</Text>
-                          )}
-                        </View>
-                        
+
+                  <View style={[styles.row, isMobile && styles.rowStacked]}>
+                    <View style={[styles.inputGroup, styles.flex1]}>
+                      <Field label="State">
                         <TouchableOpacity
-                          style={styles.taxTreatmentOverrideToggle}
-                          onPress={() => setShowTaxTreatmentOverride(!showTaxTreatmentOverride)}
+                          style={styles.pickerButton}
+                          onPress={() => setShowStatePicker(true)}
                         >
-                          <Text style={styles.taxTreatmentOverrideToggleText}>
-                            {showTaxTreatmentOverride ? '− Hide override' : '+ Override tax treatment'}
+                          <Text style={[styles.pickerButtonText, !state && styles.placeholderText]}>
+                            {state ? US_STATES.find((item) => item.code === state)?.name || state : 'Select state'}
                           </Text>
+                          <Text style={styles.pickerButtonIcon}>▼</Text>
                         </TouchableOpacity>
-                        
-                        {showTaxTreatmentOverride && (
-                          <View style={styles.taxTreatmentOverrideSection}>
-                            <Text style={styles.taxTreatmentOverrideHelp}>
-                              Override the default tax treatment for this gig only
-                            </Text>
-                            <View style={styles.taxTreatmentButtons}>
-                              <TouchableOpacity
-                                style={[
-                                  styles.taxTreatmentButton,
-                                  taxTreatmentOverride === 'w2' && styles.taxTreatmentButtonActive,
-                                ]}
-                                onPress={() => setTaxTreatmentOverride('w2')}
-                              >
-                                <Text style={[
-                                  styles.taxTreatmentButtonText,
-                                  taxTreatmentOverride === 'w2' && styles.taxTreatmentButtonTextActive,
-                                ]}>W-2</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                style={[
-                                  styles.taxTreatmentButton,
-                                  taxTreatmentOverride === 'contractor_1099' && styles.taxTreatmentButtonActive,
-                                ]}
-                                onPress={() => setTaxTreatmentOverride('contractor_1099')}
-                              >
-                                <Text style={[
-                                  styles.taxTreatmentButtonText,
-                                  taxTreatmentOverride === 'contractor_1099' && styles.taxTreatmentButtonTextActive,
-                                ]}>1099</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                style={[
-                                  styles.taxTreatmentButton,
-                                  taxTreatmentOverride === 'other' && styles.taxTreatmentButtonActive,
-                                ]}
-                                onPress={() => setTaxTreatmentOverride('other')}
-                              >
-                                <Text style={[
-                                  styles.taxTreatmentButtonText,
-                                  taxTreatmentOverride === 'other' && styles.taxTreatmentButtonTextActive,
-                                ]}>Other</Text>
-                              </TouchableOpacity>
-                              {taxTreatmentOverride && (
-                                <TouchableOpacity
-                                  style={styles.taxTreatmentClearButton}
-                                  onPress={() => setTaxTreatmentOverride(null)}
-                                >
-                                  <Text style={styles.taxTreatmentClearButtonText}>Clear</Text>
-                                </TouchableOpacity>
-                              )}
-                            </View>
-                          </View>
-                        )}
-                        
-                        {effectiveTreatment === 'w2' && (
-                          <View style={styles.w2InfoBox}>
-                            <Text style={styles.w2InfoIcon}>ℹ️</Text>
-                            <Text style={styles.w2InfoText}>
-                              W-2 income is excluded from estimated tax calculations (taxes withheld by employer)
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    );
-                  })()}
-                </>
-              )}
-            </View>
+                      </Field>
+                    </View>
 
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>Gross Amount *</Text>
-                <TextInput
-                  ref={grossAmountInputRef}
-                  style={[styles.input, fieldErrors.grossAmount && styles.inputError]}
-                  value={grossAmount}
-                  onChangeText={(text) => {
-                    setGrossAmount(text);
-                    if (fieldErrors.grossAmount && text && parseFloat(text) >= 0) {
-                      setFieldErrors({ ...fieldErrors, grossAmount: undefined });
-                    }
-                  }}
-                  placeholder="0.00"
-                  placeholderTextColor={colors.text.subtle}
-                  keyboardType="decimal-pad"
-                />
-                {fieldErrors.grossAmount && (
-                  <Text style={styles.errorText}>⚠️ {fieldErrors.grossAmount}</Text>
-                )}
-              </View>
-
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>Date *</Text>
-                <TouchableOpacity
-                  style={[styles.pickerButton, fieldErrors.date && styles.inputError]}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Text style={[styles.pickerButtonText, !date && styles.placeholderText]}>
-                    {date || 'Select date'}
-                  </Text>
-                  <Text style={styles.pickerButtonIcon}>📅</Text>
-                </TouchableOpacity>
-                {fieldErrors.date && (
-                  <Text style={styles.errorText}>⚠️ {fieldErrors.date}</Text>
-                )}
-              </View>
-            </View>
-
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>Start Time</Text>
-                <TextInput
-                  style={styles.input}
-                  value={startTime}
-                  onChangeText={setStartTime}
-                  placeholder="19:00"
-                  placeholderTextColor={colors.text.subtle}
-                />
-              </View>
-
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <Text style={styles.label}>End Time</Text>
-                <TextInput
-                  style={styles.input}
-                  value={endTime}
-                  onChangeText={setEndTime}
-                  placeholder="21:00"
-                  placeholderTextColor={colors.text.subtle}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Title</Text>
-              <TextInput
-                style={styles.input}
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Optional. We can generate one from payer + date."
-                placeholderTextColor={colors.text.subtle}
-              />
-            </View>
-
-            <View style={styles.row}>
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <TouchableOpacity
-                  style={styles.checkboxContainer}
-                  onPress={() => setPaid(!paid)}
-                >
-                  <View style={[styles.checkbox, paid && styles.checkboxChecked]}>
-                    {paid && <Text style={styles.checkmark}>✓</Text>}
+                    <View style={[styles.inputGroup, styles.flex1]}>
+                      <Field label="Country">
+                        <TouchableOpacity
+                          style={styles.pickerButton}
+                          onPress={() => setShowCountryPicker(true)}
+                        >
+                          <Text style={styles.pickerButtonText}>
+                            {COUNTRIES.find((item) => item.code === country)?.name || 'United States'}
+                          </Text>
+                          <Text style={styles.pickerButtonIcon}>▼</Text>
+                        </TouchableOpacity>
+                      </Field>
+                    </View>
                   </View>
-                  <Text style={styles.checkboxLabel}>Paid?</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={[styles.inputGroup, styles.flex1]}>
-                <TouchableOpacity
-                  style={styles.checkboxContainer}
-                  onPress={() => setTaxesWithheld(!taxesWithheld)}
-                >
-                  <View style={[styles.checkbox, taxesWithheld && styles.checkboxChecked]}>
-                    {taxesWithheld && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.checkboxLabel}>Taxes Withheld?</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            </View>
-
-            {/* ACCORDION: DETAILS */}
-            <Accordion title="Details" description="Venue, location, and other details">
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Venue</Text>
-                <VenuePlacesInput
-                  label=""
-                  placeholder="Search for a venue..."
-                  types="establishment"
-                  value={location}
-                  onChange={(text: string) => {
-                    setLocation(text);
-                    setVenueDetails(null);
-                    setVenueError('');
-                  }}
-                  onSelect={async (item: { description: string; place_id: string; lat?: number; lng?: number }) => {
-                    setLocation(item.description);
-                    setVenueError('');
-
-                    if (typeof item.lat === 'number' && typeof item.lng === 'number') {
-                      setVenueDetails((prev: any) => ({
-                        ...(prev || {}),
-                        formatted_address: prev?.formatted_address || item.description,
-                        location: { lat: item.lat, lng: item.lng },
-                        parts: prev?.parts || {},
-                      }));
-                    }
-                    
-                    try {
-                      const details = await resolvePlaceDetails(item.place_id);
-
-                      if (details) {
-                        setVenueDetails(details);
-                        
-                        if (details.parts?.city) {
-                          setCity(details.parts.city);
-                        }
-                        if (details.parts?.state) {
-                          setState(details.parts.state);
-                        }
-                        if (details.parts?.country) {
-                          setCountry(details.parts.country);
-                        }
-                      } else {
-                        setVenueError('Could not load venue details. Select a venue from suggestions or enter miles manually.');
-                      }
-                    } catch (error) {
-                      console.error('Error fetching venue details:', error);
-                      setVenueError('Could not load venue details. Select a venue from suggestions or enter miles manually.');
-                    }
-                  }}
-                  error={venueError}
-                  locationBias={cityDetails?.location}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>City</Text>
-                <VenuePlacesInput
-                  label=""
-                  placeholder="Search for a city..."
-                  types="(cities)"
-                  value={city}
-                  onChange={(text: string) => {
-                    setCity(text);
-                    setCityDetails(null);
-                    setCityError('');
-                  }}
-                  onSelect={async (item: { description: string; place_id: string; lat?: number; lng?: number }) => {
-                    setCity(item.description);
-                    setCityError('');
-
-                    if (typeof item.lat === 'number' && typeof item.lng === 'number') {
-                      setCityDetails((prev: any) => ({
-                        ...(prev || {}),
-                        formatted_address: prev?.formatted_address || item.description,
-                        location: { lat: item.lat, lng: item.lng },
-                        parts: prev?.parts || {},
-                      }));
-                    }
-                    
-                    try {
-                      const details = await resolvePlaceDetails(item.place_id);
-
-                      if (details) {
-                        setCityDetails(details);
-                        
-                        if (details.parts?.state) {
-                          setState(details.parts.state);
-                        }
-                        if (details.parts?.country) {
-                          setCountry(details.parts.country);
-                        }
-                      } else {
-                        setCityError('Could not load city details. Select a city from suggestions or fill fields manually.');
-                      }
-                    } catch (error) {
-                      console.error('Error fetching city details:', error);
-                      setCityError('Could not load city details. Select a city from suggestions or fill fields manually.');
-                    }
-                  }}
-                  error={cityError}
-                />
-              </View>
-
-              <View style={styles.row}>
-                <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>State</Text>
-                  <TouchableOpacity
-                    style={styles.pickerButton}
-                    onPress={() => setShowStatePicker(true)}
-                  >
-                    <Text style={[styles.pickerButtonText, !state && styles.placeholderText]}>
-                      {state ? US_STATES.find(s => s.code === state)?.name || state : 'Select state'}
-                    </Text>
-                    <Text style={styles.pickerButtonIcon}>▼</Text>
-                  </TouchableOpacity>
                 </View>
+              }
+            />
 
-                <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>Country</Text>
-                  <TouchableOpacity
-                    style={styles.pickerButton}
-                    onPress={() => setShowCountryPicker(true)}
-                  >
-                    <Text style={styles.pickerButtonText}>
-                      {COUNTRIES.find(c => c.code === country)?.name || 'United States'}
-                    </Text>
-                    <Text style={styles.pickerButtonIcon}>▼</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Invoice Link (Optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={invoiceLink}
-                  onChangeText={setInvoiceLink}
-                  placeholder="https://..."
-                  placeholderTextColor={colors.text.subtle}
-                  keyboardType="url"
-                  autoCapitalize="none"
-                />
-              </View>
-            </Accordion>
-
-            {/* ACCORDION: MONEY BREAKDOWN */}
-            <Accordion title="Money Breakdown" description="Tips, fees, per diem, and payment method">
-              <View style={styles.row}>
-                <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>Tips</Text>
+            <PayBreakdownSection
+              isStacked={isMobile}
+              tipsField={
+                <Field label="Tips">
                   <TextInput
                     style={styles.input}
                     value={tips}
@@ -1692,10 +1509,10 @@ export function AddGigModal({
                     placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
                   />
-                </View>
-
-                <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>Fees</Text>
+                </Field>
+              }
+              feesField={
+                <Field label="Fees">
                   <TextInput
                     style={styles.input}
                     value={fees}
@@ -1704,12 +1521,10 @@ export function AddGigModal({
                     placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
                   />
-                </View>
-              </View>
-
-              <View style={styles.row}>
-                <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>Per Diem</Text>
+                </Field>
+              }
+              perDiemField={
+                <Field label="Per Diem">
                   <TextInput
                     style={styles.input}
                     value={perDiem}
@@ -1718,10 +1533,10 @@ export function AddGigModal({
                     placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
                   />
-                </View>
-
-                <View style={[styles.inputGroup, styles.flex1]}>
-                  <Text style={styles.label}>Other Income</Text>
+                </Field>
+              }
+              otherIncomeField={
+                <Field label="Other Income">
                   <TextInput
                     style={styles.input}
                     value={otherIncome}
@@ -1730,37 +1545,157 @@ export function AddGigModal({
                     placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
                   />
-                </View>
-              </View>
+                </Field>
+              }
+              paymentMethodField={
+                <Field label="Payment Method">
+                  <View style={styles.typeButtons}>
+                    {PAYMENT_METHODS.map((method) => (
+                      <TouchableOpacity
+                        key={method}
+                        style={[
+                          styles.typeButton,
+                          paymentMethod === method && styles.typeButtonActive,
+                        ]}
+                        onPress={() => setPaymentMethod(method)}
+                      >
+                        <Text
+                          style={[
+                            styles.typeButtonText,
+                            paymentMethod === method && styles.typeButtonTextActive,
+                          ]}
+                        >
+                          {method}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Field>
+              }
+            />
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Payment Method</Text>
-                <View style={styles.typeButtons}>
-                  {PAYMENT_METHODS.map((method) => (
-                    <TouchableOpacity
-                      key={method}
+            <TaxWithholdingSection>
+              {selectedPayer && effectiveTaxTreatment ? (
+                <View style={styles.taxTreatmentSection}>
+                  <View style={styles.taxTreatmentBadgeRow}>
+                    <Text style={styles.taxTreatmentLabel}>Tax treatment</Text>
+                    <View
                       style={[
-                        styles.typeButton,
-                        paymentMethod === method && styles.typeButtonActive,
+                        styles.taxTreatmentBadge,
+                        effectiveTaxTreatment === 'w2' && styles.taxTreatmentBadgeW2,
+                        effectiveTaxTreatment === 'contractor_1099' && styles.taxTreatmentBadge1099,
                       ]}
-                      onPress={() => setPaymentMethod(method)}
                     >
-                      <Text style={[
-                        styles.typeButtonText,
-                        paymentMethod === method && styles.typeButtonTextActive,
-                      ]}>
-                        {method}
+                      <Text style={styles.taxTreatmentBadgeText}>
+                        {getTaxTreatmentShortLabel(effectiveTaxTreatment)}
                       </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </Accordion>
+                    </View>
+                    {taxTreatmentOverride ? (
+                      <Text style={styles.taxTreatmentOverrideNote}>(Override)</Text>
+                    ) : null}
+                  </View>
 
-            {/* ACCORDION: DEDUCTIONS */}
+                  <TouchableOpacity
+                    style={styles.taxTreatmentOverrideToggle}
+                    onPress={() => setShowTaxTreatmentOverride(!showTaxTreatmentOverride)}
+                  >
+                    <Text style={styles.taxTreatmentOverrideToggleText}>
+                      {showTaxTreatmentOverride ? '− Hide override' : '+ Override tax treatment'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showTaxTreatmentOverride ? (
+                    <View style={styles.taxTreatmentOverrideSection}>
+                      <Text style={styles.taxTreatmentOverrideHelp}>
+                        Override the default tax treatment for this gig only.
+                      </Text>
+                      <View style={styles.taxTreatmentButtons}>
+                        <TouchableOpacity
+                          style={[
+                            styles.taxTreatmentButton,
+                            taxTreatmentOverride === 'w2' && styles.taxTreatmentButtonActive,
+                          ]}
+                          onPress={() => setTaxTreatmentOverride('w2')}
+                        >
+                          <Text
+                            style={[
+                              styles.taxTreatmentButtonText,
+                              taxTreatmentOverride === 'w2' && styles.taxTreatmentButtonTextActive,
+                            ]}
+                          >
+                            W-2
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.taxTreatmentButton,
+                            taxTreatmentOverride === 'contractor_1099' && styles.taxTreatmentButtonActive,
+                          ]}
+                          onPress={() => setTaxTreatmentOverride('contractor_1099')}
+                        >
+                          <Text
+                            style={[
+                              styles.taxTreatmentButtonText,
+                              taxTreatmentOverride === 'contractor_1099' && styles.taxTreatmentButtonTextActive,
+                            ]}
+                          >
+                            1099
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.taxTreatmentButton,
+                            taxTreatmentOverride === 'other' && styles.taxTreatmentButtonActive,
+                          ]}
+                          onPress={() => setTaxTreatmentOverride('other')}
+                        >
+                          <Text
+                            style={[
+                              styles.taxTreatmentButtonText,
+                              taxTreatmentOverride === 'other' && styles.taxTreatmentButtonTextActive,
+                            ]}
+                          >
+                            Other
+                          </Text>
+                        </TouchableOpacity>
+                        {taxTreatmentOverride ? (
+                          <TouchableOpacity
+                            style={styles.taxTreatmentClearButton}
+                            onPress={() => setTaxTreatmentOverride(null)}
+                          >
+                            <Text style={styles.taxTreatmentClearButtonText}>Clear</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {effectiveTaxTreatment === 'w2' ? (
+                    <View style={styles.w2InfoBox}>
+                      <Text style={styles.w2InfoIcon}>ℹ️</Text>
+                      <Text style={styles.w2InfoText}>
+                        W-2 income is excluded from estimated tax calculations because taxes are usually withheld by the employer.
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : (
+                <Text style={styles.helperText}>Select a payer to review tax treatment and withholding options.</Text>
+              )}
+
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setTaxesWithheld(!taxesWithheld)}
+              >
+                <View style={[styles.checkbox, taxesWithheld && styles.checkboxChecked]}>
+                  {taxesWithheld && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.checkboxLabel}>Taxes withheld for this gig</Text>
+              </TouchableOpacity>
+            </TaxWithholdingSection>
+
             <Accordion title="Deductions" description="Expenses, subcontractors, and mileage">
-              {/* Copy Expenses Toggle (only shown when duplicating) */}
-              {duplicatingGig && (
+              {duplicatingGig ? (
                 <View style={styles.inputGroup}>
                   <View style={styles.toggleRow}>
                     <View style={styles.toggleLabel}>
@@ -1775,22 +1710,16 @@ export function AddGigModal({
                     </TouchableOpacity>
                   </View>
                 </View>
-              )}
+              ) : null}
 
-              {/* Inline Expenses */}
-              <InlineExpensesList 
-                expenses={inlineExpenses}
-                onChange={setInlineExpenses}
-              />
+              <InlineExpensesList expenses={inlineExpenses} onChange={setInlineExpenses} />
 
-              {/* Subcontractor Payments */}
               <InlineSubcontractorPayments
                 payments={inlineSubcontractorPayments}
                 onChange={setInlineSubcontractorPayments}
                 onAddSubcontractor={() => setShowAddSubcontractorModal(true)}
               />
 
-              {/* Inline Mileage */}
               {didDriveToGig ? (
                 <InlineMileageRow
                   mileage={inlineMileage}
@@ -1799,14 +1728,13 @@ export function AddGigModal({
                 />
               ) : (
                 <Text style={styles.helperText}>
-                  Turn on &quot;Did you drive to this gig?&quot; above if you want to track gig mileage.
+                  Turn on &quot;I drove to this gig&quot; above if you want to track gig mileage.
                 </Text>
               )}
             </Accordion>
 
-            {/* ACCORDION: NOTES */}
             <Accordion title="Notes" description="Additional notes about this gig">
-              <View style={styles.inputGroup}>
+              <Field label="Notes">
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={notes}
@@ -1817,44 +1745,38 @@ export function AddGigModal({
                   numberOfLines={4}
                   textAlignVertical="top"
                 />
-              </View>
+              </Field>
             </Accordion>
 
-            {/* Bottom padding to prevent sticky footer overlap - compact summary ~140px + button 80px */}
-            <View style={{ height: 220 }} />
+            <View style={styles.footerSpacer} />
           </ScrollView>
 
-          {/* Sticky Summary Footer */}
-          {gigSetAside && taxProfile && (
-            <View style={styles.stickyFooter}>
-              <StickySummary
-                variant="compact"
-                grossIncome={(parseFloat(grossAmount) || 0) + (parseFloat(tips) || 0) + (parseFloat(perDiem) || 0) + (parseFloat(otherIncome) || 0)}
-                fees={parseFloat(fees) || 0}
-                expenses={totalExpenses}
-                subcontractorPayments={totalSubcontractorPayments}
-                mileageDeduction={mileageDeduction}
-                taxSetAside={gigSetAside.amount}
-                taxRate={gigSetAside.rate * 100}
-              />
-            </View>
-          )}
+          <View style={styles.stickyFooter}>
+            <StickySummary
+              variant="compact"
+              basePay={parseFloat(grossAmount) || 0}
+              tips={parseFloat(tips) || 0}
+              perDiem={parseFloat(perDiem) || 0}
+              otherIncome={parseFloat(otherIncome) || 0}
+              fees={parseFloat(fees) || 0}
+              expenses={totalExpenses}
+              subcontractorPayments={totalSubcontractorPayments}
+              mileageDeduction={mileageDeduction}
+              taxSetAside={gigSetAside?.amount}
+              taxRate={gigSetAside ? gigSetAside.rate * 100 : 0}
+              taxEstimateAvailable={footerTaxEstimateAvailable}
+            />
+          </View>
 
-          {/* Submit Button */}
           <View style={styles.submitButtonContainer}>
-            <TouchableOpacity 
-              style={styles.submitButton} 
+            <Button
+              fullWidth
               onPress={handleSubmit}
-              disabled={createGig.isPending || updateGig.isPending}
+              loading={isSubmitting}
+              disabled={isSubmitting}
             >
-              <Text style={styles.submitButtonText} numberOfLines={1} ellipsizeMode="tail">
-                {createGig.isPending || updateGig.isPending
-                  ? 'Saving...'
-                  : editingGig
-                  ? 'Update'
-                  : 'Save'}
-              </Text>
-            </TouchableOpacity>
+              {editingGig ? 'Update Gig' : 'Save Gig'}
+            </Button>
           </View>
         </View>
       </View>
@@ -1884,6 +1806,9 @@ export function AddGigModal({
                   ]}
                   onPress={() => {
                     setPayerId(payer.id);
+                    if (fieldErrors.payerId) {
+                      setFieldErrors({ ...fieldErrors, payerId: undefined });
+                    }
                     setShowPayerPicker(false);
                   }}
                 >
@@ -1909,6 +1834,9 @@ export function AddGigModal({
         onClose={() => setShowAddPayerModal(false)}
         onSuccess={(newPayerId) => {
           setPayerId(newPayerId);
+          if (fieldErrors.payerId) {
+            setFieldErrors({ ...fieldErrors, payerId: undefined });
+          }
           setShowAddPayerModal(false);
         }}
       />
@@ -2216,6 +2144,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.DEFAULT,
   },
+  amountInputShell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface.muted,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  currencyPrefix: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.muted,
+    marginRight: 6,
+  },
+  amountInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.text.DEFAULT,
+  },
   inputError: {
     borderColor: colors.danger.DEFAULT,
     borderWidth: 2,
@@ -2262,6 +2211,9 @@ const styles = StyleSheet.create({
     color: colors.text.subtle,
     fontStyle: 'italic',
   },
+  payerFieldShell: {
+    gap: 8,
+  },
   reminderBox: {
     backgroundColor: colors.warning.muted,
     borderWidth: 1,
@@ -2285,6 +2237,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 12,
+  },
+  rowStacked: {
+    flexDirection: 'column',
   },
   flex1: {
     flex: 1,
@@ -2376,6 +2331,16 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     fontWeight: '500',
   },
+  drivePreviewCard: {
+    backgroundColor: colors.surface.muted,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: 12,
+    padding: 14,
+  },
+  locationDetailsGroup: {
+    gap: 8,
+  },
   taxSetAsideContainer: {
     backgroundColor: colors.brand.muted,
     borderWidth: 1,
@@ -2466,6 +2431,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
+  },
+  footerSpacer: {
+    height: 240,
   },
   submitButtonContainer: {
     position: 'absolute',
@@ -2836,8 +2804,13 @@ const styles = StyleSheet.create({
   },
   payerActions: {
     flexDirection: 'row',
-    gap: 16,
+    flexWrap: 'wrap',
+    gap: 12,
     marginTop: 8,
+  },
+  payerActionsStacked: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
   },
   addPayerLink: {
     paddingVertical: 4,

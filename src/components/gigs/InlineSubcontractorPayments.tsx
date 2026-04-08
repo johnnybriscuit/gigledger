@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSubcontractors } from '../../hooks/useSubcontractors';
 import type { Database } from '../../types/database.types';
+import { colors, radius, spacing, typography } from '../../styles/theme';
 
 type Subcontractor = Database['public']['Tables']['subcontractors']['Row'];
 
@@ -35,24 +36,17 @@ export function InlineSubcontractorPayments({
       amount: '',
       note: '',
     };
-    console.log('[InlineSubcontractorPayments] Adding payment:', newPayment);
-    console.log('[InlineSubcontractorPayments] Current payments:', payments);
-    const updatedPayments = [...payments, newPayment];
-    console.log('[InlineSubcontractorPayments] Updated payments:', updatedPayments);
-    onChange(updatedPayments);
+    onChange([...payments, newPayment]);
   };
 
   const updatePayment = (id: string, field: keyof InlineSubcontractorPayment, value: string) => {
-    console.log('[InlineSubcontractorPayments] Updating payment:', { id, field, value });
     const updatedPayments = payments.map((payment) =>
       payment.id === id ? { ...payment, [field]: value } : payment
     );
-    console.log('[InlineSubcontractorPayments] Updated payments:', updatedPayments);
     onChange(updatedPayments);
   };
 
   const selectSubcontractor = (paymentId: string, subcontractor: Subcontractor) => {
-    console.log('[InlineSubcontractorPayments] Selecting subcontractor:', { paymentId, subcontractor });
     const updatedPayments = payments.map((payment) =>
       payment.id === paymentId
         ? {
@@ -62,7 +56,6 @@ export function InlineSubcontractorPayments({
           }
         : payment
     );
-    console.log('[InlineSubcontractorPayments] Updated payments:', updatedPayments);
     onChange(updatedPayments);
     setShowDropdown(null);
   };
@@ -83,7 +76,7 @@ export function InlineSubcontractorPayments({
         <Text style={styles.helperText}>Track payouts to bandmates/crew</Text>
       </View>
 
-      {payments.map((payment, index) => {
+      {payments.map((payment) => {
         const subcontractorName = payment.subcontractor_name || getSubcontractorName(payment.subcontractor_id);
 
         return (
@@ -151,7 +144,7 @@ export function InlineSubcontractorPayments({
                     value={payment.amount}
                     onChangeText={(text) => updatePayment(payment.id, 'amount', text)}
                     placeholder="0.00"
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -165,7 +158,7 @@ export function InlineSubcontractorPayments({
                   value={payment.note}
                   onChangeText={(text) => updatePayment(payment.id, 'note', text)}
                   placeholder="e.g., 3-hour set"
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.text.subtle}
                 />
               </View>
             </View>
@@ -190,35 +183,35 @@ export function InlineSubcontractorPayments({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: parseInt(spacing[5]),
   },
   header: {
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize: parseInt(typography.fontSize.body.size),
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.DEFAULT,
     marginBottom: 4,
   },
   helperText: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: parseInt(typography.fontSize.caption.size),
+    color: colors.text.muted,
   },
   paymentRow: {
     flexDirection: 'row',
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
+    marginBottom: parseInt(spacing[3]),
+    padding: parseInt(spacing[3]),
+    backgroundColor: colors.surface.muted,
+    borderRadius: parseInt(radius.md),
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border.DEFAULT,
   },
   paymentMain: {
     flex: 1,
   },
   subcontractorField: {
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
     position: 'relative',
     zIndex: 100,
   },
@@ -226,29 +219,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: parseInt(spacing[3]),
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    backgroundColor: '#fff',
+    borderColor: colors.border.DEFAULT,
+    borderRadius: parseInt(radius.md),
+    backgroundColor: colors.surface.DEFAULT,
   },
   subcontractorButtonEmpty: {
-    borderColor: '#f87171',
+    borderColor: colors.danger.DEFAULT,
     borderWidth: 1,
   },
   subcontractorButtonText: {
-    fontSize: 14,
-    color: '#111827',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.DEFAULT,
     flex: 1,
   },
   placeholderText: {
-    color: '#9ca3af',
+    color: colors.text.subtle,
   },
   dropdownIcon: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginLeft: 8,
+    fontSize: parseInt(typography.fontSize.caption.size),
+    color: colors.text.muted,
+    marginLeft: parseInt(spacing[2]),
   },
   dropdown: {
     position: 'absolute',
@@ -256,11 +249,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     marginTop: 4,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    backgroundColor: colors.surface.DEFAULT,
+    borderRadius: parseInt(radius.md),
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    shadowColor: '#000',
+    borderColor: colors.border.DEFAULT,
+    shadowColor: colors.overlay.DEFAULT,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -269,94 +262,94 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   dropdownItem: {
-    paddingHorizontal: 12,
+    paddingHorizontal: parseInt(spacing[3]),
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border.muted,
   },
   dropdownItemText: {
-    fontSize: 14,
-    color: '#111827',
-    fontWeight: '600',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.DEFAULT,
+    fontWeight: typography.fontWeight.semibold,
   },
   dropdownItemSubtext: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: parseInt(typography.fontSize.caption.size),
+    color: colors.text.muted,
     marginTop: 2,
   },
   dropdownDivider: {
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.border.DEFAULT,
   },
   addNewText: {
-    fontSize: 14,
-    color: '#3b82f6',
-    fontWeight: '600',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.brand.DEFAULT,
+    fontWeight: typography.fontWeight.semibold,
   },
   amountField: {
-    marginBottom: 12,
+    marginBottom: parseInt(spacing[3]),
   },
   inputLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontSize: parseInt(typography.fontSize.caption.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.muted,
     marginBottom: 6,
   },
   amountInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#fff',
+    borderColor: colors.border.DEFAULT,
+    borderRadius: parseInt(radius.md),
+    paddingHorizontal: parseInt(spacing[3]),
+    backgroundColor: colors.surface.DEFAULT,
   },
   currencySymbol: {
-    fontSize: 16,
-    color: '#6b7280',
+    fontSize: parseInt(typography.fontSize.body.size),
+    color: colors.text.muted,
     marginRight: 4,
   },
   amountInput: {
     flex: 1,
     paddingVertical: 10,
-    fontSize: 16,
-    color: '#111827',
+    fontSize: parseInt(typography.fontSize.body.size),
+    color: colors.text.DEFAULT,
   },
   noteField: {
     marginBottom: 0,
   },
   noteInput: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: parseInt(radius.md),
+    paddingHorizontal: parseInt(spacing[3]),
     paddingVertical: 10,
-    fontSize: 14,
-    color: '#111827',
-    backgroundColor: '#fff',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    color: colors.text.DEFAULT,
+    backgroundColor: colors.surface.DEFAULT,
   },
   removeButton: {
-    marginLeft: 8,
+    marginLeft: parseInt(spacing[2]),
     padding: 4,
   },
   removeButtonText: {
     fontSize: 18,
-    color: '#ef4444',
-    fontWeight: '600',
+    color: colors.danger.DEFAULT,
+    fontWeight: typography.fontWeight.semibold,
   },
   addButton: {
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: parseInt(spacing[4]),
+    borderRadius: parseInt(radius.md),
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.border.DEFAULT,
     borderStyle: 'dashed',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface.DEFAULT,
   },
   addButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
+    fontSize: parseInt(typography.fontSize.subtle.size),
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.brand.DEFAULT,
   },
 });

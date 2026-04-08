@@ -4,47 +4,68 @@ import { colors, spacing, typography } from '../../styles/theme';
 import { formatCurrency } from '../../utils/format';
 
 interface StickySummaryProps {
-  grossIncome: number;
+  basePay: number;
+  tips: number;
+  perDiem: number;
+  otherIncome: number;
   fees: number;
   expenses: number;
   subcontractorPayments: number;
   mileageDeduction: number;
-  taxSetAside: number;
-  taxRate: number;
+  taxSetAside?: number;
+  taxRate?: number;
+  taxEstimateAvailable?: boolean;
   variant?: 'compact' | 'default';
 }
 
 export function StickySummary({
-  grossIncome,
+  basePay,
+  tips,
+  perDiem,
+  otherIncome,
   fees,
   expenses,
   subcontractorPayments,
   mileageDeduction,
-  taxSetAside,
-  taxRate,
+  taxSetAside = 0,
+  taxRate = 0,
+  taxEstimateAvailable = false,
   variant = 'compact',
 }: StickySummaryProps) {
   const [showDetails, setShowDetails] = useState(false);
 
+  const totalIncome = basePay + tips + perDiem + otherIncome;
   const totalDeductions = fees + expenses + subcontractorPayments + mileageDeduction;
-  const netBeforeTax = grossIncome - totalDeductions;
+  const netBeforeTax = totalIncome - totalDeductions;
   const takeHome = netBeforeTax - taxSetAside;
 
   const isCompact = variant === 'compact';
+  const primaryLabel = taxEstimateAvailable ? 'Estimated take-home' : 'Net so far';
 
   return (
     <View style={styles.container}>
       <View style={[styles.summary, isCompact && styles.summaryCompact]}>
         <View style={[styles.summaryRow, isCompact && styles.summaryRowCompact]}>
           <View>
-            <Text style={[styles.label, isCompact && styles.labelCompact]}>Estimated take-home</Text>
+            <Text style={[styles.label, isCompact && styles.labelCompact]}>{primaryLabel}</Text>
             <Text style={[styles.amount, isCompact && styles.amountCompact]}>{formatCurrency(takeHome)}</Text>
           </View>
           <View style={styles.taxInfo}>
-            <Text style={[styles.taxLabel, isCompact && styles.taxLabelCompact]}>Set aside</Text>
-            <Text style={[styles.taxAmount, isCompact && styles.taxAmountCompact]}>
-              {formatCurrency(taxSetAside)} ({Math.round(taxRate)}%)
-            </Text>
+            {taxEstimateAvailable ? (
+              <>
+                <Text style={[styles.taxLabel, isCompact && styles.taxLabelCompact]}>Set aside</Text>
+                <Text style={[styles.taxAmount, isCompact && styles.taxAmountCompact]}>
+                  {formatCurrency(taxSetAside)} ({Math.round(taxRate)}%)
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.taxLabel, isCompact && styles.taxLabelCompact]}>Tax estimate</Text>
+                <Text style={[styles.taxHint, isCompact && styles.taxHintCompact]}>
+                  Add tax profile
+                </Text>
+              </>
+            )}
           </View>
         </View>
         
@@ -64,9 +85,27 @@ export function StickySummary({
         <View style={styles.breakdown}>
           <Text style={styles.breakdownTitle}>Calculation</Text>
           <View style={styles.breakdownRow}>
-            <Text style={styles.breakdownLabel}>Gross income</Text>
-            <Text style={styles.breakdownValue}>{formatCurrency(grossIncome)}</Text>
+            <Text style={styles.breakdownLabel}>Base pay</Text>
+            <Text style={styles.breakdownValue}>{formatCurrency(basePay)}</Text>
           </View>
+          {tips > 0 && (
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Tips</Text>
+              <Text style={styles.breakdownValue}>{formatCurrency(tips)}</Text>
+            </View>
+          )}
+          {perDiem > 0 && (
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Per diem</Text>
+              <Text style={styles.breakdownValue}>{formatCurrency(perDiem)}</Text>
+            </View>
+          )}
+          {otherIncome > 0 && (
+            <View style={styles.breakdownRow}>
+              <Text style={styles.breakdownLabel}>Other income</Text>
+              <Text style={styles.breakdownValue}>{formatCurrency(otherIncome)}</Text>
+            </View>
+          )}
           {fees > 0 && (
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>Fees</Text>
@@ -99,7 +138,7 @@ export function StickySummary({
               </Text>
             </View>
           )}
-          {taxSetAside > 0 && (
+          {taxEstimateAvailable && taxSetAside > 0 && (
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>Tax set-aside</Text>
               <Text style={[styles.breakdownValue, styles.negative]}>
@@ -108,7 +147,7 @@ export function StickySummary({
             </View>
           )}
           <View style={[styles.breakdownRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Take-home</Text>
+            <Text style={styles.totalLabel}>{primaryLabel}</Text>
             <Text style={styles.totalValue}>{formatCurrency(takeHome)}</Text>
           </View>
         </View>
@@ -173,6 +212,14 @@ const styles = StyleSheet.create({
     color: colors.warning.DEFAULT,
   },
   taxAmountCompact: {
+    fontSize: 12,
+  },
+  taxHint: {
+    fontSize: 14,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.muted,
+  },
+  taxHintCompact: {
     fontSize: 12,
   },
   detailsButton: {
