@@ -8,8 +8,7 @@ interface CoreDetailsSectionProps {
   dateField: React.ReactNode;
   titleField: React.ReactNode;
   venueField: React.ReactNode;
-  paidField: React.ReactNode;
-  didDriveField: React.ReactNode;
+  headerActions?: React.ReactNode;
   mileageCard?: React.ReactNode;
   venueHelper?: React.ReactNode;
   isStacked?: boolean;
@@ -21,36 +20,40 @@ export function CoreDetailsSection({
   dateField,
   titleField,
   venueField,
-  paidField,
-  didDriveField,
+  headerActions,
   mileageCard,
   venueHelper,
   isStacked = false,
 }: CoreDetailsSectionProps) {
   return (
     <View style={styles.section}>
-      <Text style={styles.title}>Core Details</Text>
-      <Text style={styles.description}>
-        Start with the agreement details. Extras live in Pay breakdown.
-      </Text>
+      <View style={[styles.headerRow, isStacked && styles.headerRowStacked]}>
+        <View style={styles.headerCopy}>
+          <Text style={styles.title}>Core Details</Text>
+          <Text style={styles.description}>
+            Start with the agreement details. Extras live in Pay breakdown.
+          </Text>
+        </View>
+        {headerActions ? (
+          <View style={[styles.headerActions, isStacked && styles.headerActionsStacked]}>
+            {headerActions}
+          </View>
+        ) : null}
+      </View>
 
-      <View style={styles.fieldGroup}>{payerField}</View>
+      <View style={[styles.row, isStacked && styles.rowStacked]}>
+        <View style={styles.primaryField}>{payerField}</View>
+        <View style={styles.secondaryField}>{titleField}</View>
+      </View>
 
       <View style={[styles.row, isStacked && styles.rowStacked]}>
         <View style={styles.flexField}>{basePayField}</View>
         <View style={styles.flexField}>{dateField}</View>
       </View>
 
-      <View style={styles.fieldGroup}>{titleField}</View>
-
       <View style={styles.fieldGroup}>
         {venueField}
         {venueHelper}
-      </View>
-
-      <View style={[styles.row, isStacked && styles.rowStacked]}>
-        <View style={styles.flexField}>{paidField}</View>
-        <View style={styles.flexField}>{didDriveField}</View>
       </View>
 
       {mileageCard ? <View style={styles.mileageCard}>{mileageCard}</View> : null}
@@ -77,6 +80,25 @@ const styles = StyleSheet.create({
     fontSize: parseInt(typography.fontSize.subtle.size),
     color: colors.text.muted,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: parseInt(spacing[4]),
+  },
+  headerRowStacked: {
+    flexDirection: 'column',
+  },
+  headerCopy: {
+    flex: 1,
+    gap: parseInt(spacing[1]),
+  },
+  headerActions: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+  },
+  headerActionsStacked: {
+    alignItems: 'stretch',
+  },
   fieldGroup: {
     gap: parseInt(spacing[2]),
   },
@@ -88,6 +110,12 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   flexField: {
+    flex: 1,
+  },
+  primaryField: {
+    flex: 1.5,
+  },
+  secondaryField: {
     flex: 1,
   },
   mileageCard: {

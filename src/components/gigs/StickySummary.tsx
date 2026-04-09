@@ -15,6 +15,7 @@ interface StickySummaryProps {
   taxSetAside?: number;
   taxRate?: number;
   taxEstimateAvailable?: boolean;
+  showTopBorder?: boolean;
   variant?: 'compact' | 'default';
 }
 
@@ -30,6 +31,7 @@ export function StickySummary({
   taxSetAside = 0,
   taxRate = 0,
   taxEstimateAvailable = false,
+  showTopBorder = true,
   variant = 'compact',
 }: StickySummaryProps) {
   const [showDetails, setShowDetails] = useState(false);
@@ -43,7 +45,7 @@ export function StickySummary({
   const primaryLabel = taxEstimateAvailable ? 'Estimated take-home' : 'Net so far';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, !showTopBorder && styles.containerNoBorder]}>
       <View style={[styles.summary, isCompact && styles.summaryCompact]}>
         <View style={[styles.summaryRow, isCompact && styles.summaryRowCompact]}>
           <View>
@@ -161,6 +163,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border.DEFAULT,
     backgroundColor: colors.surface.DEFAULT,
+  },
+  containerNoBorder: {
+    borderTopWidth: 0,
   },
   summary: {
     padding: parseInt(spacing[4]),

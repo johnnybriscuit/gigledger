@@ -35,6 +35,7 @@ import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { checkLimit, incrementLimitUsage } from '../utils/limitChecks';
 import { getEffectiveTaxTreatment, getTaxTreatmentShortLabel } from '../lib/taxTreatment';
 import { resolveAddressDetails, resolvePlaceDetails } from '../lib/placeDetails';
+import { queryKeys } from '../lib/queryKeys';
 import { colors } from '../styles/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -858,6 +859,23 @@ export function AddGigModal({
     return gigDate ? `${payerName} - ${gigDate}` : payerName;
   };
 
+  const refreshGigRelatedQueries = async (userId: string) => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.gigs(userId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses(userId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.mileage(userId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) }),
+      queryClient.invalidateQueries({ queryKey: ['gig-subcontractor-payments'] }),
+      queryClient.invalidateQueries({ queryKey: ['ytd-tax-data'] }),
+    ]);
+
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: queryKeys.gigs(userId), type: 'active' }),
+      queryClient.refetchQueries({ queryKey: queryKeys.mileage(userId), type: 'active' }),
+      queryClient.refetchQueries({ queryKey: queryKeys.dashboard(userId), type: 'active' }),
+    ]);
+  };
+
   const validateForm = () => {
     const errors: typeof fieldErrors = {};
     
@@ -981,6 +999,11 @@ export function AddGigModal({
       console.log('Prepared subcontractorPaymentsData:', subcontractorPaymentsData);
 
       if (editingGig) {
+        const userId = await getSharedUserId();
+        if (!userId) {
+          throw new Error('User not authenticated');
+        }
+
         // Update gig with inline items
         console.log('Calling updateGigWithLines with:', {
           gigId: editingGig.id,
@@ -993,14 +1016,8 @@ export function AddGigModal({
           mileage: mileageData,
           subcontractorPayments: subcontractorPaymentsData,
         });
-        
-        // Invalidate queries to refresh the UI
-        queryClient.invalidateQueries({ queryKey: ['gigs'] });
-        queryClient.invalidateQueries({ queryKey: ['expenses'] });
-        queryClient.invalidateQueries({ queryKey: ['mileage'] });
-        queryClient.invalidateQueries({ queryKey: ['gig-subcontractor-payments'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-        queryClient.invalidateQueries({ queryKey: ['ytd-tax-data'] });
+
+        await refreshGigRelatedQueries(userId);
       } else {
         const userId = await getSharedUserId();
         if (!userId) {
@@ -1051,14 +1068,8 @@ export function AddGigModal({
         if (!usageIncrement.allowed) {
           console.warn('Gig saved but monthly usage counter did not increment:', usageIncrement.message);
         }
-        
-        // Invalidate queries to refresh the UI
-        queryClient.invalidateQueries({ queryKey: ['gigs'] });
-        queryClient.invalidateQueries({ queryKey: ['expenses'] });
-        queryClient.invalidateQueries({ queryKey: ['mileage'] });
-        queryClient.invalidateQueries({ queryKey: ['gig-subcontractor-payments'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-        queryClient.invalidateQueries({ queryKey: ['ytd-tax-data'] });
+
+        await refreshGigRelatedQueries(userId);
       }
 
       resetForm();
@@ -1167,6 +1178,28 @@ export function AddGigModal({
           <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
             <CoreDetailsSection
               isStacked={isMobile}
+              headerActions={
+                <View style={[styles.headerSwitchCluster, isMobile && styles.headerSwitchClusterStacked]}>
+                  <View style={styles.headerSwitchRow}>
+                    <Text style={styles.headerSwitchLabel}>Mark as paid</Text>
+                    <TouchableOpacity
+                      style={[styles.toggle, paid && styles.toggleActive]}
+                      onPress={() => setPaid(!paid)}
+                    >
+                      <View style={[styles.toggleThumb, paid && styles.toggleThumbActive]} />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.headerSwitchRow}>
+                    <Text style={styles.headerSwitchLabel}>I drove to this gig</Text>
+                    <TouchableOpacity
+                      style={[styles.toggle, didDriveToGig && styles.toggleActive]}
+                      onPress={handleDriveToggle}
+                    >
+                      <View style={[styles.toggleThumb, didDriveToGig && styles.toggleThumbActive]} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              }
               payerField={
                 payers && payers.length === 0 ? (
                   <Field label="Payer" required error={fieldErrors.payerId}>
@@ -1315,28 +1348,6 @@ export function AddGigModal({
                     Need city, state, country, or an invoice link? Open the optional location details below.
                   </Text>
                 ) : null
-              }
-              paidField={
-                <TouchableOpacity
-                  style={styles.checkboxContainer}
-                  onPress={() => setPaid(!paid)}
-                >
-                  <View style={[styles.checkbox, paid && styles.checkboxChecked]}>
-                    {paid && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.checkboxLabel}>Mark as paid</Text>
-                </TouchableOpacity>
-              }
-              didDriveField={
-                <TouchableOpacity
-                  style={styles.checkboxContainer}
-                  onPress={handleDriveToggle}
-                >
-                  <View style={[styles.checkbox, didDriveToGig && styles.checkboxChecked]}>
-                    {didDriveToGig && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.checkboxLabel}>I drove to this gig</Text>
-                </TouchableOpacity>
               }
               mileageCard={
                 didDriveToGig ? (
@@ -1751,7 +1762,7 @@ export function AddGigModal({
             <View style={styles.footerSpacer} />
           </ScrollView>
 
-          <View style={styles.stickyFooter}>
+          <View style={styles.bottomDock}>
             <StickySummary
               variant="compact"
               basePay={parseFloat(grossAmount) || 0}
@@ -1765,18 +1776,18 @@ export function AddGigModal({
               taxSetAside={gigSetAside?.amount}
               taxRate={gigSetAside ? gigSetAside.rate * 100 : 0}
               taxEstimateAvailable={footerTaxEstimateAvailable}
+              showTopBorder={false}
             />
-          </View>
-
-          <View style={styles.submitButtonContainer}>
-            <Button
-              fullWidth
-              onPress={handleSubmit}
-              loading={isSubmitting}
-              disabled={isSubmitting}
-            >
-              {editingGig ? 'Update Gig' : 'Save Gig'}
-            </Button>
+            <View style={styles.dockButtonArea}>
+              <Button
+                fullWidth
+                onPress={handleSubmit}
+                loading={isSubmitting}
+                disabled={isSubmitting}
+              >
+                {editingGig ? 'Update Gig' : 'Save Gig'}
+              </Button>
+            </View>
           </View>
         </View>
       </View>
@@ -2418,9 +2429,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontStyle: 'italic',
   },
-  stickyFooter: {
+  footerSpacer: {
+    height: 280,
+  },
+  bottomDock: {
     position: 'absolute',
-    bottom: 80,
+    bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: colors.surface.elevated,
@@ -2432,29 +2446,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  footerSpacer: {
-    height: 240,
-  },
-  submitButtonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    backgroundColor: colors.surface.elevated,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.DEFAULT,
-  },
-  submitButton: {
-    backgroundColor: colors.brand.DEFAULT,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: colors.brand.foreground,
-    fontSize: 16,
-    fontWeight: '600',
+  dockButtonArea: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
   },
   pickerButton: {
     backgroundColor: colors.surface.muted,
@@ -2891,6 +2886,28 @@ const styles = StyleSheet.create({
   toggleLabel: {
     flex: 1,
     marginRight: 16,
+  },
+  headerSwitchCluster: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 16,
+  },
+  headerSwitchClusterStacked: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+  },
+  headerSwitchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerSwitchLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text.muted,
   },
   toggle: {
     width: 51,
