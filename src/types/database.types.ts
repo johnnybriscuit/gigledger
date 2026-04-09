@@ -1763,6 +1763,7 @@ export type Database = {
         | "Venue"
         | "Client"
         | "Platform"
+        | "Agency"
         | "Other"
         | "Individual"
         | "Corporation"
@@ -1921,6 +1922,7 @@ export const Constants = {
         "Venue",
         "Client",
         "Platform",
+        "Agency",
         "Other",
         "Individual",
         "Corporation",

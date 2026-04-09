@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useCreatePayer, useUpdatePayer } from '../hooks/usePayers';
 import { payerSchema, type PayerFormData } from '../lib/validations';
+import { PAYER_TYPES, type PayerType } from '../constants/payerTypes';
 
 interface AddPayerModalProps {
   visible: boolean;
@@ -19,11 +20,9 @@ interface AddPayerModalProps {
   editingPayer?: any;
 }
 
-const PAYER_TYPES = ['Individual', 'Corporation', 'Venue', 'Client', 'Platform', 'Other'] as const;
-
 export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalProps) {
   const [name, setName] = useState('');
-  const [type, setType] = useState<typeof PAYER_TYPES[number]>('Individual');
+  const [type, setType] = useState<PayerType>('Individual');
   const [contactEmail, setContactEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [expect1099, setExpect1099] = useState(false);
@@ -42,7 +41,7 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
   useEffect(() => {
     if (editingPayer) {
       setName(editingPayer.name || '');
-      setType(editingPayer.type || 'Individual');
+      setType(editingPayer.payer_type || editingPayer.type || 'Individual');
       setContactEmail(editingPayer.contact_email || '');
       setNotes(editingPayer.notes || '');
       
@@ -139,7 +138,7 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
     }
   };
 
-  const TypeButton = ({ value, label }: { value: typeof PAYER_TYPES[number]; label: string }) => (
+  const TypeButton = ({ value, label }: { value: PayerType; label: string }) => (
     <TouchableOpacity
       style={[
         styles.typeButton,

@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Create enums
-CREATE TYPE payer_type AS ENUM ('Venue', 'Client', 'Platform', 'Other');
+CREATE TYPE payer_type AS ENUM ('Venue', 'Client', 'Platform', 'Agency', 'Other');
 CREATE TYPE expense_category AS ENUM ('Travel', 'Meals', 'Lodging', 'Supplies', 'Marketing', 'Education', 'Software', 'Fees', 'Equipment', 'Other');
 
 -- Payers table

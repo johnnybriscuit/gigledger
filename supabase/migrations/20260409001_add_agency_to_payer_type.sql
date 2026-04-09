@@ -1,0 +1,1 @@
+ALTER TYPE payer_type ADD VALUE IF NOT EXISTS 'Agency';

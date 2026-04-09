@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gigSchema } from '../validations';
+import { gigSchema, payerSchema } from '../validations';
 
 describe('gigSchema', () => {
   it('allows a negative net amount when deductions exceed income', () => {
@@ -36,5 +36,17 @@ describe('gigSchema', () => {
         taxes_withheld: false,
       })
     ).toThrow();
+  });
+});
+
+describe('payerSchema', () => {
+  it('accepts Agency as a valid payer type', () => {
+    const result = payerSchema.parse({
+      name: 'Test Agent',
+      type: 'Agency',
+      tax_treatment: 'contractor_1099',
+    });
+
+    expect(result.type).toBe('Agency');
   });
 });

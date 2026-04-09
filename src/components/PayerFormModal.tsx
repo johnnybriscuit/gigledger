@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useCreatePayer, useUpdatePayer, type Payer } from '../hooks/usePayers';
+import { PAYER_TYPES, type PayerType } from '../constants/payerTypes';
 
 interface PayerFormModalProps {
   visible: boolean;
@@ -18,11 +19,9 @@ interface PayerFormModalProps {
   editingPayer?: Payer | null;
 }
 
-const PAYER_TYPES = ['Venue', 'Client', 'Platform', 'Agency', 'Other'] as const;
-
 export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: PayerFormModalProps) {
   const [name, setName] = useState('');
-  const [type, setType] = useState<string>('');
+  const [type, setType] = useState<PayerType | ''>('');
   const [contactEmail, setContactEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [expect1099, setExpect1099] = useState(false);
