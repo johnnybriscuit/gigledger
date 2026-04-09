@@ -178,6 +178,7 @@ export function AddGigModal({
   const [editingPayer, setEditingPayer] = useState<Payer | null>(null);
   const [showAddSubcontractorModal, setShowAddSubcontractorModal] = useState(false);
   const [showPayerPicker, setShowPayerPicker] = useState(false);
+  const [payerSearch, setPayerSearch] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{
     payerId?: string;
     title?: string;
@@ -203,6 +204,8 @@ export function AddGigModal({
   useEffect(() => {
     if (!visible) {
       hasTrackedOpenRef.current = false;
+      setShowPayerPicker(false);
+      setPayerSearch('');
       return;
     }
 
@@ -847,6 +850,10 @@ export function AddGigModal({
     s.code.toLowerCase().includes(stateSearch.toLowerCase())
   );
 
+  const filteredPayers = (payers || []).filter((payer) =>
+    payer.name.toLowerCase().includes(payerSearch.trim().toLowerCase())
+  );
+
   const filteredCountries = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
     c.code.toLowerCase().includes(countrySearch.toLowerCase())
@@ -906,6 +913,7 @@ export function AddGigModal({
           setShowAddPayerModal(true);
         } else {
           setShowPayerPicker(true);
+          setPayerSearch('');
         }
       } else if (!date) {
         setShowDatePicker(true);
@@ -1215,7 +1223,10 @@ export function AddGigModal({
                     <View style={styles.payerFieldShell}>
                       <TouchableOpacity
                         style={[styles.pickerButton, fieldErrors.payerId && styles.inputError]}
-                        onPress={() => setShowPayerPicker(true)}
+                        onPress={() => {
+                          setShowPayerPicker((current) => !current);
+                          setPayerSearch('');
+                        }}
                       >
                         <Text style={[styles.pickerButtonText, !payerId && styles.placeholderText]}>
                           {selectedPayer?.name || 'Select payer'}
@@ -1223,8 +1234,75 @@ export function AddGigModal({
                         <Text style={styles.pickerButtonIcon}>▼</Text>
                       </TouchableOpacity>
 
+                      {showPayerPicker ? (
+                        <View style={styles.payerDropdown}>
+                          <View style={styles.payerDropdownSearch}>
+                            <Text style={styles.searchIcon}>🔍</Text>
+                            <TextInput
+                              style={styles.searchInput}
+                              value={payerSearch}
+                              onChangeText={setPayerSearch}
+                              placeholder="Search payers..."
+                              placeholderTextColor={colors.text.subtle}
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                            />
+                          </View>
+
+                          <ScrollView
+                            style={styles.payerDropdownList}
+                            nestedScrollEnabled
+                            keyboardShouldPersistTaps="handled"
+                          >
+                            {filteredPayers.length > 0 ? (
+                              filteredPayers.map((payer) => (
+                                <TouchableOpacity
+                                  key={payer.id}
+                                  style={[
+                                    styles.payerDropdownItem,
+                                    payerId === payer.id && styles.payerDropdownItemActive,
+                                  ]}
+                                  onPress={() => {
+                                    setPayerId(payer.id);
+                                    if (fieldErrors.payerId) {
+                                      setFieldErrors({ ...fieldErrors, payerId: undefined });
+                                    }
+                                    setShowPayerPicker(false);
+                                    setPayerSearch('');
+                                  }}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.payerDropdownItemText,
+                                      payerId === payer.id && styles.payerDropdownItemTextActive,
+                                    ]}
+                                  >
+                                    {payer.name}
+                                  </Text>
+                                  {payerId === payer.id ? (
+                                    <Text style={styles.checkmark}>✓</Text>
+                                  ) : null}
+                                </TouchableOpacity>
+                              ))
+                            ) : (
+                              <View style={styles.payerDropdownEmpty}>
+                                <Text style={styles.payerDropdownEmptyText}>No payers match that search.</Text>
+                              </View>
+                            )}
+                          </ScrollView>
+                        </View>
+                      ) : null}
+
                       <View style={[styles.payerActions, isMobile && styles.payerActionsStacked]}>
-                        <Button variant="ghost" size="sm" onPress={() => setShowAddPayerModal(true)}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onPress={() => {
+                            setShowPayerPicker(false);
+                            setPayerSearch('');
+                            setShowAddPayerModal(true);
+                          }}
+                        >
                           + New payer
                         </Button>
                         {selectedPayer ? (
@@ -1232,6 +1310,8 @@ export function AddGigModal({
                             variant="ghost"
                             size="sm"
                             onPress={() => {
+                              setShowPayerPicker(false);
+                              setPayerSearch('');
                               setEditingPayer(selectedPayer);
                               setShowEditPayerModal(true);
                             }}
@@ -1792,53 +1872,6 @@ export function AddGigModal({
         </View>
       </View>
 
-      {/* Payer Picker Modal */}
-      <Modal
-        visible={showPayerPicker}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowPayerPicker(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.pickerModal}>
-            <View style={styles.pickerModalHeader}>
-              <Text style={styles.pickerModalTitle}>Select Payer</Text>
-              <TouchableOpacity onPress={() => setShowPayerPicker(false)}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.pickerModalList}>
-              {payers?.map((payer) => (
-                <TouchableOpacity
-                  key={payer.id}
-                  style={[
-                    styles.pickerModalItem,
-                    payerId === payer.id && styles.pickerModalItemActive,
-                  ]}
-                  onPress={() => {
-                    setPayerId(payer.id);
-                    if (fieldErrors.payerId) {
-                      setFieldErrors({ ...fieldErrors, payerId: undefined });
-                    }
-                    setShowPayerPicker(false);
-                  }}
-                >
-                  <Text style={[
-                    styles.pickerModalItemText,
-                    payerId === payer.id && styles.pickerModalItemTextActive,
-                  ]}>
-                    {payer.name}
-                  </Text>
-                  {payerId === payer.id && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
       {/* Add Payer Modal */}
       <PayerFormModal
         visible={showAddPayerModal}
@@ -1848,6 +1881,8 @@ export function AddGigModal({
           if (fieldErrors.payerId) {
             setFieldErrors({ ...fieldErrors, payerId: undefined });
           }
+          setShowPayerPicker(false);
+          setPayerSearch('');
           setShowAddPayerModal(false);
         }}
       />
@@ -2807,6 +2842,55 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'flex-start',
   },
+  payerDropdown: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: 12,
+    backgroundColor: colors.surface.elevated,
+    overflow: 'hidden',
+  },
+  payerDropdownSearch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface.muted,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.DEFAULT,
+    paddingHorizontal: 12,
+  },
+  payerDropdownList: {
+    maxHeight: 240,
+  },
+  payerDropdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.muted,
+  },
+  payerDropdownItemActive: {
+    backgroundColor: colors.brand.muted,
+  },
+  payerDropdownItemText: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.text.DEFAULT,
+  },
+  payerDropdownItemTextActive: {
+    color: colors.brand.DEFAULT,
+    fontWeight: '600',
+  },
+  payerDropdownEmpty: {
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+  },
+  payerDropdownEmptyText: {
+    fontSize: 14,
+    color: colors.text.muted,
+    fontStyle: 'italic',
+  },
   addPayerLink: {
     paddingVertical: 4,
   },
@@ -2821,49 +2905,6 @@ const styles = StyleSheet.create({
   editPayerLinkText: {
     fontSize: 14,
     color: colors.text.muted,
-    fontWeight: '600',
-  },
-  // Payer picker modal styles
-  pickerModal: {
-    backgroundColor: colors.surface.elevated,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '70%',
-    width: '100%',
-  },
-  pickerModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.DEFAULT,
-  },
-  pickerModalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text.DEFAULT,
-  },
-  pickerModalList: {
-    maxHeight: 400,
-  },
-  pickerModalItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.muted,
-  },
-  pickerModalItemActive: {
-    backgroundColor: colors.brand.muted,
-  },
-  pickerModalItemText: {
-    fontSize: 16,
-    color: colors.text.DEFAULT,
-  },
-  pickerModalItemTextActive: {
-    color: colors.brand.DEFAULT,
     fontWeight: '600',
   },
   // Net After Tax section styles
