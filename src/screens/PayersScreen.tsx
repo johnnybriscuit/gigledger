@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
@@ -16,49 +15,99 @@ import { useGigs } from '../hooks/useGigs';
 import { AddPayerModal } from '../components/AddPayerModal';
 import { SubcontractorFormModal } from '../components/SubcontractorFormModal';
 import { Subcontractor1099Center } from '../components/Subcontractor1099Center';
-import { colors, spacing, radius, typography } from '../styles/theme';
+import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
+import { colors } from '../styles/theme';
+import type { Database } from '../types/database.types';
 
 type TabType = 'payers' | 'subcontractors' | '1099-center';
+type Payer = Database['public']['Tables']['payers']['Row'];
+type Subcontractor = Database['public']['Tables']['subcontractors']['Row'];
+
+const T = {
+  bg: colors.surface.canvas,
+  surfacePanel: colors.surface.DEFAULT,
+  surface: colors.surface.elevated,
+  surface2: colors.surface.muted,
+  border: colors.border.DEFAULT,
+  borderMuted: colors.border.muted,
+  textPrimary: colors.text.DEFAULT,
+  textSecondary: colors.text.muted,
+  textMuted: colors.text.subtle,
+  textOnBrand: colors.brand.foreground,
+  green: colors.success.DEFAULT,
+  accent: colors.brand.DEFAULT,
+  accentLight: colors.brand.muted,
+  red: colors.danger.DEFAULT,
+};
 
 export function PayersScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('payers');
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingPayer, setEditingPayer] = useState<any>(null);
-  const [editingSubcontractor, setEditingSubcontractor] = useState<any>(null);
-  
+  const [editingPayer, setEditingPayer] = useState<Payer | null>(null);
+  const [editingSubcontractor, setEditingSubcontractor] = useState<Subcontractor | null>(null);
+
   const { data: payers, isLoading: payersLoading, error: payersError } = usePayers();
   const { data: subcontractors, isLoading: subcontractorsLoading, error: subcontractorsError } = useSubcontractors();
   const { data: gigs } = useGigs();
   const deletePayer = useDeletePayer();
   const deleteSubcontractor = useDeleteSubcontractor();
-  
-  const isLoading = activeTab === 'payers' ? payersLoading : (activeTab === 'subcontractors' ? subcontractorsLoading : false);
-  const error = activeTab === 'payers' ? payersError : (activeTab === 'subcontractors' ? subcontractorsError : null);
+
+  const isLoading = activeTab === 'payers'
+    ? payersLoading
+    : activeTab === 'subcontractors'
+      ? subcontractorsLoading
+      : false;
+  const error = activeTab === 'payers'
+    ? payersError
+    : activeTab === 'subcontractors'
+      ? subcontractorsError
+      : null;
+
+  const currentYear = new Date().getFullYear();
+  const payerYtdMap = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    if (!gigs) {
+      return map;
+    }
+
+    const start = new Date(currentYear, 0, 1);
+    const end = new Date(currentYear, 11, 31, 23, 59, 59);
+
+    for (const gig of gigs) {
+      if (!gig.payer_id || !gig.date) {
+        continue;
+      }
+
+      const date = new Date(gig.date);
+      if (date >= start && date <= end) {
+        map[gig.payer_id] = (map[gig.payer_id] || 0) + (gig.net_amount || 0);
+      }
+    }
+
+    return map;
+  }, [currentYear, gigs]);
+
+  const totalContacts = (payers?.length ?? 0) + (subcontractors?.length ?? 0);
+  const showAddButton = activeTab !== '1099-center';
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
 
   const handleDelete = async (id: string, name: string) => {
-    console.log('handleDelete called for:', id, name);
-    
-    // Check if payer has any gigs
-    const payerGigs = gigs?.filter(gig => gig.payer_id === id) || [];
-    console.log('Payer gigs:', payerGigs);
-    
+    const payerGigs = gigs?.filter((gig) => gig.payer_id === id) || [];
+
     if (payerGigs.length > 0) {
-      console.log('Payer has gigs, showing alert');
+      const message = `Cannot delete "${name}" because it still has ${payerGigs.length} gig${payerGigs.length > 1 ? 's' : ''} assigned. Delete or reassign those gigs first.`;
+
       if (Platform.OS === 'web') {
-        window.alert(`Cannot delete "${name}" - this payer has ${payerGigs.length} gig${payerGigs.length > 1 ? 's' : ''} associated with it. Please delete or reassign those gigs first.`);
+        window.alert(message);
       } else {
-        Alert.alert(
-          'Cannot Delete Payer',
-          `"${name}" has ${payerGigs.length} gig${payerGigs.length > 1 ? 's' : ''} associated with it. Please delete or reassign those gigs first.`,
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Cannot Delete Payer', message, [{ text: 'OK' }]);
       }
+
       return;
     }
 
-    console.log('Showing delete confirmation');
-    
-    // Use window.confirm on web, Alert.alert on native
     const confirmed = Platform.OS === 'web'
       ? window.confirm(`Are you sure you want to delete "${name}"?`)
       : await new Promise<boolean>((resolve) => {
@@ -73,51 +122,34 @@ export function PayersScreen() {
         });
 
     if (!confirmed) {
-      console.log('Delete cancelled');
       return;
     }
 
-    console.log('Delete confirmed, calling mutation');
     try {
       await deletePayer.mutateAsync(id);
-      console.log('Delete mutation completed');
-    } catch (error: any) {
-      console.error('Delete mutation failed:', error);
+    } catch (deleteError: unknown) {
       if (Platform.OS === 'web') {
-        window.alert(`Error: ${error.message || 'Failed to delete payer'}`);
+        window.alert(`Error: ${getErrorMessage(deleteError, 'Failed to delete payer')}`);
       } else {
-        Alert.alert('Error', error.message || 'Failed to delete payer');
+        Alert.alert('Error', getErrorMessage(deleteError, 'Failed to delete payer'));
       }
     }
   };
 
-  const handleEdit = (payer: any) => {
-    setEditingPayer(payer);
-    setModalVisible(true);
-  };
-
-  const handleCloseModal = () => {
-    setModalVisible(false);
-    setEditingPayer(null);
-    setEditingSubcontractor(null);
-  };
-
   const handleDeleteSubcontractor = async (id: string, name: string) => {
-    // Check if subcontractor has any payments
-    const subcontractorPayments = gigs?.filter(gig => 
-      gig.subcontractor_payments?.some(p => p.subcontractor_id === id)
+    const subcontractorPayments = gigs?.filter((gig) =>
+      gig.subcontractor_payments?.some((payment) => payment.subcontractor_id === id)
     ) || [];
-    
+
     if (subcontractorPayments.length > 0) {
+      const message = `Cannot delete "${name}" because it still has ${subcontractorPayments.length} payment${subcontractorPayments.length > 1 ? 's' : ''} associated with it.`;
+
       if (Platform.OS === 'web') {
-        window.alert(`Cannot delete "${name}" - this subcontractor has ${subcontractorPayments.length} payment${subcontractorPayments.length > 1 ? 's' : ''} associated with it. Please delete those payments first.`);
+        window.alert(message);
       } else {
-        Alert.alert(
-          'Cannot Delete Subcontractor',
-          `"${name}" has ${subcontractorPayments.length} payment${subcontractorPayments.length > 1 ? 's' : ''} associated with it. Please delete those payments first.`,
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Cannot Delete Subcontractor', message, [{ text: 'OK' }]);
       }
+
       return;
     }
 
@@ -134,56 +166,54 @@ export function PayersScreen() {
           );
         });
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     try {
       await deleteSubcontractor.mutateAsync(id);
-    } catch (error: any) {
+    } catch (deleteError: unknown) {
       if (Platform.OS === 'web') {
-        window.alert(`Error: ${error.message || 'Failed to delete subcontractor'}`);
+        window.alert(`Error: ${getErrorMessage(deleteError, 'Failed to delete subcontractor')}`);
       } else {
-        Alert.alert('Error', error.message || 'Failed to delete subcontractor');
+        Alert.alert('Error', getErrorMessage(deleteError, 'Failed to delete subcontractor'));
       }
     }
   };
 
-  const handleEditSubcontractor = (subcontractor: any) => {
-    setEditingSubcontractor(subcontractor);
-    setModalVisible(true);
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setEditingPayer(null);
+    setEditingSubcontractor(null);
   };
 
-  // Compute payer YTD earnings from gigs (current calendar year)
-  const currentYear = new Date().getFullYear();
-  const payerYtdMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    if (!gigs) return map;
-    const start = new Date(currentYear, 0, 1);
-    const end = new Date(currentYear, 11, 31, 23, 59, 59);
-    for (const gig of gigs) {
-      if (!gig.payer_id || !gig.date) continue;
-      const d = new Date(gig.date);
-      if (d >= start && d <= end) {
-        map[gig.payer_id] = (map[gig.payer_id] || 0) + (gig.net_amount || 0);
-      }
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+
+    if (parts.length === 0) {
+      return '--';
     }
-    return map;
-  }, [gigs, currentYear]);
 
-  function getInitials(name: string): string {
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
 
-  function formatCurrency(amount: number): string {
-    if (amount === 0) return '$0';
-    return '$' + amount.toLocaleString('en-US', { maximumFractionDigits: 0 });
-  }
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  };
+
+  const formatCurrency = (amount: number) => {
+    if (amount === 0) {
+      return '$0';
+    }
+
+    return `$${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  };
 
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2D5BE3" />
+        <ActivityIndicator size="large" color={T.accent} />
+        <Text style={styles.loadingText}>Loading contacts</Text>
       </View>
     );
   }
@@ -197,40 +227,47 @@ export function PayersScreen() {
     );
   }
 
-  const showAddButton = activeTab !== '1099-center';
-
   return (
     <View style={styles.container}>
-      {/* Top action row: + Add button (context-aware, hidden on 1099 tab) */}
-      {showAddButton && (
-        <View style={styles.addRow}>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setModalVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.addButtonText}>
-              {activeTab === 'payers' ? '+ Add Payer' : '+ Add Subcontractor'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <StatsSummaryBar
+        items={[
+          { label: 'TOTAL CONTACTS', value: totalContacts },
+          { label: 'PAYERS', value: payers?.length ?? 0 },
+          { label: 'SUBCONTRACTORS', value: subcontractors?.length ?? 0 },
+        ]}
+      />
 
-      {/* Pill segment control */}
-      <View style={styles.segmentWrap}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>ALL CONTACTS</Text>
+        <View style={styles.headerActions}>
+          {showAddButton ? (
+            <TouchableOpacity style={styles.btnPrimary} onPress={() => setModalVisible(true)}>
+              <Text style={styles.btnPrimaryText}>
+                {activeTab === 'payers' ? '+ Payer' : '+ Subcontractor'}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.filterRow}>
         <View style={styles.segment}>
-          {(['payers', 'subcontractors', '1099-center'] as TabType[]).map((tab) => {
-            const label = tab === 'payers' ? 'Payers' : tab === 'subcontractors' ? 'Subcontractors' : '1099 Center';
-            const isActive = activeTab === tab;
+          {([
+            { key: 'payers' as TabType, label: 'Payers' },
+            { key: 'subcontractors' as TabType, label: 'Subcontractors' },
+            { key: '1099-center' as TabType, label: '1099 Center' },
+          ]).map((tab) => {
+            const isActive = activeTab === tab.key;
+
             return (
               <TouchableOpacity
-                key={tab}
-                style={[styles.segBtn, isActive && styles.segBtnActive]}
-                onPress={() => setActiveTab(tab)}
-                activeOpacity={0.7}
+                key={tab.key}
+                style={[styles.segmentButton, isActive && styles.segmentButtonActive]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.8}
               >
-                <Text style={[styles.segBtnText, isActive && styles.segBtnTextActive]} numberOfLines={1}>
-                  {label}
+                <Text style={[styles.segmentButtonText, isActive && styles.segmentButtonTextActive]} numberOfLines={1}>
+                  {tab.label}
                 </Text>
               </TouchableOpacity>
             );
@@ -238,136 +275,152 @@ export function PayersScreen() {
         </View>
       </View>
 
-      {/* PAYERS TAB */}
-      {activeTab === 'payers' && (
-        <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.sectionLabel}>{payers?.length ?? 0} Payers</Text>
-          <View style={styles.cardList}>
-            {(!payers || payers.length === 0) ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No payers yet</Text>
-                <Text style={styles.emptyDesc}>Add venues, clients, or platforms you work with</Text>
-              </View>
-            ) : (
-              payers.map((item) => {
-                const ytd = payerYtdMap[item.id] || 0;
-                const initials = getInitials(item.name);
-                return (
-                  <View key={item.id} style={styles.contactCard}>
-                    <View style={styles.contactCardMain}>
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{initials}</Text>
-                      </View>
-                      <View style={styles.contactInfo}>
-                        <Text style={styles.contactName} numberOfLines={1}>{item.name}</Text>
-                        <Text style={styles.contactType}>{item.payer_type}</Text>
-                      </View>
-                      <View style={styles.earningsBlock}>
-                        <Text style={styles.earningsValue}>{formatCurrency(ytd)}</Text>
-                        <Text style={styles.earningsLabel}>YTD earned</Text>
-                      </View>
-                    </View>
-                    <View style={styles.cardFooter}>
-                      <TouchableOpacity onPress={() => handleEdit(item)} activeOpacity={0.7}>
-                        <Text style={styles.footerEdit}>Edit</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDelete(item.id, item.name)} activeOpacity={0.7}>
-                        <Text style={styles.footerDelete}>Delete</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })
-            )}
-          </View>
-          <View style={styles.bottomPad} />
-        </ScrollView>
-      )}
+      <View style={styles.contentArea}>
+        {activeTab === 'payers' ? (
+          <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.sectionLabel}>{payers?.length ?? 0} PAYERS</Text>
+            <View style={styles.cardList}>
+              {!payers || payers.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>No payers yet</Text>
+                  <Text style={styles.emptyDesc}>Add venues, clients, or platforms you work with.</Text>
+                </View>
+              ) : (
+                payers.map((payer) => {
+                  const ytd = payerYtdMap[payer.id] || 0;
 
-      {/* SUBCONTRACTORS TAB */}
-      {activeTab === 'subcontractors' && (
-        <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.sectionLabel}>{subcontractors?.length ?? 0} Subcontractors</Text>
-          <View style={styles.cardList}>
-            {(!subcontractors || subcontractors.length === 0) ? (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No subcontractors yet</Text>
-                <Text style={styles.emptyDesc}>Add bandmates, crew, or other subcontractors you pay</Text>
-              </View>
-            ) : (
-              subcontractors.map((item) => {
-                const initials = getInitials(item.name);
-                return (
-                  <View key={item.id} style={styles.contactCard}>
+                  return (
+                    <View key={payer.id} style={styles.contactCard}>
+                      <View style={styles.contactCardMain}>
+                        <View style={styles.avatar}>
+                          <Text style={styles.avatarText}>{getInitials(payer.name)}</Text>
+                        </View>
+                        <View style={styles.contactInfo}>
+                          <Text style={styles.contactName} numberOfLines={1}>
+                            {payer.name}
+                          </Text>
+                          <Text style={styles.contactType}>{payer.payer_type}</Text>
+                        </View>
+                        <View style={styles.earningsBlock}>
+                          <Text style={styles.earningsValue}>{formatCurrency(ytd)}</Text>
+                          <Text style={styles.earningsLabel}>YTD earned</Text>
+                        </View>
+                      </View>
+                      <View style={styles.cardFooter}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setEditingPayer(payer);
+                            setModalVisible(true);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.footerEdit}>Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleDelete(payer.id, payer.name)} activeOpacity={0.7}>
+                          <Text style={styles.footerDelete}>Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+            <View style={styles.bottomPad} />
+          </ScrollView>
+        ) : null}
+
+        {activeTab === 'subcontractors' ? (
+          <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.sectionLabel}>{subcontractors?.length ?? 0} SUBCONTRACTORS</Text>
+            <View style={styles.cardList}>
+              {!subcontractors || subcontractors.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>No subcontractors yet</Text>
+                  <Text style={styles.emptyDesc}>Add bandmates, crew, or other subcontractors you pay.</Text>
+                </View>
+              ) : (
+                subcontractors.map((subcontractor) => (
+                  <View key={subcontractor.id} style={styles.contactCard}>
                     <View style={styles.contactCardMain}>
                       <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{initials}</Text>
+                        <Text style={styles.avatarText}>{getInitials(subcontractor.name)}</Text>
                       </View>
                       <View style={styles.contactInfo}>
-                        <Text style={styles.contactName} numberOfLines={1}>{item.name}</Text>
-                        {item.role ? (
-                          <Text style={styles.contactType}>{item.role}</Text>
+                        <Text style={styles.contactName} numberOfLines={1}>
+                          {subcontractor.name}
+                        </Text>
+                        {subcontractor.role ? (
+                          <Text style={styles.contactType}>{subcontractor.role}</Text>
                         ) : null}
-                        {(item.email || item.phone) && (
+                        {subcontractor.email || subcontractor.phone ? (
                           <View style={styles.detailRow}>
-                            {item.email && (
+                            {subcontractor.email ? (
                               <Text style={styles.detailText} numberOfLines={1} ellipsizeMode="tail">
-                                ✉ {item.email}
+                                ✉ {subcontractor.email}
                               </Text>
-                            )}
-                            {item.email && item.phone && (
+                            ) : null}
+                            {subcontractor.email && subcontractor.phone ? (
                               <Text style={styles.detailSep}> · </Text>
-                            )}
-                            {item.phone && (
+                            ) : null}
+                            {subcontractor.phone ? (
                               <Text style={styles.detailText} numberOfLines={1}>
-                                {item.phone}
+                                {subcontractor.phone}
                               </Text>
-                            )}
+                            ) : null}
                           </View>
-                        )}
-                        {item.tax_id_last4 && (
+                        ) : null}
+                        {subcontractor.tax_id_last4 ? (
                           <View style={styles.ssnBadge}>
                             <Text style={styles.ssnBadgeText}>
-                              🔒 {item.tax_id_type?.toUpperCase() ?? 'SSN'} ****{item.tax_id_last4}
+                              🔒 {subcontractor.tax_id_type?.toUpperCase() ?? 'SSN'} ****{subcontractor.tax_id_last4}
                             </Text>
                           </View>
-                        )}
+                        ) : null}
                       </View>
                     </View>
                     <View style={styles.cardFooter}>
-                      <TouchableOpacity onPress={() => handleEditSubcontractor(item)} activeOpacity={0.7}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setEditingSubcontractor(subcontractor);
+                          setModalVisible(true);
+                        }}
+                        activeOpacity={0.7}
+                      >
                         <Text style={styles.footerEdit}>Edit</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteSubcontractor(item.id, item.name)} activeOpacity={0.7}>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteSubcontractor(subcontractor.id, subcontractor.name)}
+                        activeOpacity={0.7}
+                      >
                         <Text style={styles.footerDelete}>Delete</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
-                );
-              })
-            )}
-          </View>
-          <View style={styles.bottomPad} />
-        </ScrollView>
-      )}
+                ))
+              )}
+            </View>
+            <View style={styles.bottomPad} />
+          </ScrollView>
+        ) : null}
 
-      {/* 1099 CENTER TAB */}
-      {activeTab === '1099-center' && <Subcontractor1099Center />}
+        {activeTab === '1099-center' ? <Subcontractor1099Center /> : null}
+      </View>
 
-      {/* Modals */}
       {activeTab === 'payers' ? (
         <AddPayerModal
           visible={modalVisible}
           onClose={handleCloseModal}
           editingPayer={editingPayer}
         />
-      ) : (
+      ) : null}
+
+      {activeTab === 'subcontractors' ? (
         <SubcontractorFormModal
           visible={modalVisible}
           onClose={handleCloseModal}
           editingSubcontractor={editingSubcontractor}
         />
-      )}
+      ) : null}
     </View>
   );
 }
@@ -375,138 +428,145 @@ export function PayersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F4F0',
+    backgroundColor: T.bg,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F4F0',
+    backgroundColor: T.bg,
     gap: 8,
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: T.textSecondary,
   },
   errorText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#DC2626',
+    fontWeight: '700',
+    color: T.red,
   },
   errorSub: {
     fontSize: 13,
-    color: '#B0ADA8',
+    color: T.textMuted,
+    textAlign: 'center',
   },
-
-  // + Add button row (sits below AppShell header on native)
-  addRow: {
+  sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 4,
+    paddingTop: 4,
+    paddingBottom: 10,
   },
-  addButton: {
-    backgroundColor: '#2D5BE3',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  addButtonText: {
+  sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: T.textSecondary,
+    letterSpacing: 0.6,
   },
-
-  // Pill segment control
-  segmentWrap: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  btnPrimary: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: T.accent,
+  },
+  btnPrimaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: T.textOnBrand,
+  },
+  filterRow: {
     paddingHorizontal: 10,
     paddingBottom: 14,
-    paddingTop: 6,
   },
   segment: {
     flexDirection: 'row',
-    backgroundColor: '#EEECEA',
+    backgroundColor: T.surface2,
     borderRadius: 12,
     padding: 3,
     gap: 2,
   },
-  segBtn: {
+  segmentButton: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    borderRadius: 10,
     alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
-  segBtnActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+  segmentButtonActive: {
+    backgroundColor: T.surface,
   },
-  segBtnText: {
+  segmentButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#B0ADA8',
+    color: T.textMuted,
   },
-  segBtnTextActive: {
-    color: '#1A1A1A',
+  segmentButtonTextActive: {
+    color: T.textPrimary,
   },
-
-  // Tab content
+  contentArea: {
+    flex: 1,
+    marginHorizontal: 10,
+    marginBottom: 12,
+    backgroundColor: T.surfacePanel,
+    borderWidth: 1,
+    borderColor: T.borderMuted,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
   tabContent: {
     flex: 1,
   },
-
-  // Section label
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#B0ADA8',
+    color: T.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.7,
     paddingHorizontal: 10,
+    paddingTop: 12,
     paddingBottom: 8,
   },
-
-  // Card list
   cardList: {
     paddingHorizontal: 10,
-    gap: 10,
   },
-
-  // Contact card
   contactCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: T.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5E3DE',
+    borderColor: T.borderMuted,
     overflow: 'hidden',
     marginBottom: 10,
   },
   contactCardMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    paddingHorizontal: 10,
     gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
   },
-
-  // Avatar
   avatar: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#EEECEA',
-    justifyContent: 'center',
+    backgroundColor: T.surface2,
     alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
   avatarText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#7A7671',
+    color: T.textSecondary,
   },
-
-  // Contact info
   contactInfo: {
     flex: 1,
     minWidth: 0,
@@ -514,15 +574,13 @@ const styles = StyleSheet.create({
   contactName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: T.textPrimary,
   },
   contactType: {
     fontSize: 12,
-    color: '#B0ADA8',
+    color: T.textMuted,
     marginTop: 2,
   },
-
-  // Payer earnings
   earningsBlock: {
     alignItems: 'flex-end',
     flexShrink: 0,
@@ -530,15 +588,13 @@ const styles = StyleSheet.create({
   earningsValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1D9B5E',
+    color: T.green,
   },
   earningsLabel: {
     fontSize: 11,
-    color: '#B0ADA8',
+    color: T.textMuted,
     marginTop: 2,
   },
-
-  // Subcontractor detail row
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -547,19 +603,17 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
-    color: '#7A7671',
+    color: T.textSecondary,
     flexShrink: 1,
   },
   detailSep: {
     fontSize: 12,
-    color: '#7A7671',
+    color: T.textSecondary,
     flexShrink: 0,
   },
-
-  // SSN badge
   ssnBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#EEECEA',
+    backgroundColor: T.surface2,
     borderRadius: 6,
     paddingVertical: 2,
     paddingHorizontal: 8,
@@ -568,49 +622,46 @@ const styles = StyleSheet.create({
   ssnBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#7A7671',
+    color: T.textSecondary,
   },
-
-  // Card footer
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 14,
     borderTopWidth: 1,
-    borderTopColor: '#E5E3DE',
-    backgroundColor: '#F5F4F0',
+    borderTopColor: T.borderMuted,
+    backgroundColor: T.surfacePanel,
     paddingVertical: 10,
     paddingHorizontal: 10,
   },
   footerEdit: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2D5BE3',
+    color: T.accent,
   },
   footerDelete: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#DC2626',
+    color: T.red,
   },
-
-  // Empty state
   emptyState: {
     alignItems: 'center',
     paddingVertical: 40,
-    paddingHorizontal: 10,
+    paddingHorizontal: 20,
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: '700',
+    color: T.textPrimary,
     marginBottom: 6,
   },
   emptyDesc: {
     fontSize: 14,
-    color: '#B0ADA8',
+    color: T.textMuted,
     textAlign: 'center',
   },
-
-  bottomPad: { height: 32 },
+  bottomPad: {
+    height: 32,
+  },
 });

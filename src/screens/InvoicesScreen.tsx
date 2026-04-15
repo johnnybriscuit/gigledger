@@ -8,10 +8,12 @@ import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { SendInvoiceModal } from '../components/SendInvoiceModal';
 import { PaywallModal } from '../components/PaywallModal';
 import { UsageLimitBanner } from '../components/UsageLimitBanner';
+import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 import { useInvoices } from '../hooks/useInvoices';
 import { useEntitlements } from '../hooks/useEntitlements';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
+import { formatCurrency as formatCurrencyUtil } from '../utils/format';
 import { dateRangeToStrings } from '../lib/dateRangeUtils';
 import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
@@ -19,6 +21,7 @@ import { confirmDialog, showAlert } from '../lib/dialog';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
 import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
 import { useUserId } from '../hooks/useCurrentUser';
+import { colors } from '../styles/theme';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'settings';
 
@@ -27,18 +30,32 @@ interface InvoicesScreenProps {
   onNavigateToSubscription?: () => void;
 }
 
+const T = {
+  bg: colors.surface.canvas,
+  surfacePanel: colors.surface.DEFAULT,
+  surface: colors.surface.elevated,
+  border: colors.border.DEFAULT,
+  borderMuted: colors.border.muted,
+  textPrimary: colors.text.DEFAULT,
+  textSecondary: colors.text.muted,
+  textMuted: colors.text.subtle,
+  textOnBrand: colors.brand.foreground,
+  green: colors.success.DEFAULT,
+  amber: colors.warning.DEFAULT,
+  red: colors.danger.DEFAULT,
+  redLight: colors.danger.muted,
+  accent: colors.brand.DEFAULT,
+};
+
 export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }: InvoicesScreenProps = {}) {
   const userId = useUserId();
   const { settings, loading: settingsLoading, error: settingsError } = useInvoiceSettings();
   const { data: paymentMethods = [], error: paymentMethodsError } = usePaymentMethodDetails(userId || undefined);
-  
-  // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
+
   const queryDateRange = dateRange ? dateRangeToStrings(dateRange, customStart, customEnd) : null;
-  
-  // Still need useInvoices for mutations (updateInvoiceStatus, deleteInvoice, deletePayment)
   const {
-    invoices: allInvoices,
+    invoices,
     loading: invoicesLoading,
     error: invoicesError,
     deleteInvoice,
@@ -52,11 +69,9 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
         }
       : undefined
   );
-  const invoices = allInvoices;
-  
-  // Use entitlements hook for complex entitlements logic (will use cached subscription data)
+
   const entitlements = useEntitlements();
-  
+
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [duplicatingInvoice, setDuplicatingInvoice] = useState<Invoice | null>(null);
@@ -64,10 +79,61 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [paywallReason, setPaywallReason] = useState<'invoice_limit' | 'export_limit'>('invoice_limit');
+
   const selectedInvoice = useMemo(
-    () => allInvoices.find((invoice) => invoice.id === selectedInvoiceId) ?? null,
-    [allInvoices, selectedInvoiceId]
+    () => invoices.find((invoice) => invoice.id === selectedInvoiceId) ?? null,
+    [invoices, selectedInvoiceId]
   );
+
+  const invoiceMetrics = useMemo(() => {
+    if (invoicesLoading) {
+      return null;
+    }
+
+    const unpaidInvoices = invoices.filter((invoice) => !['paid', 'cancelled'].includes(invoice.status));
+    const totalOutstanding = unpaidInvoices.reduce(
+      (sum, invoice) => sum + (invoice.balance_due ?? invoice.total_amount),
+      0
+    );
+
+    const overdueInvoices = invoices.filter((invoice) => invoice.status === 'overdue');
+    const overdueAmount = overdueInvoices.reduce(
+      (sum, invoice) => sum + (invoice.balance_due ?? invoice.total_amount),
+      0
+    );
+
+    const thisMonth = new Date();
+    thisMonth.setDate(1);
+    thisMonth.setHours(0, 0, 0, 0);
+
+    const totalPaidThisMonth = invoices
+      .filter((invoice) => invoice.status === 'paid' && invoice.paid_at && new Date(invoice.paid_at) >= thisMonth)
+      .reduce((sum, invoice) => sum + invoice.total_amount, 0);
+
+    return {
+      totalOutstanding,
+      overdueAmount,
+      totalPaidThisMonth,
+    };
+  }, [invoices, invoicesLoading]);
+
+  const formatSummaryCurrency = (amount: number) => formatCurrencyUtil(amount).replace(/\.00$/, '');
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
+
+  const handleUpgradeClick = () => {
+    if (onNavigateToSubscription) {
+      onNavigateToSubscription();
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('tab', 'subscription');
+      window.history.pushState({}, '', currentUrl.toString());
+      window.dispatchEvent(new CustomEvent('tabChange', { detail: 'subscription' }));
+    }
+  };
 
   const handleSelectInvoice = (invoice: Invoice) => {
     setSelectedInvoiceId(invoice.id);
@@ -75,88 +141,63 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   };
 
   const handleCreateNew = async () => {
-    console.log('🔵 Create Invoice clicked');
-    console.log('🔵 Settings:', !!settings);
-    console.log('🔵 Entitlements:', entitlements);
-    console.log('🔵 Can create invoice:', entitlements.can.createInvoice);
-    console.log('🔵 Is loading:', entitlements.isLoading);
-    
     try {
       if (!settings) {
-        console.log('🔵 Settings not loaded, prompting user to set up');
-        // Use window.confirm for web compatibility
         const shouldSetup = await confirmDialog(
           'Setup Required',
           'Please set up your business information before creating invoices.\n\nWould you like to set up now?'
         );
+
         if (shouldSetup) {
           setViewMode('settings');
         }
+
         return;
       }
-      
-      // If still loading entitlements, show feedback
+
       if (entitlements.isLoading) {
-        console.log('🔵 Entitlements still loading');
         showAlert('Loading', 'Checking your plan limits. Please try again in a moment.');
         return;
       }
-      
-      // Check invoice limit
+
       if (!entitlements.can.createInvoice) {
-        console.log('🔵 Invoice limit reached, showing paywall');
         setPaywallReason('invoice_limit');
         setShowPaywallModal(true);
         return;
       }
-      
-      console.log('🔵 Opening invoice create form');
+
       setSelectedInvoiceId(null);
+      setDuplicatingInvoice(null);
       setViewMode('create');
     } catch (error) {
-      console.error('🔴 Error in handleCreateNew:', error);
-      showAlert('Error', 'Couldn\'t start a new invoice. Please try again.');
+      console.error('Error starting invoice creation', error);
+      showAlert('Error', "Couldn't start a new invoice. Please try again.");
     }
-  };
-
-  const handleEdit = () => {
-    setViewMode('edit');
   };
 
   const handleDelete = async () => {
-    console.log('🗑️ Delete button clicked');
     if (!selectedInvoice) {
-      console.log('❌ No invoice selected');
       return;
     }
-    console.log('Selected invoice:', selectedInvoice.id, selectedInvoice.invoice_number);
 
-    // Use window.confirm for web compatibility
     const confirmed = await confirmDialog(
       'Delete Invoice',
       `Are you sure you want to delete invoice ${selectedInvoice.invoice_number}? This action cannot be undone.`
     );
 
     if (!confirmed) {
-      console.log('Delete cancelled');
       return;
     }
 
-    console.log('Delete confirmed, calling deleteInvoice...');
     try {
       await deleteInvoice(selectedInvoice.id);
-      console.log('✓ Delete successful, updating UI');
       setViewMode('list');
       setSelectedInvoiceId(null);
       showAlert('Success', 'Invoice deleted successfully');
     } catch (error) {
-      console.error('❌ Delete failed:', error);
+      console.error('Delete failed', error);
       showAlert('Error', 'Failed to delete invoice');
     }
-  };
-
-  const handleSend = () => {
-    setShowEmailModal(true);
   };
 
   const handleDownload = () => {
@@ -170,6 +211,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       setShowPaywallModal(true);
       return;
     }
+
     if (selectedInvoice && settings) {
       downloadInvoiceHTML(selectedInvoice, settings, paymentMethods);
     }
@@ -186,25 +228,16 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     }
   };
 
-  const handleMarkPaid = () => {
-    setShowPaymentModal(true);
-  };
-
   const handleEmailSuccess = async () => {
     await refetchInvoices();
     setShowEmailModal(false);
     showAlert('Success', 'Invoice sent successfully');
   };
 
-  const handleRepeat = () => {
-    // Open invoice form in duplicate mode (like Repeat Gig)
-    setDuplicatingInvoice(selectedInvoice);
-    setViewMode('create');
-  };
-
   const handleFormSuccess = () => {
     setViewMode('list');
     setSelectedInvoiceId(null);
+    setDuplicatingInvoice(null);
   };
 
   const handlePaymentSuccess = () => {
@@ -217,19 +250,19 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   const handleDeletePayment = async (paymentId: string) => {
     try {
       await deletePayment(paymentId);
-      // Navigate back to list so user can see updated invoice status
       setViewMode('list');
       setSelectedInvoiceId(null);
       showAlert('Success', 'Payment deleted successfully. Invoice status updated.');
-    } catch (error: any) {
-      showAlert('Error', error.message || 'Failed to delete payment');
+    } catch (error: unknown) {
+      showAlert('Error', getErrorMessage(error, 'Failed to delete payment'));
     }
   };
 
   if (settingsLoading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={styles.centerContainer}>
+        <Text style={styles.loadingTitle}>Loading invoices</Text>
+        <Text style={styles.loadingSubtext}>Fetching your invoice settings and payment details.</Text>
       </View>
     );
   }
@@ -241,7 +274,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       ?? 'Failed to load invoices';
 
     return (
-      <View style={styles.container}>
+      <View style={styles.centerContainer}>
         <Text style={styles.errorTitle}>Error loading invoices</Text>
         <Text style={styles.errorMessage}>{message}</Text>
       </View>
@@ -252,200 +285,219 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     <View style={styles.container}>
       {viewMode === 'list' && (
         <>
-          {/* Usage Banner - only show for Free plan users */}
-          {!entitlements.isPro && entitlements.usage.invoicesCreatedCount !== undefined && (
-            <View style={styles.bannerContainer}>
+          <StatsSummaryBar
+            items={[
+              { label: 'TOTAL INVOICES', value: invoicesLoading ? '...' : invoices.length },
+              {
+                label: 'OUTSTANDING',
+                value: invoiceMetrics ? formatSummaryCurrency(invoiceMetrics.totalOutstanding) : '...',
+                valueColor: invoiceMetrics && invoiceMetrics.totalOutstanding > 0 ? T.amber : undefined,
+              },
+              {
+                label: 'PAID THIS MONTH',
+                value: invoiceMetrics ? formatSummaryCurrency(invoiceMetrics.totalPaidThisMonth) : '...',
+                valueColor: invoiceMetrics && invoiceMetrics.totalPaidThisMonth > 0 ? T.green : undefined,
+              },
+            ]}
+          />
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>ALL INVOICES</Text>
+            <View style={styles.headerActions}>
+              <DateRangeFilter
+                selected={dateRange}
+                onSelect={setRange}
+                customStart={customStart}
+                customEnd={customEnd}
+                onCustomRangeChange={setCustomRange}
+              />
+              <TouchableOpacity style={styles.btnGhost} onPress={() => setViewMode('settings')}>
+                <Text style={styles.btnGhostText}>Settings</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnPrimary} onPress={handleCreateNew}>
+                <Text style={styles.btnPrimaryText}>+ Invoice</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {!entitlements.isPro && entitlements.usage.invoicesCreatedCount !== undefined ? (
+            <View style={styles.bannerWrapper}>
               <UsageLimitBanner
                 label="invoices"
                 usedCount={entitlements.usage.invoicesCreatedCount}
                 limitCount={entitlements.limits.invoicesMax ?? 0}
-                onUpgradePress={() => {
-                  if (onNavigateToSubscription) {
-                    onNavigateToSubscription();
-                  }
-                }}
+                onUpgradePress={handleUpgradeClick}
               />
             </View>
-          )}
-          
-          <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-            <DateRangeFilter
-              selected={dateRange}
-              onSelect={setRange}
-              customStart={customStart}
-              customEnd={customEnd}
-              onCustomRangeChange={setCustomRange}
+          ) : null}
+
+          <View style={styles.contentArea}>
+            <InvoiceList
+              invoices={invoices}
+              loading={invoicesLoading}
+              onSelectInvoice={handleSelectInvoice}
+              onCreateNew={handleCreateNew}
             />
           </View>
-          
-          <InvoiceList
-            invoices={invoices}
-            loading={invoicesLoading}
-            onSelectInvoice={handleSelectInvoice}
-            onCreateNew={handleCreateNew}
-            onOpenSettings={() => setViewMode('settings')}
-          />
-          
-          {/* Paywall Modal - shown at list level */}
-          {showPaywallModal && (
-            <PaywallModal
-              visible={showPaywallModal}
-              reason={paywallReason}
-              onClose={() => setShowPaywallModal(false)}
-              onUpgrade={() => {
-                setShowPaywallModal(false);
-                if (onNavigateToSubscription) {
-                  onNavigateToSubscription();
-                }
-              }}
-              remainingCount={paywallReason === 'invoice_limit' ? entitlements.remaining.invoicesRemaining ?? undefined : undefined}
-            />
-          )}
         </>
       )}
 
       {viewMode === 'create' && (
         <>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => {
-              setViewMode('list');
-              setDuplicatingInvoice(null);
-            }}>
+          <View style={styles.detailHeader}>
+            <TouchableOpacity
+              onPress={() => {
+                setViewMode('list');
+                setDuplicatingInvoice(null);
+              }}
+            >
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>
+            <Text style={styles.detailTitle}>
               {duplicatingInvoice ? 'Repeat Invoice (Draft)' : 'Create Invoice'}
             </Text>
-            <View style={{ width: 60 }} />
+            <View style={styles.detailSpacer} />
           </View>
-          <InvoiceForm
-            onSuccess={handleFormSuccess}
-            onCancel={() => {
-              setViewMode('list');
-              setDuplicatingInvoice(null);
-            }}
-            onNavigateToAccount={onNavigateToAccount}
-            duplicatingInvoice={duplicatingInvoice}
-          />
+          <View style={styles.detailContent}>
+            <InvoiceForm
+              onSuccess={handleFormSuccess}
+              onCancel={() => {
+                setViewMode('list');
+                setDuplicatingInvoice(null);
+              }}
+              onNavigateToAccount={onNavigateToAccount}
+              duplicatingInvoice={duplicatingInvoice}
+            />
+          </View>
         </>
       )}
 
       {viewMode === 'edit' && selectedInvoice && (
         <>
-          <View style={styles.header}>
+          <View style={styles.detailHeader}>
             <TouchableOpacity onPress={() => setViewMode('view')}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Edit Invoice</Text>
-            <View style={{ width: 60 }} />
+            <Text style={styles.detailTitle}>Edit Invoice</Text>
+            <View style={styles.detailSpacer} />
           </View>
-          <InvoiceForm
-            invoiceId={selectedInvoice.id}
-            onSuccess={handleFormSuccess}
-            onCancel={() => setViewMode('view')}
-            onNavigateToAccount={onNavigateToAccount}
-          />
+          <View style={styles.detailContent}>
+            <InvoiceForm
+              invoiceId={selectedInvoice.id}
+              onSuccess={handleFormSuccess}
+              onCancel={() => setViewMode('view')}
+              onNavigateToAccount={onNavigateToAccount}
+            />
+          </View>
         </>
       )}
 
       {viewMode === 'view' && selectedInvoice && settings && (
         <>
-          <View style={styles.header}>
+          <View style={styles.detailHeader}>
             <TouchableOpacity onPress={() => setViewMode('list')}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>{selectedInvoice.invoice_number}</Text>
-            <View style={{ width: 60 }} />
+            <Text style={styles.detailTitle}>{selectedInvoice.invoice_number}</Text>
+            <View style={styles.detailSpacer} />
           </View>
 
           <View style={styles.actionBar}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleSend}>
-              <Text style={styles.actionButtonText}>📤 Email</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={() => setShowEmailModal(true)}>
+              <Text style={styles.actionButtonText}>Email</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handleDownload}>
-              <Text style={styles.actionButtonText}>📥 Export HTML</Text>
+              <Text style={styles.actionButtonText}>Export HTML</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionButton} onPress={handlePrint}>
-              <Text style={styles.actionButtonText}>🖨️ Print</Text>
+              <Text style={styles.actionButtonText}>Print</Text>
             </TouchableOpacity>
 
-            {selectedInvoice.status !== 'paid' && selectedInvoice.status !== 'cancelled' && (
-              <TouchableOpacity style={styles.actionButton} onPress={handleMarkPaid}>
-                <Text style={styles.actionButtonText}>💰 Record Payment</Text>
+            {selectedInvoice.status !== 'paid' && selectedInvoice.status !== 'cancelled' ? (
+              <TouchableOpacity style={styles.actionButton} onPress={() => setShowPaymentModal(true)}>
+                <Text style={styles.actionButtonText}>Record Payment</Text>
               </TouchableOpacity>
-            )}
+            ) : null}
 
-            {selectedInvoice.status === 'draft' && (
-              <TouchableOpacity style={styles.actionButton} onPress={handleEdit}>
-                <Text style={styles.actionButtonText}>✏️ Edit</Text>
+            {selectedInvoice.status === 'draft' ? (
+              <TouchableOpacity style={styles.actionButton} onPress={() => setViewMode('edit')}>
+                <Text style={styles.actionButtonText}>Edit</Text>
               </TouchableOpacity>
-            )}
+            ) : null}
 
-            <TouchableOpacity style={styles.actionButton} onPress={handleRepeat}>
-              <Text style={styles.actionButtonText}>🔁 Repeat</Text>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => {
+                setDuplicatingInvoice(selectedInvoice);
+                setViewMode('create');
+              }}
+            >
+              <Text style={styles.actionButtonText}>Repeat</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={handleDelete}>
-              <Text style={[styles.actionButtonText, styles.deleteButtonText]}>🗑️ Delete</Text>
+              <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
             </TouchableOpacity>
           </View>
 
-          <InvoiceTemplate 
-            invoice={selectedInvoice} 
-            settings={settings} 
-            paymentMethodDetails={paymentMethods}
-            onDeletePayment={handleDeletePayment}
-          />
-
-          {showPaymentModal && (
-            <RecordPaymentModal
+          <View style={styles.detailContent}>
+            <InvoiceTemplate
               invoice={selectedInvoice}
-              visible={showPaymentModal}
-              onClose={() => setShowPaymentModal(false)}
-              onSuccess={handlePaymentSuccess}
+              settings={settings}
+              paymentMethodDetails={paymentMethods}
+              onDeletePayment={handleDeletePayment}
             />
-          )}
-
-          {showEmailModal && (
-            <SendInvoiceModal
-              invoice={selectedInvoice}
-              visible={showEmailModal}
-              onClose={() => setShowEmailModal(false)}
-              onSuccess={handleEmailSuccess}
-            />
-          )}
-
-          {showPaywallModal && (
-            <PaywallModal
-              visible={showPaywallModal}
-              reason={paywallReason}
-              onClose={() => setShowPaywallModal(false)}
-              onUpgrade={() => {
-                setShowPaywallModal(false);
-                if (onNavigateToSubscription) {
-                  onNavigateToSubscription();
-                }
-              }}
-              remainingCount={paywallReason === 'invoice_limit' ? entitlements.remaining.invoicesRemaining ?? undefined : undefined}
-            />
-          )}
+          </View>
         </>
       )}
 
       {viewMode === 'settings' && (
         <>
-          <View style={styles.header}>
+          <View style={styles.detailHeader}>
             <TouchableOpacity onPress={() => setViewMode('list')}>
               <Text style={styles.backButton}>← Back</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Invoice Settings</Text>
-            <View style={{ width: 60 }} />
+            <Text style={styles.detailTitle}>Invoice Settings</Text>
+            <View style={styles.detailSpacer} />
           </View>
-          <InvoiceSettings onSuccess={() => setViewMode('list')} />
+          <View style={styles.detailContent}>
+            <InvoiceSettings onSuccess={() => setViewMode('list')} />
+          </View>
         </>
       )}
+
+      {showPaymentModal && selectedInvoice ? (
+        <RecordPaymentModal
+          invoice={selectedInvoice}
+          visible={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={handlePaymentSuccess}
+        />
+      ) : null}
+
+      {showEmailModal && selectedInvoice ? (
+        <SendInvoiceModal
+          invoice={selectedInvoice}
+          visible={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          onSuccess={handleEmailSuccess}
+        />
+      ) : null}
+
+      {showPaywallModal ? (
+        <PaywallModal
+          visible={showPaywallModal}
+          reason={paywallReason}
+          onClose={() => setShowPaywallModal(false)}
+          onUpgrade={() => {
+            setShowPaywallModal(false);
+            handleUpgradeClick();
+          }}
+          remainingCount={paywallReason === 'invoice_limit' ? entitlements.remaining.invoicesRemaining ?? undefined : undefined}
+        />
+      ) : null}
     </View>
   );
 }
@@ -453,93 +505,147 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: T.bg,
   },
-  header: {
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: T.bg,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  loadingTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: T.textPrimary,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: T.textMuted,
+    textAlign: 'center',
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: T.red,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: T.textMuted,
+    textAlign: 'center',
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 10,
+    paddingTop: 4,
+    paddingBottom: 10,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  backButton: {
-    fontSize: 16,
-    color: '#2563eb',
+  sectionTitle: {
+    fontSize: 13,
     fontWeight: '600',
+    color: T.textSecondary,
+    letterSpacing: 0.6,
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 8,
     alignItems: 'center',
+    gap: 8,
   },
-  createHeaderButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#2563eb',
-  },
-  createHeaderButtonText: {
-    fontSize: 14,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  settingsButton: {
+  btnGhost: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#f3f4f6',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
-  settingsButtonText: {
-    fontSize: 14,
-    color: '#374151',
-  },
-  remainingText: {
+  btnGhostText: {
     fontSize: 13,
-    color: '#6b7280',
-    marginRight: 12,
-  },
-  bannerContainer: {
-    paddingHorizontal: 10,
-    paddingTop: 16,
-  },
-  errorTitle: {
-    margin: 16,
     fontWeight: '600',
+    color: T.textPrimary,
   },
-  errorMessage: {
-    marginHorizontal: 16,
+  btnPrimary: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: T.accent,
+  },
+  btnPrimaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: T.textOnBrand,
+  },
+  bannerWrapper: {
+    marginHorizontal: 10,
+    marginBottom: 12,
+  },
+  contentArea: {
+    flex: 1,
+    marginHorizontal: 10,
+    marginBottom: 12,
+    backgroundColor: T.surfacePanel,
+    borderWidth: 1,
+    borderColor: T.borderMuted,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: T.surfacePanel,
+    borderBottomWidth: 1,
+    borderBottomColor: T.borderMuted,
+  },
+  detailTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '700',
+    color: T.textPrimary,
+  },
+  backButton: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: T.accent,
+  },
+  detailSpacer: {
+    width: 56,
   },
   actionBar: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    padding: 16,
-    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: T.surfacePanel,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: T.borderMuted,
   },
   actionButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#2563eb',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: T.accent,
   },
   actionButtonText: {
-    fontSize: 14,
-    color: '#fff',
+    fontSize: 13,
     fontWeight: '600',
+    color: T.textOnBrand,
   },
   deleteButton: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: T.redLight,
   },
   deleteButtonText: {
-    color: '#dc2626',
+    color: T.red,
+  },
+  detailContent: {
+    flex: 1,
+    minHeight: 0,
   },
 });

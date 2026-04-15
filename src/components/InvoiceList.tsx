@@ -1,26 +1,32 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, useWindowDimensions, Platform } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  Platform,
+} from 'react-native';
 import { Invoice, InvoiceStatus, getStatusLabel, formatCurrency } from '../types/invoice';
 import { OnboardingHelperCard } from './OnboardingHelperCard';
 import { formatStoredDate, parseStoredDate } from '../lib/date';
 import { getEffectiveInvoiceStatus } from '../utils/invoiceCalculations';
+import { colors } from '../styles/theme';
 
-// Design tokens
 const T = {
-  bg: '#F5F4F0',
-  surface: '#FFFFFF',
-  surface2: '#EEECEA',
-  border: '#E5E3DE',
-  textPrimary: '#1A1A1A',
-  textSecondary: '#7A7671',
-  textMuted: '#B0ADA8',
-  green: '#1D9B5E',
-  greenLight: '#E8F7F0',
-  red: '#DC2626',
-  redLight: '#FEE2E2',
-  accent: '#2D5BE3',
-  accentLight: '#EEF2FF',
-  mono: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  surface: colors.surface.elevated,
+  border: colors.border.DEFAULT,
+  textPrimary: colors.text.DEFAULT,
+  textSecondary: colors.text.muted,
+  textMuted: colors.text.subtle,
+  green: colors.success.DEFAULT,
+  greenLight: colors.success.muted,
+  red: colors.danger.DEFAULT,
+  redLight: colors.danger.muted,
+  accent: colors.brand.DEFAULT,
+  accentLight: colors.brand.muted,
 };
 
 interface InvoiceListProps {
@@ -28,33 +34,32 @@ interface InvoiceListProps {
   loading: boolean;
   onSelectInvoice?: (invoice: Invoice) => void;
   onCreateNew?: () => void;
-  onOpenSettings?: () => void;
 }
 
-export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, onOpenSettings }: InvoiceListProps) {
+export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }: InvoiceListProps) {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'due_date'>('date');
   const { width } = useWindowDimensions();
   const isMobile = Platform.OS !== 'web' || width < 768;
 
-  const isEmpty = invoices.length === 0;
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const isEmpty = invoices.length === 0;
 
   const filteredInvoices = useMemo(() => {
     let filtered = [...invoices];
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(inv => getEffectiveInvoiceStatus(inv) === statusFilter);
+      filtered = filtered.filter((invoice) => getEffectiveInvoiceStatus(invoice) === statusFilter);
     }
 
     if (normalizedSearchQuery) {
-      filtered = filtered.filter(inv =>
-        inv.invoice_number.toLowerCase().includes(normalizedSearchQuery) ||
-        inv.client_name.toLowerCase().includes(normalizedSearchQuery) ||
-        inv.client_company?.toLowerCase().includes(normalizedSearchQuery) ||
-        inv.client_email?.toLowerCase().includes(normalizedSearchQuery) ||
-        false
+      filtered = filtered.filter((invoice) =>
+        invoice.invoice_number.toLowerCase().includes(normalizedSearchQuery)
+        || invoice.client_name.toLowerCase().includes(normalizedSearchQuery)
+        || invoice.client_company?.toLowerCase().includes(normalizedSearchQuery)
+        || invoice.client_email?.toLowerCase().includes(normalizedSearchQuery)
+        || false
       );
     }
 
@@ -82,127 +87,106 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
       partially_paid: 0,
       paid: 0,
       overdue: 0,
-      cancelled: 0
+      cancelled: 0,
     };
 
-    invoices.forEach(inv => {
-      const status = getEffectiveInvoiceStatus(inv);
+    invoices.forEach((invoice) => {
+      const status = getEffectiveInvoiceStatus(invoice);
       counts[status] = (counts[status] || 0) + 1;
     });
 
     return counts;
   }, [invoices]);
 
-  const metrics = useMemo(() => {
-    const unpaidInvoices = invoices.filter(inv => 
-      !['paid', 'cancelled'].includes(getEffectiveInvoiceStatus(inv))
-    );
-    const totalOutstanding = unpaidInvoices.reduce((sum, inv) => sum + (inv.balance_due ?? inv.total_amount), 0);
-    
-    const overdueInvoices = invoices.filter(inv => getEffectiveInvoiceStatus(inv) === 'overdue');
-    const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + (inv.balance_due ?? inv.total_amount), 0);
-
-    const thisMonth = new Date();
-    thisMonth.setDate(1);
-    thisMonth.setHours(0, 0, 0, 0);
-    
-    const paidThisMonth = invoices.filter(inv => 
-      getEffectiveInvoiceStatus(inv) === 'paid' && 
-      inv.paid_at && 
-      new Date(inv.paid_at) >= thisMonth
-    );
-    const totalPaidThisMonth = paidThisMonth.reduce((sum, inv) => sum + inv.total_amount, 0);
-
-    return {
-      totalOutstanding,
-      overdueAmount,
-      totalPaidThisMonth,
-    };
-  }, [invoices]);
-
   const getStatusBadgeStyle = (status: InvoiceStatus) => {
     switch (status) {
-      case 'draft': return { backgroundColor: T.surface2, borderColor: T.border };
-      case 'sent': case 'viewed': return { backgroundColor: T.accentLight, borderColor: T.accent };
-      case 'overdue': return { backgroundColor: T.redLight, borderColor: T.red };
-      case 'paid': return { backgroundColor: T.greenLight, borderColor: T.green };
-      case 'partially_paid': return { backgroundColor: T.accentLight, borderColor: T.accent };
-      default: return { backgroundColor: T.surface2, borderColor: T.border };
+      case 'draft':
+        return { backgroundColor: colors.surface.muted, borderColor: T.border };
+      case 'sent':
+      case 'viewed':
+      case 'partially_paid':
+        return { backgroundColor: T.accentLight, borderColor: T.accent };
+      case 'overdue':
+        return { backgroundColor: T.redLight, borderColor: T.red };
+      case 'paid':
+        return { backgroundColor: T.greenLight, borderColor: T.green };
+      case 'cancelled':
+      default:
+        return { backgroundColor: colors.surface.muted, borderColor: T.border };
     }
   };
 
-  const getStatusTextColor = (status: InvoiceStatus): string => {
+  const getStatusTextColor = (status: InvoiceStatus) => {
     switch (status) {
-      case 'draft': return T.textMuted;
-      case 'sent': case 'viewed': return T.accent;
-      case 'overdue': return T.red;
-      case 'paid': return T.green;
-      case 'partially_paid': return T.accent;
-      default: return T.textMuted;
+      case 'draft':
+      case 'cancelled':
+        return T.textMuted;
+      case 'sent':
+      case 'viewed':
+      case 'partially_paid':
+        return T.accent;
+      case 'overdue':
+        return T.red;
+      case 'paid':
+        return T.green;
+      default:
+        return T.textMuted;
     }
   };
 
-  const actionsRow = (
-    <View style={[styles.actionsRow, isMobile && styles.actionsRowMobile]}>
-      <View style={styles.actionsTextWrap}>
-        <Text style={styles.actionsEyebrow}>Invoices</Text>
-        <Text style={styles.actionsTitle}>Create and manage client invoices</Text>
-      </View>
-      <View style={[styles.actionsButtons, isMobile && styles.actionsButtonsMobile]}>
-        {onOpenSettings && (
-          <TouchableOpacity
-            style={[styles.btnGhost, isMobile && styles.actionButtonMobile]}
-            onPress={onOpenSettings}
-          >
-            <Text style={styles.btnGhostText}>Settings</Text>
-          </TouchableOpacity>
-        )}
-        {onCreateNew && (
-          <TouchableOpacity
-            style={[styles.btnPrimary, isMobile && styles.actionButtonMobile]}
-            onPress={onCreateNew}
-          >
-            <Text style={styles.btnPrimaryText}>+ Create Invoice</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
+  const formatAmount = (amount: number) => formatCurrency(amount).replace(/\.00$/, '');
+  const formatDateShort = (dateStr: string) =>
+    formatStoredDate(dateStr, 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   if (loading) {
     return (
       <View style={styles.container}>
-        {actionsRow}
-        {/* Loading skeleton */}
-        <View style={styles.metricsRow}>
-          <View style={[styles.metricCard, styles.skeletonCard]}>
-            <View style={[styles.skeletonText, { width: 100, height: 14 }]} />
-            <View style={[styles.skeletonText, { width: 80, height: 24, marginTop: 8 }]} />
-          </View>
-          <View style={[styles.metricCard, styles.skeletonCard]}>
-            <View style={[styles.skeletonText, { width: 80, height: 14 }]} />
-            <View style={[styles.skeletonText, { width: 70, height: 24, marginTop: 8 }]} />
-          </View>
-          <View style={[styles.metricCard, styles.skeletonCard]}>
-            <View style={[styles.skeletonText, { width: 90, height: 14 }]} />
-            <View style={[styles.skeletonText, { width: 75, height: 24, marginTop: 8 }]} />
+        <View style={[styles.searchSortRow, isMobile && styles.searchSortRowMobile]}>
+          <View style={[styles.skeletonText, styles.searchSkeleton]} />
+          <View style={styles.sortSkeletonRow}>
+            <View style={[styles.skeletonText, styles.sortSkeleton]} />
+            <View style={[styles.skeletonText, styles.sortSkeleton]} />
+            <View style={[styles.skeletonText, styles.sortSkeleton]} />
           </View>
         </View>
-        
-        {/* Skeleton invoice cards */}
-        {[1, 2, 3].map((i) => (
-          <View key={i} style={[styles.invoiceCard, styles.skeletonCard]}>
-            <View style={styles.invoiceCardHeader}>
-              <View style={[styles.skeletonText, { width: 120, height: 18 }]} />
-              <View style={[styles.skeletonText, { width: 60, height: 24, borderRadius: 12 }]} />
+
+        <View style={styles.filterSkeletonRow}>
+          <View style={[styles.skeletonText, styles.filterSkeleton]} />
+          <View style={[styles.skeletonText, styles.filterSkeleton]} />
+          <View style={[styles.skeletonText, styles.filterSkeletonWide]} />
+        </View>
+
+        <ScrollView
+          style={styles.listContainer}
+          contentContainerStyle={styles.listContentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {[1, 2, 3].map((item) => (
+            <View key={item} style={[styles.invoiceCard, styles.skeletonCard]}>
+              <View style={styles.cardTopRow}>
+                <View style={styles.cardLeft}>
+                  <View style={[styles.skeletonText, styles.cardTitleSkeleton]} />
+                  <View style={[styles.skeletonText, styles.cardSubtitleSkeleton]} />
+                </View>
+                <View style={styles.cardRight}>
+                  <View style={[styles.skeletonText, styles.cardAmountSkeleton]} />
+                  <View style={[styles.skeletonText, styles.cardBadgeSkeleton]} />
+                </View>
+              </View>
+              <View style={styles.cardDivider} />
+              <View style={styles.cardDates}>
+                <View style={styles.dateRow}>
+                  <View style={[styles.skeletonText, styles.dateLabelSkeleton]} />
+                  <View style={[styles.skeletonText, styles.dateValueSkeleton]} />
+                </View>
+                <View style={styles.dateRow}>
+                  <View style={[styles.skeletonText, styles.dateLabelSkeleton]} />
+                  <View style={[styles.skeletonText, styles.dateValueSkeleton]} />
+                </View>
+              </View>
             </View>
-            <View style={[styles.skeletonText, { width: 150, height: 14, marginTop: 8 }]} />
-            <View style={styles.invoiceCardFooter}>
-              <View style={[styles.skeletonText, { width: 80, height: 14 }]} />
-              <View style={[styles.skeletonText, { width: 90, height: 20 }]} />
-            </View>
-          </View>
-        ))}
+          ))}
+        </ScrollView>
       </View>
     );
   }
@@ -210,73 +194,24 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
   if (isEmpty) {
     return (
       <View style={styles.container}>
-        {actionsRow}
-        <View style={[styles.emptyStateHero, isMobile && styles.emptyStateHeroMobile]}>
-          <Text style={[styles.emptyStateTitle, isMobile && styles.emptyStateTitleMobile]}>
-            Create your first invoice
-          </Text>
-          <Text style={[styles.emptyStateSubtitle, isMobile && styles.emptyStateSubtitleMobile]}>
-            Track payments, send professional invoices, and get paid faster.
-          </Text>
-          {onCreateNew && (
-            <TouchableOpacity 
-              style={[styles.emptyStateCTA, isMobile && styles.emptyStateCTAMobile]} 
-              onPress={onCreateNew}
-            >
-              <Text style={styles.emptyStateCTAText}>Create Invoice</Text>
-            </TouchableOpacity>
-          )}
-          <View style={styles.reminderBox}>
-            <Text style={styles.reminderText}>
-              💡 <Text style={styles.reminderBold}>Tip:</Text> Configure payment methods in <Text style={styles.reminderBold}>Settings</Text> to include payment instructions on invoices.
-            </Text>
-          </View>
+        <View style={styles.onboardingCard}>
+          <OnboardingHelperCard
+            icon="🧾"
+            title="Create your first invoice"
+            description="Send professional invoices to clients and keep payment tracking in one place."
+            actionLabel="Create Invoice"
+            onAction={onCreateNew || (() => {})}
+          />
         </View>
       </View>
     );
   }
 
-  const formatAmount = (amount: number) => {
-    const formatted = formatCurrency(amount);
-    return formatted.replace(/\.00$/, '');
-  };
-
-  const formatDateShort = (dateStr: string) => {
-    return formatStoredDate(dateStr, 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
   return (
     <View style={styles.container}>
-      {actionsRow}
-
-      {/* Stats card */}
-      <View style={isMobile ? styles.statsCardMobile : styles.compactMetricsStrip}>
-        <View style={styles.statCol}>
-          <Text style={isMobile ? styles.statLabelMobile : styles.compactMetricLabel}>Outstanding</Text>
-          <Text style={[isMobile ? styles.statValueMobile : styles.compactMetricValue]}>
-            {formatAmount(metrics.totalOutstanding)}
-          </Text>
-        </View>
-        <View style={styles.metricDivider} />
-        <View style={styles.statCol}>
-          <Text style={isMobile ? styles.statLabelMobile : styles.compactMetricLabel}>Overdue</Text>
-          <Text style={[isMobile ? styles.statValueMobile : styles.compactMetricValue, styles.statDanger]}>
-            {formatAmount(metrics.overdueAmount)}
-          </Text>
-        </View>
-        <View style={styles.metricDivider} />
-        <View style={styles.statCol}>
-          <Text style={isMobile ? styles.statLabelMobile : styles.compactMetricLabel}>Paid This Month</Text>
-          <Text style={[isMobile ? styles.statValueMobile : styles.compactMetricValue, styles.statSuccess]}>
-            {formatAmount(metrics.totalPaidThisMonth)}
-          </Text>
-        </View>
-      </View>
-
-      {/* Search + sort row */}
       <View style={[styles.searchSortRow, isMobile && styles.searchSortRowMobile]}>
         <TextInput
-          style={isMobile ? styles.searchInputMobile : styles.compactSearchInput}
+          style={[styles.searchInput, isMobile && styles.searchInputMobile]}
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search invoices..."
@@ -304,12 +239,11 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
         </View>
       </View>
 
-      {/* Status filter tabs */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.compactFilterContainer}
-        contentContainerStyle={styles.compactFilterContent}
+        style={styles.filterContainer}
+        contentContainerStyle={styles.filterContent}
       >
         {([
           { key: 'all', label: `All (${statusCounts.all})` },
@@ -323,329 +257,111 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
         ] as const).map(({ key, label }) => (
           <TouchableOpacity
             key={key}
-            style={[styles.compactPill, statusFilter === key && styles.compactPillActive]}
+            style={[styles.filterPill, statusFilter === key && styles.filterPillActive]}
             onPress={() => setStatusFilter(key)}
           >
-            <Text style={[styles.compactPillText, statusFilter === key && styles.compactPillTextActive]}>
+            <Text style={[styles.filterPillText, statusFilter === key && styles.filterPillTextActive]}>
               {label}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Invoice list */}
-      <View style={styles.listWrapper}>
-        <ScrollView
-          style={styles.listContainer}
-          contentContainerStyle={isMobile ? styles.listContentContainerMobile : styles.listContentContainer}
-        >
-          {filteredInvoices.length === 0 ? (
-            isEmpty && statusFilter === 'all' && !searchQuery ? (
-              <View style={{ padding: 20 }}>
-                <OnboardingHelperCard
-                  icon="🧾"
-                  title="Create your first invoice"
-                  description="Send professional invoices to clients and track payments easily."
-                  actionLabel="Create Invoice"
-                  onAction={onCreateNew || (() => {})}
-                />
-              </View>
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>No invoices found</Text>
-              </View>
-            )
-          ) : (
-            filteredInvoices.map((invoice) => (
-              (() => {
-                const status = getEffectiveInvoiceStatus(invoice);
+      <ScrollView
+        style={styles.listContainer}
+        contentContainerStyle={styles.listContentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {filteredInvoices.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>No invoices found</Text>
+            <Text style={styles.emptyStateDescription}>Try a different search or status filter.</Text>
+          </View>
+        ) : (
+          filteredInvoices.map((invoice) => {
+            const status = getEffectiveInvoiceStatus(invoice);
 
-                return isMobile ? (
-                  <TouchableOpacity
-                    key={invoice.id}
-                    style={styles.invoiceCardMobile}
-                    onPress={() => onSelectInvoice?.(invoice)}
-                    activeOpacity={0.75}
-                  >
-                    {/* Top section */}
-                    <View style={styles.cardTopRow}>
-                      <View style={styles.cardLeft}>
-                        <Text style={styles.cardInvoiceNumber}>{invoice.invoice_number}</Text>
-                        <Text style={styles.cardClientName} numberOfLines={1}>{invoice.client_name}</Text>
-                        {invoice.client_company && (
-                          <Text style={styles.cardBandName}>{invoice.client_company}</Text>
-                        )}
-                      </View>
-                      <View style={styles.cardRight}>
-                        <Text style={styles.cardAmount}>{formatAmount(invoice.total_amount)}</Text>
-                        <View style={[styles.cardStatusBadge, getStatusBadgeStyle(status)]}>
-                          <Text style={[styles.cardStatusText, { color: getStatusTextColor(status) }]}>
-                            {getStatusLabel(status).toUpperCase()}
-                          </Text>
-                        </View>
-                      </View>
+            return (
+              <TouchableOpacity
+                key={invoice.id}
+                style={styles.invoiceCard}
+                onPress={() => onSelectInvoice?.(invoice)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.cardTopRow}>
+                  <View style={styles.cardLeft}>
+                    <Text style={styles.cardInvoiceNumber}>{invoice.invoice_number}</Text>
+                    <Text style={styles.cardClientName} numberOfLines={1}>
+                      {invoice.client_name}
+                    </Text>
+                    {invoice.client_company ? (
+                      <Text style={styles.cardCompany} numberOfLines={1}>
+                        {invoice.client_company}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View style={styles.cardRight}>
+                    <Text style={styles.cardAmount}>{formatAmount(invoice.total_amount)}</Text>
+                    <View style={[styles.cardStatusBadge, getStatusBadgeStyle(status)]}>
+                      <Text style={[styles.cardStatusText, { color: getStatusTextColor(status) }]}>
+                        {getStatusLabel(status).toUpperCase()}
+                      </Text>
                     </View>
+                  </View>
+                </View>
 
-                    {/* Divider */}
-                    <View style={styles.cardDivider} />
+                <View style={styles.cardDivider} />
 
-                    {/* Date rows */}
-                    <View style={styles.cardDates}>
-                      <View style={styles.dateRow}>
-                        <Text style={styles.dateLabel}>Invoice Date</Text>
-                        <Text style={styles.dateValue}>{formatDateShort(invoice.invoice_date)}</Text>
-                      </View>
-                      <View style={styles.dateRow}>
-                        <Text style={styles.dateLabel}>Due Date</Text>
-                        <Text style={styles.dateValue}>{formatDateShort(invoice.due_date)}</Text>
-                      </View>
-                      {invoice.balance_due !== undefined && invoice.balance_due > 0 && status !== 'paid' && (
-                        <View style={styles.dateRow}>
-                          <Text style={styles.dateLabel}>Balance Due</Text>
-                          <Text style={[styles.dateValue, styles.balanceDueValue]}>
-                            {formatAmount(invoice.balance_due)}
-                          </Text>
-                        </View>
-                      )}
+                <View style={styles.cardDates}>
+                  <View style={styles.dateRow}>
+                    <Text style={styles.dateLabel}>Invoice Date</Text>
+                    <Text style={styles.dateValue}>{formatDateShort(invoice.invoice_date)}</Text>
+                  </View>
+                  <View style={styles.dateRow}>
+                    <Text style={styles.dateLabel}>Due Date</Text>
+                    <Text style={styles.dateValue}>{formatDateShort(invoice.due_date)}</Text>
+                  </View>
+                  {invoice.balance_due !== undefined && invoice.balance_due > 0 && status !== 'paid' ? (
+                    <View style={styles.dateRow}>
+                      <Text style={styles.dateLabel}>Balance Due</Text>
+                      <Text style={[styles.dateValue, styles.balanceDueValue]}>
+                        {formatAmount(invoice.balance_due)}
+                      </Text>
                     </View>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    key={invoice.id}
-                    style={styles.invoiceCard}
-                    onPress={() => onSelectInvoice?.(invoice)}
-                  >
-                    <View style={styles.invoiceHeader}>
-                      <View>
-                        <Text style={styles.invoiceNumber}>{invoice.invoice_number}</Text>
-                        <Text style={styles.clientName}>{invoice.client_name}</Text>
-                        {invoice.client_company && (
-                          <Text style={styles.clientCompany}>{invoice.client_company}</Text>
-                        )}
-                      </View>
-                      <View style={styles.invoiceHeaderRight}>
-                        <Text style={styles.invoiceAmount}>{formatCurrency(invoice.total_amount)}</Text>
-                        <View style={[styles.statusBadge, getStatusBadgeStyle(status)]}>
-                          <Text style={[styles.statusText, { color: getStatusTextColor(status) }]}>
-                            {getStatusLabel(status)}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    <View style={styles.invoiceDetails}>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Invoice Date:</Text>
-                        <Text style={styles.detailValue}>{formatStoredDate(invoice.invoice_date)}</Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Due Date:</Text>
-                        <Text style={[styles.detailValue, status === 'overdue' && styles.detailValueOverdue]}>
-                          {formatStoredDate(invoice.due_date)}
-                        </Text>
-                      </View>
-                      {invoice.balance_due !== undefined && invoice.balance_due > 0 && status !== 'paid' && (
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Balance Due:</Text>
-                          <Text style={[styles.detailValue, styles.balanceDue]}>
-                            {formatCurrency(invoice.balance_due)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })()
-            ))
-          )}
-        </ScrollView>
-      </View>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </ScrollView>
     </View>
   );
 }
 
+const monoFont = Platform.OS === 'ios' ? 'Courier New' : 'monospace';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: T.bg,
+    backgroundColor: colors.surface.DEFAULT,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  onboardingCard: {
+    padding: 16,
   },
-
-  // ── Stats card ──────────────────────────────────────────
-  statsCardMobile: {
-    flexDirection: 'row',
-    backgroundColor: T.surface,
-    borderWidth: 1,
-    borderColor: T.border,
-    borderRadius: 20,
-    marginHorizontal: 10,
-    marginBottom: 16,
-    padding: 18,
-  },
-  compactMetricsStrip: {
-    flexDirection: 'row',
-    backgroundColor: T.surface,
-    borderWidth: 1,
-    borderColor: T.border,
-    borderRadius: 8,
-    marginHorizontal: 10,
-    marginBottom: 12,
-    padding: 12,
-  },
-  statCol: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statLabelMobile: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: T.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  statValueMobile: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: T.textPrimary,
-  },
-  statDanger: { color: T.red },
-  statSuccess: { color: T.green },
-  compactMetric: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  compactMetricLabel: {
-    fontSize: 11,
-    color: T.textMuted,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  compactMetricValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: T.textPrimary,
-  },
-  metricDivider: {
-    width: 1,
-    backgroundColor: T.border,
-    marginHorizontal: 8,
-  },
-
-  // ── Section header row ────────────────────────────────
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingBottom: 14,
-  },
-  sectionHeaderLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: T.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  sectionHeaderActions: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 10,
-    paddingBottom: 14,
-  },
-  actionsRowMobile: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    paddingTop: 4,
-  },
-  actionsTextWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  actionsEyebrow: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: T.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  actionsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: T.textPrimary,
-  },
-  actionsButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  actionsButtonsMobile: {
-    width: '100%',
-  },
-  actionButtonMobile: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  btnGhost: {
-    backgroundColor: T.surface,
-    borderWidth: 1.5,
-    borderColor: T.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  btnGhostText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: T.textSecondary,
-  },
-  btnPrimary: {
-    backgroundColor: T.accent,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  btnPrimaryText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: T.surface,
-  },
-
-  // ── Search + sort ──────────────────────────────────────
   searchSortRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    marginBottom: 10,
     gap: 8,
+    paddingHorizontal: 10,
+    paddingTop: 12,
+    paddingBottom: 10,
   },
   searchSortRowMobile: {
-    marginTop: 14,
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
-  compactSearchInput: {
-    flex: 1,
-    backgroundColor: T.surface,
-    borderWidth: 1.5,
-    borderColor: T.border,
-    borderRadius: 12,
-    padding: 9,
-    fontSize: 14,
-    color: T.textPrimary,
-  },
-  searchInputMobile: {
+  searchInput: {
     flex: 1,
     backgroundColor: T.surface,
     borderWidth: 1.5,
@@ -655,6 +371,9 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     fontSize: 14,
     color: T.textPrimary,
+  },
+  searchInputMobile: {
+    width: '100%',
   },
   sortDropdown: {
     flexDirection: 'row',
@@ -674,27 +393,24 @@ const styles = StyleSheet.create({
   },
   sortOptionText: {
     fontSize: 13,
-    color: T.textSecondary,
     fontWeight: '600',
+    color: T.textSecondary,
   },
   sortOptionTextActive: {
     color: T.accent,
-    fontWeight: '600',
   },
-
-  // ── Filter pills ────────────────────────────────────────
-  compactFilterContainer: {
+  filterContainer: {
+    maxHeight: 46,
     paddingHorizontal: 10,
-    marginBottom: 12,
-    maxHeight: 44,
+    marginBottom: 10,
   },
-  compactFilterContent: {
-    paddingRight: 16,
-    gap: 8,
+  filterContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    paddingRight: 16,
   },
-  compactPill: {
+  filterPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -702,24 +418,17 @@ const styles = StyleSheet.create({
     borderColor: T.border,
     backgroundColor: T.surface,
   },
-  compactPillActive: {
+  filterPillActive: {
     backgroundColor: T.textPrimary,
     borderColor: T.textPrimary,
   },
-  compactPillText: {
+  filterPillText: {
     fontSize: 13,
     fontWeight: '600',
     color: T.textSecondary,
   },
-  compactPillTextActive: {
+  filterPillTextActive: {
     color: T.surface,
-    fontWeight: '600',
-  },
-
-  // ── List ────────────────────────────────────────────────
-  listWrapper: {
-    flex: 1,
-    minHeight: 0,
   },
   listContainer: {
     flex: 1,
@@ -727,14 +436,9 @@ const styles = StyleSheet.create({
   },
   listContentContainer: {
     paddingBottom: 24,
-  },
-  listContentContainerMobile: {
-    paddingBottom: 32,
     gap: 10,
   },
-
-  // ── Invoice card — mobile ────────────────────────────────
-  invoiceCardMobile: {
+  invoiceCard: {
     backgroundColor: T.surface,
     borderRadius: 20,
     borderWidth: 1,
@@ -752,11 +456,15 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  cardRight: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+  },
   cardInvoiceNumber: {
     fontSize: 12,
     fontWeight: '600',
     color: T.textMuted,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontFamily: monoFont,
     marginBottom: 4,
   },
   cardClientName: {
@@ -764,27 +472,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: T.textPrimary,
   },
-  cardBandName: {
+  cardCompany: {
     fontSize: 13,
     color: T.textSecondary,
     marginTop: 2,
   },
-  cardRight: {
-    alignItems: 'flex-end',
-    flexShrink: 0,
-  },
   cardAmount: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: T.textPrimary,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+    fontFamily: monoFont,
   },
   cardStatusBadge: {
     marginTop: 6,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 0,
+    borderRadius: 999,
   },
   cardStatusText: {
     fontSize: 11,
@@ -804,222 +507,96 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 24,
   },
   dateLabel: {
     fontSize: 13,
     color: T.textSecondary,
-    lineHeight: 22,
   },
   dateValue: {
     fontSize: 13,
     fontWeight: '500',
     color: T.textPrimary,
-    fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    lineHeight: 22,
+    fontFamily: monoFont,
   },
   balanceDueValue: {
-    color: T.accent,
-    fontWeight: '700',
-  },
-
-  // ── Invoice card — desktop ───────────────────────────────
-  invoiceCard: {
-    backgroundColor: T.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  invoiceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  invoiceNumber: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: T.textPrimary,
-    marginBottom: 4,
-  },
-  clientName: {
-    fontSize: 15,
-    color: T.textPrimary,
-    marginBottom: 2,
-  },
-  clientCompany: {
-    fontSize: 13,
-    color: T.textSecondary,
-  },
-  invoiceHeaderRight: {
-    alignItems: 'flex-end',
-  },
-  invoiceAmount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: T.textPrimary,
-    marginBottom: 6,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  invoiceDetails: {
-    borderTopWidth: 1,
-    borderTopColor: T.border,
-    paddingTop: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  detailLabel: {
-    fontSize: 13,
-    color: T.textSecondary,
-  },
-  detailValue: {
-    fontSize: 13,
-    color: T.textPrimary,
-    fontWeight: '500',
-  },
-  detailValueOverdue: {
     color: T.red,
-    fontWeight: '600',
-  },
-  balanceDue: {
-    color: T.accent,
-    fontWeight: '600',
-  },
-
-  // ── Empty states ──────────────────────────────────────────
-  emptyStateHero: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingTop: 80,
-    paddingBottom: 40,
-  },
-  emptyStateHeroMobile: {
-    paddingHorizontal: 10,
-    paddingTop: 60,
-  },
-  emptyStateTitle: {
-    fontSize: 32,
     fontWeight: '700',
-    color: T.textPrimary,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  emptyStateTitleMobile: {
-    fontSize: 24,
-  },
-  emptyStateSubtitle: {
-    fontSize: 16,
-    color: T.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-    maxWidth: 500,
-    lineHeight: 24,
-  },
-  emptyStateSubtitleMobile: {
-    fontSize: 15,
-    marginBottom: 24,
-  },
-  emptyStateCTA: {
-    backgroundColor: T.accent,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 8,
-  },
-  emptyStateCTAMobile: {
-    width: '100%',
-    maxWidth: 400,
-  },
-  emptyStateCTAText: {
-    color: T.surface,
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingHorizontal: 16,
+    paddingVertical: 48,
   },
-  emptyStateText: {
+  emptyStateTitle: {
     fontSize: 16,
-    color: T.textSecondary,
-    marginBottom: 20,
+    fontWeight: '700',
+    color: T.textPrimary,
+    marginBottom: 6,
   },
-  createButton: {
-    backgroundColor: T.accent,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  createButtonText: {
-    color: T.surface,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  reminderBox: {
-    backgroundColor: T.accentLight,
-    borderWidth: 1,
-    borderColor: T.accent,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 24,
-  },
-  reminderText: {
+  emptyStateDescription: {
     fontSize: 14,
-    color: T.accent,
-    lineHeight: 20,
+    color: T.textSecondary,
+    textAlign: 'center',
   },
-  reminderBold: {
-    fontWeight: '600',
-  },
-
-  // ── Skeleton ───────────────────────────────────────────────
   skeletonCard: {
-    opacity: 0.6,
+    overflow: 'hidden',
   },
   skeletonText: {
-    backgroundColor: T.border,
-    borderRadius: 4,
+    backgroundColor: colors.surface.muted,
+    borderRadius: 999,
   },
-  metricsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  metricCard: {
+  searchSkeleton: {
     flex: 1,
-    backgroundColor: T.surface,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: T.border,
+    height: 42,
   },
-  invoiceCardHeader: {
+  sortSkeletonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 4,
+  },
+  sortSkeleton: {
+    width: 52,
+    height: 38,
+  },
+  filterSkeletonRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  filterSkeleton: {
+    width: 88,
+    height: 34,
+  },
+  filterSkeletonWide: {
+    width: 112,
+    height: 34,
+  },
+  cardTitleSkeleton: {
+    width: 110,
+    height: 12,
     marginBottom: 8,
   },
-  invoiceCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: T.border,
+  cardSubtitleSkeleton: {
+    width: 150,
+    height: 18,
+  },
+  cardAmountSkeleton: {
+    width: 88,
+    height: 26,
+  },
+  cardBadgeSkeleton: {
+    width: 72,
+    height: 22,
+    marginTop: 8,
+  },
+  dateLabelSkeleton: {
+    width: 86,
+    height: 12,
+  },
+  dateValueSkeleton: {
+    width: 92,
+    height: 14,
   },
 });

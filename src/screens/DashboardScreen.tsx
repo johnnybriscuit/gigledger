@@ -311,7 +311,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
     }
   };
 
-  const LIST_TABS = ['gigs', 'expenses', 'mileage', 'payers'];
+  const LIST_TABS = ['gigs', 'expenses', 'mileage', 'payers', 'invoices'];
   const isListTab = LIST_TABS.includes(activeTab);
 
   return (

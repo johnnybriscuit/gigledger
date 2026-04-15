@@ -9,6 +9,41 @@ export type Payer = Database['public']['Tables']['payers']['Row'];
 type PayerInsert = Database['public']['Tables']['payers']['Insert'];
 type PayerUpdate = Database['public']['Tables']['payers']['Update'];
 
+type PostgrestLikeError = {
+  code?: string | null;
+  details?: string | null;
+  hint?: string | null;
+  message?: string | null;
+};
+
+function isMissingOnConflictConstraint(error: PostgrestLikeError | null | undefined) {
+  if (!error) {
+    return false;
+  }
+
+  const message = `${error.message ?? ''} ${error.details ?? ''}`.toLowerCase();
+  return (
+    error.code === '42P10' ||
+    message.includes('no unique or exclusion constraint matching the on conflict specification')
+  );
+}
+
+function isUnsupportedAgencyPayerType(
+  error: PostgrestLikeError | null | undefined,
+  payerType: PayerInsert['payer_type'] | undefined
+) {
+  if (!error || payerType !== 'Agency') {
+    return false;
+  }
+
+  const combined = `${error.message ?? ''} ${error.details ?? ''} ${error.hint ?? ''}`;
+  return /invalid input value for enum .*payer_type.*agency/i.test(combined);
+}
+
+function formatPostgrestError(error: PostgrestLikeError) {
+  return [error.message, error.details, error.hint].filter(Boolean).join(' ');
+}
+
 export function usePayers() {
   const [userId, setUserId] = useState<string | null>(null);
   
@@ -42,12 +77,14 @@ export function useCreatePayer() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      const row = { ...payer, user_id: user.id };
+
       // Use upsert to prevent duplicates based on normalized_name
       // If a payer with same normalized name exists, update it instead
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('payers')
         .upsert(
-          { ...payer, user_id: user.id },
+          row,
           { 
             onConflict: 'user_id,normalized_name',
             ignoreDuplicates: false // Update existing record
@@ -56,7 +93,30 @@ export function useCreatePayer() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error && isMissingOnConflictConstraint(error)) {
+        console.warn(
+          '[Payers] Missing payers(user_id, normalized_name) unique constraint. Retrying with plain insert.',
+          error
+        );
+
+        ({ data, error } = await supabase
+          .from('payers')
+          .insert(row)
+          .select()
+          .single());
+      }
+
+      if (error && isUnsupportedAgencyPayerType(error, payer.payer_type)) {
+        throw new Error(
+          'Agency payer type is not enabled in the database yet. Apply Supabase migration 20260409001_add_agency_to_payer_type.sql, then try again.'
+        );
+      }
+
+      if (error) {
+        console.error('[Payers] Failed to create payer', { payer: row, error });
+        throw new Error(formatPostgrestError(error) || 'Failed to save payer');
+      }
+
       return data as Payer;
     },
     onSuccess: async () => {
