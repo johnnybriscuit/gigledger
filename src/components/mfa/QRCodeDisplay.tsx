@@ -45,7 +45,13 @@ export function QRCodeDisplay({ uri, secret, onCopySecret }: QRCodeDisplayProps)
 
       {/* Instructions */}
       <Text style={styles.instructions}>
-        Scan this QR code with your authenticator app
+        Scan this QR code with Apple Passwords or another authenticator app
+      </Text>
+
+      <Text style={styles.instructionsSecondary}>
+        {Platform.OS === 'ios'
+          ? 'On iPhone or iPad, Apple may ask you to pick an existing saved login or create one for this site before saving the verification code.'
+          : 'If your password manager asks you to attach the code to a saved login for this site, that is expected.'}
       </Text>
 
       {/* Manual Entry Toggle */}
@@ -76,7 +82,7 @@ export function QRCodeDisplay({ uri, secret, onCopySecret }: QRCodeDisplayProps)
           </TouchableOpacity>
 
           <Text style={styles.secretHelp}>
-            Enter this key in your authenticator app if you can't scan the QR code
+            Enter this key in Apple Passwords or another authenticator app if you can't scan the QR code
           </Text>
         </View>
       )}
@@ -85,7 +91,7 @@ export function QRCodeDisplay({ uri, secret, onCopySecret }: QRCodeDisplayProps)
       <View style={styles.appsContainer}>
         <Text style={styles.appsLabel}>Compatible apps:</Text>
         <Text style={styles.appsText}>
-          Google Authenticator, 1Password, Authy, Microsoft Authenticator
+          Apple Passwords, Google Authenticator, 1Password, Authy, Microsoft Authenticator
         </Text>
       </View>
     </View>
@@ -113,6 +119,14 @@ const styles = StyleSheet.create({
     color: '#374151',
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  instructionsSecondary: {
+    marginTop: 10,
+    fontSize: 13,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 19,
+    paddingHorizontal: 24,
   },
   manualToggle: {
     marginTop: 16,

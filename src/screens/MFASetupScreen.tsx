@@ -121,8 +121,8 @@ export function MFASetupScreen({ onComplete, onSkip }: MFASetupScreenProps) {
         <View style={styles.header}>
           <Text style={styles.title}>Add 2-Step Verification</Text>
           <Text style={styles.subtitle}>
-            {step === 'scan' && 'Use an authenticator app to keep your account safe. It takes ~30 seconds.'}
-            {step === 'verify' && 'Enter the 6-digit code from your authenticator app'}
+            {step === 'scan' && 'Use Apple Passwords or any authenticator app to keep your account safe. It takes about 30 seconds.'}
+            {step === 'verify' && 'Enter the 6-digit code from Apple Passwords or your authenticator app'}
             {step === 'backup' && 'Save these backup codes in case you lose your phone'}
           </Text>
         </View>
@@ -189,7 +189,7 @@ export function MFASetupScreen({ onComplete, onSkip }: MFASetupScreenProps) {
               ) : null}
 
               <Text style={styles.verifyHelp}>
-                Open your authenticator app and enter the 6-digit code shown for GigLedger
+                Open Apple Passwords or your authenticator app and enter the 6-digit code shown for GigLedger
               </Text>
             </View>
 

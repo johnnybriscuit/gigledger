@@ -31,6 +31,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { DashboardTour } from '../components/DashboardTour';
 import { isMFAEnabled } from '../lib/mfa';
+import { trackMfaPromptShown } from '../lib/analytics';
 
 type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'invoices' | 'exports' | 'subscription' | 'account';
 
@@ -314,6 +315,12 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
   const LIST_TABS = ['gigs', 'expenses', 'mileage', 'payers', 'invoices'];
   const isListTab = LIST_TABS.includes(activeTab);
 
+  const handleOpenSecuritySettingsForMfa = () => {
+    trackMfaPromptShown();
+    setShowSecuritySettings(true);
+    setActiveTab('account');
+  };
+
   return (
     <AppShell
       activeRoute={activeTab}
@@ -423,7 +430,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
             <Button
               variant="secondary"
               size="sm"
-              onPress={() => onNavigateToMFASetup?.()}
+              onPress={handleOpenSecuritySettingsForMfa}
             >
               Enable 2FA
             </Button>
