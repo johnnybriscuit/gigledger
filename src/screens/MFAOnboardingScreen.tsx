@@ -82,7 +82,7 @@ export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScre
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'gigledger-recovery-codes.txt';
+      a.download = 'bozzy-recovery-codes.txt';
       a.click();
       URL.revokeObjectURL(url);
     }

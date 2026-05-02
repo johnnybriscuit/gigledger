@@ -1,5 +1,5 @@
 /**
- * GigLedger Design Tokens
+ * Bozzy Design Tokens
  * 
  * Single source of truth for colors, spacing, typography, and other design values.
  * These tokens are used in both Tailwind config and component styles.

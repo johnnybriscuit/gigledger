@@ -11,6 +11,6 @@ function getEnvVar(key: string): string {
 export const env = {
   supabaseUrl: getEnvVar('EXPO_PUBLIC_SUPABASE_URL'),
   supabaseAnonKey: getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
-  deepLinkScheme: getEnvVar('EXPO_PUBLIC_DEEP_LINK_SCHEME') || 'gigledger',
+  deepLinkScheme: getEnvVar('EXPO_PUBLIC_DEEP_LINK_SCHEME') || 'bozzy',
   defaultMileageRate: parseFloat(getEnvVar('EXPO_PUBLIC_DEFAULT_MILEAGE_RATE') || '0.67'),
 } as const;

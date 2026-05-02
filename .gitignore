@@ -5,7 +5,7 @@ node_modules/
 
 # Expo
 .expo/
-# dist/ - Committing dist for Vercel deployment
+dist/
 web-build/
 expo-env.d.ts
 
@@ -41,3 +41,7 @@ yarn-error.*
 /ios
 /android
 .vercel
+
+# Internal files
+setup_monthly_reset_cron.sql
+*.backup

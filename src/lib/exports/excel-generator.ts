@@ -1,7 +1,7 @@
 /**
  * Excel Export Generator
  * Generates a multi-sheet Excel workbook with all export data
- * Uses SheetJS (xlsx) library for Excel generation
+ * Uses ExcelJS library for Excel generation
  */
 
 import type { GigExportRow, ExpenseExportRow, MileageExportRow, PayerExportRow, ScheduleCSummaryRow } from './schemas';
@@ -216,40 +216,49 @@ export function generateExcelData(input: ExcelGeneratorInput) {
 }
 
 /**
- * Download Excel file using SheetJS
- * This requires the xlsx library to be installed
+ * Download Excel file using ExcelJS
+ * This requires the exceljs library to be installed
  */
 export async function downloadExcel(input: ExcelGeneratorInput): Promise<void> {
   try {
-    // Dynamically import xlsx library
-    const XLSX = await import('xlsx');
+    // Dynamically import exceljs library
+    const ExcelJS = await import('exceljs');
     
     const data = generateExcelData(input);
     
     // Create a new workbook
-    const wb = XLSX.utils.book_new();
+    const wb = new ExcelJS.Workbook();
     
     // Add each sheet
     Object.entries(data).forEach(([sheetName, sheetData]) => {
-      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      const ws = wb.addWorksheet(sheetName);
+      
+      // Add rows to worksheet
+      ws.addRows(sheetData);
       
       // Set column widths
-      const colWidths = sheetData[0].map((_, colIndex) => {
+      ws.columns = sheetData[0].map((_, colIndex) => {
         const maxLength = Math.max(
           ...sheetData.map(row => {
             const cell = row[colIndex];
             return cell ? String(cell).length : 0;
           })
         );
-        return { wch: Math.min(maxLength + 2, 50) };
+        return { width: Math.min(maxLength + 2, 50) };
       });
-      ws['!cols'] = colWidths;
-      
-      XLSX.utils.book_append_sheet(wb, ws, sheetName);
     });
     
-    // Generate Excel file and trigger download
-    XLSX.writeFile(wb, `gigledger_${input.taxYear}_export.xlsx`);
+    // Generate Excel file buffer and trigger download
+    const buffer = await wb.xlsx.writeBuffer();
+    
+    // Create blob and download link
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `bozzy_${input.taxYear}_export.xlsx`;
+    link.click();
+    URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Excel export error:', error);
     throw new Error('Failed to generate Excel file. Please make sure you have a modern browser.');

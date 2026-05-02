@@ -1,4 +1,4 @@
--- GigLedger Core Tables
+-- Bozzy Core Tables
 -- Creates the foundational tables for the application
 
 -- Enable UUID extension

@@ -1,12 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req)
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -84,7 +82,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `GigLedger <1099@${resendDomain}>`,
+        from: `Bozzy <1099@${resendDomain}>`,
         to: recipientEmail,
         subject: `Your 1099-NEC Preparation Summary for ${taxYear}`,
         html: emailHtml,
@@ -241,7 +239,7 @@ function generate1099EmailHTML(subcontractor: any, profile: any, taxYear: number
       </div>
 
       <div class="footer">
-        <p>This email was sent via GigLedger</p>
+        <p>This email was sent via Bozzy</p>
         <p>Questions? Reply to this email or contact ${payerName} directly.</p>
         <p style="font-size: 12px; color: #9ca3af; margin-top: 20px;">
           You received this email because you consented to electronic delivery of 1099 forms.

@@ -189,7 +189,7 @@ export function MFASetupScreen({ onComplete, onSkip }: MFASetupScreenProps) {
               ) : null}
 
               <Text style={styles.verifyHelp}>
-                Open Apple Passwords or your authenticator app and enter the 6-digit code shown for GigLedger
+                Open Apple Passwords or your authenticator app and enter the 6-digit code shown for Bozzy
               </Text>
             </View>
 

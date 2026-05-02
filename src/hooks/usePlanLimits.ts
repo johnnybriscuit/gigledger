@@ -137,7 +137,7 @@ export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): P
   const expensesRemaining = Math.max(0, maxExpenses - expenseCount);
 
   // Debug logging (matches the format from GigsScreen)
-  console.log('=== GigLedger Plan Debug ===');
+  console.log('=== Bozzy Plan Debug ===');
   console.log('User ID:', userId);
   console.log('Plan from DB:', subscription?.tier);
   console.log('Status from DB:', subscription?.status);

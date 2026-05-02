@@ -52,6 +52,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: `Webhook Error: ${err.message}` });
   }
 
+  const eventId = event.id;
+
+  const { count } = await supabase
+    .from('processed_stripe_events')
+    .select('*', { count: 'exact', head: true })
+    .eq('event_id', eventId);
+
+  if (count && count > 0) {
+    console.log(`Duplicate Stripe event ${eventId} — skipping`);
+    return res.status(200).json({ received: true, duplicate: true });
+  }
+
+  await supabase
+    .from('processed_stripe_events')
+    .insert({ event_id: eventId });
+
   try {
     switch (event.type) {
       case 'customer.subscription.created':

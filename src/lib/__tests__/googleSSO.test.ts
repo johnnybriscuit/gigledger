@@ -9,7 +9,7 @@ describe('Google SSO Integration', () => {
   describe('OAuth handler', () => {
     it('should call signInWithOAuth with correct parameters', () => {
       const mockSignInWithOAuth = vi.fn().mockResolvedValue({ error: null });
-      const SITE_URL = 'https://gigledger-ten.vercel.app';
+      const SITE_URL = 'https://bozzygigs.com';
 
       // Mock Supabase client
       const supabase = {
@@ -33,7 +33,7 @@ describe('Google SSO Integration', () => {
       expect(mockSignInWithOAuth).toHaveBeenCalledWith({
         provider: 'google',
         options: {
-          redirectTo: 'https://gigledger-ten.vercel.app/auth/callback',
+          redirectTo: 'https://bozzygigs.com/auth/callback',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -55,7 +55,7 @@ describe('Google SSO Integration', () => {
       const result = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://gigledger-ten.vercel.app/auth/callback',
+          redirectTo: 'https://bozzygigs.com/auth/callback',
         },
       });
 

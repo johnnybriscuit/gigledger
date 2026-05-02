@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { resolveAuthorizedBillingUserId } from '../../../src/lib/billingSecurity.ts'
+import { getCorsHeaders } from './cors.ts'
 
 export class FunctionHttpError extends Error {
   status: number
@@ -10,12 +11,13 @@ export class FunctionHttpError extends Error {
   }
 }
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-export function jsonResponse(payload: unknown, status: number = 200) {
+export function jsonResponse(payload: unknown, status: number = 200, req?: Request) {
+  const corsHeaders = req ? getCorsHeaders(req) : {
+    'Access-Control-Allow-Origin': 'https://bozzygigs.com',
+    'Access-Control-Allow-Headers': 'authorization, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  }
+  
   return new Response(JSON.stringify(payload), {
     status,
     headers: {

@@ -4,7 +4,7 @@
  */
 
 describe('Forgot Password Flow', () => {
-  const STAGING_URL = 'https://gigledger-ten.vercel.app';
+  const STAGING_URL = 'https://bozzygigs.com';
   const LOCAL_URL = 'http://localhost:8090';
 
   describe('request-password-reset endpoint', () => {

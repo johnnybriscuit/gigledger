@@ -77,7 +77,7 @@ export function useTaxProfile() {
           nycResident: undefined,
           yonkersResident: undefined,
           deductionMethod: 'standard' as const,
-          seIncome: true, // Assume self-employment for GigLedger users
+          seIncome: true, // Assume self-employment for Bozzy users
         };
       }
 

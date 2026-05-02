@@ -48,7 +48,7 @@ export function DeductionInfoCard() {
           
           <View style={styles.disclaimer}>
             <Text style={styles.disclaimerText}>
-              ⚠️ GigLedger helps you track, but always consult a tax professional for your specific situation. This is not tax advice.
+              ⚠️ Bozzy helps you track, but always consult a tax professional for your specific situation. This is not tax advice.
             </Text>
           </View>
         </View>

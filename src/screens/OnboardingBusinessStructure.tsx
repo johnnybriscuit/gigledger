@@ -40,7 +40,7 @@ const BUSINESS_STRUCTURES = [
     label: 'LLC taxed as S-Corp',
     badge: 'Pro feature',
     badgeColor: '#007AFF',
-    description: 'Advanced tax strategy. Often used when profit is high and you run payroll. Requires GigLedger Pro. SE tax doesn\'t apply the same way.',
+    description: 'Advanced tax strategy. Often used when profit is high and you run payroll. Requires Bozzy Pro. SE tax doesn\'t apply the same way.',
     requiresPro: true,
   },
   {
@@ -81,7 +81,7 @@ export function OnboardingBusinessStructure({ onNext, onSkip, onBack }: Onboardi
     if (selectedStructure === 'llc_scorp' && !isProPlan) {
       Alert.alert(
         'Upgrade Required',
-        'S-Corp mode is available on GigLedger Pro. Please choose a different structure or upgrade to Pro.',
+        'S-Corp mode is available on Bozzy Pro. Please choose a different structure or upgrade to Pro.',
         [{ text: 'OK' }]
       );
       return;
@@ -107,7 +107,7 @@ export function OnboardingBusinessStructure({ onNext, onSkip, onBack }: Onboardi
       if (error.message?.includes('SCORP_REQUIRES_PRO')) {
         Alert.alert(
           'Upgrade Required',
-          'S-Corp mode requires GigLedger Pro. Please choose a different structure or upgrade to Pro.',
+          'S-Corp mode requires Bozzy Pro. Please choose a different structure or upgrade to Pro.',
           [{ text: 'OK' }]
         );
       } else {
@@ -186,7 +186,7 @@ export function OnboardingBusinessStructure({ onNext, onSkip, onBack }: Onboardi
                 {isDisabled && (
                   <View style={styles.upgradeNote}>
                     <Text style={styles.upgradeNoteText}>
-                      🔓 Upgrade to GigLedger Pro to use S-Corp mode
+                      🔓 Upgrade to Bozzy Pro to use S-Corp mode
                     </Text>
                   </View>
                 )}

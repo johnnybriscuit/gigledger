@@ -37,7 +37,7 @@ export function StyleGuide() {
     <ScrollView style={styles.container}>
       <Container>
         <View style={styles.hero}>
-          <Display>GigLedger Style Guide</Display>
+          <Display>Bozzy Style Guide</Display>
           <Text muted>
             Living documentation of design tokens and UI primitives
           </Text>

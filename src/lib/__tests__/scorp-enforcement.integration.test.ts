@@ -113,7 +113,7 @@ describe('S-Corp Enforcement Integration Tests', () => {
       // Placeholder for UI integration test that verifies:
       // - Free user somehow bypasses client-side validation
       // - API returns SCORP_REQUIRES_PRO error
-      // - Alert is shown: "Upgrade Required: S-Corp mode requires GigLedger Pro"
+      // - Alert is shown: "Upgrade Required: S-Corp mode requires Bozzy Pro"
       expect(true).toBe(true);
     });
 

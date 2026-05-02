@@ -15,7 +15,7 @@ export async function geocodeLocation(location: string): Promise<{ lat: number; 
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=1`,
       {
         headers: {
-          'User-Agent': 'GigLedger-MileageTracker/1.0', // Required by Nominatim
+          'User-Agent': 'Bozzy-MileageTracker/1.0', // Required by Nominatim
         },
       }
     );

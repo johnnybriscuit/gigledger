@@ -1,5 +1,5 @@
 /**
- * Date utility functions for GigLedger
+ * Date utility functions for Bozzy
  * Handles conversion between local Date objects and UTC yyyy-MM-dd strings
  */
 

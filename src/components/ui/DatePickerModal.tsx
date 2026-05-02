@@ -1,6 +1,6 @@
 /**
  * DatePickerModal Component
- * Reusable, accessible modal date picker for GigLedger
+ * Reusable, accessible modal date picker for Bozzy
  */
 
 import React, { useState, useEffect } from 'react';

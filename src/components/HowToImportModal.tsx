@@ -27,7 +27,7 @@ const IMPORT_INSTRUCTIONS: Record<TaxSoftware, { title: string; steps: string[];
     steps: [
       'Open TurboTax Desktop (Windows or Mac application).',
       'Navigate to File > Import > From TXF Files (menu location may vary by version).',
-      'Select the TXF file you downloaded from GigLedger.',
+      'Select the TXF file you downloaded from Bozzy.',
       'Review the imported Schedule C line items carefully.',
       'Verify all amounts match your expectations.',
       'Complete any additional forms or schedules as needed.',
@@ -40,7 +40,7 @@ const IMPORT_INSTRUCTIONS: Record<TaxSoftware, { title: string; steps: string[];
       'Open H&R Block Desktop software.',
       'Navigate to File > Import or the import menu (location may vary by version).',
       'Select "TXF File" as the import type.',
-      'Choose the TXF file you downloaded from GigLedger.',
+      'Choose the TXF file you downloaded from Bozzy.',
       'Review all imported Schedule C entries.',
       'Verify totals and complete your return.',
     ],

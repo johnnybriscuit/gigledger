@@ -4,7 +4,7 @@ import { checkIdentifierRateLimit, getClientIp } from './rateLimit';
 export const DEFAULT_PROXY_ALLOWED_ORIGINS = [
   'http://localhost:8090',
   'http://localhost:8081',
-  'https://gigledger-ten.vercel.app',
+  'https://bozzygigs.com',
 ];
 
 export function parseAllowedOrigins(value: string | undefined): string[] {

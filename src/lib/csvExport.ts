@@ -112,7 +112,7 @@ export function downloadAllCSVs(
   scheduleC: ScheduleCSummary[],
   taxYear: number
 ): void {
-  const prefix = `gigledger_${taxYear}`;
+  const prefix = `bozzy_${taxYear}`;
 
   // Download each CSV with a small delay to avoid browser blocking
   setTimeout(() => downloadCSV(generateGigsCSV(gigs), `${prefix}_gigs.csv`), 0);
@@ -164,7 +164,7 @@ export function downloadJSONBackup(
   const url = URL.createObjectURL(blob);
 
   link.setAttribute('href', url);
-  link.setAttribute('download', `gigledger_${taxYear}_backup.json`);
+  link.setAttribute('download', `bozzy_${taxYear}_backup.json`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();

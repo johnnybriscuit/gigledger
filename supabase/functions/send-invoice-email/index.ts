@@ -1,10 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 function roundCurrency(value: number): number {
   const sign = value < 0 ? -1 : 1
@@ -28,6 +24,7 @@ function formatStoredDate(dateString: string): string {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req)
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -136,7 +133,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `${settings.business_name} via GigLedger <invoices@${resendDomain}>`,
+        from: `${settings.business_name} via Bozzy <invoices@${resendDomain}>`,
         reply_to: settings.email,
         to: recipientEmail,
         subject: `Invoice ${invoice.invoice_number} from ${settings.business_name}`,
@@ -285,7 +282,7 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
   const discount = roundCurrency(invoice.discount_amount || 0)
   const total = roundCurrency(subtotal + tax - discount)
 
-  const publicUrl = Deno.env.get('NEXT_PUBLIC_APP_URL') || 'https://gigledger-ten.vercel.app'
+  const publicUrl = Deno.env.get('NEXT_PUBLIC_APP_URL') || 'https://bozzygigs.com'
 
   const paymentMethodsHtml = Array.isArray(invoice.accepted_payment_methods) && invoice.accepted_payment_methods.some((pm: any) => String(pm.details || '').trim())
     ? invoice.accepted_payment_methods
@@ -417,7 +414,7 @@ function generateInvoiceHTML(invoice: any, settings: any, customMessage: string)
       ` : ''}
 
       <div class="footer">
-        <p>This invoice was sent via GigLedger</p>
+        <p>This invoice was sent via Bozzy</p>
         <p>If you have any questions, please reply to this email.</p>
       </div>
     </body>

@@ -106,6 +106,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'localhost:8081',
       '127.0.0.1',
       'gigledger-ten.vercel.app',
+      'bozzygigs.com',
+      'www.bozzygigs.com',
     ];
 
     if (data.hostname && !allowedHostnames.some(h => data.hostname?.includes(h))) {

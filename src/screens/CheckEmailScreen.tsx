@@ -66,7 +66,7 @@ export function CheckEmailScreen({ email, onVerified, onResend }: CheckEmailScre
           <Text style={styles.emailHighlight}>{email}</Text>
         </Text>
         <Text style={styles.instructions}>
-          Click the link in the email to verify your account and access GigLedger.
+          Click the link in the email to verify your account and access Bozzy.
         </Text>
 
         <View style={styles.statusBox}>

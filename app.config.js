@@ -2,7 +2,7 @@ module.exports = {
   expo: {
     owner: 'jkburkh23',
     name: 'Bozzy',
-    slug: 'gigledger',
+    slug: 'bozzy',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',

@@ -6,8 +6,8 @@
 import Constants from 'expo-constants';
 
 describe('Auth Redirect URL Validation', () => {
-  const STAGING_URL = 'https://gigledger-ten.vercel.app';
-  const PROD_URL = 'https://gigledger.com';
+  const STAGING_URL = 'https://bozzygigs.com';
+  const PROD_URL = 'https://bozzygigs.com';
   const LOCAL_URL = 'http://localhost:8090';
 
   describe('SITE_URL resolution', () => {
@@ -64,7 +64,7 @@ describe('Auth Redirect URL Validation', () => {
       const SITE_URL = STAGING_URL;
       const redirectTo = `${SITE_URL}/auth/callback`;
 
-      expect(redirectTo).toBe('https://gigledger-ten.vercel.app/auth/callback');
+      expect(redirectTo).toBe('https://bozzygigs.com/auth/callback');
     });
 
     it('should start with https:// in staging', () => {
@@ -104,8 +104,8 @@ describe('Auth Redirect URL Validation', () => {
       const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
       const redirectTo = `${SITE_URL}/auth/callback`;
 
-      expect(redirectTo).toBe('https://gigledger-ten.vercel.app/auth/callback');
-      expect(redirectTo.startsWith('https://gigledger-ten.vercel.app')).toBe(true);
+      expect(redirectTo).toBe('https://bozzygigs.com/auth/callback');
+      expect(redirectTo.startsWith('https://bozzygigs.com')).toBe(true);
 
       // Restore
       process.env.EXPO_PUBLIC_SITE_URL = originalEnv;
@@ -118,8 +118,8 @@ describe('Auth Redirect URL Validation', () => {
       const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL;
       const redirectTo = `${SITE_URL}/auth/callback`;
 
-      expect(redirectTo).toBe('https://gigledger.com/auth/callback');
-      expect(redirectTo.startsWith('https://gigledger.com')).toBe(true);
+      expect(redirectTo).toBe('https://bozzygigs.com/auth/callback');
+      expect(redirectTo.startsWith('https://bozzygigs.com')).toBe(true);
 
       // Restore
       process.env.EXPO_PUBLIC_SITE_URL = originalEnv;
@@ -178,7 +178,7 @@ describe('Auth Redirect URL Validation', () => {
         redirectTo,
       };
 
-      expect(requestBody.redirectTo).toBe('https://gigledger-ten.vercel.app/auth/callback');
+      expect(requestBody.redirectTo).toBe('https://bozzygigs.com/auth/callback');
       expect(requestBody.redirectTo.startsWith(STAGING_URL)).toBe(true);
     });
 
@@ -194,7 +194,7 @@ describe('Auth Redirect URL Validation', () => {
         redirectTo,
       };
 
-      expect(requestBody.redirectTo).toBe('https://gigledger-ten.vercel.app/auth/callback');
+      expect(requestBody.redirectTo).toBe('https://bozzygigs.com/auth/callback');
       expect(requestBody.redirectTo.startsWith(STAGING_URL)).toBe(true);
     });
 
@@ -210,7 +210,7 @@ describe('Auth Redirect URL Validation', () => {
         },
       };
 
-      expect(resendOptions.options.emailRedirectTo).toBe('https://gigledger-ten.vercel.app/auth/callback');
+      expect(resendOptions.options.emailRedirectTo).toBe('https://bozzygigs.com/auth/callback');
       expect(resendOptions.options.emailRedirectTo.startsWith(STAGING_URL)).toBe(true);
     });
   });

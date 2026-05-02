@@ -70,7 +70,7 @@ export function generateICSFile(event: CalendarEventData): string {
   const location = event.location || '';
   
   // Generate unique UID based on gig ID
-  const uid = `gig-${event.id}@gigledger.app`;
+  const uid = `gig-${event.id}@bozzygigs.com`;
   
   // Create .ics content
   const icsContent = [
