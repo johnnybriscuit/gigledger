@@ -9,6 +9,7 @@ import { View, Text, Platform, StyleSheet, TouchableOpacity } from 'react-native
 import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, getThemeColors } from '../../lib/charts/colors';
 import { colors as themeColors } from '../../styles/theme';
+import { ChartCard } from '../charts/ChartCard';
 import { Kard } from './Kard';
 import type { MonthlyPoint } from '../../hooks/useDashboardData';
 
