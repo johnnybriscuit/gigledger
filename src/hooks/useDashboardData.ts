@@ -285,17 +285,13 @@ export function useDashboardData(
       // Default to 1099 if no payer or unknown treatment (conservative for tax purposes)
       if (payerTaxTreatment === 'w2' || payerTaxTreatment === 'w-2' || payerTaxTreatment === 'payroll') {
         gigIncomeW2 += gigTotalIncome;
-      } else if (
-        payerTaxTreatment === '1099' ||
-        payerTaxTreatment === 'contractor' ||
-        payerTaxTreatment === 'contractor_1099' ||
-        payerTaxTreatment === '1099/contractor' ||
-        !payerTaxTreatment // Default to 1099 if null/undefined
-      ) {
-        gigIncome1099 += gigTotalIncome;
-      } else {
-        // 'other', 'mixed', or any other value
+      } else if (payerTaxTreatment === 'mixed' || payerTaxTreatment === 'other') {
+        // Only put in "other" bucket if explicitly marked as mixed/other
         gigIncomeOther += gigTotalIncome;
+      } else {
+        // Everything else defaults to 1099 (including null, undefined, '1099', 'contractor', etc.)
+        // This is conservative for tax purposes - better to overestimate than underestimate
+        gigIncome1099 += gigTotalIncome;
       }
     });
 

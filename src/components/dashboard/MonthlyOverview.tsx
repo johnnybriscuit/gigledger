@@ -56,21 +56,21 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
       <View style={[styles.tooltip, { backgroundColor: colors.cardBg, borderColor: colors.border }]}>
         <Text style={[styles.tooltipTitle, { color: colors.text }]}>{data.month}</Text>
         <View style={styles.tooltipRow}>
-          <View style={[styles.tooltipDot, { backgroundColor: chartColors.blue }]} />
+          <View style={[styles.tooltipDot, { backgroundColor: themeColors.chart.income }]} />
           <Text style={[styles.tooltipLabel, { color: colors.textMuted }]}>Income:</Text>
           <Text style={[styles.tooltipValue, { color: colors.text }]}>
             {formatCurrency(data.income)} ({((data.income / total) * 100).toFixed(1)}%)
           </Text>
         </View>
         <View style={styles.tooltipRow}>
-          <View style={[styles.tooltipDot, { backgroundColor: chartColors.red }]} />
+          <View style={[styles.tooltipDot, { backgroundColor: themeColors.chart.expenses }]} />
           <Text style={[styles.tooltipLabel, { color: colors.textMuted }]}>Expenses:</Text>
           <Text style={[styles.tooltipValue, { color: colors.text }]}>
             {formatCurrency(data.expenses)} ({((data.expenses / total) * 100).toFixed(1)}%)
           </Text>
         </View>
         <View style={styles.tooltipRow}>
-          <View style={[styles.tooltipDot, { backgroundColor: chartColors.amber }]} />
+          <View style={[styles.tooltipDot, { backgroundColor: themeColors.chart.taxes }]} />
           <Text style={[styles.tooltipLabel, { color: colors.textMuted }]}>Taxes:</Text>
           <Text style={[styles.tooltipValue, { color: colors.text }]}>
             {formatCurrency(data.taxes)} ({((data.taxes / total) * 100).toFixed(1)}%)
@@ -78,7 +78,7 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
         </View>
         <View style={[styles.tooltipRow, styles.tooltipTotal]}>
           <Text style={[styles.tooltipLabel, { color: colors.text, fontWeight: '600' }]}>Net:</Text>
-          <Text style={[styles.tooltipValue, { color: chartColors.green, fontWeight: '600' }]}>
+          <Text style={[styles.tooltipValue, { color: themeColors.chart.profit, fontWeight: '600' }]}>  
             {formatCurrency(data.net)}
           </Text>
         </View>
@@ -119,9 +119,9 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
               wrapperStyle={{ fontSize: 14, color: colors.text }}
               iconType="square"
             />
-            <Bar dataKey="income" fill={chartColors.blue} name="Income" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expenses" fill={chartColors.red} name="Expenses" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="taxes" fill={chartColors.amber} name="Taxes" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="income" fill={themeColors.chart.income} name="Income" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expenses" fill={themeColors.chart.expenses} name="Expenses" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="taxes" fill={themeColors.chart.taxes} name="Taxes" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>

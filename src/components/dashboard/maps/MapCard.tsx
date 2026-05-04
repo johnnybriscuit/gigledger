@@ -7,6 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { getThemeColors } from '../../../lib/charts/colors';
+import { colors as themeColors } from '../../../styles/theme';
 import { Kard } from '../Kard';
 import { useMapStats } from '../../../hooks/useMapStats';
 import { useStateGigs } from '../../../hooks/useStateGigs';
@@ -328,7 +329,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   } as any, // Cast to any to allow position: absolute on web
   modalContent: {
-    backgroundColor: '#ffffff',
+    backgroundColor: themeColors.surface.DEFAULT,
     borderRadius: 16,
     padding: 24,
     maxWidth: 400,
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
       },
       default: {
-        shadowColor: '#000',
+        shadowColor: themeColors.text.DEFAULT,
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.1,
         shadowRadius: 20,
@@ -349,24 +350,24 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: themeColors.text.DEFAULT,
     marginBottom: 12,
   },
   modalText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: themeColors.text.subtle,
     lineHeight: 20,
     marginBottom: 20,
   },
   modalButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: themeColors.brand.DEFAULT,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
     alignItems: 'center',
   },
   modalButtonText: {
-    color: '#ffffff',
+    color: themeColors.brand.foreground,
     fontSize: 14,
     fontWeight: '600',
   },

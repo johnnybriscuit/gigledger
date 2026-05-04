@@ -65,7 +65,7 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
     taxProfile
   );
 
-  const hasIncome = gigIncome1099 > 0 || gigIncomeW2 > 0;
+  const hasIncome = gigIncome1099 > 0 || gigIncomeW2 > 0 || gigIncomeOther > 0;
 
   const handleW4Link = () => {
     Linking.openURL('https://www.irs.gov/individuals/tax-withholding-estimator');
