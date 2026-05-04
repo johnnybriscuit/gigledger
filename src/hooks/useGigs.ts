@@ -15,6 +15,7 @@ export interface GigWithPayer extends Gig {
     id: string;
     name: string;
     payer_type: string;
+    tax_treatment: '1099' | 'w2' | 'contractor_1099' | 'other' | 'mixed' | null;
   } | null;
   expenses?: Array<{
     id: string;
@@ -63,7 +64,7 @@ export function useGigs(filters?: GigQueryFilters) {
         .from('gigs')
         .select(`
           *,
-          payer:payers(id, name, payer_type),
+          payer:payers(id, name, payer_type, tax_treatment),
           expenses(id, category, description, amount, notes),
           mileage:mileage!mileage_gig_id_fkey(id, date, miles, notes),
           subcontractor_payments:gig_subcontractor_payments(id, subcontractor_id, amount, note)

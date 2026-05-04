@@ -72,6 +72,10 @@ const themePalettes = {
       tertiary: '#15803d',
       quaternary: '#7c3aed',
       quinary: '#db2777',
+      income: '#15803d',
+      expenses: '#dc2626',
+      taxes: '#d97706',
+      profit: '#15803d',
     },
   },
   dark: {
@@ -130,6 +134,10 @@ const themePalettes = {
       tertiary: '#4ade80',
       quaternary: '#a78bfa',
       quinary: '#f472b6',
+      income: '#34D399',
+      expenses: '#F87171',
+      taxes: '#FBBF24',
+      profit: '#34D399',
     },
   },
 } as const;
@@ -217,6 +225,10 @@ export const colors = {
     tertiary: cssVar('--color-chart-tertiary', themePalettes.light.chart.tertiary),
     quaternary: cssVar('--color-chart-quaternary', themePalettes.light.chart.quaternary),
     quinary: cssVar('--color-chart-quinary', themePalettes.light.chart.quinary),
+    income: cssVar('--color-chart-income', themePalettes.light.chart.income),
+    expenses: cssVar('--color-chart-expenses', themePalettes.light.chart.expenses),
+    taxes: cssVar('--color-chart-taxes', themePalettes.light.chart.taxes),
+    profit: cssVar('--color-chart-profit', themePalettes.light.chart.profit),
   },
 } as const;
 

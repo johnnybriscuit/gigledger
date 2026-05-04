@@ -6,7 +6,8 @@
 import React, { useState } from 'react';
 import { View, Text, Platform, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
-import { chartPalette, getThemeColors } from '../../lib/charts/colors';
+import { chartColors, chartPalette, getThemeColors } from '../../lib/charts/colors';
+import { colors as themeColors } from '../../styles/theme';
 import { Kard } from './Kard';
 import type { PayerBreakdown } from '../../hooks/useDashboardData';
 
@@ -234,10 +235,10 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
 
 const pStyles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: themeColors.surface.DEFAULT,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5E3DE',
+    borderColor: themeColors.border.DEFAULT,
     overflow: 'hidden',
   },
   header: {
@@ -251,13 +252,13 @@ const pStyles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: themeColors.text.DEFAULT,
   },
   totalInHeader: {
     fontSize: 13,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    color: '#7A7671',
+    color: themeColors.text.subtle,
   },
   emptyState: {
     alignItems: 'center',
@@ -266,8 +267,8 @@ const pStyles = StyleSheet.create({
     gap: 6,
   },
   emptyIcon: { fontSize: 36, marginBottom: 4 },
-  emptyText: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
-  emptyHint: { fontSize: 13, color: '#B0ADA8' },
+  emptyText: { fontSize: 15, fontWeight: '600', color: themeColors.text.DEFAULT },
+  emptyHint: { fontSize: 13, color: themeColors.text.subtle },
   propBarWrap: {
     flexDirection: 'row',
     height: 6,
@@ -287,7 +288,7 @@ const pStyles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5E3DE',
+    borderTopColor: themeColors.border.muted,
   },
   dot: {
     width: 10,
@@ -299,7 +300,7 @@ const pStyles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: themeColors.text.DEFAULT,
   },
   payerRight: {
     alignItems: 'flex-end',
@@ -308,11 +309,11 @@ const pStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    color: '#1A1A1A',
+    color: themeColors.text.DEFAULT,
   },
   payerPct: {
     fontSize: 12,
-    color: '#B0ADA8',
+    color: themeColors.text.subtle,
     marginTop: 1,
   },
 });
@@ -321,27 +322,27 @@ const pStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 48, gap: 8 },
   emptyIcon: { fontSize: 48, marginBottom: 8 },
-  emptyText: { fontSize: 16, fontWeight: '600', color: '#111827' },
-  emptyHint: { fontSize: 14, color: '#6b7280' },
+  emptyText: { fontSize: 16, fontWeight: '600', color: themeColors.text.DEFAULT },
+  emptyHint: { fontSize: 14, color: themeColors.text.subtle },
   legendContainer: { marginTop: 16, gap: 8 },
   legendItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#f9fafb',
+    flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: themeColors.surface.muted,
     ...Platform.select({ web: { cursor: 'pointer' } as any }),
   },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: '#111827' },
-  legendValue: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  legendPercent: { fontSize: 12, color: '#6b7280', marginLeft: 4 },
+  legendLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: themeColors.text.DEFAULT },
+  legendValue: { fontSize: 14, fontWeight: '600', color: themeColors.text.DEFAULT },
+  legendPercent: { fontSize: 12, color: themeColors.text.subtle, marginLeft: 4 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: {
-    backgroundColor: '#ffffff', borderRadius: 16, padding: 24, maxWidth: 400, width: '100%',
-    ...Platform.select({ web: { boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' } as any, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 } }),
+    backgroundColor: themeColors.surface.DEFAULT, borderRadius: 16, padding: 24, maxWidth: 400, width: '100%',
+    ...Platform.select({ web: { boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' } as any, default: { shadowColor: themeColors.text.DEFAULT, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 } }),
   },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  modalText: { fontSize: 14, color: '#6b7280', lineHeight: 20, marginBottom: 20 },
-  modalButton: { backgroundColor: '#3b82f6', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, alignItems: 'center' },
-  modalButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
-  totalContainer: { alignItems: 'center', marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: themeColors.text.DEFAULT, marginBottom: 12 },
+  modalText: { fontSize: 14, color: themeColors.text.subtle, lineHeight: 20, marginBottom: 20 },
+  modalButton: { backgroundColor: themeColors.brand.DEFAULT, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, alignItems: 'center' },
+  modalButtonText: { color: themeColors.brand.foreground, fontSize: 14, fontWeight: '600' },
+  totalContainer: { alignItems: 'center', marginBottom: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: themeColors.border.DEFAULT },
   totalLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   totalValue: { fontSize: 24, fontWeight: '700' },
   mobileList: { gap: 0 },

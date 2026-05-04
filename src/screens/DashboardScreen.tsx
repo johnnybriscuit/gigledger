@@ -420,24 +420,6 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
         </View>
       )}
 
-      {activeTab === 'dashboard' && !mfaEnabled && (
-        <View style={styles.bannerContainer}>
-          <View style={styles.securityBanner}>
-            <View style={styles.securityBannerText}>
-              <Text style={styles.securityBannerTitle}>Protect your account with 2-step verification.</Text>
-              <Text style={styles.securityBannerBody}>You can finish it in about 30 seconds from Security Settings.</Text>
-            </View>
-            <Button
-              variant="secondary"
-              size="sm"
-              onPress={handleOpenSecuritySettingsForMfa}
-            >
-              Enable 2FA
-            </Button>
-          </View>
-        </View>
-      )}
-
       {renderContent()}
 
       <AddGigModal

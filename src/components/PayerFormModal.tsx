@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useCreatePayer, useUpdatePayer, type Payer } from '../hooks/usePayers';
-import { PAYER_TYPES, type PayerType } from '../constants/payerTypes';
+import { PAYER_TYPES, PAYER_TYPE_LABELS, type PayerType } from '../constants/payerTypes';
 
 interface PayerFormModalProps {
   visible: boolean;
@@ -188,7 +188,7 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
                       styles.typeButtonText,
                       type === payerType && styles.typeButtonTextActive,
                     ]}>
-                      {payerType}
+                      {PAYER_TYPE_LABELS[payerType]}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -196,7 +196,13 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Tax Treatment *</Text>
+              <View style={styles.labelWithTooltip}>
+                <Text style={styles.label}>Tax Treatment *</Text>
+                <Text style={styles.tooltip}>ℹ️</Text>
+              </View>
+              <Text style={styles.helperText}>
+                This affects how Bozzy calculates your tax estimates. Most gig and session work is 1099.
+              </Text>
               <View style={styles.taxTreatmentButtons}>
                 <TouchableOpacity
                   style={[
@@ -208,7 +214,11 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
                   <Text style={[
                     styles.taxTreatmentButtonText,
                     taxTreatment === 'w2' && styles.taxTreatmentButtonTextActive,
-                  ]}>W-2 (Payroll)</Text>
+                  ]}>W-2 — Regular job</Text>
+                  <Text style={[
+                    styles.taxTreatmentSubtext,
+                    taxTreatment === 'w2' && styles.taxTreatmentSubtextActive,
+                  ]}>Your employer withholds taxes.{"\n"}You'll get a W-2 form in January.</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -220,7 +230,11 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
                   <Text style={[
                     styles.taxTreatmentButtonText,
                     taxTreatment === 'contractor_1099' && styles.taxTreatmentButtonTextActive,
-                  ]}>1099 / Contractor</Text>
+                  ]}>1099 — Gig / freelance</Text>
+                  <Text style={[
+                    styles.taxTreatmentSubtext,
+                    taxTreatment === 'contractor_1099' && styles.taxTreatmentSubtextActive,
+                  ]}>You handle your own taxes.{"\n"}You may get a 1099 form in January.</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -232,9 +246,16 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
                   <Text style={[
                     styles.taxTreatmentButtonText,
                     taxTreatment === 'other' && styles.taxTreatmentButtonTextActive,
-                  ]}>Other / Mixed</Text>
+                  ]}>Mixed / Unsure</Text>
+                  <Text style={[
+                    styles.taxTreatmentSubtext,
+                    taxTreatment === 'other' && styles.taxTreatmentSubtextActive,
+                  ]}>Paid both ways, or not sure yet.</Text>
                 </TouchableOpacity>
               </View>
+              <Text style={styles.tooltipText}>
+                💡 Not sure? Most music gigs, session work, and venue bookings are 1099. Orchestra jobs and W-2 teaching positions are W-2.
+              </Text>
             </View>
 
             {taxTreatment === 'contractor_1099' && (
@@ -622,13 +643,14 @@ const styles = StyleSheet.create({
   taxTreatmentButton: {
     flex: 1,
     minWidth: 100,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#d1d5db',
     backgroundColor: '#fff',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   taxTreatmentButtonActive: {
     backgroundColor: '#3b82f6',
@@ -642,6 +664,33 @@ const styles = StyleSheet.create({
   },
   taxTreatmentButtonTextActive: {
     color: '#fff',
+  },
+  taxTreatmentSubtext: {
+    fontSize: 11,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  taxTreatmentSubtextActive: {
+    color: '#e0e7ff',
+  },
+  labelWithTooltip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tooltip: {
+    fontSize: 14,
+    marginLeft: 6,
+    color: '#6b7280',
+  },
+  tooltipText: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 8,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
   accordionHeader: {
     flexDirection: 'row',

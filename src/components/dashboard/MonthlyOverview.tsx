@@ -5,10 +5,11 @@
  */
 
 import React from 'react';
-import { View, Text, Platform, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Platform, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, getThemeColors } from '../../lib/charts/colors';
-import { ChartCard } from '../charts/ChartCard';
+import { colors as themeColors } from '../../styles/theme';
+import { Kard } from './Kard';
 import type { MonthlyPoint } from '../../hooks/useDashboardData';
 
 // Conditional imports for charts
@@ -164,10 +165,10 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
 
 const moStyles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: themeColors.surface.DEFAULT,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5E3DE',
+    borderColor: themeColors.border.DEFAULT,
     overflow: 'hidden',
   },
   header: {
@@ -178,7 +179,7 @@ const moStyles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: themeColors.text.DEFAULT,
   },
   monthRow: {
     flexDirection: 'row',
@@ -187,12 +188,12 @@ const moStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E5E3DE',
+    borderTopColor: themeColors.border.muted,
   },
   monthLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: themeColors.text.DEFAULT,
   },
   monthRight: {
     alignItems: 'flex-end',
@@ -201,14 +202,14 @@ const moStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    color: '#1D9B5E',
+    color: themeColors.success.DEFAULT,
   },
   monthNetZero: {
-    color: '#B0ADA8',
+    color: themeColors.text.subtle,
   },
   monthSub: {
     fontSize: 11,
-    color: '#B0ADA8',
+    color: themeColors.text.subtle,
     marginTop: 1,
   },
 });
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
   tooltipDot: { width: 8, height: 8, borderRadius: 4 },
   tooltipLabel: { fontSize: 13, flex: 1 },
   tooltipValue: { fontSize: 13, fontWeight: '500' },
-  tooltipTotal: { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
+  tooltipTotal: { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: themeColors.border.DEFAULT },
   mobileList: { gap: 0 },
   mobileRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
   mobileMonth: { fontSize: 14, fontWeight: '500' },

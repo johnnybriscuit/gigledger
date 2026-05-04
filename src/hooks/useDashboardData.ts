@@ -14,6 +14,7 @@ interface GigWithRelations extends GigRow {
   payer?: {
     id: string;
     name: string;
+    tax_treatment?: string | null;
   };
   subcontractor_payments?: Array<{
     id: string;
@@ -62,6 +63,10 @@ export interface DashboardData {
   ytdGigsCount: number; // NEW: Count of all YTD gigs (including future)
   paidGigsCount: number; // NEW: Count of paid gigs in date range
   totalGrossIncome: number; // NEW: Total gross income (for avg per gig calculation)
+  // Income split by tax treatment
+  gigIncome1099: number; // NEW: Income from 1099/contractor payers
+  gigIncomeW2: number; // NEW: Income from W-2/payroll payers
+  gigIncomeOther: number; // NEW: Income from other/unknown tax treatment
   totals: {
     net: number;
     taxes: number;
@@ -259,6 +264,41 @@ export function useDashboardData(
       other: totalOtherIncome - totalFees,
     };
 
+    // Split income by tax treatment
+    let gigIncome1099 = 0;
+    let gigIncomeW2 = 0;
+    let gigIncomeOther = 0;
+
+    gigs.forEach((gig) => {
+      const gigWithPayer = gig as GigWithRelations;
+      const payerTaxTreatment = gigWithPayer.payer?.tax_treatment?.toLowerCase() || null;
+      
+      // Calculate total income for this gig
+      const gigTotalIncome =
+        (gig.gross_amount || 0) +
+        (gig.tips || 0) +
+        (gig.per_diem || 0) +
+        (gig.other_income || 0) -
+        (gig.fees || 0);
+      
+      // Categorize by tax treatment
+      // Default to 1099 if no payer or unknown treatment (conservative for tax purposes)
+      if (payerTaxTreatment === 'w2' || payerTaxTreatment === 'w-2' || payerTaxTreatment === 'payroll') {
+        gigIncomeW2 += gigTotalIncome;
+      } else if (
+        payerTaxTreatment === '1099' ||
+        payerTaxTreatment === 'contractor' ||
+        payerTaxTreatment === 'contractor_1099' ||
+        payerTaxTreatment === '1099/contractor' ||
+        !payerTaxTreatment // Default to 1099 if null/undefined
+      ) {
+        gigIncome1099 += gigTotalIncome;
+      } else {
+        // 'other', 'mixed', or any other value
+        gigIncomeOther += gigTotalIncome;
+      }
+    });
+
     // Group by month
     const monthlyMap = new Map<string, MonthlyPoint>();
 
@@ -426,6 +466,9 @@ export function useDashboardData(
       ytdGigsCount,
       paidGigsCount,
       totalGrossIncome: totalGross + totalTips + totalPerDiem,
+      gigIncome1099,
+      gigIncomeW2,
+      gigIncomeOther,
       isReady: isReadyForTotals,
       totals: totalsToReturn,
       taxBreakdown: isReadyForTotals ? {

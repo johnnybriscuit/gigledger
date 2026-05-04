@@ -23,6 +23,7 @@ import { usePayers } from '../hooks/usePayers';
 import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
 import { useEntitlements } from '../hooks/useEntitlements';
 import { SkeletonGigCard } from '../components/SkeletonCard';
+import { TaxBadge } from '../components/ui/TaxBadge';
 import { H1, H3, Text, Button, Card, Badge, EmptyState } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import { formatCurrency as formatCurrencyUtil, formatDate as formatDateUtil } from '../utils/format';
@@ -169,10 +170,12 @@ function GigCard({
         <View style={cardS.right}>
           <NativeText style={cardS.takeHomeLabel}>TAKE-HOME</NativeText>
           <NativeText style={cardS.takeHomeValue}>{formatCurrency(takeHome)}</NativeText>
-          <NativeText style={cardS.taxAside}>
-            {'set aside '}
-            <NativeText style={cardS.taxAsideAmt}>{formatCurrency(taxToSetAside)}</NativeText>
-          </NativeText>
+          <TaxBadge
+            taxTreatment={item.payer?.tax_treatment}
+            effectiveRate={taxResult?.rate || 0.141}
+            gigAmount={netBeforeTax}
+            onMixedPress={onEdit}
+          />
         </View>
       </View>
 

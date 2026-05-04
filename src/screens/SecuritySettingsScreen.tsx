@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 import { format } from 'date-fns';
 import {
@@ -50,10 +51,23 @@ export function SecuritySettingsScreen({
   const [showBackupCodes, setShowBackupCodes] = useState(false);
   const [newBackupCodes, setNewBackupCodes] = useState<BackupCode[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   useEffect(() => {
     loadSecurityData();
+    // Check if banner was dismissed
+    if (Platform.OS === 'web') {
+      const dismissed = localStorage.getItem('bozzy_2fa_banner_dismissed');
+      setBannerDismissed(dismissed === 'true');
+    }
   }, []);
+
+  const handleDismissBanner = () => {
+    if (Platform.OS === 'web') {
+      localStorage.setItem('bozzy_2fa_banner_dismissed', 'true');
+    }
+    setBannerDismissed(true);
+  };
 
   const loadSecurityData = async () => {
     try {
@@ -239,6 +253,22 @@ export function SecuritySettingsScreen({
             Manage your account security and authentication
           </Text>
         </View>
+
+        {/* 2FA Banner - shown if not enabled and not dismissed */}
+        {!mfaEnabled && !bannerDismissed && (
+          <View style={styles.banner}>
+            <View style={styles.bannerContent}>
+              <Text style={styles.bannerIcon}>🔒</Text>
+              <View style={styles.bannerText}>
+                <Text style={styles.bannerTitle}>Protect your account with 2-step verification</Text>
+                <Text style={styles.bannerBody}>You can finish it in about 30 seconds below.</Text>
+              </View>
+              <TouchableOpacity onPress={handleDismissBanner} style={styles.bannerDismiss}>
+                <Text style={styles.bannerDismissText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* 2FA Section */}
         <View style={styles.section}>
@@ -434,6 +464,45 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#6b7280',
     lineHeight: 22,
+  },
+  banner: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    overflow: 'hidden',
+  },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  bannerIcon: {
+    fontSize: 24,
+  },
+  bannerText: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  bannerBody: {
+    fontSize: 14,
+    color: '#3b82f6',
+  },
+  bannerDismiss: {
+    padding: 8,
+  },
+  bannerDismissText: {
+    fontSize: 18,
+    color: '#6b7280',
+    fontWeight: '400',
   },
   section: {
     padding: 20,

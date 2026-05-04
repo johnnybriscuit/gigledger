@@ -44,7 +44,7 @@ export function useDashboardDataAggregated() {
           .from('gigs')
           .select(`
             *,
-            payer:payers(id, name),
+            payer:payers(id, name, tax_treatment),
             subcontractor_payments:gig_subcontractor_payments(id, subcontractor_id, amount, note)
           `)
           .eq('user_id', userId)

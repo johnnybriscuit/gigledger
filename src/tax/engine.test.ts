@@ -13,6 +13,7 @@ import {
   calcTotalTax,
   taxDeltaForGig,
   calcYTDEffectiveRate,
+  calculateSplitTax,
   type TaxProfile,
   type YTDData,
   type GigData,
@@ -553,6 +554,273 @@ describe('Tax Engine', () => {
       const sum = result.breakdown.federal + result.breakdown.state + 
                   result.breakdown.local + result.breakdown.seTax;
       expect(result.totalTax).toBeCloseTo(sum, 2);
+    });
+  });
+
+  // ============================================================================
+  // SPLIT TAX CALCULATION (W-2 + 1099)
+  // ============================================================================
+
+  describe('calculateSplitTax', () => {
+    it('should calculate tax for pure 1099 income, no W-2, supported state (CA)', () => {
+      const profile: TaxProfile = {
+        filingStatus: 'single',
+        state: 'CA',
+        deductionMethod: 'standard',
+        seIncome: true,
+      };
+      
+      const result = calculateSplitTax(
+        80000,  // gigIncome1099
+        0,      // gigIncomeW2
+        15000,  // totalDeductions
+        profile
+      );
+      
+      // Verify income split
+      expect(result.income1099).toBe(80000);
+      expect(result.incomeW2).toBe(0);
+      expect(result.netIncome1099).toBe(65000); // 80000 - 15000
+      
+      // Verify SE tax calculation (15.3% × 92.35% of net)
+      const expectedSETax = 65000 * 0.9235 * 0.153;
+      expect(result.seTax).toBeCloseTo(expectedSETax, 2);
+      
+      // Verify federal and state taxes are calculated
+      expect(result.federalTax1099).toBeGreaterThan(0);
+      expect(result.stateTax1099).toBeGreaterThan(0);
+      expect(result.localTax1099).toBe(0); // CA has no local tax
+      
+      // Verify total and effective rate
+      expect(result.totalOwed1099).toBe(
+        result.seTax + result.federalTax1099 + result.stateTax1099 + result.localTax1099
+      );
+      expect(result.effectiveRate1099).toBeCloseTo(result.totalOwed1099 / 80000, 4);
+      
+      // Verify set aside calculations
+      expect(result.setAsideAmount).toBe(Math.round(result.totalOwed1099));
+      expect(result.setAsidePercent).toBeCloseTo(result.effectiveRate1099 * 100, 1);
+      
+      // Verify quarterly payment estimate (depends on current month)
+      expect(result.quarterlyPaymentEstimate).toBeGreaterThan(0);
+      expect(result.quarterlyPaymentEstimate).toBeLessThanOrEqual(result.setAsideAmount);
+      
+      // Verify W-2 note for no W-2 income
+      expect(result.w2Note).toBe("No W-2 income recorded. Add a W-2 payer in Contacts if you have employer income.");
+      
+      // Verify supported state
+      expect(result.hasUnsupportedState).toBe(false);
+    });
+
+    it('should calculate tax for mixed income — both 1099 and W-2', () => {
+      const profile: TaxProfile = {
+        filingStatus: 'married_joint',
+        state: 'NY',
+        nycResident: true,
+        deductionMethod: 'standard',
+        seIncome: true,
+      };
+      
+      const result = calculateSplitTax(
+        50000,  // gigIncome1099
+        60000,  // gigIncomeW2
+        10000,  // totalDeductions
+        profile
+      );
+      
+      // Verify income split
+      expect(result.income1099).toBe(50000);
+      expect(result.incomeW2).toBe(60000);
+      expect(result.netIncome1099).toBe(40000); // 50000 - 10000
+      
+      // Verify SE tax only applies to 1099 income
+      const expectedSETax = 40000 * 0.9235 * 0.153;
+      expect(result.seTax).toBeCloseTo(expectedSETax, 2);
+      
+      // Verify taxes are calculated on 1099 income only
+      expect(result.federalTax1099).toBeGreaterThan(0);
+      expect(result.stateTax1099).toBeGreaterThan(0);
+      expect(result.localTax1099).toBeGreaterThan(0); // NYC has local tax
+      
+      // Verify W-2 note for mixed income
+      expect(result.w2Note).toBe(
+        "W-2 taxes are withheld by your employer. Verify your W-4 withholding is correct — especially if your gig income is significantly higher than last year."
+      );
+      
+      // Verify supported state
+      expect(result.hasUnsupportedState).toBe(false);
+    });
+
+    it('should detect unsupported state (FL) and set hasUnsupportedState = true', () => {
+      const profile: TaxProfile = {
+        filingStatus: 'single',
+        state: 'FL' as any, // Unsupported state
+        deductionMethod: 'standard',
+        seIncome: true,
+      };
+      
+      const result = calculateSplitTax(
+        60000,  // gigIncome1099
+        0,      // gigIncomeW2
+        12000,  // totalDeductions
+        profile
+      );
+      
+      // Verify income calculations
+      expect(result.income1099).toBe(60000);
+      expect(result.netIncome1099).toBe(48000);
+      
+      // Verify SE and federal taxes are calculated
+      expect(result.seTax).toBeGreaterThan(0);
+      expect(result.federalTax1099).toBeGreaterThan(0);
+      
+      // FL has no state income tax, so state tax should be 0
+      expect(result.stateTax1099).toBe(0);
+      expect(result.localTax1099).toBe(0);
+      
+      // Verify unsupported state flag
+      expect(result.hasUnsupportedState).toBe(true);
+    });
+
+    it('should return zero taxes for zero 1099 income, only W-2', () => {
+      const profile: TaxProfile = {
+        filingStatus: 'single',
+        state: 'CA',
+        deductionMethod: 'standard',
+        seIncome: true,
+      };
+      
+      const result = calculateSplitTax(
+        0,      // gigIncome1099
+        75000,  // gigIncomeW2
+        5000,   // totalDeductions (not applied since no 1099 income)
+        profile
+      );
+      
+      // Verify all income is W-2
+      expect(result.income1099).toBe(0);
+      expect(result.incomeW2).toBe(75000);
+      expect(result.netIncome1099).toBe(0);
+      
+      // Verify all taxes are zero
+      expect(result.seTax).toBe(0);
+      expect(result.federalTax1099).toBe(0);
+      expect(result.stateTax1099).toBe(0);
+      expect(result.localTax1099).toBe(0);
+      expect(result.totalOwed1099).toBe(0);
+      expect(result.effectiveRate1099).toBe(0);
+      
+      // Verify set aside is zero
+      expect(result.setAsideAmount).toBe(0);
+      expect(result.setAsidePercent).toBe(0);
+      expect(result.quarterlyPaymentEstimate).toBe(0);
+      
+      // Verify W-2 only note
+      expect(result.w2Note).toBe(
+        "All income is from W-2 employment. Taxes are withheld by your employer — no estimated tax payments needed for this income."
+      );
+    });
+
+    it('should handle high income crossing federal bracket boundary', () => {
+      const profile: TaxProfile = {
+        filingStatus: 'single',
+        state: 'TX', // No state tax to isolate federal calculation
+        deductionMethod: 'standard',
+        seIncome: true,
+      };
+      
+      // Test income that crosses into higher brackets
+      const result = calculateSplitTax(
+        150000, // gigIncome1099 - crosses multiple brackets
+        0,      // gigIncomeW2
+        20000,  // totalDeductions
+        profile
+      );
+      
+      // Verify income calculations
+      expect(result.income1099).toBe(150000);
+      expect(result.netIncome1099).toBe(130000); // 150000 - 20000
+      
+      // Verify SE tax
+      const expectedSETax = 130000 * 0.9235 * 0.153;
+      expect(result.seTax).toBeCloseTo(expectedSETax, 2);
+      
+      // Verify federal tax is calculated (should be substantial at this income)
+      expect(result.federalTax1099).toBeGreaterThan(10000);
+      
+      // TX has no state tax
+      expect(result.stateTax1099).toBe(0);
+      expect(result.localTax1099).toBe(0);
+      
+      // Verify total tax is meaningful
+      expect(result.totalOwed1099).toBeGreaterThan(20000);
+      
+      // Verify effective rate is reasonable for high income
+      expect(result.effectiveRate1099).toBeGreaterThan(0.20); // Should be > 20%
+      expect(result.effectiveRate1099).toBeLessThan(0.50); // Should be < 50%
+      
+      // Verify set aside percent is rounded to 1 decimal
+      const percentString = result.setAsidePercent.toString();
+      const decimalPlaces = percentString.includes('.') 
+        ? percentString.split('.')[1].length 
+        : 0;
+      expect(decimalPlaces).toBeLessThanOrEqual(1);
+    });
+
+    it('should handle negative 1099 income (loss scenario)', () => {
+      const profile: TaxProfile = {
+        filingStatus: 'single',
+        state: 'CA',
+        deductionMethod: 'standard',
+        seIncome: true,
+      };
+      
+      const result = calculateSplitTax(
+        -5000,  // gigIncome1099 (negative/loss)
+        40000,  // gigIncomeW2
+        0,      // totalDeductions
+        profile
+      );
+      
+      // Should treat as W-2 only scenario
+      expect(result.income1099).toBe(-5000);
+      expect(result.incomeW2).toBe(40000);
+      expect(result.netIncome1099).toBe(0);
+      
+      // All taxes should be zero
+      expect(result.seTax).toBe(0);
+      expect(result.federalTax1099).toBe(0);
+      expect(result.totalOwed1099).toBe(0);
+      
+      // Should show W-2 only message
+      expect(result.w2Note).toBe(
+        "All income is from W-2 employment. Taxes are withheld by your employer — no estimated tax payments needed for this income."
+      );
+    });
+
+    it('should handle deductions exceeding 1099 income', () => {
+      const profile: TaxProfile = {
+        filingStatus: 'single',
+        state: 'NY',
+        deductionMethod: 'standard',
+        seIncome: true,
+      };
+      
+      const result = calculateSplitTax(
+        30000,  // gigIncome1099
+        0,      // gigIncomeW2
+        35000,  // totalDeductions (exceeds income)
+        profile
+      );
+      
+      // Net income should be zero (not negative)
+      expect(result.netIncome1099).toBe(0);
+      
+      // All taxes should be zero
+      expect(result.seTax).toBe(0);
+      expect(result.federalTax1099).toBe(0);
+      expect(result.totalOwed1099).toBe(0);
+      expect(result.setAsideAmount).toBe(0);
     });
   });
 });

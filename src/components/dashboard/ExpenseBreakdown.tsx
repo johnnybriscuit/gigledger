@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { View, Text, Platform, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, getThemeColors } from '../../lib/charts/colors';
+import { colors as themeColors } from '../../styles/theme';
 import { Kard } from './Kard';
 import type { ExpenseCategoryPoint } from '../../hooks/useDashboardData';
 
@@ -49,13 +50,13 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
     }).format(value);
   };
 
-  // Color palette for categories
+  // Color palette for categories - use chart.expenses from theme
   const categoryColors = [
-    chartColors.red,
-    '#f87171',
-    '#fca5a5',
-    '#fecaca',
-    '#fee2e2',
+    themeColors.chart.expenses,
+    themeColors.chart.expenses,
+    themeColors.chart.expenses,
+    themeColors.chart.expenses,
+    themeColors.chart.expenses,
   ];
 
   // Custom tooltip component
@@ -92,13 +93,13 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
                 layout="vertical"
                 margin={{ top: 5, right: 80, left: 100, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={themeColors.border.muted} horizontal={false} />
                 <XAxis type="number" hide />
                 <YAxis
                   type="category"
                   dataKey="category"
-                  stroke="#6b7280"
-                  tick={{ fill: '#6b7280', fontSize: 14 }}
+                  stroke={themeColors.text.subtle}
+                  tick={{ fill: themeColors.text.subtle, fontSize: 14 }}
                   tickLine={false}
                   axisLine={false}
                 />
@@ -111,7 +112,7 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
                     dataKey="amount"
                     position="right"
                     formatter={formatCurrency}
-                    style={{ fill: '#111827', fontSize: 14, fontWeight: '600' }}
+                    style={{ fill: themeColors.text.DEFAULT, fontSize: 14, fontWeight: '600' }}
                   />
                 </Bar>
               </BarChart>
@@ -208,10 +209,10 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
 
 const mStyles = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: themeColors.surface.DEFAULT,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E5E3DE',
+    borderColor: themeColors.border.DEFAULT,
     overflow: 'hidden',
   },
   header: {
@@ -225,12 +226,12 @@ const mStyles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: themeColors.text.DEFAULT,
   },
   viewAllLink: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#2D5BE3',
+    color: themeColors.brand.DEFAULT,
   },
   emptyState: {
     alignItems: 'center',
@@ -239,13 +240,13 @@ const mStyles = StyleSheet.create({
     gap: 6,
   },
   emptyIcon: { fontSize: 36, marginBottom: 4 },
-  emptyText: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
-  emptyHint: { fontSize: 13, color: '#B0ADA8' },
+  emptyText: { fontSize: 15, fontWeight: '600', color: themeColors.text.DEFAULT },
+  emptyHint: { fontSize: 13, color: themeColors.text.subtle },
   expRow: {
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: '#E5E3DE',
+    borderTopColor: themeColors.border.muted,
   },
   expRowTop: {
     flexDirection: 'row',
@@ -255,18 +256,18 @@ const mStyles = StyleSheet.create({
   expName: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: themeColors.text.DEFAULT,
     flex: 1,
   },
   expAmount: {
     fontSize: 13,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    color: '#1A1A1A',
+    color: themeColors.text.DEFAULT,
   },
   barTrack: {
     height: 6,
-    backgroundColor: '#EEECEA',
+    backgroundColor: themeColors.surface.muted,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -279,37 +280,37 @@ const mStyles = StyleSheet.create({
 // Keep old styles object for web Kard usage (tooltip, modal, viewAllButton)
 const styles = StyleSheet.create({
   tooltip: {
-    backgroundColor: '#ffffff',
+    backgroundColor: themeColors.surface.elevated,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: themeColors.border.DEFAULT,
     ...Platform.select({
       web: { boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' } as any,
-      default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+      default: { shadowColor: themeColors.text.DEFAULT, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
     }),
   },
-  tooltipLabel: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 4 },
-  tooltipValue: { fontSize: 16, fontWeight: '700', color: '#ef4444' },
+  tooltipLabel: { fontSize: 14, fontWeight: '600', color: themeColors.text.DEFAULT, marginBottom: 4 },
+  tooltipValue: { fontSize: 16, fontWeight: '700', color: themeColors.chart.expenses },
   emptyState: { alignItems: 'center', paddingVertical: 48, gap: 8 },
   emptyIcon: { fontSize: 48, marginBottom: 8 },
-  emptyText: { fontSize: 16, fontWeight: '600', color: '#111827' },
-  emptyHint: { fontSize: 14, color: '#6b7280' },
+  emptyText: { fontSize: 16, fontWeight: '600', color: themeColors.text.DEFAULT },
+  emptyHint: { fontSize: 14, color: themeColors.text.subtle },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: {
-    backgroundColor: '#ffffff', borderRadius: 16, padding: 24, maxWidth: 400, width: '100%',
-    ...Platform.select({ web: { boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' } as any, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 } }),
+    backgroundColor: themeColors.surface.DEFAULT, borderRadius: 16, padding: 24, maxWidth: 400, width: '100%',
+    ...Platform.select({ web: { boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' } as any, default: { shadowColor: themeColors.text.DEFAULT, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 } }),
   },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  modalText: { fontSize: 14, color: '#6b7280', lineHeight: 20, marginBottom: 20 },
-  modalButton: { backgroundColor: '#3b82f6', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, alignItems: 'center' },
-  modalButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '600' },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: themeColors.text.DEFAULT, marginBottom: 12 },
+  modalText: { fontSize: 14, color: themeColors.text.subtle, lineHeight: 20, marginBottom: 20 },
+  modalButton: { backgroundColor: themeColors.brand.DEFAULT, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, alignItems: 'center' },
+  modalButtonText: { color: themeColors.brand.foreground, fontSize: 14, fontWeight: '600' },
   viewAllButton: { marginTop: 16, paddingVertical: 8, alignItems: 'center' },
   viewAllText: { fontSize: 14, fontWeight: '600' },
   mobileList: { gap: 12 },
   mobileRow: { gap: 8 },
   mobileCategory: { fontSize: 13, fontWeight: '500' },
-  mobileBarContainer: { height: 24, backgroundColor: '#f3f4f6', borderRadius: 4, overflow: 'hidden' },
+  mobileBarContainer: { height: 24, backgroundColor: themeColors.surface.muted, borderRadius: 4, overflow: 'hidden' },
   mobileBar: { height: '100%', borderRadius: 4 },
   mobileAmount: { fontSize: 14, fontWeight: '600', textAlign: 'right' },
 });

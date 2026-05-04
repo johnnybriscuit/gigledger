@@ -55,6 +55,23 @@ export interface SetAsideResult {
   };
 }
 
+export interface SplitTaxResult {
+  income1099: number;
+  incomeW2: number;
+  netIncome1099: number;
+  seTax: number;
+  federalTax1099: number;
+  stateTax1099: number;
+  localTax1099: number;
+  totalOwed1099: number;
+  effectiveRate1099: number;
+  w2Note: string;
+  setAsideAmount: number;
+  setAsidePercent: number;
+  quarterlyPaymentEstimate: number;
+  hasUnsupportedState: boolean;
+}
+
 // ============================================================================
 // CORE TAX CALCULATIONS
 // ============================================================================
@@ -479,4 +496,133 @@ export function getMDCounties(): string[] {
   const mdConfig = config2025.states.MD;
   if (!mdConfig.local?.mdCountyRates) return [];
   return Object.keys(mdConfig.local.mdCountyRates).sort();
+}
+
+// ============================================================================
+// SPLIT TAX CALCULATION (W-2 + 1099)
+// ============================================================================
+
+/**
+ * Calculate split tax for mixed W-2 and 1099 income
+ * 
+ * W-2 income is excluded from calculations because:
+ * - No SE tax applies (employer pays FICA)
+ * - Withholding already handled by employer
+ * - Deductions do NOT apply against W-2 income
+ * 
+ * Only 1099 income is subject to:
+ * - SE tax (15.3% × 92.35%)
+ * - Federal income tax at marginal rates
+ * - Full Schedule C deductions
+ * 
+ * @param gigIncome1099 - Total gross income from 1099/contractor payers
+ * @param gigIncomeW2 - Total gross income from W-2/employee payers
+ * @param totalDeductions - Schedule C deductions (only apply to 1099 income)
+ * @param profile - Tax profile with filing status, state, etc.
+ * @returns Comprehensive tax breakdown with quarterly payment estimate
+ */
+export function calculateSplitTax(
+  gigIncome1099: number,
+  gigIncomeW2: number,
+  totalDeductions: number,
+  profile: TaxProfile
+): SplitTaxResult {
+  const SUPPORTED_STATES: StateCode[] = ['CA', 'NY', 'MD', 'TN', 'TX'];
+  
+  // Determine W-2 note based on income mix
+  let w2Note: string;
+  
+  if (gigIncome1099 <= 0) {
+    // All W-2 income, no 1099
+    w2Note = "All income is from W-2 employment. Taxes are withheld by your employer — no estimated tax payments needed for this income.";
+    
+    return {
+      income1099: gigIncome1099,
+      incomeW2: gigIncomeW2,
+      netIncome1099: 0,
+      seTax: 0,
+      federalTax1099: 0,
+      stateTax1099: 0,
+      localTax1099: 0,
+      totalOwed1099: 0,
+      effectiveRate1099: 0,
+      w2Note,
+      setAsideAmount: 0,
+      setAsidePercent: 0,
+      quarterlyPaymentEstimate: 0,
+      hasUnsupportedState: !SUPPORTED_STATES.includes(profile.state),
+    };
+  }
+  
+  if (gigIncomeW2 === 0) {
+    w2Note = "No W-2 income recorded. Add a W-2 payer in Contacts if you have employer income.";
+  } else {
+    w2Note = "W-2 taxes are withheld by your employer. Verify your W-4 withholding is correct — especially if your gig income is significantly higher than last year.";
+  }
+  
+  // Calculate 1099 net income (gross - deductions)
+  const netIncome1099 = Math.max(0, gigIncome1099 - totalDeductions);
+  
+  // Calculate SE tax on 1099 net income only
+  // SE tax base = 92.35% of net SE income
+  const seTaxBase = netIncome1099 * 0.9235;
+  const seTax = seTaxBase * 0.153; // 15.3% (12.4% SS + 2.9% Medicare)
+  
+  // Half of SE tax is deductible
+  const seDeduction = seTax * 0.5;
+  
+  // Calculate federal taxable income (1099 net - SE deduction)
+  const ytdFor1099: YTDData = {
+    grossIncome: netIncome1099,
+    adjustments: seDeduction,
+    netSE: netIncome1099,
+    w2Wages: 0, // W-2 excluded from this calculation
+  };
+  
+  // Calculate federal tax on 1099 income
+  const federalTax1099 = calcFederalTax(ytdFor1099, profile);
+  
+  // Calculate state and local tax on 1099 income
+  const { state: stateTax1099, local: localTax1099 } = calcStateTax(ytdFor1099, profile);
+  
+  // Total tax owed on 1099 income
+  const totalOwed1099 = seTax + federalTax1099 + stateTax1099 + localTax1099;
+  
+  // Effective rate on 1099 income
+  const effectiveRate1099 = gigIncome1099 > 0 ? totalOwed1099 / gigIncome1099 : 0;
+  
+  // Set aside amount (rounded to nearest dollar)
+  const setAsideAmount = Math.round(totalOwed1099);
+  
+  // Set aside percent (rounded to 1 decimal place)
+  const setAsidePercent = Math.round(effectiveRate1099 * 1000) / 10;
+  
+  // Calculate quarterly payment estimate
+  // Determine remaining quarters in the year
+  const currentMonth = new Date().getMonth(); // 0-11
+  const currentQuarter = Math.floor(currentMonth / 3) + 1; // 1-4
+  const remainingQuarters = 5 - currentQuarter; // Q1=4, Q2=3, Q3=2, Q4=1
+  const quarterlyPaymentEstimate = remainingQuarters > 0 
+    ? Math.round(setAsideAmount / remainingQuarters)
+    : setAsideAmount;
+  
+  // Check if state is unsupported
+  const hasUnsupportedState = stateTax1099 === 0 && !SUPPORTED_STATES.includes(profile.state);
+  
+  return {
+    income1099: gigIncome1099,
+    incomeW2: gigIncomeW2,
+    netIncome1099,
+    seTax,
+    federalTax1099,
+    stateTax1099,
+    localTax1099,
+    totalOwed1099,
+    effectiveRate1099,
+    w2Note,
+    setAsideAmount,
+    setAsidePercent,
+    quarterlyPaymentEstimate,
+    hasUnsupportedState,
+  };
 }
