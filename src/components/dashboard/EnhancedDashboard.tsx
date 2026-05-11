@@ -42,6 +42,7 @@ interface EnhancedDashboardProps {
   onAddGig?: () => void;
   onAddExpense?: () => void;
   onExport?: () => void;
+  onNavigateToBucketSetup?: () => void;
 }
 
 export function EnhancedDashboard({
@@ -57,12 +58,22 @@ export function EnhancedDashboard({
   onAddGig,
   onAddExpense,
   onExport,
+  onNavigateToBucketSetup,
 }: EnhancedDashboardProps) {
   const { isDesktop, isTablet } = useResponsive();
   const { width } = useWindowDimensions();
   const isPhone = width < 768;
   const [drillThroughMonth, setDrillThroughMonth] = useState<string | null>(null);
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
+
+  // Check if buckets are configured (temporary for testing)
+  const [showBucketSetupButton, setShowBucketSetupButton] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const configured = localStorage.getItem('bozzy_buckets_configured');
+      setShowBucketSetupButton(!configured);
+    }
+  }, []);
 
   // Fetch dashboard data
   const data = useDashboardData(dateRange, customStart, customEnd, payerId);
@@ -138,6 +149,16 @@ export function EnhancedDashboard({
           isDesktop && styles.scrollContentDesktop,
         ]}
       >
+        {/* Temporary: Bucket Setup CTA */}
+        {showBucketSetupButton && onNavigateToBucketSetup && (
+          <TouchableOpacity
+            style={styles.bucketSetupButton}
+            onPress={onNavigateToBucketSetup}
+          >
+            <Text style={styles.bucketSetupText}>🎯 Set up your money plan →</Text>
+          </TouchableOpacity>
+        )}
+
         {isPhone ? (
           /* ── PHONE LAYOUT ── */
           <View style={styles.phoneStack}>
@@ -358,6 +379,26 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Temporary: Bucket Setup Button
+  bucketSetupButton: {
+    backgroundColor: '#2563eb',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginHorizontal: Platform.OS === 'web' ? 0 : 10,
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  bucketSetupText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   qaBtnPrimaryText: {
     fontSize: 13,

@@ -22,6 +22,7 @@ import { SupportScreen } from './src/screens/SupportScreen';
 import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen';
 import { PublicLandingPage } from './src/screens/PublicLandingPage';
 import { PublicInvoiceView } from './src/screens/PublicInvoiceView';
+import { BucketSetupScreen } from './src/screens/BucketSetupScreen';
 import { useAppBootstrap } from './src/hooks/useAppBootstrap';
 import { LoadingScreen } from './src/components/LoadingScreen';
 import { ErrorScreen } from './src/components/ErrorScreen';
@@ -106,7 +107,7 @@ function AppContent() {
   };
   
   const initialPublicInvoiceRoute = getPublicInvoiceRoute();
-  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-verify' | 'public-invoice' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password'>(getRouteFromLocation());
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-verify' | 'public-invoice' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password' | 'bucket-setup'>(getRouteFromLocation());
   const [authResolved, setAuthResolved] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>(getAuthModeFromLocation());
@@ -563,6 +564,18 @@ function AppContent() {
     );
   }
 
+  // Bucket Setup Screen (temporary for testing)
+  if (currentRoute === 'bucket-setup') {
+    return (
+      <>
+        <StatusBar style={statusBarStyle} />
+        <UserProvider>
+          <BucketSetupScreen onComplete={() => setCurrentRoute('dashboard')} />
+        </UserProvider>
+      </>
+    );
+  }
+
   console.log('🔵 [App] Rendering dashboard - bootstrap complete, onboarding not needed');
 
   return (
@@ -575,6 +588,7 @@ function AppContent() {
             trackMfaPromptShown();
             setCurrentRoute('mfa-setup');
           }}
+          onNavigateToBucketSetup={() => setCurrentRoute('bucket-setup')}
         />
       </UserProvider>
     </>

@@ -38,9 +38,10 @@ type Tab = 'dashboard' | 'payers' | 'gigs' | 'expenses' | 'mileage' | 'invoices'
 interface DashboardScreenProps {
   onNavigateToBusinessStructures?: () => void;
   onNavigateToMFASetup?: () => void;
+  onNavigateToBucketSetup?: () => void;
 }
 
-export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMFASetup }: DashboardScreenProps = {}) {
+export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMFASetup, onNavigateToBucketSetup }: DashboardScreenProps = {}) {
   const { isMobile, width } = useResponsive();
   const isDesktopWidth = Platform.OS === 'web' && width >= 768;
   
@@ -295,6 +296,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
             onAddGig={() => setShowAddGigModal(true)}
             onAddExpense={() => setShowAddExpenseModal(true)}
             onExport={() => setActiveTab('exports')}
+            onNavigateToBucketSetup={onNavigateToBucketSetup}
           />
         );
     }
