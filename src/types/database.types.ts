@@ -12,33 +12,117 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      allocation_buckets: {
+        Row: {
+          bucket_type: string
+          color: string | null
+          created_at: string
+          emoji: string
+          goal_amount: number | null
+          goal_date: string | null
+          goal_name: string | null
+          id: string
+          is_active: boolean
+          name: string
+          percentage: number
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bucket_type: string
+          color?: string | null
+          created_at?: string
+          emoji?: string
+          goal_amount?: number | null
+          goal_date?: string | null
+          goal_name?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          percentage: number
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bucket_type?: string
+          color?: string | null
+          created_at?: string
+          emoji?: string
+          goal_amount?: number | null
+          goal_date?: string | null
+          goal_name?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          percentage?: number
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      allocation_transactions: {
+        Row: {
+          allocated_amount: number
+          bucket_id: string
+          created_at: string
+          gig_id: string | null
+          gross_amount: number
+          id: string
+          percentage_used: number
+          transaction_date: string
+          user_id: string
+        }
+        Insert: {
+          allocated_amount: number
+          bucket_id: string
+          created_at?: string
+          gig_id?: string | null
+          gross_amount: number
+          id?: string
+          percentage_used: number
+          transaction_date?: string
+          user_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          bucket_id?: string
+          created_at?: string
+          gig_id?: string | null
+          gross_amount?: number
+          id?: string
+          percentage_used?: number
+          transaction_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "allocation_transactions_bucket_id_fkey"
+            columns: ["bucket_id"]
+            isOneToOne: false
+            referencedRelation: "allocation_buckets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_transactions_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "allocation_transactions_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs_with_tax_treatment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auth_failures: {
         Row: {
           attempt_count: number
@@ -69,6 +153,33 @@ export type Database = {
           id?: string
           ip_address?: string
           last_attempt_at?: string
+        }
+        Relationships: []
+      }
+      beta_testers: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          email: string
+          id: string
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          email: string
+          id?: string
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -187,6 +298,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "expenses_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs_with_tax_treatment"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expenses_recurring_expense_id_fkey"
             columns: ["recurring_expense_id"]
             isOneToOne: false
@@ -208,6 +326,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      financial_tips_dismissed: {
+        Row: {
+          dismissed_at: string
+          id: string
+          tip_key: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          id?: string
+          tip_key: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          id?: string
+          tip_key?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       gig_subcontractor_payments: {
         Row: {
@@ -246,6 +385,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "gig_subcontractor_payments_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs_with_tax_treatment"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "gig_subcontractor_payments_subcontractor_id_fkey"
             columns: ["subcontractor_id"]
             isOneToOne: false
@@ -256,11 +402,14 @@ export type Database = {
       }
       gigs: {
         Row: {
+          amount_type: string
+          calendar_event_id: string | null
           city: string | null
           country: string | null
           country_code: string | null
           created_at: string
           date: string
+          end_time: string | null
           fees: number
           gross_amount: number
           id: string
@@ -268,34 +417,34 @@ export type Database = {
           invoice_link: string | null
           location: string | null
           net_amount: number
+          net_amount_w2: number | null
           notes: string | null
           other_income: number | null
           paid: boolean | null
           payer_id: string
           payment_method: string | null
           per_diem: number | null
+          start_time: string | null
           state: string | null
           state_code: string | null
+          tax_treatment: string | null
           taxes_withheld: boolean | null
           tips: number
           title: string | null
           tour_id: string | null
-          tax_treatment: string | null
-          amount_type: string
-          net_amount_w2: number | null
-          withholding_amount: number | null
-          start_time: string | null
-          end_time: string | null
-          calendar_event_id: string | null
           updated_at: string
           user_id: string
+          withholding_amount: number | null
         }
         Insert: {
+          amount_type?: string
+          calendar_event_id?: string | null
           city?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string
           date: string
+          end_time?: string | null
           fees?: number
           gross_amount?: number
           id?: string
@@ -303,34 +452,34 @@ export type Database = {
           invoice_link?: string | null
           location?: string | null
           net_amount?: number
+          net_amount_w2?: number | null
           notes?: string | null
           other_income?: number | null
           paid?: boolean | null
           payer_id: string
           payment_method?: string | null
           per_diem?: number | null
+          start_time?: string | null
           state?: string | null
           state_code?: string | null
+          tax_treatment?: string | null
           taxes_withheld?: boolean | null
           tips?: number
           title?: string | null
           tour_id?: string | null
-          tax_treatment?: string | null
-          amount_type?: string
-          net_amount_w2?: number | null
-          withholding_amount?: number | null
-          start_time?: string | null
-          end_time?: string | null
-          calendar_event_id?: string | null
           updated_at?: string
           user_id: string
+          withholding_amount?: number | null
         }
         Update: {
+          amount_type?: string
+          calendar_event_id?: string | null
           city?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string
           date?: string
+          end_time?: string | null
           fees?: number
           gross_amount?: number
           id?: string
@@ -338,27 +487,24 @@ export type Database = {
           invoice_link?: string | null
           location?: string | null
           net_amount?: number
+          net_amount_w2?: number | null
           notes?: string | null
           other_income?: number | null
           paid?: boolean | null
           payer_id?: string
           payment_method?: string | null
           per_diem?: number | null
+          start_time?: string | null
           state?: string | null
           state_code?: string | null
+          tax_treatment?: string | null
           taxes_withheld?: boolean | null
           tips?: number
           title?: string | null
           tour_id?: string | null
-          tax_treatment?: string | null
-          amount_type?: string
-          net_amount_w2?: number | null
-          withholding_amount?: number | null
-          start_time?: string | null
-          end_time?: string | null
-          calendar_event_id?: string | null
           updated_at?: string
           user_id?: string
+          withholding_amount?: number | null
         }
         Relationships: [
           {
@@ -604,9 +750,10 @@ export type Database = {
           invoice_number: string
           notes: string | null
           paid_at: string | null
+          payment_methods_config: Json | null
           payment_terms: string | null
-          public_token: string | null
           private_notes: string | null
+          public_token: string | null
           sent_at: string | null
           status: string
           subtotal: number
@@ -634,9 +781,10 @@ export type Database = {
           invoice_number: string
           notes?: string | null
           paid_at?: string | null
+          payment_methods_config?: Json | null
           payment_terms?: string | null
-          public_token?: string | null
           private_notes?: string | null
+          public_token?: string | null
           sent_at?: string | null
           status?: string
           subtotal?: number
@@ -664,9 +812,10 @@ export type Database = {
           invoice_number?: string
           notes?: string | null
           paid_at?: string | null
+          payment_methods_config?: Json | null
           payment_terms?: string | null
-          public_token?: string | null
           private_notes?: string | null
+          public_token?: string | null
           sent_at?: string | null
           status?: string
           subtotal?: number
@@ -690,6 +839,13 @@ export type Database = {
             columns: ["gig_id"]
             isOneToOne: false
             referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs_with_tax_treatment"
             referencedColumns: ["id"]
           },
         ]
@@ -809,10 +965,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "mileage_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs_with_tax_treatment"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "mileage_linked_gig_id_fkey"
             columns: ["linked_gig_id"]
             isOneToOne: false
             referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mileage_linked_gig_id_fkey"
+            columns: ["linked_gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs_with_tax_treatment"
             referencedColumns: ["id"]
           },
           {
@@ -835,16 +1005,16 @@ export type Database = {
           normalized_name: string
           notes: string | null
           payer_type: Database["public"]["Enums"]["payer_type"]
+          payroll_contact_email: string | null
+          payroll_provider: string | null
           tax_id: string | null
           tax_id_last4: string | null
           tax_id_type: string | null
           tax_treatment: string
-          w2_employer_name: string | null
-          w2_employer_ein_last4: string | null
-          payroll_provider: string | null
-          payroll_contact_email: string | null
           updated_at: string
           user_id: string
+          w2_employer_ein_last4: string | null
+          w2_employer_name: string | null
         }
         Insert: {
           contact_email?: string | null
@@ -856,16 +1026,16 @@ export type Database = {
           normalized_name: string
           notes?: string | null
           payer_type?: Database["public"]["Enums"]["payer_type"]
+          payroll_contact_email?: string | null
+          payroll_provider?: string | null
           tax_id?: string | null
           tax_id_last4?: string | null
           tax_id_type?: string | null
           tax_treatment?: string
-          w2_employer_name?: string | null
-          w2_employer_ein_last4?: string | null
-          payroll_provider?: string | null
-          payroll_contact_email?: string | null
           updated_at?: string
           user_id: string
+          w2_employer_ein_last4?: string | null
+          w2_employer_name?: string | null
         }
         Update: {
           contact_email?: string | null
@@ -877,16 +1047,16 @@ export type Database = {
           normalized_name?: string
           notes?: string | null
           payer_type?: Database["public"]["Enums"]["payer_type"]
+          payroll_contact_email?: string | null
+          payroll_provider?: string | null
           tax_id?: string | null
           tax_id_last4?: string | null
           tax_id_type?: string | null
           tax_treatment?: string
-          w2_employer_name?: string | null
-          w2_employer_ein_last4?: string | null
-          payroll_provider?: string | null
-          payroll_contact_email?: string | null
           updated_at?: string
           user_id?: string
+          w2_employer_ein_last4?: string | null
+          w2_employer_name?: string | null
         }
         Relationships: [
           {
@@ -925,6 +1095,21 @@ export type Database = {
           method?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      processed_stripe_events: {
+        Row: {
+          event_id: string
+          processed_at: string
+        }
+        Insert: {
+          event_id: string
+          processed_at?: string
+        }
+        Update: {
+          event_id?: string
+          processed_at?: string
         }
         Relationships: []
       }
@@ -1003,6 +1188,39 @@ export type Database = {
           state_code?: string | null
           updated_at?: string | null
           usage_period_start?: string | null
+        }
+        Relationships: []
+      }
+      rate_benchmarks: {
+        Row: {
+          gig_type: string
+          id: string
+          last_updated: string
+          market_tier: string
+          notes: string | null
+          rate_high: number
+          rate_low: number
+          rate_unit: string
+        }
+        Insert: {
+          gig_type: string
+          id?: string
+          last_updated?: string
+          market_tier: string
+          notes?: string | null
+          rate_high: number
+          rate_low: number
+          rate_unit: string
+        }
+        Update: {
+          gig_type?: string
+          id?: string
+          last_updated?: string
+          market_tier?: string
+          notes?: string | null
+          rate_high?: number
+          rate_low?: number
+          rate_unit?: string
         }
         Relationships: []
       }
@@ -1230,6 +1448,50 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      subcontractor_1099_deliveries: {
+        Row: {
+          amount: number
+          delivery_method: string
+          id: string
+          notes: string | null
+          recipient_email: string
+          sent_at: string
+          subcontractor_id: string
+          tax_year: number
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          delivery_method?: string
+          id?: string
+          notes?: string | null
+          recipient_email: string
+          sent_at?: string
+          subcontractor_id: string
+          tax_year: number
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          delivery_method?: string
+          id?: string
+          notes?: string | null
+          recipient_email?: string
+          sent_at?: string
+          subcontractor_id?: string
+          tax_year?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcontractor_1099_deliveries_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subcontractors: {
         Row: {
@@ -1518,6 +1780,100 @@ export type Database = {
       }
     }
     Views: {
+      gigs_with_tax_treatment: {
+        Row: {
+          amount_type: string | null
+          city: string | null
+          country: string | null
+          country_code: string | null
+          created_at: string | null
+          date: string | null
+          effective_tax_treatment: string | null
+          fees: number | null
+          gross_amount: number | null
+          id: string | null
+          import_batch_id: string | null
+          invoice_link: string | null
+          location: string | null
+          net_amount: number | null
+          net_amount_w2: number | null
+          notes: string | null
+          other_income: number | null
+          paid: boolean | null
+          payer_id: string | null
+          payer_tax_treatment: string | null
+          payment_method: string | null
+          per_diem: number | null
+          state: string | null
+          state_code: string | null
+          tax_treatment: string | null
+          taxes_withheld: boolean | null
+          tips: number | null
+          title: string | null
+          tour_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          withholding_amount: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gigs_payer_id_fkey"
+            columns: ["payer_id"]
+            isOneToOne: false
+            referencedRelation: "payers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gigs_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "tour_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gigs_tour_id_fkey"
+            columns: ["tour_id"]
+            isOneToOne: false
+            referencedRelation: "v_tour_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcontractor_1099_totals: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          country: string | null
+          edelivery_consent: boolean | null
+          edelivery_email: string | null
+          email: string | null
+          gig_count: number | null
+          last_1099_email_sent_at: string | null
+          legal_name: string | null
+          name: string | null
+          postal_code: string | null
+          requires_1099: boolean | null
+          state: string | null
+          subcontractor_id: string | null
+          tax_id_last4: string | null
+          tax_id_type: string | null
+          tax_year: number | null
+          total_paid: number | null
+          user_id: string | null
+          w9_document_url: string | null
+          w9_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_subcontractor_payments_subcontractor_id_fkey"
+            columns: ["subcontractor_id"]
+            isOneToOne: false
+            referencedRelation: "subcontractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_expenses_export: {
         Row: {
           amount: number | null
@@ -1712,6 +2068,10 @@ export type Database = {
         Args: { p_email: string; p_ip_address: string }
         Returns: undefined
       }
+      get_effective_tax_treatment: {
+        Args: { gig_tax_treatment: string; payer_tax_treatment: string }
+        Returns: string
+      }
       get_subscription_tier: {
         Args: { check_user_id: string }
         Returns: Database["public"]["Enums"]["subscription_tier"]
@@ -1763,10 +2123,10 @@ export type Database = {
         | "Venue"
         | "Client"
         | "Platform"
-        | "Agency"
         | "Other"
         | "Individual"
         | "Corporation"
+        | "Agency"
       subscription_status:
         | "active"
         | "canceled"
@@ -1900,9 +2260,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       expense_category: [
@@ -1922,10 +2279,10 @@ export const Constants = {
         "Venue",
         "Client",
         "Platform",
-        "Agency",
         "Other",
         "Individual",
         "Corporation",
+        "Agency",
       ],
       subscription_status: [
         "active",

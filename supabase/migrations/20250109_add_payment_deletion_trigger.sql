@@ -59,8 +59,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Drop old trigger
+-- Drop old triggers
 DROP TRIGGER IF EXISTS update_invoice_status_on_payment ON invoice_payments;
+DROP TRIGGER IF EXISTS update_invoice_status_on_payment_change ON invoice_payments;
 
 -- Create new trigger for both INSERT and DELETE
 CREATE TRIGGER update_invoice_status_on_payment_change

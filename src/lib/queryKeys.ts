@@ -77,6 +77,13 @@ export const queryKeys = {
   
   // Beta testers
   betaTester: (email: string) => ['beta-tester', email] as const,
+  
+  // Allocation Engine
+  allocationBuckets: (userId: string) => ['allocation-buckets', userId] as const,
+  allocationTransactions: (userId: string, filters?: { startDate?: string; endDate?: string; gigId?: string }) =>
+    filters ? ['allocation-transactions', userId, filters] as const : ['allocation-transactions', userId] as const,
+  allocationYTD: (userId: string, year?: number) =>
+    year ? ['allocation-ytd', userId, year] as const : ['allocation-ytd', userId] as const,
 } as const;
 
 /**
