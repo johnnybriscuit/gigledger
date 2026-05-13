@@ -50,8 +50,10 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
   const [debtEnabled, setDebtEnabled] = useState(false);
   const [goalEnabled, setGoalEnabled] = useState(false);
   const [debtName, setDebtName] = useState('');
+  const [debtPercentage, setDebtPercentage] = useState(10);
   const [goalName, setGoalName] = useState('');
   const [goalAmount, setGoalAmount] = useState('');
+  const [goalPercentage, setGoalPercentage] = useState(10);
   const [expandedTaxes, setExpandedTaxes] = useState(true);
   const [expandedRetirement, setExpandedRetirement] = useState(false);
   const [expandedEmergency, setExpandedEmergency] = useState(false);
@@ -168,7 +170,7 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
           name: 'Debt Payoff',
           emoji: '💳',
           bucket_type: 'debt',
-          percentage: 10,
+          percentage: debtPercentage,
           color: '#7c3aed',
           goal_name: debtName || null,
           goal_amount: null,
@@ -179,7 +181,7 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
         updated = updated.filter(b => b.bucket_type !== 'debt');
       } else if (debtName) {
         updated = updated.map(b =>
-          b.bucket_type === 'debt' ? { ...b, goal_name: debtName } : b
+          b.bucket_type === 'debt' ? { ...b, goal_name: debtName, percentage: debtPercentage } : b
         );
       }
 
@@ -189,7 +191,7 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
           name: goalName || 'Savings Goal',
           emoji: '🎯',
           bucket_type: 'goal',
-          percentage: 10,
+          percentage: goalPercentage,
           color: '#f59e0b',
           goal_name: goalName || null,
           goal_amount: goalAmount ? parseFloat(goalAmount) : null,
@@ -206,6 +208,7 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
                 name: goalName || b.name,
                 goal_name: goalName || null,
                 goal_amount: goalAmount ? parseFloat(goalAmount) : null,
+                percentage: goalPercentage,
               }
             : b
         );
@@ -480,10 +483,10 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
           {debtEnabled && (
             <View style={styles.optionalContent}>
               <PercentageSlider
-                value={buckets.find(b => b.bucket_type === 'debt')?.percentage || 10}
+                value={debtPercentage}
                 min={0}
                 max={20}
-                onChange={(val) => updateBucketPercentage('debt', val)}
+                onChange={setDebtPercentage}
                 color="#7c3aed"
                 label="Debt percentage"
               />
@@ -515,10 +518,10 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
           {goalEnabled && (
             <View style={styles.optionalContent}>
               <PercentageSlider
-                value={buckets.find(b => b.bucket_type === 'goal')?.percentage || 10}
+                value={goalPercentage}
                 min={0}
                 max={20}
-                onChange={(val) => updateBucketPercentage('goal', val)}
+                onChange={setGoalPercentage}
                 color="#f59e0b"
                 label="Goal percentage"
               />
@@ -594,8 +597,11 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
         <Text style={[styles.header, { color: colors.text.DEFAULT }]}>
           🎉 Here's your money plan
         </Text>
+        <Text style={[styles.subtext, { color: colors.text.muted, marginBottom: 8 }]}>
+          Example: When you get paid ${exampleAmount.toFixed(2)}
+        </Text>
         <Text style={[styles.subtext, { color: colors.text.muted, marginBottom: 16 }]}>
-          Every time you get paid, here's exactly where it goes:
+          Here's exactly where it goes:
         </Text>
 
         <View style={styles.allocationList}>
