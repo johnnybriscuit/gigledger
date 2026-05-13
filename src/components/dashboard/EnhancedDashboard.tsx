@@ -27,6 +27,7 @@ import { useEffect } from 'react';
 import { UsageWidget } from '../UsageWidget';
 import { DashboardEmptyState } from './DashboardEmptyState';
 import { trackDashboardFirstRunViewed } from '../../lib/analytics';
+import { BucketDebugPanel } from './BucketDebugPanel';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -158,6 +159,9 @@ export function EnhancedDashboard({
             <Text style={styles.bucketSetupText}>🎯 Set up your money plan →</Text>
           </TouchableOpacity>
         )}
+
+        {/* Sprint 1: Debug panel to verify data flow */}
+        <BucketDebugPanel />
 
         {isPhone ? (
           /* ── PHONE LAYOUT ── */
