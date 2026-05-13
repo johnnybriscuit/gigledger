@@ -8,6 +8,7 @@ import {
   TextInput,
   Platform,
   ActivityIndicator,
+  LayoutAnimation,
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { getThemePalette } from '../styles/theme';
@@ -51,6 +52,9 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
   const [debtName, setDebtName] = useState('');
   const [goalName, setGoalName] = useState('');
   const [goalAmount, setGoalAmount] = useState('');
+  const [expandedTaxes, setExpandedTaxes] = useState(true);
+  const [expandedRetirement, setExpandedRetirement] = useState(false);
+  const [expandedEmergency, setExpandedEmergency] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Initialize default buckets
@@ -77,6 +81,31 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
   // Get most recent paid gig for examples
   const recentGig = gigs?.find(g => g.paid === true);
   const exampleAmount = recentGig?.gross_amount || 500;
+
+  const toggleExpanded = (section: 'taxes' | 'retirement' | 'emergency') => {
+    if (Platform.OS !== 'web') {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+    if (section === 'taxes') setExpandedTaxes(!expandedTaxes);
+    if (section === 'retirement') setExpandedRetirement(!expandedRetirement);
+    if (section === 'emergency') setExpandedEmergency(!expandedEmergency);
+  };
+
+  const getTaxFeedback = (percentage: number): string => {
+    if (percentage < 14) return '⚠️ Below the minimum SE tax rate. You may owe more than this.';
+    if (percentage < 20) return '✓ Covers SE tax. May not cover federal income tax if you earn over $20k/year.';
+    if (percentage < 25) return '✓ Good coverage for most gig workers';
+    if (percentage <= 30) return '✓ Strong coverage — great choice';
+    return '✓ Conservative — you may get a refund at year end';
+  };
+
+  const getRetirementFeedback = (percentage: number): string => {
+    if (percentage === 0) return 'Not started — even 3% makes a difference';
+    if (percentage < 5) return 'A start ✓ — try to increase over time';
+    if (percentage < 10) return 'On track ✓ — solid foundation';
+    if (percentage < 15) return 'Strong ✓ — you\'re building real wealth';
+    return 'Excellent ✓ — future you says thank you';
+  };
 
   const updateBucketPercentage = (bucketType: string, newPercentage: number) => {
     setBuckets(prev => {
@@ -196,26 +225,57 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
   };
 
   const renderStep1 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={[styles.header, { color: colors.text.DEFAULT }]}>
-        {recentGig ? `💰 Your ${recentGig.title} paid $${exampleAmount}` : '💰 Let\'s set up your money plan'}
+    <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.step1Content}>
+      <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 1 of 4  ●○○○</Text>
+      
+      <Text style={styles.largeEmoji}>💸</Text>
+      
+      <Text style={[styles.headline, { color: colors.text.DEFAULT }]}>
+        That ${exampleAmount} isn't all yours.
       </Text>
 
-      <Text style={[styles.bigQuestion, { color: colors.text.DEFAULT }]}>
-        Of every dollar you earn — how much is actually yours?
+      <Text style={[styles.subheadline, { color: colors.text.muted }]}>
+        ...and that's actually okay. Here's why.
       </Text>
 
-      <Text style={[styles.subtext, { color: colors.text.muted }]}>
-        Most gig workers spend money that was already spoken for. Let's make sure that never happens to you.
+      <Text style={[styles.bodyText, { color: colors.text.DEFAULT }]}>
+        When you get paid as a gig worker, you receive the full amount — but a portion of it was already promised to the IRS, your future self, and your safety net.
+      </Text>
+
+      <Text style={[styles.bodyText, { color: colors.text.DEFAULT }]}>
+        The mistake most musicians and freelancers make is spending all of it, then scrambling when taxes are due.
+      </Text>
+
+      <Text style={[styles.bodyText, { color: colors.text.DEFAULT }]}>
+        Bozzy is going to show you exactly how to divide every payment the moment it arrives — so you always know what's truly yours to spend.
+      </Text>
+
+      <View style={[styles.socialProofCard, { backgroundColor: colors.surface.elevated, borderColor: colors.border.DEFAULT }]}>
+        <Text style={[styles.socialProofTitle, { color: colors.text.DEFAULT }]}>
+          💡 What other gig workers do:
+        </Text>
+        <Text style={[styles.socialProofItem, { color: colors.text.muted }]}>
+          • Session musicians set aside 25-30% for taxes
+        </Text>
+        <Text style={[styles.socialProofItem, { color: colors.text.muted }]}>
+          • Freelance developers keep 3 months expenses in emergency savings
+        </Text>
+        <Text style={[styles.socialProofItem, { color: colors.text.muted }]}>
+          • Most financial advisors recommend 10-15% toward retirement from the first dollar earned
+        </Text>
+      </View>
+
+      <Text style={[styles.timeEstimate, { color: colors.text.subtle }]}>
+        This takes about 2 minutes
       </Text>
 
       <TouchableOpacity
         style={[styles.primaryButton, { backgroundColor: colors.brand.DEFAULT }]}
         onPress={() => setStep(2)}
       >
-        <Text style={[styles.buttonText, { color: colors.brand.foreground }]}>Show me →</Text>
+        <Text style={[styles.buttonText, { color: colors.brand.foreground }]}>I'm ready — show me how →</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 
   const renderStep2 = () => {
@@ -224,12 +284,18 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
     const retirement = buckets.find(b => b.bucket_type === 'retirement');
     const emergency = buckets.find(b => b.bucket_type === 'emergency_fund');
 
-    const taxesDisabled = (federalTax?.percentage || 0) < 14;
+    const totalTaxPercent = (federalTax?.percentage || 0) + (stateTax?.percentage || 0);
+    const taxesDisabled = totalTaxPercent < 14;
 
     return (
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+        <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 2 of 4  ●●○○</Text>
+        
         <Text style={[styles.header, { color: colors.text.DEFAULT }]}>
-          The three things that protect you
+          Start with the non-negotiables
+        </Text>
+        <Text style={[styles.subtext, { color: colors.text.muted, marginBottom: 24 }]}>
+          These three buckets protect you from the most common financial mistakes gig workers make.
         </Text>
 
         <View style={styles.bucketCards}>
@@ -239,8 +305,26 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
                 <Text style={styles.bucketEmoji}>{federalTax.emoji}</Text>
                 <Text style={[styles.bucketName, { color: colors.text.DEFAULT }]}>Taxes</Text>
               </View>
+
+              <TouchableOpacity onPress={() => toggleExpanded('taxes')} style={styles.expandableHeader}>
+                <Text style={[styles.expandableTitle, { color: colors.text.muted }]}>
+                  {expandedTaxes ? '▼' : '▶'} Why this matters
+                </Text>
+              </TouchableOpacity>
+
+              {expandedTaxes && (
+                <View style={styles.expandableContent}>
+                  <Text style={[styles.expandableText, { color: colors.text.DEFAULT }]}>
+                    Self-employment tax alone is 15.3% of your net income — that's before federal or state income tax. Unlike a W-2 job where your employer pays half, you pay all of it yourself.
+                  </Text>
+                  <Text style={[styles.expandableText, { color: colors.text.DEFAULT }]}>
+                    The IRS expects quarterly payments in April, June, September, and January. Missing these means penalties on top of what you owe.
+                  </Text>
+                </View>
+              )}
+
               <PercentageSlider
-                value={federalTax.percentage + (stateTax?.percentage || 0)}
+                value={totalTaxPercent}
                 min={14}
                 max={40}
                 onChange={(val) => {
@@ -248,11 +332,18 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
                   updateBucketPercentage('federal_tax', val - statePercent);
                 }}
                 color="#dc2626"
-                label="Tax percentage"
+                label="Your tax set-aside"
               />
-              <Text style={[styles.helperText, { color: colors.text.subtle }]}>
-                Covers self-employment tax + federal income tax
+
+              <Text style={[styles.feedbackText, { color: colors.text.muted }]}>
+                {getTaxFeedback(totalTaxPercent)}
               </Text>
+
+              <View style={[styles.tipCard, { backgroundColor: colors.brand.muted }]}>
+                <Text style={[styles.tipText, { color: colors.text.DEFAULT }]}>
+                  💡 Nashville session musicians typically set aside 25-28%. NYC and LA artists often go 30%+ due to higher state taxes.
+                </Text>
+              </View>
             </View>
           )}
 
@@ -262,17 +353,42 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
                 <Text style={styles.bucketEmoji}>{retirement.emoji}</Text>
                 <Text style={[styles.bucketName, { color: colors.text.DEFAULT }]}>Retirement</Text>
               </View>
+
+              <TouchableOpacity onPress={() => toggleExpanded('retirement')} style={styles.expandableHeader}>
+                <Text style={[styles.expandableTitle, { color: colors.text.muted }]}>
+                  {expandedRetirement ? '▼' : '▶'} Why this matters
+                </Text>
+              </TouchableOpacity>
+
+              {expandedRetirement && (
+                <View style={styles.expandableContent}>
+                  <Text style={[styles.expandableText, { color: colors.text.DEFAULT }]}>
+                    There's no employer 401k match when you're self-employed. No one is saving for your retirement but you.
+                  </Text>
+                  <Text style={[styles.expandableText, { color: colors.text.DEFAULT }]}>
+                    The good news: self-employed people have access to some of the best retirement accounts available — SEP-IRA allows contributions up to $69,000/year (2026). Even $50/month started at 30 is worth $100,000+ by retirement.
+                  </Text>
+                </View>
+              )}
+
               <PercentageSlider
                 value={retirement.percentage}
                 min={0}
                 max={30}
                 onChange={(val) => updateBucketPercentage('retirement', val)}
                 color="#2563eb"
-                label="Retirement percentage"
+                label="Your retirement contribution"
               />
-              <Text style={[styles.helperText, { color: colors.text.subtle }]}>
-                SEP-IRA or Roth IRA — pay yourself first
+
+              <Text style={[styles.feedbackText, { color: colors.text.muted }]}>
+                {getRetirementFeedback(retirement.percentage)}
               </Text>
+
+              <View style={[styles.tipCard, { backgroundColor: colors.brand.muted }]}>
+                <Text style={[styles.tipText, { color: colors.text.DEFAULT }]}>
+                  💡 Most financial advisors recommend 10-15% of gross income. If that feels like too much, start with 5% and increase by 1% every 6 months.
+                </Text>
+              </View>
             </View>
           )}
 
@@ -282,6 +398,24 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
                 <Text style={styles.bucketEmoji}>{emergency.emoji}</Text>
                 <Text style={[styles.bucketName, { color: colors.text.DEFAULT }]}>Emergency Fund</Text>
               </View>
+
+              <TouchableOpacity onPress={() => toggleExpanded('emergency')} style={styles.expandableHeader}>
+                <Text style={[styles.expandableTitle, { color: colors.text.muted }]}>
+                  {expandedEmergency ? '▼' : '▶'} Why this matters
+                </Text>
+              </TouchableOpacity>
+
+              {expandedEmergency && (
+                <View style={styles.expandableContent}>
+                  <Text style={[styles.expandableText, { color: colors.text.DEFAULT }]}>
+                    Gig income is unpredictable. A cancelled tour, an injury, or a slow season can wipe out months of progress if you have no cushion.
+                  </Text>
+                  <Text style={[styles.expandableText, { color: colors.text.DEFAULT }]}>
+                    The goal is 3-6 months of your basic living expenses (rent, food, utilities, transport). Once you reach that goal, Bozzy will suggest redirecting this bucket to retirement or another goal.
+                  </Text>
+                </View>
+              )}
+
               <PercentageSlider
                 value={emergency.percentage}
                 min={0}
@@ -290,9 +424,12 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
                 color="#0f766e"
                 label="Emergency fund percentage"
               />
-              <Text style={[styles.helperText, { color: colors.text.subtle }]}>
-                Goal: 3-6 months of expenses
-              </Text>
+
+              <View style={[styles.tipCard, { backgroundColor: colors.brand.muted }]}>
+                <Text style={[styles.tipText, { color: colors.text.DEFAULT }]}>
+                  💡 Start with a $1,000 mini emergency fund first — it covers most unexpected costs. Then build toward the full 3-month target.
+                </Text>
+              </View>
             </View>
           )}
         </View>
@@ -318,9 +455,11 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
 
   const renderStep3 = () => (
     <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-      <Text style={[styles.header, { color: colors.text.DEFAULT }]}>Want to go further?</Text>
+      <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 3 of 4  ●●●○</Text>
+      
+      <Text style={[styles.header, { color: colors.text.DEFAULT }]}>Want to supercharge your finances?</Text>
       <Text style={[styles.subtext, { color: colors.text.muted, marginBottom: 24 }]}>
-        These are optional. You can always add them later.
+        These are optional but powerful. You can always add or change them later.
       </Text>
 
       <View style={styles.optionalCards}>
@@ -428,52 +567,92 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
     const nonSpendable = allocations.filter(a => a.bucket.bucket_type !== 'spendable');
     const totalToSetAside = nonSpendable.reduce((sum, a) => sum + a.allocatedAmount, 0);
 
+    const getActionHint = (bucketType: string): string => {
+      switch (bucketType) {
+        case 'federal_tax':
+        case 'state_tax':
+          return '→ Move to a separate savings account';
+        case 'retirement':
+          return '→ Transfer to your SEP-IRA or Roth IRA';
+        case 'emergency_fund':
+          return '→ High-yield savings account';
+        case 'debt':
+          return '→ Apply to your highest-interest balance';
+        case 'goal':
+          return '→ Dedicated savings account';
+        case 'spendable':
+          return '→ This is yours to spend freely 🎉';
+        default:
+          return '';
+      }
+    };
+
     return (
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+        <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 4 of 4  ●●●●</Text>
+        
         <Text style={[styles.header, { color: colors.text.DEFAULT }]}>
-          Here's what happens when you get paid ${exampleAmount}
+          🎉 Here's your money plan
         </Text>
-        {!recentGig && (
-          <Text style={[styles.subtext, { color: colors.text.muted, marginBottom: 16 }]}>
-            Example: $500 gig
-          </Text>
-        )}
+        <Text style={[styles.subtext, { color: colors.text.muted, marginBottom: 16 }]}>
+          Every time you get paid, here's exactly where it goes:
+        </Text>
 
         <View style={styles.allocationList}>
           {allocations.map((allocation, index) => {
             const isSpendable = allocation.bucket.bucket_type === 'spendable';
             return (
-              <View
-                key={index}
-                style={[
-                  styles.allocationRow,
-                  isSpendable && styles.allocationRowHighlight,
-                  { borderBottomColor: colors.border.muted },
-                ]}
-              >
-                <View style={styles.allocationLeft}>
-                  <Text style={styles.allocationEmoji}>{allocation.bucket.emoji}</Text>
-                  <Text style={[styles.allocationName, isSpendable && styles.allocationNameBold, { color: colors.text.DEFAULT }]}>
-                    {allocation.bucket.name}
-                  </Text>
+              <View key={index}>
+                <View
+                  style={[
+                    styles.allocationRow,
+                    isSpendable && styles.allocationRowHighlight,
+                    { borderBottomColor: colors.border.muted },
+                  ]}
+                >
+                  <View style={styles.allocationLeft}>
+                    <Text style={styles.allocationEmoji}>{allocation.bucket.emoji}</Text>
+                    <Text style={[styles.allocationName, isSpendable && styles.allocationNameBold, { color: colors.text.DEFAULT }]}>
+                      {allocation.bucket.name}
+                    </Text>
+                  </View>
+                  <View style={styles.allocationRight}>
+                    <Text style={[styles.allocationPercent, { color: colors.text.muted }]}>
+                      {allocation.percentage.toFixed(0)}%
+                    </Text>
+                    <Text style={[styles.allocationAmount, isSpendable && styles.allocationAmountBold, { color: isSpendable ? colors.success.DEFAULT : colors.text.DEFAULT }]}>
+                      ${allocation.allocatedAmount.toFixed(2)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.allocationRight}>
-                  <Text style={[styles.allocationPercent, { color: colors.text.muted }]}>
-                    {allocation.percentage.toFixed(0)}%
-                  </Text>
-                  <Text style={[styles.allocationAmount, isSpendable && styles.allocationAmountBold, { color: isSpendable ? colors.success.DEFAULT : colors.text.DEFAULT }]}>
-                    ${allocation.allocatedAmount.toFixed(2)}
-                  </Text>
-                </View>
+                <Text style={[styles.actionHint, { color: colors.text.subtle }]}>
+                  {getActionHint(allocation.bucket.bucket_type)}
+                </Text>
               </View>
             );
           })}
         </View>
 
-        <View style={[styles.tipBox, { backgroundColor: colors.brand.muted, borderColor: colors.brand.DEFAULT }]}>
-          <Text style={[styles.tipText, { color: colors.text.DEFAULT }]}>
-            💡 When you get paid, move ${totalToSetAside.toFixed(2)} to a separate savings account.
+        <View style={[styles.proTipsBox, { backgroundColor: colors.surface.elevated, borderColor: colors.border.DEFAULT }]}>
+          <Text style={[styles.proTipsTitle, { color: colors.text.DEFAULT }]}>
+            💡 Tips from experienced gig workers
           </Text>
+          <View style={styles.quoteBox}>
+            <Text style={[styles.quoteText, { color: colors.text.DEFAULT }]}>
+              "Open a separate bank account just for taxes. Name it 'Not My Money.' Transfer the tax amount every time you get paid and never touch it."
+            </Text>
+            <Text style={[styles.quoteAttribution, { color: colors.text.muted }]}>
+              — Common advice from freelancers
+            </Text>
+          </View>
+          <View style={styles.quoteBox}>
+            <Text style={[styles.quoteText, { color: colors.text.DEFAULT }]}>
+              "I set a phone reminder the day after every gig to transfer my tax money. It's automatic now."
+            </Text>
+            <Text style={[styles.quoteAttribution, { color: colors.text.muted }]}>
+              — Session musician
+            </Text>
+          </View>
         </View>
 
         {error && (
@@ -495,7 +674,7 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
             {isCreating ? (
               <ActivityIndicator color={colors.brand.foreground} />
             ) : (
-              <Text style={[styles.buttonText, { color: colors.brand.foreground }]}>Set up my buckets →</Text>
+              <Text style={[styles.buttonText, { color: colors.brand.foreground }]}>Let's do this 🚀</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -526,15 +705,71 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
+  step1Content: {
+    padding: 24,
+    paddingBottom: 40,
+  },
   scrollContent: {
     padding: 24,
     paddingBottom: 100,
+  },
+  progressIndicator: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '500',
+  },
+  largeEmoji: {
+    fontSize: 72,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  headline: {
+    fontSize: 32,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 40,
+  },
+  subheadline: {
+    fontSize: 20,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 28,
+  },
+  bodyText: {
+    fontSize: 15,
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  socialProofCard: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  socialProofTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  socialProofItem: {
+    fontSize: 15,
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  timeEstimate: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 24,
   },
   header: {
     fontSize: 28,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 12,
   },
   bigQuestion: {
     fontSize: 24,
@@ -547,7 +782,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 32,
   },
   primaryButton: {
     paddingVertical: 16,
@@ -591,6 +825,36 @@ const styles = StyleSheet.create({
   bucketName: {
     fontSize: 18,
     fontWeight: '600',
+  },
+  expandableHeader: {
+    marginBottom: 12,
+  },
+  expandableTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  expandableContent: {
+    marginBottom: 16,
+  },
+  expandableText: {
+    fontSize: 15,
+    lineHeight: 24,
+    marginBottom: 12,
+  },
+  feedbackText: {
+    fontSize: 14,
+    marginTop: 8,
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  tipCard: {
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  tipText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   helperText: {
     fontSize: 14,
@@ -700,15 +964,41 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
+  actionHint: {
+    fontSize: 13,
+    marginLeft: 44,
+    marginTop: -8,
+    marginBottom: 12,
+  },
+  proTipsBox: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  proTipsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  quoteBox: {
+    marginBottom: 16,
+  },
+  quoteText: {
+    fontSize: 15,
+    lineHeight: 24,
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  quoteAttribution: {
+    fontSize: 14,
+    textAlign: 'right',
+  },
   tipBox: {
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
     marginBottom: 24,
-  },
-  tipText: {
-    fontSize: 14,
-    lineHeight: 20,
   },
   errorText: {
     fontSize: 14,
