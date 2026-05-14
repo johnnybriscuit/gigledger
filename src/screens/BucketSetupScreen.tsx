@@ -36,14 +36,15 @@ interface BucketConfig {
 
 interface BucketSetupScreenProps {
   onComplete: () => void;
+  editMode?: boolean;
 }
 
-export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
+export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupScreenProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { taxProfile } = useUser();
   const { data: gigs } = useGigs();
-  const { createBucket, isCreating } = useAllocationBuckets();
+  const { buckets: existingBuckets, createBucket, updateBucket, isCreating, isUpdating } = useAllocationBuckets();
 
   const [step, setStep] = useState<Step>(1);
   const [buckets, setBuckets] = useState<BucketConfig[]>([]);
@@ -59,26 +60,64 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
   const [expandedEmergency, setExpandedEmergency] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize default buckets
+  // Initialize buckets - either from existing or defaults
   useEffect(() => {
-    const state = taxProfile?.state || 'CA';
-    const estimatedIncome = 50000; // Default
-    const defaults = getDefaultBuckets(state, estimatedIncome);
+    // Auto-detect edit mode if buckets exist
+    const isEditMode = editMode || existingBuckets.length > 0;
     
-    const initialBuckets: BucketConfig[] = defaults.map((b) => ({
-      name: b.name,
-      emoji: b.emoji,
-      bucket_type: b.bucket_type,
-      percentage: b.percentage,
-      color: b.color,
-      goal_amount: b.goal_amount,
-      goal_name: b.goal_name,
-      sort_order: b.sort_order,
-      is_active: b.is_active,
-    }));
+    if (isEditMode && existingBuckets.length > 0) {
+      // Edit mode: load existing buckets
+      const loadedBuckets: BucketConfig[] = existingBuckets.map((b) => ({
+        name: b.name,
+        emoji: b.emoji,
+        bucket_type: b.bucket_type as AllocationBucket['bucket_type'],
+        percentage: b.percentage,
+        color: b.color || '#2E86AB',
+        goal_amount: b.goal_amount,
+        goal_name: b.goal_name,
+        sort_order: b.sort_order,
+        is_active: b.is_active,
+      }));
+      setBuckets(loadedBuckets);
 
-    setBuckets(initialBuckets);
-  }, [taxProfile]);
+      // Set debt/goal enabled states
+      const debtBucket = existingBuckets.find(b => b.bucket_type === 'debt');
+      const goalBucket = existingBuckets.find(b => b.bucket_type === 'goal');
+      if (debtBucket) {
+        setDebtEnabled(true);
+        setDebtName(debtBucket.name);
+        setDebtPercentage(debtBucket.percentage);
+      }
+      if (goalBucket) {
+        setGoalEnabled(true);
+        setGoalName(goalBucket.goal_name || goalBucket.name);
+        setGoalPercentage(goalBucket.percentage);
+        setGoalAmount(goalBucket.goal_amount?.toString() || '');
+      }
+
+      // Skip to step 2 in edit mode
+      setStep(2);
+    } else if (!editMode) {
+      // Initial setup: use defaults
+      const state = taxProfile?.state || 'CA';
+      const estimatedIncome = 50000;
+      const defaults = getDefaultBuckets(state, estimatedIncome);
+      
+      const initialBuckets: BucketConfig[] = defaults.map((b) => ({
+        name: b.name,
+        emoji: b.emoji,
+        bucket_type: b.bucket_type,
+        percentage: b.percentage,
+        color: b.color,
+        goal_amount: b.goal_amount,
+        goal_name: b.goal_name,
+        sort_order: b.sort_order,
+        is_active: b.is_active,
+      }));
+
+      setBuckets(initialBuckets);
+    }
+  }, [taxProfile, editMode, existingBuckets]);
 
   // Get most recent paid gig for examples
   const recentGig = gigs?.find(g => g.paid === true);
@@ -133,29 +172,71 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
       // Filter active buckets
       const activeBuckets = buckets.filter(b => b.is_active);
 
-      // Create each bucket
-      for (const bucket of activeBuckets) {
-        await createBucket({
-          name: bucket.name,
-          emoji: bucket.emoji,
-          bucket_type: bucket.bucket_type,
-          percentage: bucket.percentage,
-          color: bucket.color,
-          goal_amount: bucket.goal_amount,
-          goal_name: bucket.goal_name,
-          sort_order: bucket.sort_order,
-        });
-      }
+      // Auto-detect edit mode
+      const isEditMode = editMode || existingBuckets.length > 0;
 
-      // Set flag in localStorage
-      if (Platform.OS === 'web') {
-        localStorage.setItem('bozzy_buckets_configured', 'true');
+      if (isEditMode) {
+        // Edit mode: update existing buckets
+        for (const bucket of activeBuckets) {
+          const existingBucket = existingBuckets.find(b => b.bucket_type === bucket.bucket_type);
+          
+          if (existingBucket) {
+            // Update existing bucket
+            await updateBucket(existingBucket.id, {
+              name: bucket.name,
+              percentage: bucket.percentage,
+              goal_amount: bucket.goal_amount,
+              goal_name: bucket.goal_name,
+              is_active: bucket.is_active,
+            });
+          } else {
+            // Create new bucket (e.g., debt or goal added in edit mode)
+            await createBucket({
+              name: bucket.name,
+              emoji: bucket.emoji,
+              bucket_type: bucket.bucket_type,
+              percentage: bucket.percentage,
+              color: bucket.color,
+              goal_amount: bucket.goal_amount,
+              goal_name: bucket.goal_name,
+              sort_order: bucket.sort_order,
+            });
+          }
+        }
+
+        // Deactivate buckets that were removed
+        for (const existingBucket of existingBuckets) {
+          const stillActive = activeBuckets.find(b => b.bucket_type === existingBucket.bucket_type);
+          if (!stillActive && existingBucket.is_active) {
+            await updateBucket(existingBucket.id, { is_active: false });
+          }
+        }
+      } else {
+        // Initial setup: create each bucket
+        for (const bucket of activeBuckets) {
+          await createBucket({
+            name: bucket.name,
+            emoji: bucket.emoji,
+            bucket_type: bucket.bucket_type,
+            percentage: bucket.percentage,
+            color: bucket.color,
+            goal_amount: bucket.goal_amount,
+            goal_name: bucket.goal_name,
+            sort_order: bucket.sort_order,
+          });
+        }
+
+        // Set flag in localStorage
+        if (Platform.OS === 'web') {
+          localStorage.setItem('bozzy_buckets_configured', 'true');
+        }
       }
 
       onComplete();
     } catch (err) {
-      setError('Something went wrong — tap to retry');
-      console.error('Failed to create buckets:', err);
+      const isEditMode = editMode || existingBuckets.length > 0;
+      setError(isEditMode ? 'Failed to update buckets — tap to retry' : 'Something went wrong — tap to retry');
+      console.error(isEditMode ? 'Failed to update buckets:' : 'Failed to create buckets:', err);
     }
   };
 
@@ -675,12 +756,14 @@ export function BucketSetupScreen({ onComplete }: BucketSetupScreenProps) {
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: colors.brand.DEFAULT }]}
             onPress={handleSave}
-            disabled={isCreating}
+            disabled={isCreating || isUpdating}
           >
-            {isCreating ? (
+            {(isCreating || isUpdating) ? (
               <ActivityIndicator color={colors.brand.foreground} />
             ) : (
-              <Text style={[styles.buttonText, { color: colors.brand.foreground }]}>Let's do this 🚀</Text>
+              <Text style={[styles.buttonText, { color: colors.brand.foreground }]}>
+                {(editMode || existingBuckets.length > 0) ? 'Save Changes ✓' : 'Let\'s do this 🚀'}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
