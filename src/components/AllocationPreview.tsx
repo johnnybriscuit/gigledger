@@ -26,8 +26,8 @@ export function AllocationPreview({
   const colors = getThemePalette(theme);
   const { buckets } = useAllocationBuckets();
 
-  // Don't show if no buckets configured
-  if (buckets.length === 0) {
+  // Don't show if no buckets configured or invalid amount
+  if (buckets.length === 0 || grossAmount <= 0) {
     return null;
   }
 

@@ -554,10 +554,17 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
               <Text style={[styles.bucketName, { color: colors.text.DEFAULT }]}>Debt Payoff</Text>
             </View>
             <TouchableOpacity
-              style={[styles.toggle, debtEnabled && { backgroundColor: '#7c3aed' }]}
+              style={[
+                styles.toggle,
+                { backgroundColor: debtEnabled ? '#7c3aed' : colors.border.DEFAULT }
+              ]}
               onPress={() => setDebtEnabled(!debtEnabled)}
             >
-              <View style={[styles.toggleThumb, debtEnabled && styles.toggleThumbActive]} />
+              <View style={[
+                styles.toggleThumb,
+                { backgroundColor: colors.surface.DEFAULT },
+                debtEnabled && styles.toggleThumbActive
+              ]} />
             </TouchableOpacity>
           </View>
 
@@ -589,10 +596,17 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
               <Text style={[styles.bucketName, { color: colors.text.DEFAULT }]}>Savings Goal</Text>
             </View>
             <TouchableOpacity
-              style={[styles.toggle, goalEnabled && { backgroundColor: '#f59e0b' }]}
+              style={[
+                styles.toggle,
+                { backgroundColor: goalEnabled ? '#f59e0b' : colors.border.DEFAULT }
+              ]}
               onPress={() => setGoalEnabled(!goalEnabled)}
             >
-              <View style={[styles.toggleThumb, goalEnabled && styles.toggleThumbActive]} />
+              <View style={[
+                styles.toggleThumb,
+                { backgroundColor: colors.surface.DEFAULT },
+                goalEnabled && styles.toggleThumbActive
+              ]} />
             </TouchableOpacity>
           </View>
 
@@ -976,7 +990,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#d0d5dd',
     padding: 2,
     justifyContent: 'center',
   },
@@ -984,7 +997,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#ffffff',
   },
   toggleThumbActive: {
     alignSelf: 'flex-end',
