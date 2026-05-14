@@ -28,6 +28,8 @@ import { UsageWidget } from '../UsageWidget';
 import { DashboardEmptyState } from './DashboardEmptyState';
 import { trackDashboardFirstRunViewed } from '../../lib/analytics';
 import { BucketBalancesSection } from './BucketBalancesSection';
+import { TaxPaymentReminder } from './TaxPaymentReminder';
+import { BucketInsights } from './BucketInsights';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -159,6 +161,12 @@ export function EnhancedDashboard({
             <Text style={styles.bucketSetupText}>🎯 Set up your money plan →</Text>
           </TouchableOpacity>
         )}
+
+        {/* Tax Payment Reminder */}
+        <TaxPaymentReminder />
+
+        {/* Bucket Insights */}
+        <BucketInsights />
 
         {/* Bucket Balances Section */}
         <BucketBalancesSection onManageBuckets={onNavigateToBucketSetup} />
