@@ -27,7 +27,7 @@ import { useEffect } from 'react';
 import { UsageWidget } from '../UsageWidget';
 import { DashboardEmptyState } from './DashboardEmptyState';
 import { trackDashboardFirstRunViewed } from '../../lib/analytics';
-import { BucketDebugPanel } from './BucketDebugPanel';
+import { BucketBalancesSection } from './BucketBalancesSection';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -150,7 +150,7 @@ export function EnhancedDashboard({
           isDesktop && styles.scrollContentDesktop,
         ]}
       >
-        {/* Temporary: Bucket Setup CTA */}
+        {/* Bucket Setup CTA - only show if not configured */}
         {showBucketSetupButton && onNavigateToBucketSetup && (
           <TouchableOpacity
             style={styles.bucketSetupButton}
@@ -160,8 +160,8 @@ export function EnhancedDashboard({
           </TouchableOpacity>
         )}
 
-        {/* Sprint 1: Debug panel to verify data flow */}
-        <BucketDebugPanel />
+        {/* Bucket Balances Section */}
+        <BucketBalancesSection onManageBuckets={onNavigateToBucketSetup} />
 
         {isPhone ? (
           /* ── PHONE LAYOUT ── */
