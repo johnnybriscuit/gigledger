@@ -15,6 +15,8 @@ import { usePayers, type Payer } from '../hooks/usePayers';
 import { useProfile } from '../hooks/useProfile';
 import { gigSchema } from '../lib/validations';
 import { PayerFormModal } from './PayerFormModal';
+import { useAllocationTransactions } from '../hooks/useAllocationTransactions';
+import { useAllocationBuckets } from '../hooks/useAllocationBuckets';
 import { InlineExpensesList, type InlineExpense } from './gigs/InlineExpensesList';
 import { InlineMileageRow } from './gigs/InlineMileageRow';
 import { InlineSubcontractorPayments, type InlineSubcontractorPayment } from './gigs/InlineSubcontractorPayments';
@@ -44,6 +46,7 @@ import { CoreDetailsSection } from './gigs/addGig/CoreDetailsSection';
 import { LocationDetailsSection } from './gigs/addGig/LocationDetailsSection';
 import { PayBreakdownSection } from './gigs/addGig/PayBreakdownSection';
 import { TaxWithholdingSection } from './gigs/addGig/TaxWithholdingSection';
+import { AllocationPreview } from './AllocationPreview';
 import {
   calculateInlineMileage,
   inferStoredMileageAutoCalculated,
@@ -135,6 +138,8 @@ export function AddGigModal({
 }: AddGigModalProps) {
   const { theme } = useTheme();
   const grossAmountInputRef = useRef<TextInput>(null);
+  const { buckets } = useAllocationBuckets();
+  const { createAllocationForGig } = useAllocationTransactions();
   const hasTrackedOpenRef = useRef(false);
   const lastAutoMileageRouteKeyRef = useRef<string | null>(null);
   const lastHydratedVenueAddressRef = useRef<string | null>(null);
@@ -1067,6 +1072,21 @@ export function AddGigModal({
             subcontractorPayments: subcontractorPaymentsData,
           });
           console.log('Gig created successfully:', result);
+
+          // Create allocation transactions if gig is paid and buckets are configured
+          if (paid && buckets.length > 0 && result.gig?.id) {
+            try {
+              await createAllocationForGig({
+                gigId: result.gig.id,
+                grossAmount: parseFloat(grossAmount) || 0,
+              });
+              console.log('Allocations created successfully for gig:', result.gig.id);
+            } catch (allocationError: any) {
+              console.error('Error creating allocations:', allocationError);
+              // Don't fail the whole operation if allocations fail
+              // User can manually allocate later
+            }
+          }
         } catch (createError: any) {
           console.error('Error creating gig:', createError);
           throw createError;
@@ -1664,6 +1684,11 @@ export function AddGigModal({
                 </Field>
               }
             />
+
+            {/* Allocation Preview - show if gig is paid and has amount */}
+            {paid && grossAmount && parseFloat(grossAmount) > 0 && (
+              <AllocationPreview grossAmount={parseFloat(grossAmount)} />
+            )}
 
             <TaxWithholdingSection>
               {selectedPayer && effectiveTaxTreatment ? (
