@@ -18,9 +18,10 @@ import { useUser } from '../contexts/UserContext';
 import { getDefaultBuckets, calculateAllocations } from '../utils/allocationEngine';
 import { PercentageSlider } from '../components/ui/PercentageSlider';
 import { AllocationSummaryBar } from '../components/ui/AllocationSummaryBar';
+import { RetroactiveAllocationPrompt } from '../components/RetroactiveAllocationPrompt';
 import type { AllocationBucket } from '../types/allocation';
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 interface BucketConfig {
   name: string;
@@ -47,6 +48,7 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
   const { buckets: existingBuckets, createBucket, updateBucket, isCreating, isUpdating } = useAllocationBuckets();
 
   const [step, setStep] = useState<Step>(1);
+  const [showRetroPrompt, setShowRetroPrompt] = useState(false);
   const [buckets, setBuckets] = useState<BucketConfig[]>([]);
   const [debtEnabled, setDebtEnabled] = useState(false);
   const [goalEnabled, setGoalEnabled] = useState(false);
@@ -172,48 +174,21 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
       // Filter active buckets
       const activeBuckets = buckets.filter(b => b.is_active);
 
-      // Auto-detect edit mode
-      const isEditMode = editMode || existingBuckets.length > 0;
-
-      if (isEditMode) {
-        // Edit mode: update existing buckets
-        for (const bucket of activeBuckets) {
-          const existingBucket = existingBuckets.find(b => b.bucket_type === bucket.bucket_type);
-          
-          if (existingBucket) {
-            // Update existing bucket
-            await updateBucket(existingBucket.id, {
-              name: bucket.name,
-              percentage: bucket.percentage,
-              goal_amount: bucket.goal_amount,
-              goal_name: bucket.goal_name,
-              is_active: bucket.is_active,
-            });
-          } else {
-            // Create new bucket (e.g., debt or goal added in edit mode)
-            await createBucket({
-              name: bucket.name,
-              emoji: bucket.emoji,
-              bucket_type: bucket.bucket_type,
-              percentage: bucket.percentage,
-              color: bucket.color,
-              goal_amount: bucket.goal_amount,
-              goal_name: bucket.goal_name,
-              sort_order: bucket.sort_order,
-            });
-          }
-        }
-
-        // Deactivate buckets that were removed
-        for (const existingBucket of existingBuckets) {
-          const stillActive = activeBuckets.find(b => b.bucket_type === existingBucket.bucket_type);
-          if (!stillActive && existingBucket.is_active) {
-            await updateBucket(existingBucket.id, { is_active: false });
-          }
-        }
-      } else {
-        // Initial setup: create each bucket
-        for (const bucket of activeBuckets) {
+      // Always check for existing buckets to prevent duplicates
+      for (const bucket of activeBuckets) {
+        const existingBucket = existingBuckets.find(b => b.bucket_type === bucket.bucket_type);
+        
+        if (existingBucket) {
+          // Update existing bucket
+          await updateBucket(existingBucket.id, {
+            name: bucket.name,
+            percentage: bucket.percentage,
+            goal_amount: bucket.goal_amount,
+            goal_name: bucket.goal_name,
+            is_active: bucket.is_active,
+          });
+        } else {
+          // Create new bucket only if it doesn't exist
           await createBucket({
             name: bucket.name,
             emoji: bucket.emoji,
@@ -225,18 +200,32 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
             sort_order: bucket.sort_order,
           });
         }
+      }
 
-        // Set flag in localStorage
-        if (Platform.OS === 'web') {
-          localStorage.setItem('bozzy_buckets_configured', 'true');
+      // Deactivate buckets that were removed
+      for (const existingBucket of existingBuckets) {
+        const stillActive = activeBuckets.find(b => b.bucket_type === existingBucket.bucket_type);
+        if (!stillActive && existingBucket.is_active) {
+          await updateBucket(existingBucket.id, { is_active: false });
         }
       }
 
-      onComplete();
+      // Set flag in localStorage on first setup
+      if (Platform.OS === 'web' && existingBuckets.length === 0) {
+        localStorage.setItem('bozzy_buckets_configured', 'true');
+      }
+
+      // Show retroactive allocation prompt on first setup only
+      const isFirstSetup = existingBuckets.length === 0;
+      if (isFirstSetup) {
+        setShowRetroPrompt(true);
+        setStep(5);
+      } else {
+        onComplete();
+      }
     } catch (err) {
-      const isEditMode = editMode || existingBuckets.length > 0;
-      setError(isEditMode ? 'Failed to update buckets — tap to retry' : 'Something went wrong — tap to retry');
-      console.error(isEditMode ? 'Failed to update buckets:' : 'Failed to create buckets:', err);
+      setError('Failed to save buckets — tap to retry');
+      console.error('Failed to save buckets:', err);
     }
   };
 
@@ -784,6 +773,15 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
       </ScrollView>
     );
   };
+
+  if (showRetroPrompt && step === 5) {
+    return (
+      <RetroactiveAllocationPrompt
+        onComplete={onComplete}
+        onSkip={onComplete}
+      />
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface.canvas }]}>

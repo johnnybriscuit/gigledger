@@ -27,7 +27,8 @@ import { useEffect } from 'react';
 import { UsageWidget } from '../UsageWidget';
 import { DashboardEmptyState } from './DashboardEmptyState';
 import { trackDashboardFirstRunViewed } from '../../lib/analytics';
-import { BucketBalancesSection } from './BucketBalancesSection';
+import { BucketStrip } from './BucketStrip';
+import { AICoachCard } from './AICoachCard';
 import { TaxPaymentReminder } from './TaxPaymentReminder';
 import { BucketInsights } from './BucketInsights';
 
@@ -168,8 +169,11 @@ export function EnhancedDashboard({
         {/* Bucket Insights */}
         <BucketInsights />
 
-        {/* Bucket Balances Section */}
-        <BucketBalancesSection onManageBuckets={onNavigateToBucketSetup} />
+        {/* Bucket Strip */}
+        <BucketStrip onManageBuckets={onNavigateToBucketSetup} />
+
+        {/* AI Financial Coach */}
+        <AICoachCard />
 
         {isPhone ? (
           /* ── PHONE LAYOUT ── */
