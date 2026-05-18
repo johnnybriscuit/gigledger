@@ -98,18 +98,17 @@ export function AICoachCard({ className }: AICoachCardProps) {
 
       const requestBody = {
         ytdIncome,
-        taxBucketBalance: taxBalance,
-        estimatedTaxOwed,
-        retirementBalance,
-        retirementPercentage: retirementBucket?.percentage || 0,
-        emergencyBalance,
-        emergencyGoal: emergencyBucket?.goal_amount || 5000,
-        debtBalance: debtBucket ? debtBalance : undefined,
-        debtName: debtBucket?.goal_name || debtBucket?.name,
-        nextQuarterlyDate: nextQuarterly.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        daysUntilQuarterly,
+        buckets: buckets.map(b => ({
+          name: b.name,
+          bucketType: b.bucket_type,
+          percentage: b.percentage,
+          ytdBalance: ytdTotals.find(t => t.bucket_id === b.id)?.total || 0,
+          goalAmount: b.goal_amount,
+        })),
         gigCount,
         avgGigAmount,
+        nextQuarterlyDate: nextQuarterly.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        daysUntilQuarterly,
       };
 
       // Get auth token
@@ -118,20 +117,18 @@ export function AICoachCard({ className }: AICoachCardProps) {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch('/api/ai-coach', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(requestBody),
+      const { data, error } = await supabase.functions.invoke('ai-coach', {
+        body: requestBody,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch tip');
+      if (error) {
+        throw error;
       }
 
-      const data = await response.json();
+      if (!data) {
+        throw new Error('No response from AI coach');
+      }
+
       setTip(data.tip);
       setIsFallback(data.fallback || false);
 
