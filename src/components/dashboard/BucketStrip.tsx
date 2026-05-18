@@ -65,9 +65,19 @@ export function BucketStrip({ onManageBuckets }: BucketStripProps) {
     bucket => !(bucket.bucket_type === 'state_tax' && bucket.percentage === 0)
   );
 
-  const truncateName = (name: string, maxLength: number = 10): string => {
-    if (name.length <= maxLength) return name;
-    return name.substring(0, maxLength - 1) + '…';
+  const getShortName = (bucket: AllocationBucket): string => {
+    switch (bucket.bucket_type) {
+      case 'federal_tax': return 'Taxes';
+      case 'state_tax': return 'State Tax';
+      case 'retirement': return 'Retirement';
+      case 'emergency_fund': return 'Emergency';
+      case 'debt': return bucket.goal_name 
+        ? bucket.goal_name.slice(0, 12) : 'Debt';
+      case 'goal': return bucket.goal_name 
+        ? bucket.goal_name.slice(0, 12) : 'Goal';
+      case 'spendable': return 'Yours';
+      default: return bucket.name.slice(0, 10);
+    }
   };
 
   const getBucketColor = (bucket: AllocationBucket): string => {
@@ -128,7 +138,7 @@ export function BucketStrip({ onManageBuckets }: BucketStripProps) {
             >
               <Text style={styles.emoji}>{bucket.emoji}</Text>
               <Text style={[styles.pillName, { color: colors.text.DEFAULT }]}>
-                {truncateName(bucket.name)}
+                {getShortName(bucket)}
               </Text>
               <Text style={[styles.pillBalance, { color: colors.text.DEFAULT }]}>
                 ${bucket.ytdBalance.toFixed(0)}

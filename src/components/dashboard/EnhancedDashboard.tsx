@@ -29,6 +29,7 @@ import { DashboardEmptyState } from './DashboardEmptyState';
 import { trackDashboardFirstRunViewed } from '../../lib/analytics';
 import { BucketStrip } from './BucketStrip';
 import { AICoachCard } from './AICoachCard';
+import { RetroactivePromptBanner } from './RetroactivePromptBanner';
 import { TaxPaymentReminder } from './TaxPaymentReminder';
 import { BucketInsights } from './BucketInsights';
 
@@ -162,6 +163,9 @@ export function EnhancedDashboard({
             <Text style={styles.bucketSetupText}>🎯 Set up your money plan →</Text>
           </TouchableOpacity>
         )}
+
+        {/* Retroactive Allocation Prompt */}
+        <RetroactivePromptBanner />
 
         {/* Tax Payment Reminder */}
         <TaxPaymentReminder />
