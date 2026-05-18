@@ -39,7 +39,8 @@
   },
   "overrides": {
     "react-simple-maps": {
-      "react": "$react"
+      "react": "$react",
+      "d3-color": "^3.1.0"
     }
   },
   "dependencies": {
