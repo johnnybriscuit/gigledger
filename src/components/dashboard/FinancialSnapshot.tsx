@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
-import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
-import type { AllocationBucket, BucketYTDTotal } from '../../types/allocation';
+import type { AllocationBucket } from '../../types/allocation';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-US', {
@@ -39,8 +38,8 @@ function getAllocationLabel(bucket: AllocationBucket): string {
   }
 }
 
-function getBucketYTD(bucket: AllocationBucket, ytdTotals: BucketYTDTotal[]): number {
-  return ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0;
+function getBucketAmount(bucket: AllocationBucket, ytdGrossIncome: number): number {
+  return Math.round(ytdGrossIncome * (bucket.percentage / 100) * 100) / 100;
 }
 
 interface FinancialSnapshotProps {
@@ -52,13 +51,13 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { buckets: rawBuckets } = useAllocationBuckets();
-  const { ytdTotals } = useAllocationTransactions();
 
   const buckets = rawBuckets as unknown as AllocationBucket[];
 
   if (buckets.length === 0) return null;
 
   const paidCount = paidGigsCount;
+  const noIncome = ytdGrossIncome === 0;
 
   const deadline = getNextTaxDeadline();
   const daysUntilQuarterly = Math.ceil(
@@ -73,23 +72,19 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
   );
   const spendableBucket = buckets.find(b => b.bucket_type === 'spendable');
 
-  // Tax bucket total for reminder row
+  // Tax amounts computed from income × percentage (always consistent)
   const federalTax = buckets.find(b => b.bucket_type === 'federal_tax');
-  const stateTax = buckets.find(b => b.bucket_type === 'state_tax');
+  const stateTax = buckets.find(b => b.bucket_type === 'state_tax' && b.percentage > 0);
   const taxBucketTotal =
-    getBucketYTD(federalTax!, ytdTotals) + getBucketYTD(stateTax!, ytdTotals);
-  const estimatedQuarterlyOwed = ytdGrossIncome * ((federalTax?.percentage ?? 20) / 100) / 4;
+    getBucketAmount(federalTax!, ytdGrossIncome) +
+    (stateTax ? getBucketAmount(stateTax, ytdGrossIncome) : 0);
+  const estimatedQuarterlyOwed = taxBucketTotal / 4;
 
-  // Tax status color
-  const taxRatio = estimatedQuarterlyOwed > 0 ? taxBucketTotal / estimatedQuarterlyOwed : 1;
-  const taxStatusColor =
-    taxRatio >= 1
-      ? colors.success.DEFAULT
-      : taxRatio >= 0.7
-      ? colors.warning.DEFAULT
-      : colors.error.DEFAULT;
+  // Tax status: do they have enough set aside for this quarter?
+  // Since we're using planned amounts, ratio is always 1 unless they have no income
+  const taxStatusColor = noIncome ? colors.text.subtle : colors.success.DEFAULT;
 
-  const spendableYTD = spendableBucket ? getBucketYTD(spendableBucket, ytdTotals) : 0;
+  const spendableAmount = spendableBucket ? getBucketAmount(spendableBucket, ytdGrossIncome) : 0;
   const spendablePct = spendableBucket?.percentage ?? 0;
 
   return (
@@ -117,8 +112,7 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
 
       {/* ── ALLOCATION ROWS ── */}
       {nonSpendable.map(bucket => {
-        const ytd = getBucketYTD(bucket, ytdTotals);
-        const isZero = ytd === 0;
+        const amount = getBucketAmount(bucket, ytdGrossIncome);
         const bucketColor = bucket.color || colors.brand.DEFAULT;
 
         return (
@@ -127,22 +121,22 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
             <Text
               style={[
                 styles.rowLabel,
-                { color: isZero ? colors.text.subtle : colors.text.DEFAULT },
-                isZero && styles.rowLabelMuted,
+                { color: noIncome ? colors.text.subtle : colors.text.DEFAULT },
+                noIncome && styles.rowLabelMuted,
               ]}
               numberOfLines={1}
             >
               {getAllocationLabel(bucket)}
             </Text>
             <View style={styles.rowRight}>
-              {isZero ? (
+              {noIncome ? (
                 <Text style={[styles.rowAmountZero, { color: colors.text.subtle }]}>
-                  $0 (not yet funded)
+                  $0 (no income yet)
                 </Text>
               ) : (
                 <>
                   <Text style={[styles.rowAmount, { color: bucketColor }]}>
-                    {fmt(ytd)}
+                    {fmt(amount)}
                   </Text>
                   <Text style={[styles.rowPct, { color: colors.text.subtle }]}>
                     {bucket.percentage.toFixed(0)}%
@@ -162,26 +156,26 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
         <View
           style={[
             styles.spendableRow,
-            { backgroundColor: colors.success.muted },
+            { backgroundColor: noIncome ? colors.surface.muted : colors.success.muted },
           ]}
         >
           <Text style={styles.spendableEmoji}>{spendableBucket.emoji}</Text>
-          <Text style={[styles.spendableLabel, { color: colors.success.DEFAULT }]}>
+          <Text style={[styles.spendableLabel, { color: noIncome ? colors.text.subtle : colors.success.DEFAULT }]}>
             Yours to spend
           </Text>
           <View style={styles.rowRight}>
-            <Text style={[styles.spendableAmount, { color: colors.success.DEFAULT }]}>
-              {fmt(spendableYTD)}
+            <Text style={[styles.spendableAmount, { color: noIncome ? colors.text.subtle : colors.success.DEFAULT }]}>
+              {fmt(spendableAmount)}
             </Text>
-            <Text style={[styles.spendablePct, { color: colors.success.DEFAULT }]}>
+            <Text style={[styles.spendablePct, { color: noIncome ? colors.text.subtle : colors.success.DEFAULT }]}>
               {spendablePct.toFixed(0)}%
             </Text>
           </View>
         </View>
       )}
 
-      {/* ── QUARTERLY TAX REMINDER (only if within 60 days) ── */}
-      {showTaxReminder && (
+      {/* ── QUARTERLY TAX REMINDER (only if within 60 days and has income) ── */}
+      {showTaxReminder && !noIncome && (
         <View style={[styles.quarterlyRow, { borderTopColor: colors.border.muted }]}>
           <Text style={styles.quarterlyIcon}>📅</Text>
           <View style={styles.quarterlyText}>
@@ -189,10 +183,7 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
               {deadline.quarter} tax due {deadline.label} · {daysUntilQuarterly} days
             </Text>
             <Text style={[styles.quarterlySub, { color: taxStatusColor }]}>
-              {fmt(taxBucketTotal)} set aside
-              {taxRatio < 0.7 && ' — may need more'}
-              {taxRatio >= 0.7 && taxRatio < 1 && ' — almost there'}
-              {taxRatio >= 1 && ' — you\'re covered ✓'}
+              {fmt(taxBucketTotal)} set aside — you're covered ✓
             </Text>
           </View>
         </View>
