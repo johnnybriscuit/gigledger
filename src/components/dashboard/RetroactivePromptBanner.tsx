@@ -13,13 +13,16 @@ import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
 import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
 import { useGigs } from '../../hooks/useGigs';
+import { useUserId } from '../../hooks/useCurrentUser';
+import { supabase } from '../../lib/supabase';
 
 export function RetroactivePromptBanner() {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { buckets } = useAllocationBuckets();
-  const { transactions, createAllocationForGig } = useAllocationTransactions();
+  const { transactions, isLoading: isLoadingTransactions, createAllocationForGig } = useAllocationTransactions();
   const { data: gigs } = useGigs();
+  const userId = useUserId();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedCount, setProcessedCount] = useState(0);
@@ -37,6 +40,7 @@ export function RetroactivePromptBanner() {
 
   const shouldShow = 
     buckets.length > 0 &&
+    !isLoadingTransactions &&
     transactions.length === 0 &&
     gigsWithoutAllocations.length > 0 &&
     !isDismissed;
@@ -48,26 +52,36 @@ export function RetroactivePromptBanner() {
   const totalAmount = gigsWithoutAllocations.reduce((sum, g) => sum + g.net_amount, 0);
 
   const handleCalculateHistory = async () => {
+    if (!userId) return;
     setIsProcessing(true);
     setTotalCount(gigsWithoutAllocations.length);
     setProcessedCount(0);
 
     try {
-      // Process in batches of 5
-      const batchSize = 5;
-      for (let i = 0; i < gigsWithoutAllocations.length; i += batchSize) {
-        const batch = gigsWithoutAllocations.slice(i, i + batchSize);
-        
-        await Promise.all(
-          batch.map(gig =>
-            createAllocationForGig({
-              gigId: gig.id,
-              grossAmount: gig.net_amount,
-            })
-          )
-        );
+      // Process sequentially with a per-gig server-side existence check
+      // This prevents duplicate records even if the banner fires multiple times
+      for (let i = 0; i < gigsWithoutAllocations.length; i++) {
+        const gig = gigsWithoutAllocations[i];
 
-        setProcessedCount(Math.min(i + batchSize, gigsWithoutAllocations.length));
+        // Server-side check: skip if this gig already has any allocation records
+        const { data: existing } = await supabase
+          .from('allocation_transactions')
+          .select('id')
+          .eq('gig_id', gig.id)
+          .eq('user_id', userId)
+          .limit(1);
+
+        if (existing && existing.length > 0) {
+          setProcessedCount(i + 1);
+          continue;
+        }
+
+        await createAllocationForGig({
+          gigId: gig.id,
+          grossAmount: gig.gross_amount ?? gig.net_amount,
+        });
+
+        setProcessedCount(i + 1);
       }
 
       // Mark as complete
