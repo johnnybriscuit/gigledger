@@ -27,11 +27,9 @@ import { useEffect } from 'react';
 import { UsageWidget } from '../UsageWidget';
 import { DashboardEmptyState } from './DashboardEmptyState';
 import { trackDashboardFirstRunViewed } from '../../lib/analytics';
-import { BucketStrip } from './BucketStrip';
+import { FinancialSnapshot } from './FinancialSnapshot';
 import { AICoachCard } from './AICoachCard';
 import { RetroactivePromptBanner } from './RetroactivePromptBanner';
-import { TaxPaymentReminder } from './TaxPaymentReminder';
-import { BucketInsights } from './BucketInsights';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -167,16 +165,10 @@ export function EnhancedDashboard({
         {/* Retroactive Allocation Prompt */}
         <RetroactivePromptBanner />
 
-        {/* Tax Payment Reminder */}
-        <TaxPaymentReminder />
+        {/* Financial Snapshot — primary allocation hero */}
+        <FinancialSnapshot />
 
-        {/* Bucket Insights */}
-        <BucketInsights />
-
-        {/* Bucket Strip */}
-        <BucketStrip onManageBuckets={onNavigateToBucketSetup} />
-
-        {/* AI Financial Coach */}
+        {/* AI Financial Coach — compact collapsible */}
         <AICoachCard />
 
         {isPhone ? (

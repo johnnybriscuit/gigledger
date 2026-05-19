@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
+  LayoutAnimation,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
@@ -34,6 +35,14 @@ export function AICoachCard({ className }: AICoachCardProps) {
   const [tip, setTip] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleToggle = () => {
+    if (Platform.OS !== 'web') {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+    setIsExpanded(prev => !prev);
+  };
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -166,48 +175,79 @@ export function AICoachCard({ className }: AICoachCardProps) {
     return null;
   }
 
+  // First sentence of tip for the collapsed preview
+  const firstSentence = tip
+    ? (tip.match(/^[^.!?]+[.!?]/) ?? [tip])[0]
+    : null;
+
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={handleToggle}
       style={[
         styles.container,
-        { 
+        {
           backgroundColor: colors.surface.elevated,
           borderColor: colors.border.DEFAULT,
         },
       ]}
     >
-      <View style={styles.header}>
+      {/* ── COLLAPSED ROW (always visible) ── */}
+      <View style={styles.collapsedRow}>
         <Text style={styles.emoji}>🤖</Text>
-        <Text style={[styles.title, { color: colors.text.DEFAULT }]}>
-          Your Financial Coach
+        <View style={styles.collapsedTextWrapper}>
+          <Text style={[styles.collapsedLabel, { color: colors.text.muted }]}>
+            Your Financial Coach
+          </Text>
+          {isLoading ? (
+            <ActivityIndicator
+              size="small"
+              color={colors.brand.DEFAULT}
+              style={styles.inlineSpinner}
+            />
+          ) : firstSentence ? (
+            <Text
+              style={[styles.collapsedPreview, { color: colors.text.DEFAULT }]}
+              numberOfLines={isExpanded ? undefined : 1}
+            >
+              {firstSentence}
+            </Text>
+          ) : (
+            <Text style={[styles.collapsedPreview, { color: colors.text.subtle }]}>
+              Tap to get your personalized tip
+            </Text>
+          )}
+        </View>
+        <Text style={[styles.chevron, { color: colors.text.subtle }]}>
+          {isExpanded ? '▲' : '▼'}
         </Text>
       </View>
 
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={colors.brand.DEFAULT} />
-          <Text style={[styles.loadingText, { color: colors.text.muted }]}>
-            Analyzing your finances...
-          </Text>
-        </View>
-      ) : tip ? (
-        <>
+      {/* ── EXPANDED CONTENT ── */}
+      {isExpanded && tip && (
+        <View style={styles.expandedContent}>
+          <View style={[styles.expandedDivider, { backgroundColor: colors.border.muted }]} />
           <Text style={[styles.tipText, { color: colors.text.DEFAULT }]}>
             {tip}
           </Text>
           <View style={styles.footer}>
             <Text style={[styles.timestamp, { color: colors.text.subtle }]}>
-              Updated just now
+              Updated today
             </Text>
-            <TouchableOpacity onPress={handleRefresh}>
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation?.();
+                handleRefresh();
+              }}
+            >
               <Text style={[styles.refreshButton, { color: colors.brand.DEFAULT }]}>
                 Refresh ↺
               </Text>
             </TouchableOpacity>
           </View>
-        </>
-      ) : null}
-    </View>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -215,35 +255,49 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 12,
     borderWidth: 1,
-    padding: 20,
-    marginBottom: 24,
+    padding: 14,
+    marginBottom: 16,
   },
-  header: {
+  collapsedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
+    gap: 10,
   },
   emoji: {
-    fontSize: 24,
+    fontSize: 20,
   },
-  title: {
-    fontSize: 18,
+  collapsedTextWrapper: {
+    flex: 1,
+    gap: 2,
+  },
+  collapsedLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  collapsedPreview: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  inlineSpinner: {
+    alignSelf: 'flex-start',
+  },
+  chevron: {
+    fontSize: 11,
     fontWeight: '600',
   },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
+  expandedContent: {
+    marginTop: 4,
   },
-  loadingText: {
-    fontSize: 14,
+  expandedDivider: {
+    height: 1,
+    marginVertical: 12,
   },
   tipText: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 16,
+    fontSize: 15,
+    lineHeight: 23,
+    marginBottom: 12,
   },
   footer: {
     flexDirection: 'row',
@@ -254,7 +308,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   refreshButton: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
 });
