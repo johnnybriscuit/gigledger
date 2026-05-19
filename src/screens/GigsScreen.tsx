@@ -35,6 +35,7 @@ import { useDateRange } from '../hooks/useDateRange';
 import { DateRangeFilter } from '../components/DateRangeFilter';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 import { sumMileageDeduction } from '../lib/mileage';
+import { MapCard } from '../components/dashboard/maps/MapCard';
 
 // Design tokens
 const T = {
@@ -735,6 +736,11 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
             data={filteredGigs}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
+            ListFooterComponent={Platform.OS === 'web' ? (
+              <View style={{ marginTop: 24, marginBottom: 8 }}>
+                <MapCard dateRange={dateRange} customStart={customStart} customEnd={customEnd} />
+              </View>
+            ) : null}
             renderItem={({ item }) => {
               const tour = item.tour_id ? tours?.find((t: any) => t.id === item.tour_id) : null;
               return (

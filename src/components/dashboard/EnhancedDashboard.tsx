@@ -4,30 +4,24 @@
  * Features: Hero card, quick actions, interactive charts, drill-through
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useResponsive } from '../../hooks/useResponsive';
-import { HeroNetProfit } from './HeroNetProfit';
-import { QuickStats } from './QuickStats';
 import { MonthlyOverview } from './MonthlyOverview';
-import { CumulativeNet } from './CumulativeNet';
 import { ExpenseBreakdown } from './ExpenseBreakdown';
 import { TopPayers } from './TopPayers';
-import { TaxSummaryCard } from './TaxSummaryCard';
 import { SidePanel } from '../SidePanel';
 import { MonthDrillThrough } from './MonthDrillThrough';
 import { PayerDrillThrough } from './PayerDrillThrough';
-import { MapCard } from './maps/MapCard';
 import { useDashboardData, type DateRange } from '../../hooks/useDashboardData';
 import { DateRangeFilter } from '../DateRangeFilter';
 import { SkeletonDashboardCard } from '../SkeletonCard';
 import { perf } from '../../lib/performance';
 import { colors, spacing } from '../../styles/theme';
-import { useEffect } from 'react';
-import { UsageWidget } from '../UsageWidget';
 import { DashboardEmptyState } from './DashboardEmptyState';
 import { trackDashboardFirstRunViewed } from '../../lib/analytics';
 import { FinancialSnapshot } from './FinancialSnapshot';
+import { FinancialStatusRow } from './FinancialStatusRow';
 import { AICoachCard } from './AICoachCard';
 import { RetroactivePromptBanner } from './RetroactivePromptBanner';
 
@@ -133,15 +127,8 @@ export function EnhancedDashboard({
   }
 
   return (
-    <View 
-      style={styles.container}
-      onLayout={(e) => {
-        if (__DEV__) {
-          console.log('📐 [EnhancedDashboard] Container width:', e.nativeEvent.layout.width);
-        }
-      }}
-    >
-      {/* Date Range Filter - tablet only (phone gets it inline in scroll, desktop shows in action bar) */}
+    <View style={styles.container}>
+      {/* Date Range Filter - tablet only */}
       {!isDesktop && !isPhone && <DateRangeFilter selected={dateRange} onSelect={onDateRangeChange} />}
 
       <ScrollView
@@ -152,7 +139,7 @@ export function EnhancedDashboard({
           isDesktop && styles.scrollContentDesktop,
         ]}
       >
-        {/* Bucket Setup CTA - only show if not configured */}
+        {/* Bucket Setup CTA */}
         {showBucketSetupButton && onNavigateToBucketSetup && (
           <TouchableOpacity
             style={styles.bucketSetupButton}
@@ -162,122 +149,38 @@ export function EnhancedDashboard({
           </TouchableOpacity>
         )}
 
-        {/* Retroactive Allocation Prompt */}
+        {/* 1. Retroactive Allocation Prompt */}
         <RetroactivePromptBanner />
 
-        {/* Financial Snapshot — primary allocation hero */}
+        {/* 2. Financial Snapshot — primary allocation hero */}
         <FinancialSnapshot
           ytdGrossIncome={data.totalGrossIncome ?? 0}
           paidGigsCount={data.paidGigsCount ?? 0}
         />
 
-        {/* AI Financial Coach — compact collapsible */}
+        {/* 3. Financial Status Row — Tax / Retirement / Emergency */}
+        <FinancialStatusRow ytdGrossIncome={data.totalGrossIncome ?? 0} />
+
+        {/* 4. AI Financial Coach — compact collapsible */}
         <AICoachCard />
 
-        {isPhone ? (
-          /* ── PHONE LAYOUT ── */
-          <View style={styles.phoneStack}>
-            {/* Hero card */}
-            <View style={styles.phoneCard}>
-              {!data.isReady || !data.totals ? (
-                <SkeletonDashboardCard />
-              ) : (
-                <HeroNetProfit
-                  dateRange={dateRange}
-                  customStart={customStart}
-                  customEnd={customEnd}
-                  payerId={payerId}
-                />
-              )}
-            </View>
+        {/* 5. Monthly Overview chart */}
+        <View style={styles.chartSection}>
+          <MonthlyOverview data={data.monthly} onMonthClick={handleMonthClick} />
+        </View>
 
-            {/* Tax Summary */}
-            <View style={styles.phoneCard}>
-              {!data.isReady || !data.taxBreakdown ? (
-                <SkeletonDashboardCard />
-              ) : (
-                <TaxSummaryCard dateRange={dateRange} />
-              )}
-            </View>
-
-            {/* Expense Breakdown */}
-            <View style={styles.phoneCard}>
-              <ExpenseBreakdown
-                data={data.expenseBreakdown}
-                onViewAll={handleViewAllExpenses}
-              />
-            </View>
-
-            {/* Top Payers */}
-            <View style={styles.phoneCard}>
-              <TopPayers data={data.payerBreakdown} onPayerClick={handlePayerClick} />
-            </View>
-
-            {/* Monthly Overview */}
-            <View style={styles.phoneCard}>
-              <MonthlyOverview data={data.monthly} onMonthClick={handleMonthClick} />
-            </View>
+        {/* 6. Expense Breakdown + Top Payers */}
+        <View style={[styles.bottomRow, !isPhone && styles.bottomRowWide]}>
+          <View style={[styles.bottomCard, !isPhone && styles.bottomCardHalf]}>
+            <ExpenseBreakdown
+              data={data.expenseBreakdown}
+              onViewAll={handleViewAllExpenses}
+            />
           </View>
-        ) : (
-          /* ── TABLET / DESKTOP LAYOUT ── */
-          <>
-            {/* Hero Row: Net Profit + Quick Stats */}
-            <View style={[styles.heroRow, isDesktop && styles.heroRowDesktop]}>
-              <View style={[styles.heroCard, isDesktop && styles.heroCardDesktop]}>
-                {!data.isReady || !data.totals ? (
-                  <SkeletonDashboardCard />
-                ) : (
-                  <HeroNetProfit
-                    dateRange={dateRange}
-                    customStart={customStart}
-                    customEnd={customEnd}
-                    payerId={payerId}
-                  />
-                )}
-              </View>
-              <View style={[styles.quickStatsCard, isDesktop && styles.quickStatsCardDesktop]}>
-                {!data.isReady || !data.totals ? (
-                  <SkeletonDashboardCard />
-                ) : (
-                  <QuickStats
-                    ytdGigsCount={data.ytdGigsCount}
-                    paidGigsCount={data.paidGigsCount}
-                    totalGrossIncome={data.totalGrossIncome}
-                    estimatedTaxRate={data.totals.effectiveTaxRate}
-                  />
-                )}
-              </View>
-            </View>
-
-            {/* Charts Grid */}
-            <View style={[styles.chartsGrid, isDesktop && styles.chartsGridDesktop]}>
-              <View style={styles.fullWidth}>
-                <MonthlyOverview data={data.monthly} onMonthClick={handleMonthClick} />
-              </View>
-              <View style={styles.fullWidth}>
-                <CumulativeNet data={data.cumulativeNet} />
-              </View>
-              <View style={styles.fullWidth}>
-                {!data.isReady || !data.taxBreakdown ? (
-                  <SkeletonDashboardCard />
-                ) : (
-                  <TaxSummaryCard dateRange={dateRange} />
-                )}
-              </View>
-              <View style={styles.twoColumnSideBySide}>
-                <View style={styles.columnSideBySide}>
-                  <ExpenseBreakdown data={data.expenseBreakdown} onViewAll={handleViewAllExpenses} />
-                </View>
-                <View style={styles.columnSideBySide}>
-                  <TopPayers data={data.payerBreakdown} onPayerClick={handlePayerClick} />
-                </View>
-              </View>
-              <View style={styles.fullWidth}>
-                <MapCard dateRange={dateRange} customStart={customStart} customEnd={customEnd} payerId={payerId} />
-              </View>
-            </View>
-          </>
-        )}
+          <View style={[styles.bottomCard, !isPhone && styles.bottomCardHalf]}>
+            <TopPayers data={data.payerBreakdown} onPayerClick={handlePayerClick} />
+          </View>
+        </View>
       </ScrollView>
 
       {/* Month Drill-Through Panel */}
@@ -313,89 +216,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 0,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
   scrollContentDesktop: {
     padding: parseInt(spacing[6]),
   },
-  heroContainer: {
-    width: '100%',
-    marginBottom: parseInt(spacing[8]),
-  },
-  heroContainerDesktop: {
-    marginBottom: parseInt(spacing[12]),
-  },
-  heroRow: {
-    flexDirection: 'column',
-    gap: parseInt(spacing[5]),
-    marginBottom: parseInt(spacing[8]),
-  },
-  heroRowDesktop: {
-    flexDirection: 'row',
-    gap: parseInt(spacing[8]),
-    marginBottom: parseInt(spacing[12]),
-    flexWrap: 'nowrap',
-  },
-  heroCard: {
-    width: '100%',
-  },
-  heroCardDesktop: {
-    flex: 2,
-    width: undefined,
-  },
-  quickStatsCard: {
-    width: '100%',
-  },
-  quickStatsCardDesktop: {
-    flex: 1,
-    width: undefined,
-  },
-  chartsGrid: {
-    gap: parseInt(spacing[5]),
-  },
-  chartsGridDesktop: {
-    gap: parseInt(spacing[8]),
-  },
-  fullWidth: {
-    width: '100%',
-  },
-  twoColumn: {
-    flexDirection: 'column',
-    gap: parseInt(spacing[5]),
-  },
-  twoColumnSideBySide: {
-    flexDirection: 'row',
-    gap: parseInt(spacing[5]),
-    flexWrap: 'nowrap',
-  },
-  column: {
-    width: '100%',
-  },
-  columnSideBySide: {
-    flex: 1,
-    width: undefined,
-  },
-  // Phone-specific layout
-  phoneStack: {
-    gap: 10,
-    paddingBottom: 24,
-  },
-  phoneCard: {
-    marginHorizontal: 10,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  qaBtn: {
-    flex: 1,
-    backgroundColor: colors.brand.DEFAULT,
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Temporary: Bucket Setup Button
   bucketSetupButton: {
     backgroundColor: '#2563eb',
     paddingVertical: 16,
@@ -404,35 +229,29 @@ const styles = StyleSheet.create({
     marginHorizontal: Platform.OS === 'web' ? 0 : 10,
     marginBottom: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   bucketSetupText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
   },
-  qaBtnPrimaryText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.brand.foreground,
+  chartSection: {
+    marginBottom: 16,
   },
-  qaBtnGhost: {
+  bottomRow: {
+    flexDirection: 'column',
+    gap: 12,
+  },
+  bottomRowWide: {
+    flexDirection: 'row',
+    gap: 16,
+    flexWrap: 'nowrap',
+  },
+  bottomCard: {
+    width: '100%',
+  },
+  bottomCardHalf: {
     flex: 1,
-    backgroundColor: colors.surface.DEFAULT,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.border.DEFAULT,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qaBtnGhostText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text.DEFAULT,
+    width: undefined,
   },
 });

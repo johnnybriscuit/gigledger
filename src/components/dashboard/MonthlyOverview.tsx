@@ -71,7 +71,7 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
         </View>
         <View style={styles.tooltipRow}>
           <View style={[styles.tooltipDot, { backgroundColor: themeColors.chart.taxes }]} />
-          <Text style={[styles.tooltipLabel, { color: colors.textMuted }]}>Taxes:</Text>
+          <Text style={[styles.tooltipLabel, { color: colors.textMuted }]}>Tax Set Aside:</Text>
           <Text style={[styles.tooltipValue, { color: colors.text }]}>
             {formatCurrency(data.taxes)} ({((data.taxes / total) * 100).toFixed(1)}%)
           </Text>
@@ -90,8 +90,8 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
     return (
       <ChartCard
         title="Monthly Overview"
-        subtitle="Income, expenses, and taxes by month"
-        info="Click a month to see detailed transactions"
+        subtitle="Income, expenses, and tax set aside by month"
+        info="Tax Set Aside = the portion of income allocated to your tax bucket — not what you owe, just what you've set aside"
       >
         <ResponsiveContainer width="100%" height={300}>
           <BarChart
@@ -121,7 +121,7 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
             />
             <Bar dataKey="income" fill={themeColors.chart.income} name="Income" radius={[4, 4, 0, 0]} />
             <Bar dataKey="expenses" fill={themeColors.chart.expenses} name="Expenses" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="taxes" fill={themeColors.chart.taxes} name="Taxes" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="taxes" fill={themeColors.chart.taxes} name="Tax Set Aside" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>
