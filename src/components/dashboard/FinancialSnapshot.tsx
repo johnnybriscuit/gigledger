@@ -4,7 +4,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
 import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
-import { useGigs } from '../../hooks/useGigs';
 import type { AllocationBucket, BucketYTDTotal } from '../../types/allocation';
 
 const fmt = (n: number) =>
@@ -44,21 +43,22 @@ function getBucketYTD(bucket: AllocationBucket, ytdTotals: BucketYTDTotal[]): nu
   return ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0;
 }
 
-export function FinancialSnapshot() {
+interface FinancialSnapshotProps {
+  ytdGrossIncome: number;
+  paidGigsCount: number;
+}
+
+export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSnapshotProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { buckets: rawBuckets } = useAllocationBuckets();
   const { ytdTotals } = useAllocationTransactions();
-  const { data: gigs } = useGigs();
 
   const buckets = rawBuckets as unknown as AllocationBucket[];
 
   if (buckets.length === 0) return null;
 
-  // gross_amount is the pre-expense payment total
-  const paidGigs = (gigs ?? []).filter(g => g.paid);
-  const ytdGrossIncome = paidGigs.reduce((sum, g) => sum + (g.gross_amount ?? g.net_amount ?? 0), 0);
-  const paidCount = paidGigs.length;
+  const paidCount = paidGigsCount;
 
   const deadline = getNextTaxDeadline();
   const daysUntilQuarterly = Math.ceil(
@@ -109,7 +109,7 @@ export function FinancialSnapshot() {
         {fmt(ytdGrossIncome)}
       </Text>
       <Text style={[styles.incomeSubLabel, { color: colors.text.subtle }]}>
-        earned across {paidCount} paid {paidCount === 1 ? 'gig' : 'gigs'}
+        across {paidCount} paid {paidCount === 1 ? 'gig' : 'gigs'} this year
       </Text>
 
       {/* ── DIVIDER ── */}

@@ -64,17 +64,33 @@ async function createAllocationForGig(
     throw new Error('No active allocation buckets found. Please set up your buckets first.');
   }
 
+  // Deduplication guard: check which bucket_ids already have a record for this gig
+  const { data: existing } = await supabase
+    .from('allocation_transactions')
+    .select('bucket_id')
+    .eq('user_id', userId)
+    .eq('gig_id', input.gigId);
+
+  const existingBucketIds = new Set((existing ?? []).map(r => r.bucket_id));
+
   const allocations = calculateAllocations(input.grossAmount, buckets as unknown as AllocationBucket[]);
 
-  const transactionsToInsert = allocations.map(allocation => ({
-    user_id: userId,
-    gig_id: input.gigId,
-    bucket_id: allocation.bucket.id,
-    gross_amount: input.grossAmount,
-    allocated_amount: allocation.allocatedAmount,
-    percentage_used: allocation.percentage,
-    transaction_date: new Date().toISOString().split('T')[0],
-  }));
+  const transactionsToInsert = allocations
+    .filter(allocation => !existingBucketIds.has(allocation.bucket.id))
+    .map(allocation => ({
+      user_id: userId,
+      gig_id: input.gigId,
+      bucket_id: allocation.bucket.id,
+      gross_amount: input.grossAmount,
+      allocated_amount: allocation.allocatedAmount,
+      percentage_used: allocation.percentage,
+      transaction_date: new Date().toISOString().split('T')[0],
+    }));
+
+  // Nothing new to insert — already fully allocated
+  if (transactionsToInsert.length === 0) {
+    return [];
+  }
 
   const { data, error } = await supabase
     .from('allocation_transactions')

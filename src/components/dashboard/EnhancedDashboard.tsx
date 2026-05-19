@@ -166,7 +166,10 @@ export function EnhancedDashboard({
         <RetroactivePromptBanner />
 
         {/* Financial Snapshot — primary allocation hero */}
-        <FinancialSnapshot />
+        <FinancialSnapshot
+          ytdGrossIncome={data.totalGrossIncome ?? 0}
+          paidGigsCount={data.paidGigsCount ?? 0}
+        />
 
         {/* AI Financial Coach — compact collapsible */}
         <AICoachCard />
