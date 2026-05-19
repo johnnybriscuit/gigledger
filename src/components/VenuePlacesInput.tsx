@@ -102,10 +102,17 @@ export function VenuePlacesInput({
     onChange(text);
   };
 
-  // Sync external value changes ONLY when not actively typing
-  // This prevents the input from resetting while user is typing
+  // Sync external value changes ONLY when not actively typing,
+  // but always sync when value is cleared to '' (e.g. resetForm on modal close)
   React.useEffect(() => {
-    if (!isTypingRef.current && value !== internalValue) {
+    if (value === '' || (!isTypingRef.current && value !== internalValue)) {
+      if (value === '') {
+        isTypingRef.current = false;
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = null;
+        }
+      }
       setInternalValue(value);
     }
   }, [value]);

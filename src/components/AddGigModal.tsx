@@ -21,7 +21,7 @@ import { InlineExpensesList, type InlineExpense } from './gigs/InlineExpensesLis
 import { InlineMileageRow } from './gigs/InlineMileageRow';
 import { InlineSubcontractorPayments, type InlineSubcontractorPayment } from './gigs/InlineSubcontractorPayments';
 import { SubcontractorFormModal } from './SubcontractorFormModal';
-import { VenuePlacesInput } from './VenuePlacesInput';
+import { PlaceAutocomplete } from './PlaceAutocomplete';
 import { calculateMileageDeduction } from '../hooks/useTaxEstimate';
 import { createGigWithLines, updateGigWithLines } from '../services/gigService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -1391,7 +1391,7 @@ export function AddGigModal({
               }
               venueField={
                 <Field label="Venue">
-                  <VenuePlacesInput
+                  <PlaceAutocomplete
                     label=""
                     placeholder="Search for a venue or type it manually..."
                     types="establishment"
@@ -1401,18 +1401,9 @@ export function AddGigModal({
                       setVenueDetails(null);
                       setVenueError('');
                     }}
-                    onSelect={async (item: { description: string; place_id: string; lat?: number; lng?: number }) => {
+                    onSelect={async (item: { description: string; place_id: string }) => {
                       setLocation(item.description);
                       setVenueError('');
-
-                      if (typeof item.lat === 'number' && typeof item.lng === 'number') {
-                        setVenueDetails((prev: any) => ({
-                          ...(prev || {}),
-                          formatted_address: prev?.formatted_address || item.description,
-                          location: { lat: item.lat, lng: item.lng },
-                          parts: prev?.parts || {},
-                        }));
-                      }
 
                       try {
                         const details = await resolvePlaceDetails(item.place_id);
@@ -1527,7 +1518,7 @@ export function AddGigModal({
 
                   <View style={styles.inputGroup}>
                     <Field label="City">
-                      <VenuePlacesInput
+                      <PlaceAutocomplete
                         label=""
                         placeholder="Search for a city..."
                         types="(cities)"
@@ -1537,18 +1528,9 @@ export function AddGigModal({
                           setCityDetails(null);
                           setCityError('');
                         }}
-                        onSelect={async (item: { description: string; place_id: string; lat?: number; lng?: number }) => {
+                        onSelect={async (item: { description: string; place_id: string }) => {
                           setCity(item.description);
                           setCityError('');
-
-                          if (typeof item.lat === 'number' && typeof item.lng === 'number') {
-                            setCityDetails((prev: any) => ({
-                              ...(prev || {}),
-                              formatted_address: prev?.formatted_address || item.description,
-                              location: { lat: item.lat, lng: item.lng },
-                              parts: prev?.parts || {},
-                            }));
-                          }
 
                           try {
                             const details = await resolvePlaceDetails(item.place_id);
