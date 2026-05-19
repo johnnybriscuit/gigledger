@@ -12,7 +12,7 @@ import {
   StyleSheet,
   Platform,
   ActivityIndicator,
-  FlatList,
+  ScrollView,
   Pressable,
 } from 'react-native';
 import { Text } from '../ui';
@@ -310,6 +310,57 @@ export function PlaceAutocomplete({
 
   const displayError = error || ''; // No forced selection error
 
+  // Shared dropdown content — used in both web inline and native Modal paths
+  const dropdownContent = fetchError ? (
+    <View style={styles.errorContainer}>
+      <Text style={styles.errorMessage}>{fetchError}</Text>
+    </View>
+  ) : predictions.length === 0 ? (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No matches found</Text>
+    </View>
+  ) : (
+    <ScrollView
+      keyboardShouldPersistTaps="always"
+      nestedScrollEnabled
+    >
+      {predictions.map((item, index) => (
+        <Pressable
+          key={item.place_id}
+          style={({ pressed }) => [
+            styles.item,
+            index === activeIndex && styles.itemActive,
+            pressed && styles.itemPressed,
+          ]}
+          onPressIn={() => {
+            // Cancel blur timeout before onBlur can fire (mobile fix)
+            if (blurTimeoutRef.current) {
+              clearTimeout(blurTimeoutRef.current);
+              blurTimeoutRef.current = null;
+            }
+          }}
+          onPress={() => handleSelect(item)}
+          // @ts-ignore - web-only props
+          onMouseDown={(e: any) => {
+            // Prevent input blur on click (web fix)
+            e.preventDefault();
+          }}
+          onMouseEnter={() => setActiveIndex(index)}
+          accessibilityRole={Platform.OS === 'web' ? 'menuitem' : undefined}
+        >
+          {item.structured_formatting ? (
+            <View>
+              <Text style={styles.mainText}>{item.structured_formatting.main_text}</Text>
+              <Text style={styles.secondaryText}>{item.structured_formatting.secondary_text}</Text>
+            </View>
+          ) : (
+            <Text style={styles.mainText}>{item.description}</Text>
+          )}
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
@@ -346,64 +397,38 @@ export function PlaceAutocomplete({
         <Text style={styles.errorText}>{displayError}</Text>
       ) : null}
 
-      <DropdownOverlay
-        visible={isOpen}
-        anchor={anchor}
-        onClose={() => {
-          setIsOpen(false);
-          setActiveIndex(-1);
-        }}
-      >
-        {fetchError ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorMessage}>{fetchError}</Text>
+      {Platform.OS === 'web' ? (
+        // Web: fixed-position inline dropdown — no Modal, no separate focus tree,
+        // so the TextInput never blurs when the dropdown opens.
+        isOpen && anchor.width > 0 ? (
+          <View
+            style={[
+              styles.dropdown,
+              {
+                // @ts-ignore - position: fixed is valid in RNW but not in RN types
+                position: 'fixed',
+                top: anchor.y + anchor.height + 6,
+                left: anchor.x,
+                width: anchor.width,
+              },
+            ]}
+          >
+            {dropdownContent}
           </View>
-        ) : predictions.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No matches found</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={predictions}
-            keyExtractor={(item) => item.place_id}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item, index }) => (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.item,
-                  index === activeIndex && styles.itemActive,
-                  pressed && styles.itemPressed,
-                ]}
-                onPressIn={() => {
-                  // Cancel the blur timeout on touchstart so the dropdown
-                  // stays open until onPress fires (fixes mobile race condition)
-                  if (blurTimeoutRef.current) {
-                    clearTimeout(blurTimeoutRef.current);
-                    blurTimeoutRef.current = null;
-                  }
-                }}
-                onPress={() => handleSelect(item)}
-                // @ts-ignore - web-only props
-                onMouseDown={(e: any) => {
-                  // Prevent input blur when clicking option (web)
-                  e.preventDefault();
-                }}
-                onMouseEnter={() => setActiveIndex(index)}
-                accessibilityRole={Platform.OS === 'web' ? 'menuitem' : undefined}
-              >
-                {item.structured_formatting ? (
-                  <View>
-                    <Text style={styles.mainText}>{item.structured_formatting.main_text}</Text>
-                    <Text style={styles.secondaryText}>{item.structured_formatting.secondary_text}</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.mainText}>{item.description}</Text>
-                )}
-              </Pressable>
-            )}
-          />
-        )}
-      </DropdownOverlay>
+        ) : null
+      ) : (
+        // Native: Modal-based overlay (position:absolute is clipped by ScrollView on native)
+        <DropdownOverlay
+          visible={isOpen}
+          anchor={anchor}
+          onClose={() => {
+            setIsOpen(false);
+            setActiveIndex(-1);
+          }}
+        >
+          {dropdownContent}
+        </DropdownOverlay>
+      )}
     </View>
   );
 }
@@ -466,6 +491,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     marginTop: 2,
+  },
+  dropdown: {
+    zIndex: 9999,
+    backgroundColor: colors.surface.DEFAULT,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    maxHeight: 320,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: {
+        elevation: 12,
+      },
+      web: {
+        // @ts-ignore
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      },
+    }),
   },
   emptyContainer: {
     padding: 20,
