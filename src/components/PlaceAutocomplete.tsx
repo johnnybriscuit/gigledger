@@ -374,12 +374,19 @@ export function PlaceAutocomplete({
                   index === activeIndex && styles.itemActive,
                   pressed && styles.itemPressed,
                 ]}
+                onPressIn={() => {
+                  // Cancel the blur timeout on touchstart so the dropdown
+                  // stays open until onPress fires (fixes mobile race condition)
+                  if (blurTimeoutRef.current) {
+                    clearTimeout(blurTimeoutRef.current);
+                    blurTimeoutRef.current = null;
+                  }
+                }}
                 onPress={() => handleSelect(item)}
                 // @ts-ignore - web-only props
                 onMouseDown={(e: any) => {
-                  // Prevent input blur when clicking option
+                  // Prevent input blur when clicking option (web)
                   e.preventDefault();
-                  console.log('[PlaceAutocomplete] Option mousedown - preventing blur');
                 }}
                 onMouseEnter={() => setActiveIndex(index)}
                 accessibilityRole={Platform.OS === 'web' ? 'menuitem' : undefined}
