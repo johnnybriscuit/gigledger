@@ -21,6 +21,12 @@ import DropdownOverlay from './DropdownOverlay';
 import { useAnchorLayout } from '../hooks/useAnchorLayout';
 import { isPrintableKey, isNavKey, isCloseKey } from '../lib/keyboard';
 
+// Lazy-load createPortal so native bundles never import react-dom
+let createPortal: any = null;
+if (typeof document !== 'undefined') {
+  createPortal = require('react-dom').createPortal;
+}
+
 interface PlacePrediction {
   description: string;
   place_id: string;
@@ -63,6 +69,7 @@ export function PlaceAutocomplete({
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [sessionToken] = useState(() => generateSessionToken());
   const [isFocused, setIsFocused] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const anchorRef = useRef<View>(null);
   const inputRef = useRef<TextInput>(null);
@@ -72,6 +79,17 @@ export function PlaceAutocomplete({
   const isFocusedRef = useRef(false); // ref for async checks
 
   const { anchor, measure } = useAnchorLayout(anchorRef);
+
+  // Measure the input's viewport rect for the fixed-position portal (web only)
+  const measureInputPosition = useCallback(() => {
+    if (Platform.OS === 'web' && inputRef.current) {
+      const domNode = inputRef.current as unknown as HTMLElement;
+      if (domNode?.getBoundingClientRect) {
+        const rect = domNode.getBoundingClientRect();
+        setDropdownStyle({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+      }
+    }
+  }, []);
 
   // Generate a session token for billing optimization
   function generateSessionToken(): string {
@@ -173,6 +191,7 @@ export function PlaceAutocomplete({
 
   // Debounced input change handler
   const handleInputChange = (text: string) => {
+    measureInputPosition();
     onChange(text);
     setHasConfirmedSelection(false);
     setShowError(false);
@@ -225,6 +244,7 @@ export function PlaceAutocomplete({
 
   // Focus handler - only open if we have predictions
   const handleFocus = () => {
+    measureInputPosition();
     console.log('[PlaceAutocomplete] Input focus, predictions:', predictions.length, 'isOpen:', isOpen);
 
     if (blurTimeoutRef.current) {
@@ -398,23 +418,29 @@ export function PlaceAutocomplete({
       ) : null}
 
       {Platform.OS === 'web' ? (
-        // Web: fixed-position inline dropdown — no Modal, no separate focus tree,
-        // so the TextInput never blurs when the dropdown opens.
-        isOpen && anchor.width > 0 ? (
+        // Web: portal to document.body — escapes Modal stacking context entirely
+        isOpen && dropdownStyle && createPortal ? createPortal(
           <View
-            style={[
-              styles.dropdown,
-              {
-                // @ts-ignore - position: fixed is valid in RNW but not in RN types
-                position: 'fixed',
-                top: anchor.y + anchor.height + 6,
-                left: anchor.x,
-                width: anchor.width,
-              },
-            ]}
+            style={{
+              // @ts-ignore - position fixed is valid in RNW
+              position: 'fixed',
+              top: dropdownStyle.top,
+              left: dropdownStyle.left,
+              width: dropdownStyle.width,
+              maxHeight: 320,
+              zIndex: 2147483647,
+              backgroundColor: colors.surface.DEFAULT,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: colors.border.DEFAULT,
+              overflow: 'hidden',
+              // @ts-ignore
+              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            }}
           >
             {dropdownContent}
-          </View>
+          </View>,
+          document.body
         ) : null
       ) : (
         // Native: Modal-based overlay (position:absolute is clipped by ScrollView on native)
