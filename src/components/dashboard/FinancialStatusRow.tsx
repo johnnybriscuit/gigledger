@@ -1,9 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
+import type { UpdateBucketInput } from '../../hooks/useAllocationBuckets';
 import type { AllocationBucket } from '../../types/allocation';
+import { SetSavingsGoalModal } from '../ui/SetSavingsGoalModal';
+import { AdjustBucketPercentageModal } from '../ui/AdjustBucketPercentageModal';
+import { Toast } from '../Toast';
 
 interface FinancialStatusRowProps {
   ytdGrossIncome: number;
@@ -87,11 +91,16 @@ function RetirementCard({
   buckets,
   ytdGrossIncome,
   colors,
+  updateBucket,
+  onShowToast,
 }: {
   buckets: AllocationBucket[];
   ytdGrossIncome: number;
   colors: ReturnType<typeof getThemePalette>;
+  updateBucket: (id: string, input: UpdateBucketInput) => Promise<any>;
+  onShowToast: (msg: string) => void;
 }) {
+  const [showPctModal, setShowPctModal] = useState(false);
   const bucket = buckets.find(b => b.bucket_type === 'retirement');
   if (!bucket) return null;
 
@@ -121,10 +130,33 @@ function RetirementCard({
       <Text style={[styles.cardPrimary, { color: colors.text.DEFAULT }]}>
         {fmt(ytd)} this year
       </Text>
-      <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+      {pct < 5 && ytdGrossIncome > 0 ? (
+        <Pressable
+          onPress={() => setShowPctModal(true)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+        </Pressable>
+      ) : (
+        <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+      )}
       <Text style={[styles.cardMeta, { color: colors.text.subtle }]}>
         IRS limit: $69,000 SEP-IRA
       </Text>
+      <AdjustBucketPercentageModal
+        isVisible={showPctModal}
+        onClose={() => setShowPctModal(false)}
+        bucketName={bucket.name}
+        bucketEmoji="📈"
+        currentPercentage={pct}
+        suggestedPercentage={10}
+        annualIncome={ytdGrossIncome}
+        onSave={async (newPct) => {
+          await updateBucket(bucket.id, { percentage: newPct });
+          setShowPctModal(false);
+          onShowToast(`Retirement updated to ${newPct}% 📈`);
+        }}
+      />
     </View>
   );
 }
@@ -133,11 +165,16 @@ function EmergencyCard({
   buckets,
   ytdGrossIncome,
   colors,
+  updateBucket,
+  onShowToast,
 }: {
   buckets: AllocationBucket[];
   ytdGrossIncome: number;
   colors: ReturnType<typeof getThemePalette>;
+  updateBucket: (id: string, input: UpdateBucketInput) => Promise<any>;
+  onShowToast: (msg: string) => void;
 }) {
+  const [showGoalModal, setShowGoalModal] = useState(false);
   const bucket = buckets.find(b => b.bucket_type === 'emergency_fund');
   if (!bucket) return null;
 
@@ -187,12 +224,41 @@ function EmergencyCard({
           />
         </View>
       )}
-      <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+      {progress === null && ytdGrossIncome > 0 ? (
+        <Pressable
+          onPress={() => setShowGoalModal(true)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+        </Pressable>
+      ) : (
+        <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+      )}
       {goal && goal > 0 && (
         <Text style={[styles.cardMeta, { color: colors.text.subtle }]}>
           Goal: {fmt(goal)}
         </Text>
       )}
+      <SetSavingsGoalModal
+        isVisible={showGoalModal}
+        onClose={() => setShowGoalModal(false)}
+        currentGoalAmount={goal ?? undefined}
+        currentBalance={ytd}
+        bucketName={bucket.name}
+        monthlyPace={(() => {
+          const monthsSince =
+            (Date.now() - new Date(bucket.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+          return monthsSince >= 1 && ytd > 0 ? ytd / monthsSince : null;
+        })()}
+        onSave={async (goalAmount, monthlyExpenses) => {
+          await updateBucket(bucket.id, {
+            goal_amount: goalAmount,
+            goal_name: `Monthly expenses: $${monthlyExpenses}`,
+          });
+          setShowGoalModal(false);
+          onShowToast("Goal set! We'll track your progress 🎯");
+        }}
+      />
     </View>
   );
 }
@@ -202,8 +268,15 @@ function EmergencyCard({
 export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
-  const { buckets: rawBuckets } = useAllocationBuckets();
+  const { buckets: rawBuckets, updateBucket } = useAllocationBuckets();
   const buckets = rawBuckets as unknown as AllocationBucket[];
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
+
+  const handleShowToast = (msg: string) => {
+    setToastMessage(msg);
+    setShowToast(true);
+  };
 
   const hasRetirement = buckets.some(b => b.bucket_type === 'retirement');
   const hasEmergency = buckets.some(b => b.bucket_type === 'emergency_fund');
@@ -213,16 +286,35 @@ export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) 
   if (!hasTax && !hasRetirement && !hasEmergency) return null;
 
   return (
-    <View style={styles.row}>
-      {hasTax && (
-        <TaxCard buckets={buckets} ytdGrossIncome={ytdGrossIncome} colors={colors} />
-      )}
-      {hasRetirement && (
-        <RetirementCard buckets={buckets} ytdGrossIncome={ytdGrossIncome} colors={colors} />
-      )}
-      {hasEmergency && (
-        <EmergencyCard buckets={buckets} ytdGrossIncome={ytdGrossIncome} colors={colors} />
-      )}
+    <View>
+      <View style={styles.row}>
+        {hasTax && (
+          <TaxCard buckets={buckets} ytdGrossIncome={ytdGrossIncome} colors={colors} />
+        )}
+        {hasRetirement && (
+          <RetirementCard
+            buckets={buckets}
+            ytdGrossIncome={ytdGrossIncome}
+            colors={colors}
+            updateBucket={updateBucket}
+            onShowToast={handleShowToast}
+          />
+        )}
+        {hasEmergency && (
+          <EmergencyCard
+            buckets={buckets}
+            ytdGrossIncome={ytdGrossIncome}
+            colors={colors}
+            updateBucket={updateBucket}
+            onShowToast={handleShowToast}
+          />
+        )}
+      </View>
+      <Toast
+        message={toastMessage}
+        visible={showToast}
+        onHide={() => setShowToast(false)}
+      />
     </View>
   );
 }
