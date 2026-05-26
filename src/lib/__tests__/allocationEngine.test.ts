@@ -493,6 +493,135 @@ describe('allocationEngine', () => {
     });
   });
 
+  describe('Phase 2 allocation requirements', () => {
+    const STANDARD_BUCKETS: AllocationBucket[] = [
+      {
+        id: 'b1', user_id: 'u1', name: 'Federal & SE Taxes', emoji: '🏛️',
+        bucket_type: 'federal_tax', percentage: 20, color: '#DC2626',
+        goal_amount: null, goal_name: null, goal_date: null,
+        sort_order: 0, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01',
+      },
+      {
+        id: 'b2', user_id: 'u1', name: 'State Taxes', emoji: '🏛️',
+        bucket_type: 'state_tax', percentage: 5, color: '#EA580C',
+        goal_amount: null, goal_name: null, goal_date: null,
+        sort_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01',
+      },
+      {
+        id: 'b3', user_id: 'u1', name: 'Retirement', emoji: '📈',
+        bucket_type: 'retirement', percentage: 10, color: '#2563EB',
+        goal_amount: null, goal_name: null, goal_date: null,
+        sort_order: 2, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01',
+      },
+      {
+        id: 'b4', user_id: 'u1', name: 'Emergency Fund', emoji: '🛟',
+        bucket_type: 'emergency_fund', percentage: 5, color: '#16A34A',
+        goal_amount: null, goal_name: null, goal_date: null,
+        sort_order: 3, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01',
+      },
+      {
+        id: 'b5', user_id: 'u1', name: 'Yours to Spend', emoji: '✅',
+        bucket_type: 'spendable', percentage: 60, color: '#2E86AB',
+        goal_amount: null, goal_name: null, goal_date: null,
+        sort_order: 4, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01',
+      },
+    ];
+
+    it('$400 gig: each bucket gets the correct dollar amount and amounts sum to $400', () => {
+      const result = calculateAllocations(400, STANDARD_BUCKETS);
+
+      expect(result).toHaveLength(5);
+
+      const federal = result.find(r => r.bucket.bucket_type === 'federal_tax')!;
+      const state = result.find(r => r.bucket.bucket_type === 'state_tax')!;
+      const retirement = result.find(r => r.bucket.bucket_type === 'retirement')!;
+      const emergency = result.find(r => r.bucket.bucket_type === 'emergency_fund')!;
+      const spendable = result.find(r => r.bucket.bucket_type === 'spendable')!;
+
+      expect(federal.allocatedAmount).toBe(80);
+      expect(state.allocatedAmount).toBe(20);
+      expect(retirement.allocatedAmount).toBe(40);
+      expect(emergency.allocatedAmount).toBe(20);
+      expect(spendable.allocatedAmount).toBe(240);
+
+      const total = result.reduce((sum, r) => sum + r.allocatedAmount, 0);
+      expect(total).toBe(400);
+    });
+
+    it('$333.33 gig: no penny is lost or doubled — remainder goes to spendable', () => {
+      const result = calculateAllocations(333.33, STANDARD_BUCKETS);
+
+      expect(result).toHaveLength(5);
+
+      const federal = result.find(r => r.bucket.bucket_type === 'federal_tax')!;
+      const state = result.find(r => r.bucket.bucket_type === 'state_tax')!;
+      const retirement = result.find(r => r.bucket.bucket_type === 'retirement')!;
+      const emergency = result.find(r => r.bucket.bucket_type === 'emergency_fund')!;
+      const spendable = result.find(r => r.bucket.bucket_type === 'spendable')!;
+
+      expect(federal.allocatedAmount).toBe(66.67);
+      expect(state.allocatedAmount).toBe(16.67);
+      expect(retirement.allocatedAmount).toBe(33.33);
+      expect(emergency.allocatedAmount).toBe(16.67);
+      expect(spendable.allocatedAmount).toBe(199.99);
+
+      const total = Math.round(result.reduce((sum, r) => sum + r.allocatedAmount, 0) * 100) / 100;
+      expect(total).toBe(333.33);
+    });
+
+    it('duplicate gig: returns no rows to insert when all buckets already have transactions', () => {
+      const allocations = calculateAllocations(400, STANDARD_BUCKETS);
+
+      const existingBucketIds = new Set(allocations.map(r => r.bucket.id));
+      const toInsert = allocations.filter(r => !existingBucketIds.has(r.bucket.id));
+
+      expect(toInsert).toHaveLength(0);
+    });
+
+    it('duplicate gig: only inserts transactions for buckets not yet allocated', () => {
+      const allocations = calculateAllocations(400, STANDARD_BUCKETS);
+
+      const existingBucketIds = new Set(['b1', 'b2']);
+      const toInsert = allocations.filter(r => !existingBucketIds.has(r.bucket.id));
+
+      expect(toInsert).toHaveLength(3);
+      const types = toInsert.map(r => r.bucket.bucket_type);
+      expect(types).toContain('retirement');
+      expect(types).toContain('emergency_fund');
+      expect(types).toContain('spendable');
+    });
+
+    it('totalAllocatedPercent != 100: validateBucketPercentages returns valid=false (maps to isValid=false)', () => {
+      const underAllocated: AllocationBucket[] = [
+        {
+          id: 'b1', user_id: 'u1', name: 'Federal Tax', emoji: '🏛️',
+          bucket_type: 'federal_tax', percentage: 30, color: '#DC2626',
+          goal_amount: null, goal_name: null, goal_date: null,
+          sort_order: 0, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01',
+        },
+        {
+          id: 'b2', user_id: 'u1', name: 'Spendable', emoji: '✅',
+          bucket_type: 'spendable', percentage: 50, color: '#2E86AB',
+          goal_amount: null, goal_name: null, goal_date: null,
+          sort_order: 1, is_active: true, created_at: '2024-01-01', updated_at: '2024-01-01',
+        },
+      ];
+
+      const v = validateBucketPercentages(underAllocated);
+
+      expect(v.valid).toBe(false);
+      expect(v.total).toBe(80);
+      expect(v.difference).toBe(-20);
+
+      const validationError = v.difference > 0
+        ? `Bucket percentages total ${v.total}% (${v.difference}% over 100%). Consider adjusting.`
+        : `Bucket percentages total ${v.total}% (${Math.abs(v.difference)}% under 100%). Consider adjusting.`;
+
+      expect(validationError).not.toBe('');
+      expect(validationError).toContain('under 100%');
+    });
+  });
+
   describe('getNextQuarterlyDueDate', () => {
     it('should return April 15 for dates in Q1', () => {
       const result = getNextQuarterlyDueDate();

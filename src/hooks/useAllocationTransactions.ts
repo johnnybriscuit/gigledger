@@ -185,15 +185,28 @@ export function useAllocationTransactions(filters?: TransactionFilters) {
     });
   };
 
+  const transactions = transactionsQuery.data || [];
+  const ytdTotals = ytdQuery.data || [];
+
   return {
-    transactions: transactionsQuery.data || [],
+    transactions,
     isLoading: transactionsQuery.isLoading,
     error: transactionsQuery.error,
-    ytdTotals: ytdQuery.data || [],
+
+    transactionsByGig: (gigId: string): DbAllocationTransaction[] =>
+      transactions.filter(t => t.gig_id === gigId),
+
+    ytdTotals,
     isLoadingYTD: ytdQuery.isLoading,
-    createAllocationForGig: createMutation.mutateAsync,
+
+    ytdTotalByBucket: (bucketId: string): number => {
+      const entry = ytdTotals.find(t => t.bucket_id === bucketId);
+      return entry?.total ?? 0;
+    },
+
+    createAllocationsForGig: createMutation.mutateAsync,
     isCreating: createMutation.isPending,
-    getBucketBalance: (bucketId: string, year?: number) => 
+    getBucketBalance: (bucketId: string, year?: number) =>
       getBucketBalance(userId!, bucketId, year),
   };
 }

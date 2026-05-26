@@ -47,6 +47,8 @@ import { LocationDetailsSection } from './gigs/addGig/LocationDetailsSection';
 import { PayBreakdownSection } from './gigs/addGig/PayBreakdownSection';
 import { TaxWithholdingSection } from './gigs/addGig/TaxWithholdingSection';
 import { AllocationPreview } from './AllocationPreview';
+import { RateComparisonTip } from './RateComparisonTip';
+import { useRateBenchmarks } from '../hooks/useRateBenchmarks';
 import {
   calculateInlineMileage,
   inferStoredMileageAutoCalculated,
@@ -65,6 +67,7 @@ interface AddGigModalProps {
   onNavigateToSubscription?: () => void;
   onNavigateToExpenses?: () => void;
   onNavigateToMileage?: () => void;
+  onNavigateToRateGuide?: () => void;
   editingGig?: GigWithPayer | null;
   duplicatingGig?: GigWithPayer | null;
   source?: 'dashboard' | 'gigs';
@@ -132,6 +135,7 @@ export function AddGigModal({
   onNavigateToSubscription,
   onNavigateToExpenses,
   onNavigateToMileage,
+  onNavigateToRateGuide,
   editingGig,
   duplicatingGig,
   source = 'dashboard',
@@ -195,6 +199,11 @@ export function AddGigModal({
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedGigType, setSelectedGigType] = useState<string | null>(null);
+  const [showRateComparison, setShowRateComparison] = useState(false);
+  const [showGigTypePicker, setShowGigTypePicker] = useState(false);
+
+  const { benchmarks: rateBenchmarks } = useRateBenchmarks();
 
   const { data: payers } = usePayers();
   const queryClient = useQueryClient();
@@ -605,6 +614,9 @@ export function AddGigModal({
     setStateSearch('');
     setCountrySearch('');
     setIsSubmitting(false);
+    setSelectedGigType(null);
+    setShowRateComparison(false);
+    setShowGigTypePicker(false);
   };
 
   // Date picker handler
@@ -1666,6 +1678,121 @@ export function AddGigModal({
                 </Field>
               }
             />
+
+            {/* Rate Comparison — optional, collapsible, never saved to DB */}
+            <View style={styles.rateComparisonSection}>
+              <TouchableOpacity
+                style={styles.rateComparisonToggle}
+                onPress={() => setShowRateComparison(!showRateComparison)}
+              >
+                <Text style={styles.rateComparisonToggleText}>
+                  {showRateComparison ? '− Compare my rate' : '+ Compare my rate'}
+                </Text>
+              </TouchableOpacity>
+
+              {showRateComparison && (
+                <View style={styles.rateComparisonBody}>
+                  <Text style={styles.label}>What type of gig is this?</Text>
+
+                  {Platform.OS === 'web' ? (
+                    <select
+                      value={selectedGigType ?? ''}
+                      onChange={e => {
+                        setSelectedGigType(e.target.value || null);
+                        setShowGigTypePicker(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1px solid #d1d5db',
+                        fontSize: 14,
+                        backgroundColor: '#fff',
+                        color: selectedGigType ? '#111827' : '#9ca3af',
+                        marginTop: 6,
+                      } as any}
+                    >
+                      <option value="">Select a gig type…</option>
+                      {rateBenchmarks.map(b => (
+                        <option key={b.gig_type} value={b.gig_type}>
+                          {b.gig_type}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <View style={styles.nativePickerShell}>
+                      <TouchableOpacity
+                        style={styles.pickerButton}
+                        onPress={() => setShowGigTypePicker(!showGigTypePicker)}
+                      >
+                        <Text style={[styles.pickerButtonText, !selectedGigType && styles.placeholderText]}>
+                          {selectedGigType ?? 'Select a gig type…'}
+                        </Text>
+                        <Text style={styles.pickerButtonIcon}>▼</Text>
+                      </TouchableOpacity>
+                      {showGigTypePicker && (
+                        <View style={styles.gigTypeDropdown}>
+                          <ScrollView
+                            style={styles.gigTypeDropdownList}
+                            nestedScrollEnabled
+                            keyboardShouldPersistTaps="handled"
+                          >
+                            {rateBenchmarks.map(b => (
+                              <TouchableOpacity
+                                key={b.gig_type}
+                                style={[
+                                  styles.payerDropdownItem,
+                                  selectedGigType === b.gig_type && styles.payerDropdownItemActive,
+                                ]}
+                                onPress={() => {
+                                  setSelectedGigType(b.gig_type);
+                                  setShowGigTypePicker(false);
+                                }}
+                              >
+                                <Text style={[
+                                  styles.payerDropdownItemText,
+                                  selectedGigType === b.gig_type && styles.payerDropdownItemTextActive,
+                                ]}>
+                                  {b.gig_type}
+                                </Text>
+                                {selectedGigType === b.gig_type && (
+                                  <Text style={styles.checkmark}>✓</Text>
+                                )}
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {selectedGigType && (() => {
+                    const bm = rateBenchmarks.find(b => b.gig_type === selectedGigType);
+                    if (!bm) return null;
+                    return (
+                      <>
+                        <Text style={styles.rateUnitNote}>
+                          Your rate will be compared per {bm.rate_unit}
+                        </Text>
+                        {parseFloat(grossAmount) > 0 && (
+                          <RateComparisonTip
+                            grossAmount={parseFloat(grossAmount)}
+                            rateUnit={bm.rate_unit}
+                            benchmark={bm}
+                            onDismiss={() => setSelectedGigType(null)}
+                            onSeeRateGuide={
+                              onNavigateToRateGuide
+                                ? () => { onClose(); onNavigateToRateGuide!(); }
+                                : undefined
+                            }
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
+                </View>
+              )}
+            </View>
 
             {/* Allocation Preview - show if gig is paid and has amount */}
             {paid && grossAmount && parseFloat(grossAmount) > 0 && (
@@ -3101,5 +3228,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.brand.DEFAULT,
     lineHeight: 16,
+  },
+  rateComparisonSection: {
+    marginBottom: 12,
+  },
+  rateComparisonToggle: {
+    paddingVertical: 8,
+  },
+  rateComparisonToggleText: {
+    fontSize: 14,
+    color: colors.brand.DEFAULT,
+    fontWeight: '500',
+  },
+  rateComparisonBody: {
+    paddingTop: 4,
+    gap: 8,
+  },
+  nativePickerShell: {
+    position: 'relative',
+  },
+  gigTypeDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: colors.surface.DEFAULT,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: 8,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 4,
+  } as any,
+  gigTypeDropdownList: {
+    maxHeight: 200,
+  },
+  rateUnitNote: {
+    fontSize: 12,
+    color: colors.text.muted,
+    marginTop: 4,
   },
 });

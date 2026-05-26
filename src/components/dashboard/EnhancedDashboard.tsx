@@ -24,6 +24,10 @@ import { FinancialSnapshot } from './FinancialSnapshot';
 import { FinancialStatusRow } from './FinancialStatusRow';
 import { AICoachCard } from './AICoachCard';
 import { RetroactivePromptBanner } from './RetroactivePromptBanner';
+import { HealthScoreWidget } from './HealthScoreWidget';
+import { OpportunityAlertsSection } from './OpportunityAlertsSection';
+import { scheduleQuarterlyReminders } from '../../lib/scheduleQuarterlyReminders';
+import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -40,6 +44,8 @@ interface EnhancedDashboardProps {
   onAddExpense?: () => void;
   onExport?: () => void;
   onNavigateToBucketSetup?: () => void;
+  onNavigateToMyMoney?: () => void;
+  onNavigateToRateGuide?: () => void;
 }
 
 export function EnhancedDashboard({
@@ -56,7 +62,10 @@ export function EnhancedDashboard({
   onAddExpense,
   onExport,
   onNavigateToBucketSetup,
+  onNavigateToMyMoney,
+  onNavigateToRateGuide,
 }: EnhancedDashboardProps) {
+  const { buckets } = useAllocationBuckets();
   const { isDesktop, isTablet } = useResponsive();
   const { width } = useWindowDimensions();
   const isPhone = width < 768;
@@ -74,6 +83,17 @@ export function EnhancedDashboard({
 
   // Fetch dashboard data
   const data = useDashboardData(dateRange, customStart, customEnd, payerId);
+
+  // Schedule quarterly tax reminders when YTD data is available
+  useEffect(() => {
+    if (!data.isReady || !data.totalGrossIncome) return;
+    const federalTaxBucket = buckets.find(b => b.bucket_type === 'federal_tax');
+    const stateTaxBucket = buckets.find(b => b.bucket_type === 'state_tax');
+    if (!federalTaxBucket && !stateTaxBucket) return;
+    const combinedTaxPct = (federalTaxBucket?.percentage ?? 0) + (stateTaxBucket?.percentage ?? 0);
+    const quarterlyEstimate = (data.totalGrossIncome * combinedTaxPct) / 400;
+    scheduleQuarterlyReminders(quarterlyEstimate);
+  }, [data.isReady, data.totalGrossIncome, buckets]);
 
   // Mark when dashboard is interactive (data loaded)
   useEffect(() => {
@@ -161,7 +181,26 @@ export function EnhancedDashboard({
         {/* 3. Financial Status Row — Tax / Retirement / Emergency */}
         <FinancialStatusRow ytdGrossIncome={data.totalGrossIncome ?? 0} />
 
-        {/* 4. AI Financial Coach — compact collapsible */}
+        {/* 4. Financial Health Score — actual allocations vs. targets */}
+        <HealthScoreWidget ytdGrossIncome={data.totalGrossIncome ?? 0} />
+
+        {/* 5. Opportunity Alerts — proactive financial tips */}
+        <OpportunityAlertsSection
+          onAddExpense={onAddExpense}
+          onNavigateToRateGuide={onNavigateToRateGuide}
+        />
+
+        {/* 5. My Money shortcut */}
+        {onNavigateToMyMoney && (
+          <TouchableOpacity
+            style={styles.myMoneyButton}
+            onPress={onNavigateToMyMoney}
+          >
+            <Text style={styles.myMoneyButtonText}>💰 My Money Plan →</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* 5. AI Financial Coach — compact collapsible */}
         <AICoachCard />
 
         {/* 5. Monthly Overview chart */}
@@ -233,6 +272,21 @@ const styles = StyleSheet.create({
   bucketSetupText: {
     color: '#ffffff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  myMoneyButton: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  myMoneyButtonText: {
+    color: '#1d4ed8',
+    fontSize: 15,
     fontWeight: '600',
   },
   chartSection: {

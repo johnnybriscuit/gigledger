@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Platform,
   Alert,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -14,7 +13,7 @@ import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
 import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
 import { useGigs } from '../../hooks/useGigs';
 import { useUserId } from '../../hooks/useCurrentUser';
-import { supabase } from '../../lib/supabase';
+import { supabase, ExpoSecureStoreAdapter } from '../../lib/supabase';
 
 export function RetroactivePromptBanner() {
   const { theme } = useTheme();
@@ -27,11 +26,16 @@ export function RetroactivePromptBanner() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedCount, setProcessedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [isCheckingDismissed, setIsCheckingDismissed] = useState(true);
 
-  // Check if banner should be shown
-  const isDismissed = Platform.OS === 'web' 
-    ? localStorage.getItem('bozzy_retroactive_prompt_dismissed') === 'true'
-    : false;
+  useEffect(() => {
+    ExpoSecureStoreAdapter.getItem('bozzy_retroactive_prompt_dismissed')
+      .then(val => {
+        if (val === 'true') setIsDismissed(true);
+      })
+      .finally(() => setIsCheckingDismissed(false));
+  }, []);
 
   const paidGigs = (gigs || []).filter(g => g.paid && g.net_amount > 0);
   const gigsWithoutAllocations = paidGigs.filter(gig => {
@@ -45,7 +49,7 @@ export function RetroactivePromptBanner() {
     gigsWithoutAllocations.length > 0 &&
     !isDismissed;
 
-  if (!shouldShow) {
+  if (isCheckingDismissed || !shouldShow) {
     return null;
   }
 
@@ -85,9 +89,8 @@ export function RetroactivePromptBanner() {
       }
 
       // Mark as complete
-      if (Platform.OS === 'web') {
-        localStorage.setItem('bozzy_retroactive_prompt_dismissed', 'true');
-      }
+      await ExpoSecureStoreAdapter.setItem('bozzy_retroactive_prompt_dismissed', 'true');
+      setIsDismissed(true);
 
       Alert.alert('Success', '✅ Calculated allocations for all your past gigs!');
     } catch (error) {
@@ -98,10 +101,9 @@ export function RetroactivePromptBanner() {
     }
   };
 
-  const handleStartFresh = () => {
-    if (Platform.OS === 'web') {
-      localStorage.setItem('bozzy_retroactive_prompt_dismissed', 'true');
-    }
+  const handleStartFresh = async () => {
+    await ExpoSecureStoreAdapter.setItem('bozzy_retroactive_prompt_dismissed', 'true');
+    setIsDismissed(true);
     Alert.alert('Got it', 'Your buckets will fill up as you log new paid gigs');
   };
 

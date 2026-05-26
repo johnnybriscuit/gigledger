@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { queryKeys } from '../lib/queryKeys';
@@ -7,6 +8,14 @@ import type { AllocationBucket } from '../types/allocation';
 import { validateBucketPercentages } from '../utils/allocationEngine';
 
 type DbAllocationBucket = Database['public']['Tables']['allocation_buckets']['Row'];
+
+const CORE_BUCKET_TYPES: ReadonlyArray<string> = [
+  'federal_tax',
+  'state_tax',
+  'retirement',
+  'emergency_fund',
+  'spendable',
+];
 
 export interface CreateBucketInput {
   name: string;
@@ -177,41 +186,93 @@ export function useAllocationBuckets() {
     },
   });
 
-  const validatePercentages = (buckets?: DbAllocationBucket[]): BucketValidationWarning => {
-    const bucketsToValidate = (buckets || bucketsQuery.data || []) as AllocationBucket[];
-    const validation = validateBucketPercentages(bucketsToValidate);
+  const buckets = bucketsQuery.data || [];
 
-    if (!validation.valid) {
+  const totalAllocatedPercent = useMemo(() => {
+    const nonSpendable = buckets.filter(b => b.bucket_type !== 'spendable');
+    const total = nonSpendable.reduce((sum, b) => sum + b.percentage, 0);
+    return Math.round(total * 100) / 100;
+  }, [buckets]);
+
+  const spendablePercent = Math.round((100 - totalAllocatedPercent) * 100) / 100;
+
+  const validation = useMemo(
+    () => validateBucketPercentages(buckets as unknown as AllocationBucket[]),
+    [buckets]
+  );
+
+  const isValid = validation.valid;
+  const validationError = isValid
+    ? ''
+    : validation.difference > 0
+      ? `Bucket percentages total ${validation.total}% (${validation.difference}% over 100%). Consider adjusting.`
+      : `Bucket percentages total ${validation.total}% (${Math.abs(validation.difference)}% under 100%). Consider adjusting.`;
+
+  const validatePercentages = (overrideBuckets?: DbAllocationBucket[]): BucketValidationWarning => {
+    const bucketsToValidate = (overrideBuckets || buckets) as AllocationBucket[];
+    const v = validateBucketPercentages(bucketsToValidate);
+
+    if (!v.valid) {
       const message =
-        validation.difference > 0
-          ? `Bucket percentages total ${validation.total}% (${validation.difference}% over 100%). Consider adjusting.`
-          : `Bucket percentages total ${validation.total}% (${Math.abs(validation.difference)}% under 100%). Consider adjusting.`;
+        v.difference > 0
+          ? `Bucket percentages total ${v.total}% (${v.difference}% over 100%). Consider adjusting.`
+          : `Bucket percentages total ${v.total}% (${Math.abs(v.difference)}% under 100%). Consider adjusting.`;
 
       return {
         hasWarning: true,
         message,
-        total: validation.total,
-        difference: validation.difference,
+        total: v.total,
+        difference: v.difference,
       };
     }
 
     return {
       hasWarning: false,
       message: '',
-      total: validation.total,
+      total: v.total,
       difference: 0,
     };
   };
 
   return {
-    buckets: bucketsQuery.data || [],
+    buckets,
     isLoading: bucketsQuery.isLoading,
     error: bucketsQuery.error,
-    createBucket: createMutation.mutateAsync,
+
+    createBucket: async (input: CreateBucketInput) => {
+      if (CORE_BUCKET_TYPES.includes(input.bucket_type)) {
+        const duplicate = buckets.find(b => b.bucket_type === input.bucket_type);
+        if (duplicate) {
+          throw new Error(
+            `A ${input.bucket_type} bucket already exists. Only one of each core bucket type is allowed.`
+          );
+        }
+      }
+      return createMutation.mutateAsync(input);
+    },
+
     updateBucket: (id: string, input: UpdateBucketInput) =>
       updateMutation.mutateAsync({ id, input }),
-    deleteBucket: deleteMutation.mutateAsync,
-    reorderBuckets: reorderMutation.mutateAsync,
+
+    deleteBucket: async (bucketId: string) => {
+      const bucket = buckets.find(b => b.id === bucketId);
+      if (bucket && CORE_BUCKET_TYPES.includes(bucket.bucket_type)) {
+        throw new Error(
+          `Cannot delete a ${bucket.bucket_type} bucket. Only goal and debt buckets can be removed.`
+        );
+      }
+      return deleteMutation.mutateAsync(bucketId);
+    },
+
+    reorderBuckets: (orderedIds: string[]) =>
+      reorderMutation.mutateAsync(
+        orderedIds.map((id, index) => ({ id, sort_order: index }))
+      ),
+
+    totalAllocatedPercent,
+    spendablePercent,
+    isValid,
+    validationError,
     validatePercentages,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,

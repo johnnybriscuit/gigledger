@@ -39,9 +39,11 @@ interface DashboardScreenProps {
   onNavigateToBusinessStructures?: () => void;
   onNavigateToMFASetup?: () => void;
   onNavigateToBucketSetup?: () => void;
+  onNavigateToMyMoney?: () => void;
+  onNavigateToRateGuide?: () => void;
 }
 
-export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMFASetup, onNavigateToBucketSetup }: DashboardScreenProps = {}) {
+export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMFASetup, onNavigateToBucketSetup, onNavigateToMyMoney, onNavigateToRateGuide }: DashboardScreenProps = {}) {
   const { isMobile, width } = useResponsive();
   const isDesktopWidth = Platform.OS === 'web' && width >= 768;
   
@@ -232,6 +234,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
         return (
           <GigsScreen
             onNavigateToSubscription={() => setActiveTab('subscription')}
+            onNavigateToBucketSetup={onNavigateToBucketSetup}
+            onNavigateToRateGuide={onNavigateToRateGuide}
           />
         );
       case 'expenses':
@@ -297,6 +301,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
             onAddExpense={() => setShowAddExpenseModal(true)}
             onExport={() => setActiveTab('exports')}
             onNavigateToBucketSetup={onNavigateToBucketSetup}
+            onNavigateToMyMoney={onNavigateToMyMoney}
+            onNavigateToRateGuide={onNavigateToRateGuide}
           />
         );
     }
@@ -439,6 +445,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
           setShowAddGigModal(false);
           setActiveTab('subscription');
         }}
+        onNavigateToRateGuide={onNavigateToRateGuide}
         source="dashboard"
       />
 

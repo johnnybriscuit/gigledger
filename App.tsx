@@ -23,6 +23,8 @@ import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen
 import { PublicLandingPage } from './src/screens/PublicLandingPage';
 import { PublicInvoiceView } from './src/screens/PublicInvoiceView';
 import { BucketSetupScreen } from './src/screens/BucketSetupScreen';
+import { MyMoneyScreen } from './src/screens/MyMoneyScreen';
+import { RateGuideScreen } from './src/screens/RateGuideScreen';
 import { useAppBootstrap } from './src/hooks/useAppBootstrap';
 import { LoadingScreen } from './src/components/LoadingScreen';
 import { ErrorScreen } from './src/components/ErrorScreen';
@@ -107,7 +109,7 @@ function AppContent() {
   };
   
   const initialPublicInvoiceRoute = getPublicInvoiceRoute();
-  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-verify' | 'public-invoice' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password' | 'bucket-setup'>(getRouteFromLocation());
+  const [currentRoute, setCurrentRoute] = useState<'landing' | 'auth' | 'onboarding' | 'dashboard' | 'terms' | 'privacy' | 'support' | 'business-structures' | 'mfa-setup' | 'mfa-verify' | 'public-invoice' | 'auth-callback' | 'check-email' | 'forgot-password' | 'reset-password' | 'bucket-setup' | 'my-money' | 'rate-guide'>(getRouteFromLocation());
   const [authResolved, setAuthResolved] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>(getAuthModeFromLocation());
@@ -576,6 +578,31 @@ function AppContent() {
     );
   }
 
+  if (currentRoute === 'rate-guide') {
+    return (
+      <>
+        <StatusBar style={statusBarStyle} />
+        <UserProvider>
+          <RateGuideScreen onBack={() => setCurrentRoute('my-money')} />
+        </UserProvider>
+      </>
+    );
+  }
+
+  if (currentRoute === 'my-money') {
+    return (
+      <>
+        <StatusBar style={statusBarStyle} />
+        <UserProvider>
+          <MyMoneyScreen
+            onManageBuckets={() => setCurrentRoute('bucket-setup')}
+            onNavigateToRateGuide={() => setCurrentRoute('rate-guide')}
+          />
+        </UserProvider>
+      </>
+    );
+  }
+
   console.log('🔵 [App] Rendering dashboard - bootstrap complete, onboarding not needed');
 
   return (
@@ -589,6 +616,8 @@ function AppContent() {
             setCurrentRoute('mfa-setup');
           }}
           onNavigateToBucketSetup={() => setCurrentRoute('bucket-setup')}
+          onNavigateToMyMoney={() => setCurrentRoute('my-money')}
+          onNavigateToRateGuide={() => setCurrentRoute('rate-guide')}
         />
       </UserProvider>
     </>

@@ -6,7 +6,7 @@ import { env } from '../config/env';
 import type { Database } from '../types/database.types';
 
 // Custom storage adapter for Expo SecureStore (mobile) and localStorage (web)
-const ExpoSecureStoreAdapter = {
+export const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
     if (Platform.OS === 'web') {
       return Promise.resolve(localStorage.getItem(key));

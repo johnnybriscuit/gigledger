@@ -36,6 +36,10 @@ import { DateRangeFilter } from '../components/DateRangeFilter';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 import { sumMileageDeduction } from '../lib/mileage';
 import { MapCard } from '../components/dashboard/maps/MapCard';
+import { AllocationCard } from '../components/AllocationCard';
+import { useAllocationTransactions } from '../hooks/useAllocationTransactions';
+import { useAllocationBuckets } from '../hooks/useAllocationBuckets';
+import { scheduleTransferReminder } from '../lib/scheduleTransferReminder';
 
 // Design tokens
 const T = {
@@ -278,9 +282,11 @@ const cardS = StyleSheet.create({
 
 interface GigsScreenProps {
   onNavigateToSubscription?: () => void;
+  onNavigateToBucketSetup?: () => void;
+  onNavigateToRateGuide?: () => void;
 }
 
-export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
+export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, onNavigateToRateGuide }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
@@ -300,6 +306,11 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
   
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
+
+  const { createAllocationsForGig } = useAllocationTransactions();
+  const { spendablePercent } = useAllocationBuckets();
+  const [allocationCardGig, setAllocationCardGig] = useState<GigWithPayer | null>(null);
+  const [showAllocationCard, setShowAllocationCard] = useState(false);
 
   const queryDateRange = dateRange ? dateRangeToStrings(dateRange, customStart, customEnd) : null;
   const { data: gigs, isLoading, error } = useGigs(
@@ -362,17 +373,35 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
     setDuplicatingGig(null);
   };
 
+  const handleAllocationCardDismiss = () => {
+    setShowAllocationCard(false);
+    setAllocationCardGig(null);
+  };
+
   const handleTogglePaid = async (gig: GigWithPayer) => {
     setTogglingGigId(gig.id);
-    
+
     try {
       const newPaidStatus = !gig.paid;
       await updateGig.mutateAsync({
         id: gig.id,
         paid: newPaidStatus,
       });
-      
-      // Success feedback (optional toast could be added here)
+
+      if (newPaidStatus) {
+        try {
+          await createAllocationsForGig({ gigId: gig.id, grossAmount: gig.net_amount ?? 0 });
+        } catch (allocError) {
+          console.error('[GigsScreen] Error creating allocations:', allocError);
+        }
+
+        setAllocationCardGig(gig);
+        setShowAllocationCard(true);
+
+        const spendableAmt = (gig.net_amount ?? 0) * (spendablePercent / 100);
+        const transferAmt = Math.round(((gig.net_amount ?? 0) - spendableAmt) * 100) / 100;
+        void scheduleTransferReminder(getGigDisplayName(gig), transferAmt);
+      }
     } catch (error: any) {
       // Error feedback
       if (Platform.OS === 'web') {
@@ -773,6 +802,7 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
         editingGig={editingGig}
         duplicatingGig={duplicatingGig}
         source="gigs"
+        onNavigateToRateGuide={onNavigateToRateGuide}
       />
       
       <CSVImportWizard
@@ -822,6 +852,18 @@ export function GigsScreen({ onNavigateToSubscription }: GigsScreenProps = {}) {
           setSelectedGigIds([]);
         }}
       />
+
+      {allocationCardGig && (
+        <AllocationCard
+          visible={showAllocationCard}
+          onDismiss={handleAllocationCardDismiss}
+          gig={allocationCardGig}
+          onSetUpBuckets={() => {
+            handleAllocationCardDismiss();
+            onNavigateToBucketSetup?.();
+          }}
+        />
+      )}
     </View>
   );
 }

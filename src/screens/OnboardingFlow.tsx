@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Platform } from 'react-native';
 import { OnboardingWelcome } from './OnboardingWelcome';
 import { OnboardingBusinessStructure } from './OnboardingBusinessStructure';
+import { BucketSetupScreen } from './BucketSetupScreen';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { useTaxProfile } from '../hooks/useTaxProfile';
+import { createDefaultBuckets } from '../lib/createDefaultBuckets';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -12,13 +15,26 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState(1);
   const queryClient = useQueryClient();
+  const { data: taxProfile } = useTaxProfile();
 
   const handleWelcomeNext = () => {
     setStep(2);
   };
 
+  const handleBusinessStructureComplete = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await createDefaultBuckets(user.id, taxProfile?.state ?? null);
+      }
+    } catch (error) {
+      console.error('[OnboardingFlow] Error creating default buckets:', error);
+    }
+    setStep(3);
+  };
+
   const handleBusinessStructureNext = () => {
-    void handleComplete();
+    void handleBusinessStructureComplete();
   };
 
   const handleComplete = async () => {
@@ -87,11 +103,15 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     );
   }
 
-  return (
-    <OnboardingBusinessStructure
-      onNext={handleBusinessStructureNext}
-      onSkip={handleBusinessStructureNext}
-      onBack={() => setStep(1)}
-    />
-  );
+  if (step === 2) {
+    return (
+      <OnboardingBusinessStructure
+        onNext={handleBusinessStructureNext}
+        onSkip={handleBusinessStructureNext}
+        onBack={() => setStep(1)}
+      />
+    );
+  }
+
+  return <BucketSetupScreen onComplete={handleComplete} />;
 }

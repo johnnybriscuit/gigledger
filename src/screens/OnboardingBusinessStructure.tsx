@@ -143,7 +143,7 @@ export function OnboardingBusinessStructure({ onNext, onSkip, onBack }: Onboardi
     <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.step}>Step 2 of 2</Text>
+          <Text style={styles.step}>Step 2 of 3</Text>
           <Text style={styles.title}>Choose Your Business Structure 🏢</Text>
           <Text style={styles.subtitle}>
             This helps us calculate your taxes correctly. If you're not sure, choose Individual—you can always change it later.
