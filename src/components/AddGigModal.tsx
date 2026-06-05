@@ -1118,12 +1118,24 @@ export function AddGigModal({
 
       const hasSavedMileage = Boolean(mileageData && mileageData.miles > 0);
 
+      const mileageSkipped = didDriveToGig && !hasSavedMileage;
+
       if (editingGig) {
-        Alert.alert('✓ Success', 'Gig updated successfully!', [{ text: 'OK' }]);
+        if (mileageSkipped) {
+          Alert.alert(
+            '✓ Gig updated',
+            "Gig saved! Mileage auto-calculation wasn't available — you can add it manually in the Mileage section.",
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('✓ Success', 'Gig updated successfully!', [{ text: 'OK' }]);
+        }
       } else {
         Alert.alert(
-          'Gig recorded',
-          'Your income is on the books. What would you like to do next?',
+          mileageSkipped ? 'Gig saved' : 'Gig recorded',
+          mileageSkipped
+            ? "Gig saved! We couldn't calculate your mileage automatically — you can add it manually in the Mileage section."
+            : 'Your income is on the books. What would you like to do next?',
           [
             { text: 'Done', style: 'cancel' },
             ...(onNavigateToExpenses

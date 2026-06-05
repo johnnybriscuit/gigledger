@@ -95,12 +95,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Place Details request:', { place_id: placeId });
     } else {
       const params = new URLSearchParams({
-        address: address!,
+        query: address!,
         key: GOOGLE_API_KEY,
       });
-      googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`;
+      googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?${params.toString()}`;
       requestMode = 'address';
-      console.log('Places geocode request via details endpoint');
+      console.log('Places text search request via details endpoint');
     }
 
     const response = await fetch(googleUrl);
@@ -115,9 +115,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
     } else if (data.status !== 'OK' || !Array.isArray(data.results) || data.results.length === 0) {
-      console.error('Google Geocoding API error:', data.status, data.error_message);
-      return res.status(502).json({
-        error: 'Geocoding API error',
+      console.error('Google Places Text Search error:', data.status, data.error_message);
+      return res.status(422).json({
+        error: 'Places text search error',
         status: data.status,
       });
     }
