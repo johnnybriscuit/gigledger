@@ -27,6 +27,7 @@ import { usePaymentMethodDetails } from '../hooks/usePaymentMethodDetails';
 import { getStateName } from '../tax/engine';
 import { resolvePlaceDetails } from '../lib/placeDetails';
 import { ThemeToggleButton } from '../components/ThemeToggleButton';
+import { ShareScheduleSection } from '../components/settings/ShareScheduleSection';
 
 const ALL_PAYMENT_METHODS: { key: string; label: string }[] = [
   { key: 'venmo', label: 'Venmo' },
@@ -635,6 +636,8 @@ export function AccountScreen({
             <RNText style={styles.navActionArrow}>›</RNText>
           </TouchableOpacity>
         </View>
+
+        <ShareScheduleSection />
 
         <RNText style={styles.sectionLabel}>Security</RNText>
         <View style={styles.settingsCard}>

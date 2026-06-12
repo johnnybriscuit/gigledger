@@ -41,6 +41,7 @@ import { AllocationCard } from '../components/AllocationCard';
 import { useAllocationTransactions } from '../hooks/useAllocationTransactions';
 import { useAllocationBuckets } from '../hooks/useAllocationBuckets';
 import { scheduleTransferReminder } from '../lib/scheduleTransferReminder';
+import { useSharedSchedule } from '../hooks/useSharedSchedule';
 
 // Design tokens
 const T = {
@@ -364,9 +365,10 @@ interface GigsScreenProps {
   onNavigateToSubscription?: () => void;
   onNavigateToBucketSetup?: () => void;
   onNavigateToRateGuide?: () => void;
+  onNavigateToAccount?: () => void;
 }
 
-export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, onNavigateToRateGuide }: GigsScreenProps = {}) {
+export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, onNavigateToRateGuide, onNavigateToAccount }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
@@ -387,6 +389,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
 
+  const { shareLink, shareUrl } = useSharedSchedule();
   const { createAllocationsForGig } = useAllocationTransactions();
   const { spendablePercent } = useAllocationBuckets();
   const [allocationCardGig, setAllocationCardGig] = useState<GigWithPayer | null>(null);
@@ -478,6 +481,51 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
       return;
     }
     setModalVisible(true);
+  };
+
+  const handleSharePress = () => {
+    if (shareLink && shareUrl) {
+      const options = ['📋 Copy schedule link', '👁 Preview schedule', '⚙️ Manage in Settings', 'Cancel'];
+      const cancelIndex = options.length - 1;
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          { options, cancelButtonIndex: cancelIndex },
+          (idx) => {
+            if (idx === 0) {
+              if (Platform.OS === 'web') {
+                navigator.clipboard.writeText(shareUrl);
+              } else {
+                import('expo-clipboard').then(Clipboard => Clipboard.setStringAsync(shareUrl));
+              }
+            } else if (idx === 1) {
+              if (Platform.OS === 'web') window.open(shareUrl, '_blank');
+              else import('react-native').then(({ Linking }) => Linking.openURL(shareUrl));
+            } else if (idx === 2) {
+              onNavigateToAccount?.();
+            }
+          }
+        );
+      } else {
+        Alert.alert('Schedule Link', shareUrl, [
+          { text: '📋 Copy link', onPress: () => {
+            if (Platform.OS === 'web') navigator.clipboard.writeText(shareUrl);
+            else import('expo-clipboard').then(C => C.setStringAsync(shareUrl));
+          }},
+          { text: '👁 Preview', onPress: () => {
+            if (Platform.OS === 'web') window.open(shareUrl, '_blank');
+            else import('react-native').then(({ Linking }) => Linking.openURL(shareUrl));
+          }},
+          { text: '⚙️ Manage in Settings', onPress: () => onNavigateToAccount?.() },
+          { text: 'Cancel', style: 'cancel' },
+        ]);
+      }
+    } else {
+      if (onNavigateToAccount) {
+        onNavigateToAccount();
+      } else {
+        Alert.alert('Share Your Schedule', 'Create a share link in Account Settings →');
+      }
+    }
   };
 
   const handleUpgradeClick = () => {
@@ -698,6 +746,9 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
               customEnd={customEnd}
               onCustomRangeChange={setCustomRange}
             />
+            <TouchableOpacity style={styles.btnGhost} onPress={handleSharePress}>
+              <NativeText style={styles.btnGhostText}>📤 Share</NativeText>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.btnGhost} onPress={() => setImportModalVisible(true)}>
               <NativeText style={styles.btnGhostText}>📥 Import</NativeText>
             </TouchableOpacity>

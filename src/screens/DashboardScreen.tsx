@@ -236,6 +236,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
             onNavigateToSubscription={() => setActiveTab('subscription')}
             onNavigateToBucketSetup={onNavigateToBucketSetup}
             onNavigateToRateGuide={onNavigateToRateGuide}
+            onNavigateToAccount={() => setActiveTab('account')}
           />
         );
       case 'expenses':
