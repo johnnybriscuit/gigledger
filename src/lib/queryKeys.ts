@@ -84,6 +84,9 @@ export const queryKeys = {
     filters ? ['allocation-transactions', userId, filters] as const : ['allocation-transactions', userId] as const,
   allocationYTD: (userId: string, year?: number) =>
     year ? ['allocation-ytd', userId, year] as const : ['allocation-ytd', userId] as const,
+
+  // Shared schedule links
+  sharedSchedule: (userId: string) => ['sharedSchedule', userId] as const,
 } as const;
 
 /**
