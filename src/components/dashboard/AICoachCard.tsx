@@ -23,6 +23,17 @@ interface CoachTipCache {
   tip: string;
   date: string;
   fallback: boolean;
+  category?: string;
+}
+
+function detectCategory(tipText: string): string {
+  const lower = tipText.toLowerCase();
+  if (lower.includes('tax') || lower.includes('quarter')) return 'TAX';
+  if (lower.includes('retirement') || lower.includes('sep') || lower.includes('ira') || lower.includes('401')) return 'RETIREMENT';
+  if (lower.includes('emergency')) return 'EMERGENCY';
+  if (lower.includes('debt') || lower.includes('loan') || lower.includes('interest')) return 'DEBT';
+  if (lower.includes('gig') || lower.includes('income') || lower.includes('earn')) return 'INCOME';
+  return 'GOAL';
 }
 
 export function AICoachCard({ className }: AICoachCardProps) {
@@ -35,6 +46,7 @@ export function AICoachCard({ className }: AICoachCardProps) {
   const [tip, setTip] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
+  const [lastCategory, setLastCategory] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleToggle = () => {
@@ -49,14 +61,17 @@ export function AICoachCard({ className }: AICoachCardProps) {
   // Load cached tip on mount
   useEffect(() => {
     if (Platform.OS === 'web') {
-      const cacheKey = `bozzy_coach_tip_${today}`;
+      const cacheKey = `bozzy_coach_tip_v2_${today}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         try {
           const parsed: CoachTipCache = JSON.parse(cached);
-          setTip(parsed.tip);
-          setIsFallback(parsed.fallback);
-          return;
+          if (!parsed.fallback) {
+            setTip(parsed.tip);
+            setIsFallback(false);
+            if (parsed.category) setLastCategory(parsed.category);
+            return;
+          }
         } catch (e) {
           // Invalid cache, continue to fetch
         }
@@ -118,7 +133,10 @@ export function AICoachCard({ className }: AICoachCardProps) {
         avgGigAmount,
         nextQuarterlyDate: nextQuarterly.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         daysUntilQuarterly,
+        lastAdviceCategory: lastCategory || undefined,
       };
+
+      console.log('[AICoachCard] Sending to AI coach:', { ytdIncome, gigCount, avgGigAmount, bucketsCount: requestBody.buckets.length });
 
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession();
@@ -141,13 +159,17 @@ export function AICoachCard({ className }: AICoachCardProps) {
       setTip(data.tip);
       setIsFallback(data.fallback || false);
 
-      // Cache the tip
-      if (Platform.OS === 'web') {
-        const cacheKey = `bozzy_coach_tip_${today}`;
+      const category = detectCategory(data.tip);
+      setLastCategory(category);
+
+      // Cache only real (non-fallback) responses
+      if (Platform.OS === 'web' && !data.fallback) {
+        const cacheKey = `bozzy_coach_tip_v2_${today}`;
         const cache: CoachTipCache = {
           tip: data.tip,
           date: today,
-          fallback: data.fallback || false,
+          fallback: false,
+          category,
         };
         localStorage.setItem(cacheKey, JSON.stringify(cache));
       }
@@ -163,7 +185,7 @@ export function AICoachCard({ className }: AICoachCardProps) {
 
   const handleRefresh = () => {
     if (Platform.OS === 'web') {
-      const cacheKey = `bozzy_coach_tip_${today}`;
+      const cacheKey = `bozzy_coach_tip_v2_${today}`;
       localStorage.removeItem(cacheKey);
     }
     setTip(null);
@@ -205,18 +227,19 @@ export function AICoachCard({ className }: AICoachCardProps) {
               color={colors.brand.DEFAULT}
               style={styles.inlineSpinner}
             />
-          ) : firstSentence ? (
+          ) : !isExpanded && firstSentence ? (
             <Text
               style={[styles.collapsedPreview, { color: colors.text.DEFAULT }]}
-              numberOfLines={isExpanded ? undefined : 1}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
               {firstSentence}
             </Text>
-          ) : (
+          ) : !isExpanded ? (
             <Text style={[styles.collapsedPreview, { color: colors.text.subtle }]}>
               Tap to get your personalized tip
             </Text>
-          )}
+          ) : null}
         </View>
         <Text style={[styles.chevron, { color: colors.text.subtle }]}>
           {isExpanded ? '▲' : '▼'}

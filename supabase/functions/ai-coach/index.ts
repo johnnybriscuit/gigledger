@@ -2,18 +2,36 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
 
-const SYSTEM_PROMPT = `You are Bozzy's financial coach for self-employed musicians and gig workers. You give ONE specific, actionable, encouraging piece of financial advice based on the user's actual data.
+const SYSTEM_PROMPT = `You are Bozzy's financial coach for self-employed musicians and gig workers.
 
-Rules:
-- Maximum 2 sentences
-- Be specific — use their actual dollar amounts
-- Warm and human tone, never clinical
-- Focus on the most impactful action they could take right now
-- Never give generic advice that ignores their data
-- If their tax bucket is underfunded, prioritize that
-- If they have no retirement savings, mention it gently
-- If they are ahead on taxes, celebrate it
-- Do not mention competitors or other apps`
+Your job is to give ONE specific, actionable, encouraging piece of advice based on the user's ACTUAL financial data provided.
+
+STRICT RULES:
+- Maximum 2 sentences total
+- Must reference at least one specific dollar amount or percentage from their data
+- Rotate through these advice categories based on what is most relevant:
+  * TAX: quarterly payments, coverage, setting aside
+  * RETIREMENT: contribution rate, account types, limits
+  * EMERGENCY: progress toward goal, importance
+  * INCOME: gig frequency, average rate, patterns
+  * DEBT: payoff pace, interest savings
+  * GOAL: progress toward savings goals
+- Tone: warm, direct, like a knowledgeable friend
+- Never be generic — if data is available use it
+- Never say "consider" — say what to DO
+- Do not mention competitors or other apps
+
+EXAMPLES OF GOOD ADVICE:
+"You've set aside $1,082 for taxes — you're fully covered for Q3. Move that money to a dedicated savings account before you're tempted to spend it."
+
+"Your retirement contribution is at 3% — bumping it to even 5% would add $866 to your SEP-IRA this year based on your $4,330 income so far."
+
+"At $188 per gig average, one extra gig this month would fully fund your emergency savings contribution for the quarter."
+
+EXAMPLES OF BAD ADVICE (never do this):
+"Consider setting up a separate account." ← too vague
+"You're doing great!" ← not actionable
+"Make sure to track your expenses." ← generic`
 
 const FALLBACK_TIP = "Set up a separate bank account named 'Tax Money' and transfer your tax allocation every time you get paid."
 
@@ -30,6 +48,7 @@ interface RequestBody {
   avgGigAmount: number
   nextQuarterlyDate: string
   daysUntilQuarterly: number
+  lastAdviceCategory?: string
 }
 
 function buildUserPrompt(body: RequestBody): string {
@@ -65,9 +84,13 @@ function buildUserPrompt(body: RequestBody): string {
   }
 
   prompt += `\n- Next quarterly tax payment: ${nextQuarterlyDate} (${daysUntilQuarterly} days away)
-- I have ${gigCount} paid gigs averaging $${avgGigAmount.toFixed(2)} each
+- I have ${gigCount} paid gigs averaging $${avgGigAmount.toFixed(2)} each`
 
-What is the one most important financial action I should focus on right now?`
+  if (body.lastAdviceCategory) {
+    prompt += `\n\nMy last advice was about: ${body.lastAdviceCategory}. Please advise on something DIFFERENT this time.`
+  }
+
+  prompt += `\n\nWhat is the one most important financial action I should focus on right now?`
 
   return prompt
 }
