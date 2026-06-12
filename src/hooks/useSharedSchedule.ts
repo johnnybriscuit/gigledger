@@ -12,6 +12,7 @@ export interface SharedScheduleLink {
   display_name: string | null;
   show_amounts: boolean;
   show_venues: boolean;
+  share_window_days: number;
   expires_at: string | null;
   is_active: boolean;
   created_at: string;
@@ -23,6 +24,7 @@ export interface CreateShareLinkOptions {
   displayName?: string;
   showAmounts?: boolean;
   showVenues?: boolean;
+  shareWindowDays?: number | null;
   expiresAt?: string | null;
 }
 
@@ -30,6 +32,7 @@ export interface UpdateShareLinkOptions {
   displayName?: string;
   showAmounts?: boolean;
   showVenues?: boolean;
+  shareWindowDays?: number | null;
   expiresAt?: string | null;
 }
 
@@ -75,6 +78,7 @@ export function useSharedSchedule() {
           display_name: options.displayName ?? null,
           show_amounts: options.showAmounts ?? true,
           show_venues: options.showVenues ?? true,
+          share_window_days: options.shareWindowDays ?? 90,
           expires_at: options.expiresAt ?? null,
         })
         .select()
@@ -97,6 +101,7 @@ export function useSharedSchedule() {
       if (updates.displayName !== undefined) payload.display_name = updates.displayName;
       if (updates.showAmounts !== undefined) payload.show_amounts = updates.showAmounts;
       if (updates.showVenues !== undefined) payload.show_venues = updates.showVenues;
+      if (updates.shareWindowDays !== undefined) payload.share_window_days = updates.shareWindowDays;
       if (updates.expiresAt !== undefined) payload.expires_at = updates.expiresAt;
 
       const { data, error } = await (supabase as any)

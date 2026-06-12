@@ -51,7 +51,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: gigsRaw, error: gigsError } = await supabase
+    const endDate = shareLink.share_window_days
+      ? new Date(
+          Date.now() + shareLink.share_window_days * 24 * 60 * 60 * 1000
+        ).toISOString().slice(0, 10)
+      : null;
+
+    let gigsQuery = supabase
       .from('gigs')
       .select(`
         id,
@@ -68,6 +74,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq('user_id', shareLink.user_id)
       .gte('date', today)
       .order('date', { ascending: true });
+
+    if (endDate) {
+      gigsQuery = gigsQuery.lte('date', endDate);
+    }
+
+    const { data: gigsRaw, error: gigsError } = await gigsQuery;
 
     if (gigsError) {
       console.error('[share/token] gigs query error:', gigsError);
@@ -124,6 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       displayName,
       showAmounts: shareLink.show_amounts,
       showVenues: shareLink.show_venues,
+      shareWindowDays: shareLink.share_window_days ?? 90,
       gigs,
       monthlyTotals,
       generatedAt: new Date().toISOString(),

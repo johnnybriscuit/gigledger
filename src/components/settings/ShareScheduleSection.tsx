@@ -54,6 +54,7 @@ export function ShareScheduleSection() {
   // State B UI
   const [copyLabel, setCopyLabel] = useState('📋 Copy link');
   const [updateConfirm, setUpdateConfirm] = useState<'amounts' | 'venues' | null>(null);
+  const [windowConfirm, setWindowConfirm] = useState(false);
   const [revoking, setRevoking] = useState(false);
 
   const resetForm = () => {
@@ -132,6 +133,13 @@ export function ShareScheduleSection() {
     await updateShareLink(shareLink.id, { showVenues: val });
     setUpdateConfirm('venues');
     setTimeout(() => setUpdateConfirm(null), 1200);
+  };
+
+  const handleWindowChange = async (days: number) => {
+    if (!shareLink || shareLink.share_window_days === days) return;
+    await updateShareLink(shareLink.id, { shareWindowDays: days });
+    setWindowConfirm(true);
+    setTimeout(() => setWindowConfirm(false), 1200);
   };
 
   const handleRevoke = () => {
@@ -246,6 +254,31 @@ export function ShareScheduleSection() {
               trackColor={{ false: colors.border.DEFAULT, true: colors.brand.DEFAULT }}
               thumbColor={colors.surface.DEFAULT}
             />
+          </View>
+
+          <View style={S.divider} />
+
+          {/* Date window */}
+          <View style={S.windowHeaderRow}>
+            <Text style={S.fieldLabel}>SHOW GIGS FOR</Text>
+            {windowConfirm && <Text style={S.updateConfirmText}>Updated ✓</Text>}
+          </View>
+          <View style={S.windowChipRow}>
+            {([30, 90, 180, 3650] as const).map((days) => {
+              const labels: Record<number, string> = { 30: '1 month', 90: '3 months', 180: '6 months', 3650: 'All future' };
+              const active = shareLink.share_window_days === days;
+              return (
+                <TouchableOpacity
+                  key={days}
+                  style={[S.windowChip, active && S.windowChipActive]}
+                  onPress={() => handleWindowChange(days)}
+                >
+                  <Text style={[S.windowChipText, active && S.windowChipTextActive]}>
+                    {labels[days]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           <View style={S.divider} />
@@ -508,6 +541,15 @@ const S = StyleSheet.create({
   toggleLabel: { fontSize: 15, color: colors.text.DEFAULT },
   toggleHelper: { fontSize: 12, color: colors.text.subtle, marginTop: 2 },
   updateConfirmText: { fontSize: 12, color: colors.success.DEFAULT, marginTop: 2 },
+  windowHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  windowChipRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  windowChip: {
+    flex: 1, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
+    borderColor: colors.border.DEFAULT, backgroundColor: colors.surface.muted, alignItems: 'center',
+  },
+  windowChipActive: { borderColor: colors.brand.DEFAULT, backgroundColor: colors.brand.muted },
+  windowChipText: { fontSize: 12, fontWeight: '500', color: colors.text.muted },
+  windowChipTextActive: { color: colors.brand.DEFAULT, fontWeight: '700' },
   revokeBtn: { paddingVertical: 4, alignItems: 'center' },
   revokeBtnText: { fontSize: 15, fontWeight: '600', color: colors.danger.DEFAULT },
 });

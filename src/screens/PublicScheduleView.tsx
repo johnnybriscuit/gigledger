@@ -28,6 +28,7 @@ interface ScheduleData {
   displayName: string;
   showAmounts: boolean;
   showVenues: boolean;
+  shareWindowDays: number | null;
   gigs: ScheduleGig[];
   monthlyTotals: Record<string, number>;
   generatedAt: string;
@@ -189,6 +190,11 @@ export function PublicScheduleView({ token }: { token: string }) {
         <Text style={S.brand}>Bozzy</Text>
         <Text style={S.displayName}>{data.displayName}</Text>
         <Text style={S.updatedAt}>Updated {relativeTime(data.generatedAt)}</Text>
+        <Text style={S.windowText}>
+          {data.shareWindowDays === null || data.shareWindowDays >= 365
+            ? 'Showing all upcoming gigs'
+            : `Showing the next ${Math.round(data.shareWindowDays / 30)} months`}
+        </Text>
 
         <TouchableOpacity style={S.calBtn} onPress={handleOpenCal} activeOpacity={0.8}>
           <Text style={S.calBtnText}>📅 Subscribe in Google Calendar</Text>
@@ -301,7 +307,8 @@ const S = StyleSheet.create({
     fontSize: 28, fontWeight: '700', color: '#111827',
     marginBottom: 4, lineHeight: 34,
   },
-  updatedAt: { fontSize: 14, color: '#9ca3af', marginBottom: 20 },
+  updatedAt: { fontSize: 14, color: '#9ca3af', marginBottom: 4 },
+  windowText: { fontSize: 13, color: '#9ca3af', marginBottom: 20, fontStyle: 'italic' },
   calBtn: {
     borderWidth: 1, borderColor: '#1E3A5F', borderRadius: 8,
     paddingVertical: 12, alignItems: 'center', marginBottom: 32,

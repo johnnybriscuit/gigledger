@@ -41,7 +41,7 @@ import { AllocationCard } from '../components/AllocationCard';
 import { useAllocationTransactions } from '../hooks/useAllocationTransactions';
 import { useAllocationBuckets } from '../hooks/useAllocationBuckets';
 import { scheduleTransferReminder } from '../lib/scheduleTransferReminder';
-import { useSharedSchedule } from '../hooks/useSharedSchedule';
+import { ShareScheduleModal } from '../components/gigs/ShareScheduleModal';
 
 // Design tokens
 const T = {
@@ -389,7 +389,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
 
-  const { shareLink, shareUrl } = useSharedSchedule();
+  const [showShareModal, setShowShareModal] = useState(false);
   const { createAllocationsForGig } = useAllocationTransactions();
   const { spendablePercent } = useAllocationBuckets();
   const [allocationCardGig, setAllocationCardGig] = useState<GigWithPayer | null>(null);
@@ -481,51 +481,6 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
       return;
     }
     setModalVisible(true);
-  };
-
-  const handleSharePress = () => {
-    if (shareLink && shareUrl) {
-      const options = ['📋 Copy schedule link', '👁 Preview schedule', '⚙️ Manage in Settings', 'Cancel'];
-      const cancelIndex = options.length - 1;
-      if (Platform.OS === 'ios') {
-        ActionSheetIOS.showActionSheetWithOptions(
-          { options, cancelButtonIndex: cancelIndex },
-          (idx) => {
-            if (idx === 0) {
-              if (Platform.OS === 'web') {
-                navigator.clipboard.writeText(shareUrl);
-              } else {
-                import('expo-clipboard').then(Clipboard => Clipboard.setStringAsync(shareUrl));
-              }
-            } else if (idx === 1) {
-              if (Platform.OS === 'web') window.open(shareUrl, '_blank');
-              else import('react-native').then(({ Linking }) => Linking.openURL(shareUrl));
-            } else if (idx === 2) {
-              onNavigateToAccount?.();
-            }
-          }
-        );
-      } else {
-        Alert.alert('Schedule Link', shareUrl, [
-          { text: '📋 Copy link', onPress: () => {
-            if (Platform.OS === 'web') navigator.clipboard.writeText(shareUrl);
-            else import('expo-clipboard').then(C => C.setStringAsync(shareUrl));
-          }},
-          { text: '👁 Preview', onPress: () => {
-            if (Platform.OS === 'web') window.open(shareUrl, '_blank');
-            else import('react-native').then(({ Linking }) => Linking.openURL(shareUrl));
-          }},
-          { text: '⚙️ Manage in Settings', onPress: () => onNavigateToAccount?.() },
-          { text: 'Cancel', style: 'cancel' },
-        ]);
-      }
-    } else {
-      if (onNavigateToAccount) {
-        onNavigateToAccount();
-      } else {
-        Alert.alert('Share Your Schedule', 'Create a share link in Account Settings →');
-      }
-    }
   };
 
   const handleUpgradeClick = () => {
@@ -746,7 +701,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
               customEnd={customEnd}
               onCustomRangeChange={setCustomRange}
             />
-            <TouchableOpacity style={styles.btnGhost} onPress={handleSharePress}>
+            <TouchableOpacity style={styles.btnGhost} onPress={() => setShowShareModal(true)}>
               <NativeText style={styles.btnGhostText}>📤 Share</NativeText>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnGhost} onPress={() => setImportModalVisible(true)}>
@@ -972,6 +927,12 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
           }}
         />
       )}
+
+      <ShareScheduleModal
+        isVisible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        onNavigateToSettings={onNavigateToAccount}
+      />
     </View>
   );
 }
