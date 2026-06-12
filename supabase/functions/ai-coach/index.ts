@@ -121,19 +121,13 @@ serve(async (req) => {
     }
 
     // Validate caller identity
+    const token = authHeader.replace('Bearer ', '')
     const authClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      }
     )
 
-    const { data: { user: authUser }, error: authError } = await authClient.auth.getUser()
+    const { data: { user: authUser }, error: authError } = await authClient.auth.getUser(token)
     if (authError || !authUser) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),

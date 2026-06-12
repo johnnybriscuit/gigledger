@@ -147,6 +147,9 @@ export function AICoachCard({ className }: AICoachCardProps) {
 
       const { data, error } = await supabase.functions.invoke('ai-coach', {
         body: requestBody,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) {
