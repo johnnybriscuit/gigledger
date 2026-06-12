@@ -150,26 +150,6 @@ serve(async (req) => {
       )
     }
 
-    // Simple rate limiting: check allocation_transactions count for today
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const today = new Date().toISOString().split('T')[0]
-    const { count } = await supabaseClient
-      .from('allocation_transactions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', authUser.id)
-      .gte('created_at', `${today}T00:00:00`)
-
-    if (count && count >= 10) {
-      return new Response(
-        JSON.stringify({ error: 'Rate limit exceeded. Try again tomorrow.' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
-      )
-    }
-
     // Check for Anthropic API key
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!anthropicApiKey) {

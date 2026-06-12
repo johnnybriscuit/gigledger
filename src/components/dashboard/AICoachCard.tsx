@@ -41,7 +41,8 @@ export function AICoachCard({ className }: AICoachCardProps) {
   const colors = getThemePalette(theme);
   const { buckets } = useAllocationBuckets();
   const { ytdTotals } = useAllocationTransactions();
-  const { data: gigs } = useGigs();
+  const ytdStart = `${new Date().getFullYear()}-01-01`;
+  const { data: gigs } = useGigs({ startDate: ytdStart });
   
   const [tip, setTip] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -91,7 +92,7 @@ export function AICoachCard({ className }: AICoachCardProps) {
     try {
       // Calculate data for the prompt
       const paidGigs = (gigs || []).filter(g => g.paid);
-      const ytdIncome = paidGigs.reduce((sum, g) => sum + g.net_amount, 0);
+      const ytdIncome = paidGigs.reduce((sum, g) => sum + (g.gross_amount || 0), 0);
       const gigCount = paidGigs.length;
       const avgGigAmount = gigCount > 0 ? ytdIncome / gigCount : 0;
 
