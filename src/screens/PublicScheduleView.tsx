@@ -15,13 +15,13 @@ interface ScheduleGig {
   id: string;
   date: string;
   title: string | null;
-  location: string | null;
+  venue: string | null;
   city: string | null;
   state: string | null;
-  net_amount: number | null;
-  gross_amount: number | null;
-  paid: boolean;
-  payer: { name: string } | null;
+  amount: number | null;
+  grossAmount: number | null;
+  status: 'paid' | 'unpaid';
+  payerName: string | null;
 }
 
 interface ScheduleData {
@@ -217,24 +217,22 @@ export function PublicScheduleView({ token }: { token: string }) {
                   <Text style={S.emptyMonth}>Nothing scheduled yet</Text>
                 ) : (
                   monthGigs.map((gig) => {
-                    const payerName = gig.payer?.name ?? 'Unknown';
+                    const payerName = gig.payerName ?? 'Unknown';
                     const showTitle = gig.title && gig.title !== payerName;
                     let locationLine: string | null = null;
-                    if (data.showVenues) {
-                      if (gig.location && gig.city) {
-                        locationLine = `${gig.location} · ${gig.city}${gig.state ? `, ${gig.state}` : ''}`;
-                      } else if (gig.city) {
-                        locationLine = `${gig.city}${gig.state ? `, ${gig.state}` : ''}`;
-                      } else if (gig.location) {
-                        locationLine = gig.location;
-                      }
+                    if (gig.venue && gig.city) {
+                      locationLine = `${gig.venue} · ${gig.city}${gig.state ? `, ${gig.state}` : ''}`;
+                    } else if (gig.city) {
+                      locationLine = `${gig.city}${gig.state ? `, ${gig.state}` : ''}`;
+                    } else if (gig.venue) {
+                      locationLine = gig.venue;
                     }
                     return (
                       <View key={gig.id} style={S.gigCard}>
                         <View style={S.gigRow}>
                           <Text style={S.gigDate}>{formatGigDate(gig.date)}</Text>
-                          {data.showAmounts && gig.net_amount != null && (
-                            <Text style={S.gigAmount}>{formatCurrency(gig.net_amount)}</Text>
+                          {gig.amount != null && (
+                            <Text style={S.gigAmount}>{formatCurrency(gig.amount)}</Text>
                           )}
                         </View>
                         <Text style={S.gigPayer}>{payerName}</Text>
