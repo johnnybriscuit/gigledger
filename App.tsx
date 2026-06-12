@@ -22,6 +22,7 @@ import { SupportScreen } from './src/screens/SupportScreen';
 import { BusinessStructuresScreen } from './src/screens/BusinessStructuresScreen';
 import { PublicLandingPage } from './src/screens/PublicLandingPage';
 import { PublicInvoiceView } from './src/screens/PublicInvoiceView';
+import { PublicScheduleView } from './src/screens/PublicScheduleView';
 import { BucketSetupScreen } from './src/screens/BucketSetupScreen';
 import { MyMoneyScreen } from './src/screens/MyMoneyScreen';
 import { RateGuideScreen } from './src/screens/RateGuideScreen';
@@ -116,6 +117,15 @@ function AppContent() {
   const [oauthCallbackUrl, setOauthCallbackUrl] = useState<string | null>(null);
   const [pendingMfaFactor, setPendingMfaFactor] = useState<MFAFactor | null>(null);
   const [publicInvoiceRoute, setPublicInvoiceRoute] = useState(initialPublicInvoiceRoute);
+
+  const [shareToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const path = window.location.pathname;
+    if (path.startsWith('/share/')) {
+      return path.split('/share/')[1] || null;
+    }
+    return null;
+  });
 
   // Sync URL with current route on web
   useEffect(() => {
@@ -314,6 +324,16 @@ function AppContent() {
 
     return () => subscription.remove();
   }, []);
+
+  // PUBLIC SHARE ROUTE — render before auth gate, no login required
+  if (shareToken) {
+    return (
+      <>
+        <StatusBar style="dark" />
+        <PublicScheduleView token={shareToken} />
+      </>
+    );
+  }
 
   // AUTH RESOLUTION GATE - Prevent landing page flash on refresh
   if (!authResolved) {
