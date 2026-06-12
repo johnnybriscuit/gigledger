@@ -41,6 +41,22 @@ export function AuthCallbackScreen({
 
   const handleCallback = async () => {
     try {
+      // Web: explicitly exchange PKCE code before calling getSession().
+      // detectSessionInUrl exchanges the code asynchronously; calling getSession()
+      // immediately after mount races against it and returns null on PKCE flows.
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        if (code) {
+          console.log('[AuthCallback] Web: exchanging PKCE code for session');
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.warn('[AuthCallback] PKCE exchange warning (may already be exchanged):', exchangeError.message);
+          }
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
+
       // For native platforms, check if we have a deep link URL with OAuth params
       if (Platform.OS !== 'web') {
         // Use the URL passed from App.tsx (from deep link handler)
