@@ -210,6 +210,12 @@ export function useDeleteGig() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Delete associated allocation_transactions first
+      await supabase
+        .from('allocation_transactions')
+        .delete()
+        .eq('gig_id', id);
+
       const { error } = await supabase
         .from('gigs')
         .delete()
@@ -234,6 +240,7 @@ export function useDeleteGig() {
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(userId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.expenses(userId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.mileage(userId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.allocationTransactions(userId) });
       }
     },
   });

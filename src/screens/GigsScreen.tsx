@@ -5,6 +5,7 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
+  ActionSheetIOS,
   Platform,
   ScrollView,
   Modal,
@@ -118,6 +119,45 @@ function GigCard({
   const displayName = getGigDisplayName(item);
   const venueCity = item.location || (item.payer?.name || 'Unknown Payer');
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleDeletePress = () => {
+    const msg = item.paid
+      ? `This gig is marked as paid. Deleting it will also remove ${formatCurrency(gross)} from your income records and allocation history. Are you sure?`
+      : `This will permanently remove "${displayName}" and cannot be undone.`;
+    if (Platform.OS === 'web') {
+      if (window.confirm(msg)) onDelete();
+    } else {
+      Alert.alert('Delete this gig?', msg, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: onDelete },
+      ]);
+    }
+  };
+
+  const handleOverflowMenu = () => {
+    if (Platform.OS === 'ios') {
+      const options: string[] = ['Edit', 'Repeat'];
+      if (onAddToCalendar) options.push('Add to Calendar');
+      options.push('Delete Gig');
+      options.push('Cancel');
+      const cancelIndex = options.length - 1;
+      const destructiveIndex = options.indexOf('Delete Gig');
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: cancelIndex, destructiveButtonIndex: destructiveIndex },
+        (buttonIndex) => {
+          const action = options[buttonIndex];
+          if (action === 'Edit') onEdit();
+          else if (action === 'Repeat') onRepeat();
+          else if (action === 'Add to Calendar') onAddToCalendar?.();
+          else if (action === 'Delete Gig') handleDeletePress();
+        }
+      );
+    } else {
+      setMenuOpen(true);
+    }
+  };
+
   const handleCardPress = () => {
     if (isSelectionMode && onToggleSelection) {
       onToggleSelection();
@@ -127,6 +167,7 @@ function GigCard({
   };
 
   return (
+    <>
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={handleCardPress}
@@ -195,15 +236,35 @@ function GigCard({
               <NativeText style={cardS.footerBtnText}>📅 Calendar</NativeText>
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={onEdit} style={cardS.footerBtn}>
-            <NativeText style={cardS.footerBtnText}>Edit</NativeText>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onRepeat} style={cardS.footerBtn}>
-            <NativeText style={cardS.footerBtnText}>Repeat</NativeText>
+          <TouchableOpacity onPress={handleOverflowMenu} style={cardS.overflowBtn}>
+            <NativeText style={cardS.overflowBtnText}>•••</NativeText>
           </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
+    {Platform.OS !== 'ios' && menuOpen && (
+      <Modal transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <TouchableOpacity style={cardS.menuBackdrop} activeOpacity={1} onPress={() => setMenuOpen(false)}>
+          <View style={cardS.menuSheet}>
+            <TouchableOpacity style={cardS.menuItem} onPress={() => { setMenuOpen(false); onEdit(); }}>
+              <NativeText style={cardS.menuItemText}>✏️  Edit</NativeText>
+            </TouchableOpacity>
+            <TouchableOpacity style={cardS.menuItem} onPress={() => { setMenuOpen(false); onRepeat(); }}>
+              <NativeText style={cardS.menuItemText}>🔁  Repeat</NativeText>
+            </TouchableOpacity>
+            {onAddToCalendar && (
+              <TouchableOpacity style={cardS.menuItem} onPress={() => { setMenuOpen(false); onAddToCalendar(); }}>
+                <NativeText style={cardS.menuItemText}>📅  Add to Calendar</NativeText>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[cardS.menuItem, cardS.menuItemLast]} onPress={() => { setMenuOpen(false); handleDeletePress(); }}>
+              <NativeText style={[cardS.menuItemText, cardS.menuItemDestructive]}>🗑️  Delete gig</NativeText>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    )}
+    </>
   );
 }
 
@@ -278,6 +339,25 @@ const cardS = StyleSheet.create({
   footerActions: { flexDirection: 'row', gap: 12 },
   footerBtn: { paddingVertical: 2 },
   footerBtnText: { fontSize: 13, fontWeight: '600', color: T.accent },
+  overflowBtn: { paddingVertical: 2, paddingHorizontal: 6 },
+  overflowBtnText: { fontSize: 16, fontWeight: '700', color: T.accent, letterSpacing: 3 },
+  menuBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  menuSheet: {
+    backgroundColor: T.surface,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 24,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: T.borderMuted,
+  },
+  menuItemLast: { borderBottomWidth: 0 },
+  menuItemText: { fontSize: 16, color: T.textPrimary, fontWeight: '500' },
+  menuItemDestructive: { color: T.red },
 });
 
 interface GigsScreenProps {
@@ -331,29 +411,6 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   const gigCount = entitlements.usage.gigsCount;
   const isFreePlan = !entitlements.isPro;
   const hasReachedGigLimit = !entitlements.can.createGig;
-
-  const handleDelete = (id: string, displayName: string) => {
-    if (Platform.OS === 'web') {
-      // Use window.confirm on web
-      if (window.confirm(`Are you sure you want to delete "${displayName}"?`)) {
-        deleteGig.mutate(id);
-      }
-    } else {
-      // Use Alert.alert on native
-      Alert.alert(
-        'Delete Gig',
-        `Are you sure you want to delete "${displayName}"?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => deleteGig.mutate(id),
-          },
-        ]
-      );
-    }
-  };
 
   const handleEdit = (gig: GigWithPayer) => {
     setEditingGig(gig);
@@ -777,7 +834,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
                   item={item}
                   onEdit={() => handleEdit(item)}
                   onRepeat={() => handleRepeat(item)}
-                  onDelete={() => handleDelete(item.id, getGigDisplayName(item))}
+                  onDelete={() => deleteGig.mutate(item.id)}
                   onTogglePaid={handleTogglePaid}
                   togglingGigId={togglingGigId}
                   formatDate={formatDate}
