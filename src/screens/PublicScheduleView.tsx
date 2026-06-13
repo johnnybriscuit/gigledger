@@ -21,6 +21,7 @@ interface ScheduleGig {
   amount: number | null;
   grossAmount: number | null;
   status: 'paid' | 'unpaid';
+  bookingStatus: 'tentative' | 'confirmed';
   payerName: string | null;
 }
 
@@ -31,6 +32,8 @@ interface ScheduleData {
   shareWindowDays: number | null;
   gigs: ScheduleGig[];
   monthlyTotals: Record<string, number>;
+  monthlyConfirmed: Record<string, number>;
+  monthlyTentative: Record<string, number>;
   generatedAt: string;
 }
 
@@ -214,9 +217,21 @@ export function PublicScheduleView({ token }: { token: string }) {
               <View key={monthKey} style={S.monthSection}>
                 <View style={S.monthHeader}>
                   <Text style={S.monthTitle}>{formatMonthHeader(monthKey)}</Text>
-                  {data.showAmounts && monthTotal > 0 && (
-                    <Text style={S.monthExpected}>Expected: {formatCurrency(monthTotal)}</Text>
-                  )}
+                  {data.showAmounts && monthTotal > 0 && (() => {
+                    const confirmed = data.monthlyConfirmed?.[monthKey] ?? 0;
+                    const tentative = data.monthlyTentative?.[monthKey] ?? 0;
+                    if (tentative > 0 && confirmed > 0) {
+                      return (
+                        <Text style={S.monthExpected}>
+                          Confirmed: {formatCurrency(confirmed)} · Tentative: ~{formatCurrency(tentative)}
+                        </Text>
+                      );
+                    }
+                    if (tentative > 0) {
+                      return <Text style={S.monthExpected}>Tentative: ~{formatCurrency(tentative)}</Text>;
+                    }
+                    return <Text style={S.monthExpected}>Expected: {formatCurrency(confirmed || monthTotal)}</Text>;
+                  })()}
                 </View>
                 <View style={S.monthDivider} />
                 {monthGigs.length === 0 ? (
@@ -233,17 +248,25 @@ export function PublicScheduleView({ token }: { token: string }) {
                     } else if (gig.venue) {
                       locationLine = gig.venue;
                     }
+                    const isTentative = gig.bookingStatus === 'tentative';
                     return (
-                      <View key={gig.id} style={S.gigCard}>
+                      <View key={gig.id} style={[S.gigCard, isTentative && S.gigCardTentative]}>
                         <View style={S.gigRow}>
                           <Text style={S.gigDate}>{formatGigDate(gig.date)}</Text>
                           {gig.amount != null && (
-                            <Text style={S.gigAmount}>{formatCurrency(gig.amount)}</Text>
+                            <Text style={S.gigAmount}>
+                              {isTentative ? '~' : ''}{formatCurrency(gig.amount)}
+                            </Text>
                           )}
                         </View>
                         <Text style={S.gigPayer}>{payerName}</Text>
                         {showTitle && <Text style={S.gigTitle}>{gig.title}</Text>}
                         {locationLine && <Text style={S.gigLocation}>📍 {locationLine}</Text>}
+                        {isTentative && (
+                          <View style={S.tentativeBadge}>
+                            <Text style={S.tentativeBadgeText}>⏳ TENTATIVE</Text>
+                          </View>
+                        )}
                       </View>
                     );
                   })
@@ -347,6 +370,16 @@ const S = StyleSheet.create({
   gigPayer: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 2 },
   gigTitle: { fontSize: 14, color: '#6b7280', marginBottom: 2, lineHeight: 20 },
   gigLocation: { fontSize: 13, color: '#6b7280', marginTop: 4, lineHeight: 18 },
+  gigCardTentative: { opacity: 0.85, borderColor: '#fcd34d', borderStyle: 'dashed' as any },
+  tentativeBadge: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  tentativeBadgeText: { fontSize: 11, fontWeight: '700', color: '#92400e', letterSpacing: 0.3 },
   footer: {
     marginTop: 40,
     paddingTop: 20,

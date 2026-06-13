@@ -46,6 +46,7 @@ export const gigSchema = z.object({
   withholding_amount: z.number().min(0, 'Must be 0 or greater').optional(),
   start_time: z.string().optional(), // HH:MM format (24-hour)
   end_time: z.string().optional(), // HH:MM format (24-hour)
+  booking_status: z.enum(['tentative', 'confirmed']).default('confirmed'),
 });
 
 export type GigFormData = z.infer<typeof gigSchema>;

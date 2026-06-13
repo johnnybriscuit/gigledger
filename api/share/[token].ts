@@ -69,6 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         net_amount,
         gross_amount,
         paid,
+        booking_status,
         payer:payers(name)
       `)
       .eq('user_id', shareLink.user_id)
@@ -101,12 +102,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         amount: shareLink.show_amounts ? (Number(g.net_amount) ?? null) : null,
         grossAmount: shareLink.show_amounts ? (Number(g.gross_amount) ?? null) : null,
         status: g.paid ? 'paid' : 'unpaid',
+        bookingStatus: (g.booking_status ?? 'confirmed') as 'tentative' | 'confirmed',
         payerName,
       };
     });
 
     const monthlyTotals: Record<string, number> = shareLink.show_amounts
       ? gigs.reduce((acc: Record<string, number>, g: any) => {
+          const month = g.date.slice(0, 7);
+          acc[month] = (acc[month] ?? 0) + (g.amount ?? 0);
+          return acc;
+        }, {})
+      : {};
+
+    const monthlyConfirmed: Record<string, number> = shareLink.show_amounts
+      ? gigs.filter((g: any) => g.bookingStatus === 'confirmed').reduce((acc: Record<string, number>, g: any) => {
+          const month = g.date.slice(0, 7);
+          acc[month] = (acc[month] ?? 0) + (g.amount ?? 0);
+          return acc;
+        }, {})
+      : {};
+
+    const monthlyTentative: Record<string, number> = shareLink.show_amounts
+      ? gigs.filter((g: any) => g.bookingStatus === 'tentative').reduce((acc: Record<string, number>, g: any) => {
           const month = g.date.slice(0, 7);
           acc[month] = (acc[month] ?? 0) + (g.amount ?? 0);
           return acc;
@@ -139,6 +157,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       shareWindowDays: shareLink.share_window_days ?? 90,
       gigs,
       monthlyTotals,
+      monthlyConfirmed,
+      monthlyTentative,
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {

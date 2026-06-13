@@ -55,7 +55,7 @@ serve(async (req) => {
 
     const { data: gigs, error: gigsError } = await supabase
       .from('gigs')
-      .select('id, date, title, location, city, state, gross_amount, payer:payers(name)')
+      .select('id, date, title, location, city, state, gross_amount, booking_status, payer:payers(name)')
       .eq('user_id', shareLink.user_id)
       .gte('date', today)
       .order('date', { ascending: true })
@@ -74,22 +74,28 @@ serve(async (req) => {
 
     const eventBlocks = (gigs ?? []).map((gig: any) => {
       const payerName = gig.payer?.name ?? 'Gig'
-      const summary = escapeICS(`${payerName} gig`)
-      const desc = gig.gross_amount != null
-        ? `Take-home\\: $${gig.gross_amount}`
-        : ''
+      const isTentative = (gig.booking_status ?? 'confirmed') === 'tentative'
+      const summary = isTentative
+        ? escapeICS(`TBD: ${payerName} gig`)
+        : escapeICS(`${payerName} gig`)
+      const desc = isTentative
+        ? `Tentative booking - not yet confirmed${gig.gross_amount != null ? `\\nEstimated\\: $${gig.gross_amount}` : ''}`
+        : `Confirmed booking${gig.gross_amount != null ? `\\nPay\\: $${gig.gross_amount}` : ''}`
       const locationParts = [gig.location, gig.city, gig.state].filter(Boolean)
       const location = locationParts.length > 0 ? escapeICS(locationParts.join(', ')) : ''
+      const icsStatus = isTentative ? 'TENTATIVE' : 'CONFIRMED'
 
       const lines = [
         'BEGIN:VEVENT',
         `UID:${gig.id}@bozzygigs.com`,
         `DTSTART;VALUE=DATE:${toICSDate(gig.date)}`,
         `SUMMARY:${summary}`,
+        `STATUS:${icsStatus}`,
+        `CATEGORIES:${icsStatus}`,
       ]
       if (desc) lines.push(`DESCRIPTION:${desc}`)
       if (location) lines.push(`LOCATION:${location}`)
-      lines.push('STATUS:TENTATIVE', 'END:VEVENT')
+      lines.push('END:VEVENT')
       return lines.join('\r\n')
     })
 

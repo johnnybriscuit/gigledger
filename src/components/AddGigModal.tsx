@@ -172,6 +172,7 @@ export function AddGigModal({
   const [paymentMethod, setPaymentMethod] = useState('');
   const [invoiceLink, setInvoiceLink] = useState('');
   const [paid, setPaid] = useState(false);
+  const [bookingStatus, setBookingStatus] = useState<'tentative' | 'confirmed'>('confirmed');
   const [taxesWithheld, setTaxesWithheld] = useState(false);
   const [notes, setNotes] = useState('');
   const [inlineExpenses, setInlineExpenses] = useState<InlineExpense[]>([]);
@@ -520,6 +521,7 @@ export function AddGigModal({
       setPaymentMethod(editingGig.payment_method || '');
       setInvoiceLink(editingGig.invoice_link || '');
       setPaid(editingGig.paid || false);
+      setBookingStatus((editingGig as any).booking_status || 'confirmed');
       setTaxesWithheld(editingGig.taxes_withheld || false);
       setNotes(editingGig.notes || '');
       setStartTime((editingGig as any).start_time || '');
@@ -596,6 +598,7 @@ export function AddGigModal({
     setPaymentMethod('');
     setInvoiceLink('');
     setPaid(false);
+    setBookingStatus('confirmed');
     setTaxesWithheld(false);
     setNotes('');
     setStartTime('');
@@ -968,6 +971,7 @@ export function AddGigModal({
         payment_method: paymentMethod || undefined,
         invoice_link: invoiceLink || undefined,
         paid,
+        booking_status: bookingStatus,
         taxes_withheld: taxesWithheld,
         notes: notes || undefined,
         tax_treatment: taxTreatmentOverride || undefined,
@@ -1613,6 +1617,46 @@ export function AddGigModal({
                 </View>
               }
             />
+
+            {/* Booking Status */}
+            <View style={styles.bookingStatusSection}>
+              <Text style={styles.bookingStatusLabel}>BOOKING STATUS</Text>
+              <View style={styles.bookingStatusToggle}>
+                <TouchableOpacity
+                  style={[
+                    styles.bookingStatusOption,
+                    styles.bookingStatusOptionLeft,
+                    bookingStatus === 'tentative' && styles.bookingStatusOptionTentativeActive,
+                  ]}
+                  onPress={() => setBookingStatus('tentative')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.bookingStatusOptionText,
+                    bookingStatus === 'tentative' && styles.bookingStatusOptionTentativeText,
+                  ]}>Tentative</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.bookingStatusOption,
+                    styles.bookingStatusOptionRight,
+                    bookingStatus === 'confirmed' && styles.bookingStatusOptionConfirmedActive,
+                  ]}
+                  onPress={() => setBookingStatus('confirmed')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.bookingStatusOptionText,
+                    bookingStatus === 'confirmed' && styles.bookingStatusOptionConfirmedText,
+                  ]}>Confirmed ✓</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.bookingStatusHelp}>
+                {bookingStatus === 'tentative'
+                  ? 'This gig will show as TBD on your shared schedule'
+                  : 'This gig will show as confirmed on your shared schedule'}
+              </Text>
+            </View>
 
             <PayBreakdownSection
               isStacked={isMobile}
@@ -3282,5 +3326,61 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.muted,
     marginTop: 4,
+  },
+  bookingStatusSection: {
+    marginBottom: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: 10,
+    backgroundColor: colors.surface.DEFAULT,
+  },
+  bookingStatusLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.text.muted,
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  bookingStatusToggle: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: colors.border.DEFAULT,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  bookingStatusOption: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: colors.surface.elevated,
+  },
+  bookingStatusOptionLeft: {
+    borderRightWidth: 1,
+    borderRightColor: colors.border.DEFAULT,
+  },
+  bookingStatusOptionRight: {},
+  bookingStatusOptionTentativeActive: {
+    backgroundColor: '#fef3c7',
+  },
+  bookingStatusOptionConfirmedActive: {
+    backgroundColor: '#d1fae5',
+  },
+  bookingStatusOptionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text.muted,
+  },
+  bookingStatusOptionTentativeText: {
+    color: '#92400e',
+  },
+  bookingStatusOptionConfirmedText: {
+    color: '#065f46',
+  },
+  bookingStatusHelp: {
+    fontSize: 12,
+    color: colors.text.subtle,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });

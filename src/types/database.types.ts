@@ -1,3 +1,6 @@
+Need to install the following packages:
+supabase@2.106.0
+Ok to proceed? (y) 
 export type Json =
   | string
   | number
@@ -403,6 +406,7 @@ export type Database = {
       gigs: {
         Row: {
           amount_type: string
+          booking_status: string
           calendar_event_id: string | null
           city: string | null
           country: string | null
@@ -438,6 +442,7 @@ export type Database = {
         }
         Insert: {
           amount_type?: string
+          booking_status?: string
           calendar_event_id?: string | null
           city?: string | null
           country?: string | null
@@ -473,6 +478,7 @@ export type Database = {
         }
         Update: {
           amount_type?: string
+          booking_status?: string
           calendar_event_id?: string | null
           city?: string | null
           country?: string | null
@@ -1412,6 +1418,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shared_schedule_links: {
+        Row: {
+          access_count: number
+          created_at: string
+          display_name: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          last_accessed: string | null
+          share_window_days: number
+          show_amounts: boolean
+          show_venues: boolean
+          token: string
+          user_id: string
+        }
+        Insert: {
+          access_count?: number
+          created_at?: string
+          display_name?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_accessed?: string | null
+          share_window_days?: number
+          show_amounts?: boolean
+          show_venues?: boolean
+          token: string
+          user_id: string
+        }
+        Update: {
+          access_count?: number
+          created_at?: string
+          display_name?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_accessed?: string | null
+          share_window_days?: number
+          show_amounts?: boolean
+          show_venues?: boolean
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       state_tax_rates: {
         Row: {

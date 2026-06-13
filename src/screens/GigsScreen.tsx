@@ -200,6 +200,11 @@ function GigCard({
             <View style={cardS.dateChip}>
               <NativeText style={cardS.dateText}>{formatDate(item.date)}</NativeText>
             </View>
+            {(item as any).booking_status === 'tentative' && (
+              <View style={cardS.badgeTentative}>
+                <NativeText style={cardS.badgeTextTentative}>TENTATIVE</NativeText>
+              </View>
+            )}
             <TouchableOpacity
               onPress={() => onTogglePaid(item)}
               disabled={togglingGigId === item.id}
@@ -311,6 +316,8 @@ const cardS = StyleSheet.create({
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   badgePaid: { backgroundColor: T.greenLight },
   badgeUnpaid: { backgroundColor: T.amberLight },
+  badgeTentative: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: '#fef3c7' },
+  badgeTextTentative: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3, color: '#92400e' },
   badgeText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
   badgeTextPaid: { color: T.green },
   badgeTextUnpaid: { color: T.amber },
