@@ -107,13 +107,22 @@ export function PublicScheduleView({ token }: { token: string }) {
 
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://jvostkeswuhfwntbrfzl.supabase.co';
   const icsUrl = `${supabaseUrl}/functions/v1/schedule-ics?token=${encodeURIComponent(token)}`;
-  const googleCalUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(icsUrl)}`;
+  const webcalUrl = icsUrl.replace('https://', 'webcal://');
+  const googleCalUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`;
 
   const handleOpenCal = () => {
     if (Platform.OS === 'web') {
       window.open(googleCalUrl, '_blank');
     } else {
       Linking.openURL(googleCalUrl);
+    }
+  };
+
+  const handleAppleCal = () => {
+    if (Platform.OS === 'web') {
+      window.open(icsUrl, '_blank');
+    } else {
+      Linking.openURL(webcalUrl);
     }
   };
 
@@ -201,6 +210,9 @@ export function PublicScheduleView({ token }: { token: string }) {
 
         <TouchableOpacity style={S.calBtn} onPress={handleOpenCal} activeOpacity={0.8}>
           <Text style={S.calBtnText}>📅 Subscribe in Google Calendar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={S.calBtnSecondary} onPress={handleAppleCal} activeOpacity={0.8}>
+          <Text style={S.calBtnSecondaryText}>🍎 Add to Apple Calendar / Download .ics</Text>
         </TouchableOpacity>
 
         {data.gigs.length === 0 ? (
@@ -334,9 +346,14 @@ const S = StyleSheet.create({
   windowText: { fontSize: 13, color: '#9ca3af', marginBottom: 20, fontStyle: 'italic' },
   calBtn: {
     borderWidth: 1, borderColor: '#1E3A5F', borderRadius: 8,
-    paddingVertical: 12, alignItems: 'center', marginBottom: 32,
+    paddingVertical: 12, alignItems: 'center', marginBottom: 10,
   },
   calBtnText: { fontSize: 15, color: '#1E3A5F', fontWeight: '600' },
+  calBtnSecondary: {
+    borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8,
+    paddingVertical: 12, alignItems: 'center', marginBottom: 32,
+  },
+  calBtnSecondaryText: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
   emptyState: { alignItems: 'center', paddingVertical: 48 },
   emptyEmoji: { fontSize: 48, marginBottom: 12, textAlign: 'center' },
   emptyHeading: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 6 },

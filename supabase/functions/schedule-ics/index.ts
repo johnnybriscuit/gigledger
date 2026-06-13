@@ -6,6 +6,15 @@ function toICSDate(dateStr: string): string {
   return `${y}${String(m).padStart(2, '0')}${String(d).padStart(2, '0')}`
 }
 
+function toICSDatePlusOne(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const next = new Date(Date.UTC(y, m - 1, d + 1))
+  const ny = next.getUTCFullYear()
+  const nm = String(next.getUTCMonth() + 1).padStart(2, '0')
+  const nd = String(next.getUTCDate()).padStart(2, '0')
+  return `${ny}${nm}${nd}`
+}
+
 function escapeICS(s: string): string {
   return s
     .replace(/\\/g, '\\\\')
@@ -89,8 +98,10 @@ serve(async (req) => {
         'BEGIN:VEVENT',
         `UID:${gig.id}@bozzygigs.com`,
         `DTSTART;VALUE=DATE:${toICSDate(gig.date)}`,
+        `DTEND;VALUE=DATE:${toICSDatePlusOne(gig.date)}`,
         `SUMMARY:${summary}`,
         `STATUS:${icsStatus}`,
+        `TRANSP:${isTentative ? 'TRANSPARENT' : 'OPAQUE'}`,
         `CATEGORIES:${icsStatus}`,
       ]
       if (desc) lines.push(`DESCRIPTION:${desc}`)
@@ -103,7 +114,9 @@ serve(async (req) => {
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Bozzy//Gig Schedule//EN',
+      'METHOD:PUBLISH',
       `X-WR-CALNAME:${escapeICS(displayName)}`,
+      `CALNAME:${escapeICS(displayName)}`,
       'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
       'X-PUBLISHED-TTL:PT1H',
       ...eventBlocks,
@@ -115,7 +128,7 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
         'Access-Control-Allow-Origin': '*',
-        'Content-Disposition': 'attachment; filename="gig-schedule.ics"',
+        'Cache-Control': 'no-cache, no-store',
       },
     })
   } catch (err) {
