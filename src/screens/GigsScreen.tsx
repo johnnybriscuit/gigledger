@@ -396,13 +396,12 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   // Date range state - managed independently per page
   const { range: dateRange, customStart, customEnd, setRange, setCustomRange } = useDateRange();
 
+  const queryDateRange = dateRange ? dateRangeToStrings(dateRange, customStart, customEnd) : null;
   const [showShareModal, setShowShareModal] = useState(false);
   const { createAllocationsForGig } = useAllocationTransactions();
-  const { spendablePercent } = useAllocationBuckets();
+  const { buckets, spendablePercent } = useAllocationBuckets();
   const [allocationCardGig, setAllocationCardGig] = useState<GigWithPayer | null>(null);
   const [showAllocationCard, setShowAllocationCard] = useState(false);
-
-  const queryDateRange = dateRange ? dateRangeToStrings(dateRange, customStart, customEnd) : null;
   const { data: gigs, isLoading, error } = useGigs(
     queryDateRange
       ? {
@@ -681,8 +680,12 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
     : (tours?.find(t => t.id === tourFilter)?.name || 'Tour');
   const filterIcon = tourFilter === 'all' ? '📋' : tourFilter === 'none' ? '🗂️' : '🎸';
 
-  // Total tax aside estimate across filtered gigs (rough: 16% of net)
-  const totalTaxAside = Math.round(totalNet * 0.16);
+  // Total tax aside: user's actual tax bucket percentage applied to filtered gross earnings
+  const taxBuckets = buckets.filter(
+    b => b.bucket_type === 'federal_tax' || b.bucket_type === 'state_tax'
+  );
+  const totalTaxPercentage = taxBuckets.reduce((sum, b) => sum + b.percentage, 0);
+  const totalTaxAside = Math.round(totalGross * (totalTaxPercentage / 100));
 
   return (
     <View style={styles.container}>

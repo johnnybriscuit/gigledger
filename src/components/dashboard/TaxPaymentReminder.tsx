@@ -97,7 +97,7 @@ export function TaxPaymentReminder({ onDismiss }: TaxPaymentReminderProps) {
             {deadline.quarter} Tax Payment Due
           </Text>
           <Text style={[styles.subtitle, { color: colors.text.muted }]}>
-            {deadline.label} • {daysUntil} days away
+            {deadline.label} • {daysUntil} {daysUntil === 1 ? 'day' : 'days'} away
           </Text>
         </View>
         {onDismiss && (

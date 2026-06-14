@@ -160,7 +160,7 @@ export function AICoachCard({ className }: AICoachCardProps) {
         throw new Error('No response from AI coach');
       }
 
-      setTip(data.tip);
+      setTip(data.tip.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1'));
       setIsFallback(data.fallback || false);
 
       const category = detectCategory(data.tip);
@@ -180,7 +180,7 @@ export function AICoachCard({ className }: AICoachCardProps) {
     } catch (error) {
       console.error('[AICoachCard] Error fetching tip:', error);
       const fallbackTip = "Set up a separate bank account named 'Tax Money' and transfer your tax allocation every time you get paid.";
-      setTip(fallbackTip);
+      setTip(fallbackTip.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1'));
       setIsFallback(true);
     } finally {
       setIsLoading(false);
