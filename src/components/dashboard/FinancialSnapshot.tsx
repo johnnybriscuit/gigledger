@@ -180,7 +180,7 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
           <Text style={styles.quarterlyIcon}>📅</Text>
           <View style={styles.quarterlyText}>
             <Text style={[styles.quarterlyLabel, { color: colors.text.DEFAULT }]}>
-              {deadline.quarter} tax due {deadline.label} · {daysUntilQuarterly} days
+              {deadline.quarter} tax due {deadline.label} · {daysUntilQuarterly} {daysUntilQuarterly === 1 ? 'day' : 'days'}
             </Text>
             <Text style={[styles.quarterlySub, { color: taxStatusColor }]}>
               {fmt(taxBucketTotal)} set aside — you're covered ✓
