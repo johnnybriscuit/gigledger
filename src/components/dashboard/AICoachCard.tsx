@@ -8,6 +8,7 @@ import {
   Platform,
   LayoutAnimation,
 } from 'react-native';
+import Markdown from 'react-native-markdown-display';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
@@ -24,6 +25,14 @@ interface CoachTipCache {
   date: string;
   fallback: boolean;
   category?: string;
+}
+
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/_(.*?)_/g, '$1');
 }
 
 function detectCategory(tipText: string): string {
@@ -160,7 +169,7 @@ export function AICoachCard({ className }: AICoachCardProps) {
         throw new Error('No response from AI coach');
       }
 
-      setTip(data.tip.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1'));
+      setTip(data.tip);
       setIsFallback(data.fallback || false);
 
       const category = detectCategory(data.tip);
@@ -180,7 +189,7 @@ export function AICoachCard({ className }: AICoachCardProps) {
     } catch (error) {
       console.error('[AICoachCard] Error fetching tip:', error);
       const fallbackTip = "Set up a separate bank account named 'Tax Money' and transfer your tax allocation every time you get paid.";
-      setTip(fallbackTip.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1'));
+      setTip(fallbackTip);
       setIsFallback(true);
     } finally {
       setIsLoading(false);
@@ -237,7 +246,7 @@ export function AICoachCard({ className }: AICoachCardProps) {
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              {firstSentence}
+              {stripMarkdown(firstSentence)}
             </Text>
           ) : !isExpanded ? (
             <Text style={[styles.collapsedPreview, { color: colors.text.subtle }]}>
@@ -254,9 +263,32 @@ export function AICoachCard({ className }: AICoachCardProps) {
       {isExpanded && tip && (
         <View style={styles.expandedContent}>
           <View style={[styles.expandedDivider, { backgroundColor: colors.border.muted }]} />
-          <Text style={[styles.tipText, { color: colors.text.DEFAULT }]}>
-            {tip}
-          </Text>
+          <View style={styles.tipWrapper}>
+            <Markdown
+              style={{
+                body: {
+                  color: colors.text.DEFAULT,
+                  fontSize: 15,
+                  lineHeight: 23,
+                  fontFamily: 'System',
+                },
+                strong: {
+                  fontWeight: '700',
+                  color: colors.text.DEFAULT,
+                },
+                em: {
+                  fontStyle: 'italic',
+                  color: colors.text.DEFAULT,
+                },
+                paragraph: {
+                  marginTop: 0,
+                  marginBottom: 0,
+                },
+              }}
+            >
+              {tip}
+            </Markdown>
+          </View>
           <View style={styles.footer}>
             <Text style={[styles.timestamp, { color: colors.text.subtle }]}>
               Updated today
@@ -321,9 +353,7 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 12,
   },
-  tipText: {
-    fontSize: 15,
-    lineHeight: 23,
+  tipWrapper: {
     marginBottom: 12,
   },
   footer: {

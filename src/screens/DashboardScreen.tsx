@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useResponsive } from '../hooks/useResponsive';
@@ -60,11 +60,24 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
   // Don't wait for loading states - just render with what we have
   console.log('🔵 [DashboardScreen] Profile:', !!profile, 'TaxProfile:', !!taxProfile);
 
-  // Load active tab from localStorage on mount
+  const isPopStateNavigation = useRef(false);
+
+  // Load active tab from URL path on mount, fall back to localStorage
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     if (Platform.OS === 'web') {
-      const saved = localStorage.getItem('activeTab');
-      return (saved as Tab) || 'dashboard';
+      const pathToTab: Record<string, Tab> = {
+        '/dashboard': 'dashboard',
+        '/contacts': 'payers',
+        '/gigs': 'gigs',
+        '/expenses': 'expenses',
+        '/mileage': 'mileage',
+        '/invoices': 'invoices',
+        '/exports': 'exports',
+        '/subscription': 'subscription',
+        '/account': 'account',
+      };
+      const path = window.location.pathname;
+      return pathToTab[path] || (localStorage.getItem('activeTab') as Tab) || 'dashboard';
     }
     return 'dashboard';
   });
@@ -197,12 +210,50 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
     }
   };
 
-  // Save active tab to localStorage when it changes
+  // Save active tab to localStorage and sync URL when it changes
   useEffect(() => {
     if (Platform.OS === 'web') {
       localStorage.setItem('activeTab', activeTab);
+      const tabToPath: Record<Tab, string> = {
+        dashboard: '/dashboard',
+        payers: '/contacts',
+        gigs: '/gigs',
+        expenses: '/expenses',
+        mileage: '/mileage',
+        invoices: '/invoices',
+        exports: '/exports',
+        subscription: '/subscription',
+        account: '/account',
+      };
+      if (!isPopStateNavigation.current) {
+        window.history.pushState({}, '', tabToPath[activeTab] + window.location.search);
+      }
+      isPopStateNavigation.current = false;
     }
   }, [activeTab]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const pathToTab: Record<string, Tab> = {
+      '/dashboard': 'dashboard',
+      '/contacts': 'payers',
+      '/gigs': 'gigs',
+      '/expenses': 'expenses',
+      '/mileage': 'mileage',
+      '/invoices': 'invoices',
+      '/exports': 'exports',
+      '/subscription': 'subscription',
+      '/account': 'account',
+    };
+    const handlePopState = () => {
+      isPopStateNavigation.current = true;
+      const tab = pathToTab[window.location.pathname] || 'dashboard';
+      setActiveTab(tab);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Update document title based on active tab
   const pageTitle = getPageTitle();
