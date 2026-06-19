@@ -130,6 +130,7 @@ function AppContent() {
   // Sync URL with current route on web
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (shareToken) return; // Don't mutate URL while on a public share page
       const routeToPath: Record<string, string> = {
         'landing': '/',
         'auth': authMode === 'signup' ? '/signup' : '/login',
@@ -177,6 +178,7 @@ function AppContent() {
   // Resolve auth state on mount to prevent landing page flash
   useEffect(() => {
     async function resolveAuth() {
+      if (shareToken) return; // Share pages are public — skip all auth processing
       try {
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         console.log('[Auth] Initial session resolved:', !!currentSession);
