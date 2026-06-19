@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
+import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
 import type { AllocationBucket } from '../../types/allocation';
 
 const fmt = (n: number) =>
@@ -31,7 +32,14 @@ function getAllocationLabel(bucket: AllocationBucket): string {
     case 'state_tax': return 'Set aside for state taxes';
     case 'retirement': return 'Going to retirement';
     case 'emergency_fund': return 'Building emergency fund';
-    case 'debt': return `Paying off ${bucket.goal_name || 'debt'}`;
+    case 'debt': {
+      const goalName = bucket.goal_name || '';
+      const cleanName = goalName
+        .replace(/debt\s*payoff/gi, 'debt')
+        .replace(/payoff/gi, '')
+        .trim();
+      return cleanName ? `Paying off ${cleanName}` : 'Debt payoff';
+    }
     case 'goal': return `Saving for ${bucket.goal_name || 'goal'}`;
     case 'spendable': return 'Yours to spend';
     default: return bucket.name;
@@ -51,6 +59,7 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { buckets: rawBuckets } = useAllocationBuckets();
+  const { ytdTotals } = useAllocationTransactions();
 
   const buckets = rawBuckets as unknown as AllocationBucket[];
 
@@ -72,13 +81,12 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
   );
   const spendableBucket = buckets.find(b => b.bucket_type === 'spendable');
 
-  // Tax amounts computed from income × percentage (always consistent)
+  // Tax amounts from actual allocation_transactions (single source of truth)
   const federalTax = buckets.find(b => b.bucket_type === 'federal_tax');
   const stateTax = buckets.find(b => b.bucket_type === 'state_tax' && b.percentage > 0);
   const taxBucketTotal =
-    getBucketAmount(federalTax!, ytdGrossIncome) +
-    (stateTax ? getBucketAmount(stateTax, ytdGrossIncome) : 0);
-  const estimatedQuarterlyOwed = taxBucketTotal / 4;
+    (federalTax ? (ytdTotals.find(t => t.bucket_id === federalTax.id)?.total ?? 0) : 0) +
+    (stateTax ? (ytdTotals.find(t => t.bucket_id === stateTax.id)?.total ?? 0) : 0);
 
   // Tax status: do they have enough set aside for this quarter?
   // Since we're using planned amounts, ratio is always 1 unless they have no income
@@ -98,10 +106,13 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
       ]}
     >
       {/* ── HEADER ── */}
-      <Text style={[styles.headerLabel, { color: colors.text.muted }]}>YTD Income</Text>
+      <Text style={[styles.headerLabel, { color: colors.text.muted }]}>YTD Gross Income</Text>
 
       <Text style={[styles.incomeNumber, { color: colors.text.DEFAULT }]}>
         {fmt(ytdGrossIncome)}
+      </Text>
+      <Text style={[styles.incomeSubText, { color: colors.text.subtle }]}>
+        before fees & deductions
       </Text>
       <Text style={[styles.incomeSubLabel, { color: colors.text.subtle }]}>
         across {paidCount} paid {paidCount === 1 ? 'gig' : 'gigs'} this year
@@ -221,6 +232,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -1,
     marginBottom: 4,
+  },
+  incomeSubText: {
+    fontSize: 12,
+    marginBottom: 2,
+    fontStyle: 'italic',
   },
   incomeSubLabel: {
     fontSize: 13,

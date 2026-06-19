@@ -1226,7 +1226,7 @@ export function AddGigModal({
             <Text style={styles.modalTitle}>
               {editingGig ? 'Edit Gig' : duplicatingGig ? 'Repeat Gig (Draft)' : 'Add New Gig'}
             </Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity onPressIn={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
           </View>
@@ -2263,9 +2263,9 @@ const styles = StyleSheet.create({
     color: colors.text.DEFAULT,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.surface.muted,
     justifyContent: 'center',
     alignItems: 'center',

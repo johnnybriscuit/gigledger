@@ -159,15 +159,22 @@ export function EnhancedDashboard({
           isDesktop && styles.scrollContentDesktop,
         ]}
       >
-        {/* Bucket Setup CTA */}
-        {showBucketSetupButton && onNavigateToBucketSetup && (
+        {/* Money Plan CTA — mutually exclusive: setup OR shortcut, never both */}
+        {showBucketSetupButton && onNavigateToBucketSetup ? (
           <TouchableOpacity
             style={styles.bucketSetupButton}
             onPress={onNavigateToBucketSetup}
           >
             <Text style={styles.bucketSetupText}>🎯 Set up your money plan →</Text>
           </TouchableOpacity>
-        )}
+        ) : onNavigateToMyMoney ? (
+          <TouchableOpacity
+            style={styles.myMoneyButton}
+            onPress={onNavigateToMyMoney}
+          >
+            <Text style={styles.myMoneyButtonText}>💰 My Money Plan →</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {/* 1. Retroactive Allocation Prompt */}
         <RetroactivePromptBanner />
@@ -189,16 +196,6 @@ export function EnhancedDashboard({
           onAddExpense={onAddExpense}
           onNavigateToRateGuide={onNavigateToRateGuide}
         />
-
-        {/* 5. My Money shortcut */}
-        {onNavigateToMyMoney && (
-          <TouchableOpacity
-            style={styles.myMoneyButton}
-            onPress={onNavigateToMyMoney}
-          >
-            <Text style={styles.myMoneyButtonText}>💰 My Money Plan →</Text>
-          </TouchableOpacity>
-        )}
 
         {/* 5. AI Financial Coach — compact collapsible */}
         <AICoachCard />

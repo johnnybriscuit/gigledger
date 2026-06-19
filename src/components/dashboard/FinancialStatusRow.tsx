@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
+import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
 import type { UpdateBucketInput } from '../../hooks/useAllocationBuckets';
 import type { AllocationBucket } from '../../types/allocation';
 import { SetSavingsGoalModal } from '../ui/SetSavingsGoalModal';
@@ -38,10 +39,12 @@ function getNextQuarterlyDueDate(): { quarter: string; label: string; date: Date
 function TaxCard({
   buckets,
   ytdGrossIncome,
+  ytdTaxTotal,
   colors,
 }: {
   buckets: AllocationBucket[];
   ytdGrossIncome: number;
+  ytdTaxTotal: number;
   colors: ReturnType<typeof getThemePalette>;
 }) {
   const federal = buckets.find(b => b.bucket_type === 'federal_tax');
@@ -49,8 +52,7 @@ function TaxCard({
 
   if (!federal) return null;
 
-  const taxPct = (federal.percentage + (state?.percentage ?? 0)) / 100;
-  const taxYTD = ytdGrossIncome * taxPct;
+  const taxYTD = ytdTaxTotal;
   const quarterlyEst = taxYTD / 4;
 
   const deadline = getNextQuarterlyDueDate();
@@ -269,6 +271,7 @@ export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) 
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { buckets: rawBuckets, updateBucket } = useAllocationBuckets();
+  const { ytdTotals } = useAllocationTransactions();
   const buckets = rawBuckets as unknown as AllocationBucket[];
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -289,7 +292,14 @@ export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) 
     <View>
       <View style={styles.row}>
         {hasTax && (
-          <TaxCard buckets={buckets} ytdGrossIncome={ytdGrossIncome} colors={colors} />
+          <TaxCard
+            buckets={buckets}
+            ytdGrossIncome={ytdGrossIncome}
+            ytdTaxTotal={buckets
+              .filter(b => b.bucket_type === 'federal_tax' || b.bucket_type === 'state_tax')
+              .reduce((sum, b) => sum + (ytdTotals.find(t => t.bucket_id === b.id)?.total ?? 0), 0)}
+            colors={colors}
+          />
         )}
         {hasRetirement && (
           <RetirementCard

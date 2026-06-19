@@ -8,6 +8,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { colors, spacing, radius, typography } from '../styles/theme';
+import { useEntitlements } from '../hooks/useEntitlements';
 
 export type PaywallReason = 'invoice_limit' | 'export_limit' | 'gig_limit' | 'expense_limit';
 
@@ -30,16 +31,23 @@ const PAYWALL_CONTENT: Record<PaywallReason, { title: string; body: string }> = 
   },
   gig_limit: {
     title: "You've reached your gig limit",
-    body: "You've logged 10 gigs this month on the Free plan. To log more gigs, you can either wait until the 1st of next month when your limit resets, or upgrade to Bozzy Pro for unlimited gigs.",
+    body: "",
   },
   expense_limit: {
     title: "You've reached your expense limit",
-    body: "You've logged 10 expenses this month on the Free plan. To log more expenses, you can either wait until the 1st of next month when your limit resets, or upgrade to Bozzy Pro for unlimited expenses.",
+    body: "You've added 10 expenses this month on the Free plan. To add more expenses, you can either wait until the 1st of next month when your limit resets, or upgrade to Bozzy Pro for unlimited expenses.",
   },
 };
 
 export function PaywallModal({ visible, reason, onClose, onUpgrade, remainingCount }: PaywallModalProps) {
-  const content = PAYWALL_CONTENT[reason];
+  const entitlements = useEntitlements();
+  const gigsMax = entitlements.limits.gigsMax ?? 10;
+
+  const gigLimitBody = `You've added ${gigsMax} gigs this month on the Free plan. To add more gigs, you can either wait until the 1st of next month when your limit resets, or upgrade to Bozzy Pro for unlimited gigs.`;
+
+  const content = reason === 'gig_limit'
+    ? { ...PAYWALL_CONTENT.gig_limit, body: gigLimitBody }
+    : PAYWALL_CONTENT[reason];
 
   return (
     <Modal

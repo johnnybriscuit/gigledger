@@ -220,7 +220,7 @@ function GigCard({
 
         {/* RIGHT: money */}
         <View style={cardS.right}>
-          <NativeText style={cardS.takeHomeLabel}>TAKE-HOME</NativeText>
+          <NativeText style={cardS.takeHomeLabel}>{item.paid ? 'TAKE-HOME' : 'PROJECTED PAY'}</NativeText>
           <NativeText style={cardS.takeHomeValue}>{formatCurrency(takeHome)}</NativeText>
           <TaxBadge
             taxTreatment={item.payer?.tax_treatment}
@@ -398,7 +398,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
 
   const queryDateRange = dateRange ? dateRangeToStrings(dateRange, customStart, customEnd) : null;
   const [showShareModal, setShowShareModal] = useState(false);
-  const { createAllocationsForGig } = useAllocationTransactions();
+  const { createAllocationsForGig, ytdTotals } = useAllocationTransactions();
   const { buckets, spendablePercent } = useAllocationBuckets();
   const [allocationCardGig, setAllocationCardGig] = useState<GigWithPayer | null>(null);
   const [showAllocationCard, setShowAllocationCard] = useState(false);
@@ -680,12 +680,14 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
     : (tours?.find(t => t.id === tourFilter)?.name || 'Tour');
   const filterIcon = tourFilter === 'all' ? '📋' : tourFilter === 'none' ? '🗂️' : '🎸';
 
-  // Total tax aside: user's actual tax bucket percentage applied to filtered gross earnings
+  // Total tax aside: sum of actual allocation_transactions YTD for all tax buckets
   const taxBuckets = buckets.filter(
     b => b.bucket_type === 'federal_tax' || b.bucket_type === 'state_tax'
   );
-  const totalTaxPercentage = taxBuckets.reduce((sum, b) => sum + b.percentage, 0);
-  const totalTaxAside = Math.round(totalGross * (totalTaxPercentage / 100));
+  const totalTaxAside = taxBuckets.reduce((sum, b) => {
+    const ytd = ytdTotals.find(t => t.bucket_id === b.id);
+    return sum + (ytd?.total ?? 0);
+  }, 0);
 
   return (
     <View style={styles.container}>
@@ -694,7 +696,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
       <StatsSummaryBar
         items={[
           { label: 'TOTAL GIGS', value: filteredGigs?.length || 0 },
-          { label: 'NET EARNINGS', value: formatCurrency(totalNet) },
+          { label: 'NET EARNINGS', value: formatCurrency(totalNet), subtitle: 'after fees & deductions' },
           { label: 'TAX ASIDE', value: formatCurrency(totalTaxAside), valueColor: T.amber },
         ]}
       />

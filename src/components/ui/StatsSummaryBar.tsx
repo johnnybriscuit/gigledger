@@ -6,6 +6,7 @@ export interface StatsSummaryBarItem {
   label: string;
   value: React.ReactNode;
   valueColor?: string;
+  subtitle?: string;
 }
 
 interface StatsSummaryBarProps {
@@ -29,6 +30,9 @@ export function StatsSummaryBar({ items, style }: StatsSummaryBarProps) {
             <View style={styles.stat}>
               <Text style={styles.label}>{item.label}</Text>
               <Text style={valueStyle}>{item.value}</Text>
+              {item.subtitle ? (
+                <Text style={styles.subtitle}>{item.subtitle}</Text>
+              ) : null}
             </View>
             {index < items.length - 1 && <View style={styles.divider} />}
           </React.Fragment>
@@ -81,6 +85,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text.DEFAULT,
     fontFamily: monoFont,
+  },
+  subtitle: {
+    fontSize: 10,
+    color: colors.text.subtle,
+    marginTop: 1,
+    textAlign: 'center',
   },
   divider: {
     width: 1,
