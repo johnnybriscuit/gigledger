@@ -42,8 +42,9 @@ const PAYWALL_CONTENT: Record<PaywallReason, { title: string; body: string }> = 
 export function PaywallModal({ visible, reason, onClose, onUpgrade, remainingCount }: PaywallModalProps) {
   const entitlements = useEntitlements();
   const gigsMax = entitlements.limits.gigsMax ?? 10;
+  const gigsUsed = entitlements.usage.gigsCount;
 
-  const gigLimitBody = `You've added ${gigsMax} gigs this month on the Free plan. To add more gigs, you can either wait until the 1st of next month when your limit resets, or upgrade to Bozzy Pro for unlimited gigs.`;
+  const gigLimitBody = `You've added ${gigsUsed} of ${gigsMax} gigs this month on the Free plan. To add more gigs, you can either wait until the 1st of next month when your limit resets, or upgrade to Bozzy Pro for unlimited gigs.`;
 
   const content = reason === 'gig_limit'
     ? { ...PAYWALL_CONTENT.gig_limit, body: gigLimitBody }
