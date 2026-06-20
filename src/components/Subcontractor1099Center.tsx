@@ -20,7 +20,11 @@ import { download1099PrepPdf } from '../lib/1099/generate1099PrepPdf';
 import { supabase } from '../lib/supabase';
 import type { Subcontractor1099Total } from '../hooks/use1099Totals';
 
-export function Subcontractor1099Center() {
+interface Subcontractor1099CenterProps {
+  onNavigateToExports?: () => void;
+}
+
+export function Subcontractor1099Center({ onNavigateToExports }: Subcontractor1099CenterProps = {}) {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   
@@ -157,9 +161,16 @@ export function Subcontractor1099Center() {
         </View>
         <View style={styles.calloutRow}>
           <Text style={styles.calloutIcon}>⚠️</Text>
-          <Text style={styles.calloutText}>
-            IRS filing not included in Bozzy yet — use exports to prepare forms or share with your CPA.
-          </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.calloutText}>
+              IRS filing not included in Bozzy yet — use exports to prepare forms or share with your CPA.
+            </Text>
+            {onNavigateToExports && (
+              <TouchableOpacity onPress={onNavigateToExports} style={styles.exportsLink}>
+                <Text style={styles.exportsLinkText}>Go to Exports →</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -214,6 +225,29 @@ export function Subcontractor1099Center() {
           <Text style={styles.exportBtnText}>↓ Required Only</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Zero-qualifying educational state */}
+      {!isLoading && totals && totals.length > 0 && subcontractorsRequiring1099.length === 0 && (
+        <View style={styles.emptyQualifyCard}>
+          <Text style={styles.emptyQualifyTitle}>📋 No 1099s required yet</Text>
+          <Text style={styles.emptyQualifyBody}>
+            You only need to file a 1099-NEC for subcontractors you paid $600 or more during the tax year.
+          </Text>
+          <Text style={styles.emptyQualifyBody}>
+            You have {totals.length} subcontractor{totals.length !== 1 ? 's' : ''} on file.
+            None have reached the $600 threshold for {selectedYear} yet — Bozzy will flag them automatically when they do.
+          </Text>
+          <View style={styles.thresholdList}>
+            {totals.map(s => (
+              <View key={s.subcontractor_id} style={styles.thresholdRow}>
+                <Text style={styles.thresholdName} numberOfLines={1}>{s.name}</Text>
+                <Text style={styles.thresholdPaid}>${s.total_paid.toFixed(2)} paid</Text>
+                <Text style={styles.thresholdNeeded}>($600 threshold)</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Subcontractors list (if any) */}
       {totals && totals.length > 0 && (
@@ -569,4 +603,64 @@ const styles = StyleSheet.create({
   badgeRedText: { color: '#DC2626' },
 
   bottomPad: { height: 32 },
+
+  exportsLink: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#D97706',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  exportsLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  emptyQualifyCard: {
+    margin: 16,
+    marginTop: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E3DE',
+  },
+  emptyQualifyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1C1A17',
+    marginBottom: 8,
+  },
+  emptyQualifyBody: {
+    fontSize: 13,
+    color: '#6B6966',
+    lineHeight: 19,
+    marginBottom: 6,
+  },
+  thresholdList: {
+    marginTop: 10,
+    gap: 8,
+  },
+  thresholdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  thresholdName: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1C1A17',
+  },
+  thresholdPaid: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2D5BE3',
+  },
+  thresholdNeeded: {
+    fontSize: 12,
+    color: '#B0ADA8',
+  },
 });

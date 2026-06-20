@@ -280,7 +280,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
   const renderContent = () => {
     switch (activeTab) {
       case 'payers':
-        return <PayersScreen />;
+        return <PayersScreen onNavigateToExports={() => setActiveTab('exports')} />;
       case 'gigs':
         return (
           <GigsScreen
@@ -288,6 +288,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
             onNavigateToBucketSetup={onNavigateToBucketSetup}
             onNavigateToRateGuide={onNavigateToRateGuide}
             onNavigateToAccount={() => setActiveTab('account')}
+            onNavigateToPayers={() => setActiveTab('payers')}
           />
         );
       case 'expenses':

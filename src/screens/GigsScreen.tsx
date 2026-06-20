@@ -373,9 +373,10 @@ interface GigsScreenProps {
   onNavigateToBucketSetup?: () => void;
   onNavigateToRateGuide?: () => void;
   onNavigateToAccount?: () => void;
+  onNavigateToPayers?: () => void;
 }
 
-export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, onNavigateToRateGuide, onNavigateToAccount }: GigsScreenProps = {}) {
+export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, onNavigateToRateGuide, onNavigateToAccount, onNavigateToPayers }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
@@ -385,7 +386,8 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   const [editingGig, setEditingGig] = useState<GigWithPayer | null>(null);
   const [duplicatingGig, setDuplicatingGig] = useState<GigWithPayer | null>(null);
   const [togglingGigId, setTogglingGigId] = useState<string | null>(null);
-  
+  const [taxBannerDismissed, setTaxBannerDismissed] = useState(false);
+
   // Tour filter state: 'all' | 'none' | tourId (UUID string)
   const [tourFilter, setTourFilter] = useState<'all' | 'none' | string>('all');
   
@@ -680,6 +682,12 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
     : (tours?.find(t => t.id === tourFilter)?.name || 'Tour');
   const filterIcon = tourFilter === 'all' ? '📋' : tourFilter === 'none' ? '🗂️' : '🎸';
 
+  // Mixed tax type detection
+  const mixedTaxGigs = filteredGigs?.filter(
+    g => !g.payer?.tax_treatment || g.payer?.tax_treatment === 'mixed'
+  ) ?? [];
+  const showMixedTaxBanner = !taxBannerDismissed && mixedTaxGigs.length >= 3;
+
   // Total tax aside: sum of actual allocation_transactions YTD for all tax buckets
   const taxBuckets = buckets.filter(
     b => b.bucket_type === 'federal_tax' || b.bucket_type === 'state_tax'
@@ -799,6 +807,28 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
             activeOpacity={0.8}
           >
             <NativeText style={styles.selectPillText}>Select</NativeText>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Mixed Tax Type Banner */}
+      {showMixedTaxBanner && (
+        <View style={styles.mixedTaxBanner}>
+          <View style={styles.mixedTaxBannerContent}>
+            <NativeText style={styles.mixedTaxBannerTitle}>
+              ⚠️ {mixedTaxGigs.length} gigs have an unknown tax type
+            </NativeText>
+            <NativeText style={styles.mixedTaxBannerBody}>
+              Update your payers' tax treatment to get accurate tax estimates.
+            </NativeText>
+            {onNavigateToPayers && (
+              <TouchableOpacity onPress={onNavigateToPayers} style={styles.mixedTaxBannerBtn}>
+                <NativeText style={styles.mixedTaxBannerBtnText}>Update payers →</NativeText>
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity onPress={() => setTaxBannerDismissed(true)} style={styles.mixedTaxDismiss}>
+            <NativeText style={styles.mixedTaxDismissText}>✕</NativeText>
           </TouchableOpacity>
         </View>
       )}
@@ -1187,5 +1217,52 @@ const styles = StyleSheet.create({
   },
   emptyStateCard: {
     paddingVertical: 24,
+  },
+  mixedTaxBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: T.amberLight,
+    borderWidth: 1,
+    borderColor: T.amber,
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 14,
+  },
+  mixedTaxBannerContent: {
+    flex: 1,
+  },
+  mixedTaxBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: T.textPrimary,
+    marginBottom: 4,
+  },
+  mixedTaxBannerBody: {
+    fontSize: 13,
+    color: T.textSecondary,
+    marginBottom: 10,
+  },
+  mixedTaxBannerBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: T.amber,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  mixedTaxBannerBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  mixedTaxDismiss: {
+    paddingLeft: 12,
+    paddingTop: 2,
+    minWidth: 32,
+    alignItems: 'center',
+  },
+  mixedTaxDismissText: {
+    fontSize: 16,
+    color: T.textMuted,
   },
 });

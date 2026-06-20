@@ -40,7 +40,11 @@ const T = {
   red: colors.danger.DEFAULT,
 };
 
-export function PayersScreen() {
+interface PayersScreenProps {
+  onNavigateToExports?: () => void;
+}
+
+export function PayersScreen({ onNavigateToExports }: PayersScreenProps = {}) {
   const [activeTab, setActiveTab] = useState<TabType>('payers');
   const [modalVisible, setModalVisible] = useState(false);
   const [editingPayer, setEditingPayer] = useState<Payer | null>(null);
@@ -403,7 +407,7 @@ export function PayersScreen() {
           </ScrollView>
         ) : null}
 
-        {activeTab === '1099-center' ? <Subcontractor1099Center /> : null}
+        {activeTab === '1099-center' ? <Subcontractor1099Center onNavigateToExports={onNavigateToExports} /> : null}
       </View>
 
       {activeTab === 'payers' ? (
