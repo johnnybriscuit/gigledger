@@ -53,12 +53,16 @@ export function getInvoiceBalanceDue(invoice: InvoiceLike): number {
 }
 
 export function getEffectiveInvoiceStatus(invoice: InvoiceLike): InvoiceStatus {
-  if (invoice.status === 'paid' || invoice.status === 'cancelled' || invoice.status === 'draft') {
+  if (invoice.status === 'paid' || invoice.status === 'cancelled') {
     return invoice.status;
   }
 
   if (getInvoiceBalanceDue(invoice) <= 0) {
     return 'paid';
+  }
+
+  if (invoice.status === 'draft') {
+    return 'draft';
   }
 
   if (

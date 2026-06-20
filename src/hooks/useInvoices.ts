@@ -551,7 +551,10 @@ export function useInvoices(filters?: InvoiceQueryFilters) {
       }
 
       console.log('Payment recorded successfully:', data);
-      await fetchInvoices();
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['invoices', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['invoices_aggregated', userId] }),
+      ]);
     } catch (err: unknown) {
       console.error('Error recording payment:', err);
       throw new Error(getErrorMessage(err, 'Failed to record payment'));
