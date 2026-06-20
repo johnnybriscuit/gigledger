@@ -269,7 +269,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
       case 'invoices': return 'Invoices';
       case 'exports': return 'Exports';
       case 'subscription': return 'Subscription';
-      case 'account': return 'Account';
+      case 'account': return 'Account Settings';
       default: return 'Dashboard';
     }
   }

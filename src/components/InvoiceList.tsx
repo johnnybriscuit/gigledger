@@ -34,9 +34,10 @@ interface InvoiceListProps {
   loading: boolean;
   onSelectInvoice?: (invoice: Invoice) => void;
   onCreateNew?: () => void;
+  onSendReminder?: (invoice: Invoice) => void;
 }
 
-export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }: InvoiceListProps) {
+export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, onSendReminder }: InvoiceListProps) {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'due_date'>('date');
@@ -330,6 +331,16 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew }:
                     </View>
                   ) : null}
                 </View>
+
+                {status === 'overdue' && onSendReminder && (
+                  <TouchableOpacity
+                    style={styles.reminderBtn}
+                    onPress={(e) => { e.stopPropagation?.(); onSendReminder(invoice); }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.reminderBtnText}>📧 Send Reminder</Text>
+                  </TouchableOpacity>
+                )}
               </TouchableOpacity>
             );
           })
@@ -598,5 +609,20 @@ const styles = StyleSheet.create({
   dateValueSkeleton: {
     width: 92,
     height: 14,
+  },
+  reminderBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    backgroundColor: colors.warning.muted,
+    borderWidth: 1,
+    borderColor: colors.warning.DEFAULT,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  reminderBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.warning.DEFAULT,
   },
 });

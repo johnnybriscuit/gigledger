@@ -538,7 +538,10 @@ export function AccountScreen({
               <RNText style={styles.fieldLabel}>EMAIL</RNText>
               <RNText style={styles.fieldValue}>{user?.email || '—'}</RNText>
             </View>
-            <View style={styles.lockedChip}><RNText style={styles.lockedChipText}>Locked</RNText></View>
+            <View style={styles.lockedChip}>
+              <RNText style={styles.lockedChipText}>🔒 Managed by your login provider</RNText>
+              <RNText style={styles.lockedChipHint}>Contact support to change</RNText>
+            </View>
           </View>
           {/* Home Address row */}
           <View style={styles.fieldRow}>
@@ -695,8 +698,9 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 11, fontWeight: '600', color: colors.text.subtle, letterSpacing: 0.4, marginBottom: 3 },
   fieldValue: { fontSize: 15, color: colors.text.DEFAULT },
   fieldAction: { fontSize: 15, color: colors.brand.DEFAULT, fontWeight: '500' },
-  lockedChip: { backgroundColor: colors.surface.muted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  lockedChipText: { fontSize: 12, color: colors.text.subtle, fontWeight: '500' },
+  lockedChip: { backgroundColor: colors.surface.muted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, maxWidth: 180, alignItems: 'flex-end' },
+  lockedChipText: { fontSize: 12, color: colors.text.subtle, fontWeight: '500', textAlign: 'right' },
+  lockedChipHint: { fontSize: 11, color: colors.text.subtle, marginTop: 2, textAlign: 'right' },
   lastSaved: { fontSize: 12, color: colors.text.subtle, fontStyle: 'italic', marginTop: -14, marginBottom: 20, paddingHorizontal: 4 },
   paymentRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.DEFAULT },
   paymentRowLast: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.DEFAULT },

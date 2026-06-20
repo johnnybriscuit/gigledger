@@ -337,6 +337,10 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
               loading={invoicesLoading}
               onSelectInvoice={handleSelectInvoice}
               onCreateNew={handleCreateNew}
+              onSendReminder={(invoice) => {
+                setSelectedInvoiceId(invoice.id);
+                setShowEmailModal(true);
+              }}
             />
           </View>
         </>
