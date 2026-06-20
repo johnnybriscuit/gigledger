@@ -92,7 +92,9 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
   // Since we're using planned amounts, ratio is always 1 unless they have no income
   const taxStatusColor = noIncome ? colors.text.subtle : colors.success.DEFAULT;
 
-  const spendableAmount = spendableBucket ? getBucketAmount(spendableBucket, ytdGrossIncome) : 0;
+  const spendableAmount = spendableBucket
+    ? (ytdTotals.find(t => t.bucket_id === spendableBucket.id)?.total ?? 0)
+    : 0;
   const spendablePct = spendableBucket?.percentage ?? 0;
 
   return (
@@ -123,7 +125,7 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
 
       {/* ── ALLOCATION ROWS ── */}
       {nonSpendable.map(bucket => {
-        const amount = getBucketAmount(bucket, ytdGrossIncome);
+        const amount = ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0;
         const bucketColor = bucket.color || colors.brand.DEFAULT;
 
         return (
