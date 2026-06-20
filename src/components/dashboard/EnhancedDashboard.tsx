@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useResponsive } from '../../hooks/useResponsive';
 import { MonthlyOverview } from './MonthlyOverview';
 import { ExpenseBreakdown } from './ExpenseBreakdown';
@@ -65,21 +65,17 @@ export function EnhancedDashboard({
   onNavigateToMyMoney,
   onNavigateToRateGuide,
 }: EnhancedDashboardProps) {
-  const { buckets } = useAllocationBuckets();
+  const { buckets, isLoading: bucketsLoading } = useAllocationBuckets();
   const { isDesktop, isTablet } = useResponsive();
   const { width } = useWindowDimensions();
   const isPhone = width < 768;
   const [drillThroughMonth, setDrillThroughMonth] = useState<string | null>(null);
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
 
-  // Check if buckets are configured (temporary for testing)
-  const [showBucketSetupButton, setShowBucketSetupButton] = useState(false);
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      const configured = localStorage.getItem('bozzy_buckets_configured');
-      setShowBucketSetupButton(!configured);
-    }
-  }, []);
+  // Check if buckets are configured using actual DB data — localStorage is unreliable
+  const hasBucketsConfigured = !bucketsLoading &&
+    buckets.length > 0 &&
+    buckets.some(b => b.bucket_type !== 'spendable');
 
   // Fetch dashboard data
   const data = useDashboardData(dateRange, customStart, customEnd, payerId);
@@ -159,22 +155,23 @@ export function EnhancedDashboard({
           isDesktop && styles.scrollContentDesktop,
         ]}
       >
-        {/* Money Plan CTA — mutually exclusive: setup OR shortcut, never both */}
-        {showBucketSetupButton && onNavigateToBucketSetup ? (
+        {/* Money Plan CTA — mutually exclusive, DB-driven, no flash while loading */}
+        {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
           <TouchableOpacity
             style={styles.bucketSetupButton}
             onPress={onNavigateToBucketSetup}
           >
             <Text style={styles.bucketSetupText}>🎯 Set up your money plan →</Text>
           </TouchableOpacity>
-        ) : onNavigateToMyMoney ? (
+        )}
+        {!bucketsLoading && hasBucketsConfigured && onNavigateToMyMoney && (
           <TouchableOpacity
             style={styles.myMoneyButton}
             onPress={onNavigateToMyMoney}
           >
             <Text style={styles.myMoneyButtonText}>💰 My Money Plan →</Text>
           </TouchableOpacity>
-        ) : null}
+        )}
 
         {/* 1. Retroactive Allocation Prompt */}
         <RetroactivePromptBanner />
