@@ -456,7 +456,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
 
       if (newPaidStatus) {
         try {
-          await createAllocationsForGig({ gigId: gig.id, grossAmount: gig.net_amount ?? 0 });
+          await createAllocationsForGig({ gigId: gig.id, grossAmount: gig.net_amount ?? 0, gigDate: gig.date });
         } catch (allocError) {
           console.error('[GigsScreen] Error creating allocations:', allocError);
         }

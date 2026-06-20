@@ -18,6 +18,7 @@ export interface TransactionFilters {
 export interface CreateAllocationInput {
   gigId: string;
   grossAmount: number;
+  gigDate?: string;
 }
 
 async function fetchTransactions(
@@ -84,7 +85,7 @@ async function createAllocationForGig(
       gross_amount: input.grossAmount,
       allocated_amount: allocation.allocatedAmount,
       percentage_used: allocation.percentage,
-      transaction_date: new Date().toISOString().split('T')[0],
+      transaction_date: input.gigDate ?? new Date().toISOString().split('T')[0],
     }));
 
   // Nothing new to insert — already fully allocated
