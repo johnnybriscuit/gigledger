@@ -28,7 +28,7 @@ function getNextTaxDeadline(): { label: string; date: Date; quarter: string } {
 
 function getAllocationLabel(bucket: AllocationBucket): string {
   switch (bucket.bucket_type) {
-    case 'federal_tax': return 'Set aside for taxes';
+    case 'federal_tax': return 'Saved for Taxes';
     case 'state_tax': return 'Set aside for state taxes';
     case 'retirement': return 'Going to retirement';
     case 'emergency_fund': return 'Building emergency fund';
