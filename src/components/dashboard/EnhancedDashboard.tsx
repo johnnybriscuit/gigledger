@@ -26,7 +26,7 @@ import { AICoachCard } from './AICoachCard';
 import { OpportunitiesSection } from './OpportunitiesSection';
 import { RetroactivePromptBanner } from './RetroactivePromptBanner';
 import { HealthScoreWidget } from './HealthScoreWidget';
-import { OpportunityAlertsSection } from './OpportunityAlertsSection';
+// import { OpportunityAlertsSection } from './OpportunityAlertsSection'; // replaced by OpportunitiesSection
 import { scheduleQuarterlyReminders } from '../../lib/scheduleQuarterlyReminders';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
 
@@ -166,11 +166,7 @@ export function EnhancedDashboard({
         {/* 4. Financial Health Score — actual allocations vs. targets */}
         <HealthScoreWidget ytdGrossIncome={data.totalGrossIncome ?? 0} />
 
-        {/* 5. Opportunity Alerts — proactive financial tips */}
-        <OpportunityAlertsSection
-          onAddExpense={onAddExpense}
-          onNavigateToRateGuide={onNavigateToRateGuide}
-        />
+        {/* OLD OpportunityAlertsSection removed — replaced by OpportunitiesSection */}
 
         {/* 5. AI Financial Coach — compact collapsible */}
         <AICoachCard />
