@@ -13,6 +13,7 @@ import {
   Pressable,
   Platform,
 } from 'react-native';
+import { colors } from '../styles/theme';
 import type { DateRange } from '../hooks/useDashboardData';
 import { CustomDateRangePicker } from './CustomDateRangePicker';
 
@@ -38,7 +39,7 @@ export function RangePopover({ value, onChange, onCustomRangeChange, options, cu
       const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       return `${formatDate(customStart)} - ${formatDate(customEnd)}`;
     }
-    return selectedOption?.label || 'Select Range';
+    return selectedOption?.label || 'Date Range';
   };
 
   const handleOpen = () => {
@@ -125,7 +126,7 @@ export function RangePopover({ value, onChange, onCustomRangeChange, options, cu
               onStartShouldSetResponder={() => true}
             >
               <View style={styles.popoverHeader}>
-                <Text style={styles.popoverTitle}>Select Range</Text>
+                <Text style={styles.popoverTitle}>Date Range</Text>
               </View>
               {options.map((option) => (
                 <TouchableOpacity
@@ -215,18 +216,12 @@ const styles = StyleSheet.create({
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.surface.muted,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    minHeight: 44,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderColor: colors.border.DEFAULT,
   },
   triggerIcon: {
     fontSize: 16,
@@ -235,12 +230,12 @@ const styles = StyleSheet.create({
   triggerText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text.DEFAULT,
     marginRight: 8,
   },
   triggerArrow: {
     fontSize: 10,
-    color: '#6b7280',
+    color: colors.text.subtle,
   },
   backdrop: {
     flex: 1,

@@ -431,49 +431,79 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
       }
       pageActions={
         activeTab === 'dashboard' ? (
-          <>
-            <Button 
-              variant="primary"
-              size="sm"
-              onPress={() => setShowAddGigModal(true)}
-            >
-              + Add Gig
-            </Button>
-            <Button 
-              variant="secondary"
-              size="sm"
-              onPress={() => setShowAddExpenseModal(true)}
-            >
-              Add Expense
-            </Button>
-            <Button 
-              variant="secondary"
-              size="sm"
-              onPress={() => setActiveTab('exports')}
-            >
-              Tax Prep
-            </Button>
-            {!bucketsLoading && hasBucketsConfigured && onNavigateToMyMoney && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onPress={onNavigateToMyMoney}
-              >
-                💰 My Money Plan →
-              </Button>
-            )}
-            {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
-              <Button
+          isDesktopWidth ? (
+            /* Desktop web: single row with all items */
+            <>
+              <Button 
                 variant="primary"
                 size="sm"
-                onPress={onNavigateToBucketSetup}
+                onPress={() => setShowAddGigModal(true)}
               >
-                🎯 Set up money plan
+                + Add Gig
               </Button>
-            )}
-            {isDesktopWidth && (
-              <>
-                <View style={styles.toolbarSeparator} />
+              <Button 
+                variant="secondary"
+                size="sm"
+                onPress={() => setShowAddExpenseModal(true)}
+              >
+                Add Expense
+              </Button>
+              <Button 
+                variant="secondary"
+                size="sm"
+                onPress={() => setActiveTab('exports')}
+              >
+                Tax Prep
+              </Button>
+              {!bucketsLoading && hasBucketsConfigured && onNavigateToMyMoney && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onPress={onNavigateToMyMoney}
+                >
+                  💰 My Money Plan →
+                </Button>
+              )}
+              {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onPress={onNavigateToBucketSetup}
+                >
+                  🎯 Set up money plan
+                </Button>
+              )}
+              <View style={styles.toolbarSeparator} />
+              <PayerFilter
+                value={selectedPayerId}
+                onChange={setSelectedPayerId}
+                payers={payers.map(p => ({ id: p.id, name: p.name }))}
+              />
+              <RangePopover
+                value={range}
+                onChange={setRange}
+                onCustomRangeChange={setCustomRange}
+                customStart={customStart}
+                customEnd={customEnd}
+                options={[
+                  { value: 'ytd' as DateRange, label: 'YTD' },
+                  { value: 'last30' as DateRange, label: 'Last 30 Days' },
+                  { value: 'last90' as DateRange, label: 'Last 90 Days' },
+                  { value: 'lastYear' as DateRange, label: 'Last Year' },
+                ]}
+              />
+            </>
+          ) : Platform.OS === 'web' ? (
+            /* Mobile web: primary row (Add Gig + filters) above secondary actions */
+            <View style={styles.mobileToolbarWrapper}>
+              <View style={styles.mobileToolbarRow}>
+                <Button 
+                  variant="primary"
+                  size="sm"
+                  onPress={() => setShowAddGigModal(true)}
+                >
+                  + Add Gig
+                </Button>
                 <PayerFilter
                   value={selectedPayerId}
                   onChange={setSelectedPayerId}
@@ -492,9 +522,86 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                     { value: 'lastYear' as DateRange, label: 'Last Year' },
                   ]}
                 />
-              </>
-            )}
-          </>
+              </View>
+              <View style={styles.mobileToolbarRow}>
+                <Button 
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => setShowAddExpenseModal(true)}
+                >
+                  Add Expense
+                </Button>
+                <Button 
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => setActiveTab('exports')}
+                >
+                  Tax Prep
+                </Button>
+                {!bucketsLoading && hasBucketsConfigured && onNavigateToMyMoney && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onPress={onNavigateToMyMoney}
+                  >
+                    💰 My Money Plan →
+                  </Button>
+                )}
+                {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onPress={onNavigateToBucketSetup}
+                  >
+                    🎯 Set up money plan
+                  </Button>
+                )}
+              </View>
+            </View>
+          ) : (
+            /* Native: flat row without filters */
+            <>
+              <Button 
+                variant="primary"
+                size="sm"
+                onPress={() => setShowAddGigModal(true)}
+              >
+                + Add Gig
+              </Button>
+              <Button 
+                variant="secondary"
+                size="sm"
+                onPress={() => setShowAddExpenseModal(true)}
+              >
+                Add Expense
+              </Button>
+              <Button 
+                variant="secondary"
+                size="sm"
+                onPress={() => setActiveTab('exports')}
+              >
+                Tax Prep
+              </Button>
+              {!bucketsLoading && hasBucketsConfigured && onNavigateToMyMoney && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onPress={onNavigateToMyMoney}
+                >
+                  💰 My Money Plan →
+                </Button>
+              )}
+              {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onPress={onNavigateToBucketSetup}
+                >
+                  🎯 Set up money plan
+                </Button>
+              )}
+            </>
+          )
         ) : undefined
       }
       headerActions={
@@ -608,6 +715,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border.DEFAULT,
     marginHorizontal: 4,
     alignSelf: 'center',
+  },
+  mobileToolbarWrapper: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: 8,
+  },
+  mobileToolbarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
   },
   bannerContainer: {
     paddingHorizontal: parseInt(spacing[5]),

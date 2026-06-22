@@ -14,6 +14,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { colors } from '../styles/theme';
 
 interface PayerFilterProps {
   value: string | null;
@@ -71,7 +72,7 @@ export function PayerFilter({ value, onChange, payers }: PayerFilterProps) {
       >
         <Text style={styles.triggerIcon}>👤</Text>
         <Text style={styles.triggerText}>
-          {selectedPayer?.name || 'All Payers'}
+          {selectedPayer?.name || 'All Clients'}
         </Text>
         <Text style={styles.triggerArrow}>▼</Text>
       </TouchableOpacity>
@@ -123,7 +124,7 @@ export function PayerFilter({ value, onChange, payers }: PayerFilterProps) {
                       value === null && styles.optionTextActive,
                     ]}
                   >
-                    All Payers
+                    All Clients
                   </Text>
                   {value === null && (
                     <Text style={styles.checkmark}>✓</Text>
@@ -174,11 +175,10 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    backgroundColor: colors.surface.muted,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    minWidth: 160,
+    borderColor: colors.border.DEFAULT,
   },
   triggerIcon: {
     fontSize: 16,
@@ -186,12 +186,12 @@ const styles = StyleSheet.create({
   triggerText: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
+    fontWeight: '600',
+    color: colors.text.DEFAULT,
   },
   triggerArrow: {
     fontSize: 10,
-    color: '#6b7280',
+    color: colors.text.subtle,
   },
   backdrop: {
     flex: 1,
