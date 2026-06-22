@@ -220,7 +220,7 @@ function GigCard({
 
         {/* RIGHT: money */}
         <View style={cardS.right}>
-          <NativeText style={cardS.takeHomeLabel}>{item.paid ? 'TAKE-HOME' : 'PROJECTED PAY'}</NativeText>
+          <NativeText style={cardS.takeHomeLabel}>{item.paid ? 'AMOUNT PAID' : 'ESTIMATED PAY'}</NativeText>
           <NativeText style={cardS.takeHomeValue}>{formatCurrency(takeHome)}</NativeText>
           <TaxBadge
             taxTreatment={item.payer?.tax_treatment}
@@ -704,7 +704,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
       <StatsSummaryBar
         items={[
           { label: 'TOTAL GIGS', value: filteredGigs?.length || 0 },
-          { label: 'NET EARNINGS', value: formatCurrency(totalNet), subtitle: 'after fees & deductions' },
+          { label: 'TAKE-HOME PAY', value: formatCurrency(totalNet), subtitle: 'after fees & deductions', tooltip: 'What you actually keep after subtracting fees, platform charges, and expenses from your gross pay.' },
           { label: 'SAVED FOR TAXES', value: formatCurrency(totalTaxAside), valueColor: T.amber },
         ]}
       />

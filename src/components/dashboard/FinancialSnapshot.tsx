@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
+import { InfoTooltip } from '../ui/InfoTooltip';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
@@ -108,7 +109,10 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
       ]}
     >
       {/* ── HEADER ── */}
-      <Text style={[styles.headerLabel, { color: colors.text.muted }]}>YTD Gross Income</Text>
+      <View style={styles.headerLabelRow}>
+        <Text style={[styles.headerLabel, { color: colors.text.muted }]}>Total Earned This Year</Text>
+        <InfoTooltip text="The total gross amount you've been paid for all gigs this year, before subtracting expenses or deductions." />
+      </View>
 
       <Text style={[styles.incomeNumber, { color: colors.text.DEFAULT }]}>
         {fmt(ytdGrossIncome)}
@@ -131,16 +135,21 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
         return (
           <View key={bucket.id} style={styles.allocationRow}>
             <Text style={styles.rowEmoji}>{bucket.emoji}</Text>
-            <Text
-              style={[
-                styles.rowLabel,
-                { color: noIncome ? colors.text.subtle : colors.text.DEFAULT },
-                noIncome && styles.rowLabelMuted,
-              ]}
-              numberOfLines={1}
-            >
-              {getAllocationLabel(bucket)}
-            </Text>
+            <View style={styles.rowLabelWrap}>
+              <Text
+                style={[
+                  styles.rowLabel,
+                  { color: noIncome ? colors.text.subtle : colors.text.DEFAULT },
+                  noIncome && styles.rowLabelMuted,
+                ]}
+                numberOfLines={1}
+              >
+                {getAllocationLabel(bucket)}
+              </Text>
+              {bucket.bucket_type === 'federal_tax' && (
+                <InfoTooltip text="The amount you've set aside from each gig payment to cover your tax bill. Self-employed workers pay taxes themselves — this bucket makes sure you're never caught short." />
+              )}
+            </View>
             <View style={styles.rowRight}>
               {noIncome ? (
                 <Text style={[styles.rowAmountZero, { color: colors.text.subtle }]}>
@@ -173,9 +182,12 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
           ]}
         >
           <Text style={styles.spendableEmoji}>{spendableBucket.emoji}</Text>
-          <Text style={[styles.spendableLabel, { color: noIncome ? colors.text.subtle : colors.success.DEFAULT }]}>
-            Yours to spend
-          </Text>
+          <View style={styles.spendableLabelRow}>
+            <Text style={[styles.spendableLabel, { color: noIncome ? colors.text.subtle : colors.success.DEFAULT }]}>
+              Yours to spend
+            </Text>
+            <InfoTooltip text="What's truly yours after setting aside money for taxes, retirement, and your other financial goals." />
+          </View>
           <View style={styles.rowRight}>
             <Text style={[styles.spendableAmount, { color: noIncome ? colors.text.subtle : colors.success.DEFAULT }]}>
               {fmt(spendableAmount)}
@@ -222,6 +234,12 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  headerLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
+  },
   headerLabel: {
     fontSize: 12,
     fontWeight: '500',
@@ -264,6 +282,12 @@ const styles = StyleSheet.create({
     width: 26,
     textAlign: 'center',
   },
+  rowLabelWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   rowLabel: {
     flex: 1,
     fontSize: 14,
@@ -305,6 +329,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     width: 26,
     textAlign: 'center',
+  },
+  spendableLabelRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   spendableLabel: {
     flex: 1,

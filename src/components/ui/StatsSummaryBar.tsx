@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform, type TextStyle, type ViewStyle } from 'react-native';
 import { colors } from '../../styles/theme';
+import { InfoTooltip } from './InfoTooltip';
 
 export interface StatsSummaryBarItem {
   label: string;
   value: React.ReactNode;
   valueColor?: string;
   subtitle?: string;
+  tooltip?: string;
 }
 
 interface StatsSummaryBarProps {
@@ -28,7 +30,10 @@ export function StatsSummaryBar({ items, style }: StatsSummaryBarProps) {
         return (
           <React.Fragment key={item.label}>
             <View style={styles.stat}>
-              <Text style={styles.label}>{item.label}</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>{item.label}</Text>
+                {item.tooltip ? <InfoTooltip text={item.tooltip} /> : null}
+              </View>
               <Text style={valueStyle}>{item.value}</Text>
               {item.subtitle ? (
                 <Text style={styles.subtitle}>{item.subtitle}</Text>
@@ -71,6 +76,11 @@ const styles = StyleSheet.create({
   stat: {
     flex: 1,
     alignItems: 'center',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   label: {
     fontSize: 11,

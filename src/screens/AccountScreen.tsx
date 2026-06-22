@@ -362,7 +362,7 @@ export function AccountScreen({
   })();
 
   const stateLabel = taxProfile?.state ? (getStateName(taxProfile.state as any) || taxProfile.state) : '—';
-  const deductionLabel = taxProfile?.deductionMethod === 'itemized' ? 'Itemized' : 'Standard';
+  const deductionLabel = taxProfile?.deductionMethod === 'itemized' ? 'Itemized' : 'Standard (most common)';
 
   if (profileLoading) {
     return (
@@ -605,8 +605,9 @@ export function AccountScreen({
           </View>
           <View style={[styles.fieldRow, styles.fieldRowLast]}>
             <View style={styles.fieldLeft}>
-              <RNText style={styles.fieldLabel}>DEDUCTION METHOD</RNText>
+              <RNText style={styles.fieldLabel}>HOW YOU FILE DEDUCTIONS</RNText>
               <RNText style={styles.fieldValue}>{deductionLabel}</RNText>
+              <RNText style={styles.fieldHelper}>Standard deduction works for most self-employed musicians and freelancers. Change this only if your accountant advises.</RNText>
             </View>
           </View>
         </View>
@@ -697,6 +698,7 @@ const styles = StyleSheet.create({
   fieldLeft: { flex: 1 },
   fieldLabel: { fontSize: 11, fontWeight: '600', color: colors.text.subtle, letterSpacing: 0.4, marginBottom: 3 },
   fieldValue: { fontSize: 15, color: colors.text.DEFAULT },
+  fieldHelper: { fontSize: 12, color: colors.text.subtle, marginTop: 4, lineHeight: 17 },
   fieldAction: { fontSize: 15, color: colors.brand.DEFAULT, fontWeight: '500' },
   lockedChip: { backgroundColor: colors.surface.muted, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, maxWidth: 180, alignItems: 'flex-end' },
   lockedChipText: { fontSize: 12, color: colors.text.subtle, fontWeight: '500', textAlign: 'right' },
