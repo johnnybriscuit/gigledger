@@ -23,6 +23,7 @@ import { trackDashboardFirstRunViewed } from '../../lib/analytics';
 import { FinancialSnapshot } from './FinancialSnapshot';
 import { FinancialStatusRow } from './FinancialStatusRow';
 import { AICoachCard } from './AICoachCard';
+import { OpportunitiesSection } from './OpportunitiesSection';
 import { RetroactivePromptBanner } from './RetroactivePromptBanner';
 import { HealthScoreWidget } from './HealthScoreWidget';
 import { OpportunityAlertsSection } from './OpportunityAlertsSection';
@@ -197,7 +198,14 @@ export function EnhancedDashboard({
         {/* 5. AI Financial Coach — compact collapsible */}
         <AICoachCard />
 
-        {/* 5. Monthly Overview chart */}
+        {/* 6. Tax Opportunities — static musician-specific provisions */}
+        <OpportunitiesSection
+          onNavigateToExpenses={onNavigateToExpenses}
+          onAddExpense={onAddExpense}
+          onNavigateToExports={onExport}
+        />
+
+        {/* 7. Monthly Overview chart */}
         <View style={styles.chartSection}>
           <MonthlyOverview data={data.monthly} onMonthClick={handleMonthClick} />
         </View>
