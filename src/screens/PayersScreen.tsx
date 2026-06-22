@@ -257,9 +257,9 @@ export function PayersScreen({ onNavigateToExports }: PayersScreenProps = {}) {
       <View style={styles.filterRow}>
         <View style={styles.segment}>
           {([
-            { key: 'payers' as TabType, label: 'Payers' },
+            { key: 'payers' as TabType, label: 'Clients' },
             { key: 'subcontractors' as TabType, label: 'Subcontractors' },
-            { key: '1099-center' as TabType, label: '1099 Center' },
+            { key: '1099-center' as TabType, label: 'Contractor Forms' },
           ]).map((tab) => {
             const isActive = activeTab === tab.key;
 

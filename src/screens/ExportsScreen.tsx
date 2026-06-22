@@ -525,7 +525,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
               <Text style={styles.exportName}>TurboTax Online</Text>
               <View style={styles.badgeRecommended}><Text style={styles.badgeRecommendedText}>RECOMMENDED</Text></View>
             </View>
-            <Text style={styles.exportDesc}>Schedule C summary + detail. Best for self-filing online.</Text>
+            <Text style={styles.exportDesc}>Self-Employment Tax Form (Schedule C) summary + detail. Best for self-filing online.</Text>
           </View>
           <View style={styles.exportActions}>
             <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadTurboTaxOnlinePack} disabled={!taxPackage.data || taxPackage.isLoading}>
@@ -650,8 +650,8 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
             <Text style={styles.exportIconEmoji}>💾</Text>
           </View>
           <View style={styles.exportInfo}>
-            <Text style={styles.exportName}>JSON Backup</Text>
-            <Text style={styles.exportDesc}>Complete data archive in JSON format.</Text>
+            <Text style={styles.exportName}>Full Data Backup</Text>
+            <Text style={styles.exportDesc}>Complete data archive. (JSON format, for technical use)</Text>
           </View>
           <View style={styles.exportActions}>
             <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadJSON}>

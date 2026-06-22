@@ -143,7 +143,7 @@ function RetirementCard({
         <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
       )}
       <Text style={[styles.cardMeta, { color: colors.text.subtle }]}>
-        IRS limit: $69,000 SEP-IRA
+        IRS limit: $69,000 Self-Employed Retirement Account (SEP-IRA)
       </Text>
       <AdjustBucketPercentageModal
         isVisible={showPctModal}

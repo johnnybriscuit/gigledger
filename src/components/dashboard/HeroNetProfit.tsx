@@ -115,7 +115,7 @@ export function HeroNetProfit({ dateRange = 'ytd', customStart, customEnd, payer
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statCol}>
-          <Text style={styles.statLabel}>Tax Aside</Text>
+          <Text style={styles.statLabel}>Saved for Taxes</Text>
           <Text style={[styles.statValue, styles.statAmber]}>{formatCurrency(currentData.totals.taxes)}</Text>
         </View>
       </View>

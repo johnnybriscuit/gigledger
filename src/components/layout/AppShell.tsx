@@ -29,12 +29,12 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', IconComponent: House, iconColor: '#2D5BE3', iconBg: '#EEF2FF' },
-  { id: 'payers', label: 'Contacts', IconComponent: Users, iconColor: '#D97706', iconBg: '#FFFBEB' },
   { id: 'gigs', label: 'Gigs', IconComponent: CalendarCheck, iconColor: '#7C3AED', iconBg: '#F3F0FF' },
+  { id: 'invoices', label: 'Invoices', IconComponent: FileText, iconColor: '#059669', iconBg: '#ECFDF5' },
   { id: 'expenses', label: 'Expenses', IconComponent: Receipt, iconColor: '#E11D48', iconBg: '#FFF1F2' },
   { id: 'mileage', label: 'Mileage', IconComponent: NavigationArrow, iconColor: '#0D9488', iconBg: '#F0FDFA' },
-  { id: 'invoices', label: 'Invoices', IconComponent: FileText, iconColor: '#059669', iconBg: '#ECFDF5' },
-  { id: 'exports', label: 'Exports', IconComponent: DownloadSimple, iconColor: '#475569', iconBg: '#F8FAFC' },
+  { id: 'payers', label: 'Contacts', IconComponent: Users, iconColor: '#D97706', iconBg: '#FFFBEB' },
+  { id: 'exports', label: 'Tax Prep', IconComponent: DownloadSimple, iconColor: '#475569', iconBg: '#F8FAFC' },
   { id: 'subscription', label: 'Subscription', IconComponent: CreditCard, iconColor: '#CA8A04', iconBg: '#FEFCE8' },
   { id: 'account', label: 'Account Settings', IconComponent: GearSix, iconColor: '#78716C', iconBg: '#F5F5F4' },
 ];
@@ -44,6 +44,7 @@ interface AppShellProps {
   onNavigate: (route: Route) => void;
   children: React.ReactNode;
   pageTitle?: string;
+  pageSubtitle?: string;
   pageActions?: React.ReactNode;
   headerActions?: React.ReactNode;
   headerRight?: React.ReactNode;
@@ -58,6 +59,7 @@ export function AppShell({
   onNavigate,
   children,
   pageTitle,
+  pageSubtitle,
   pageActions,
   headerActions,
   headerRight,
@@ -123,16 +125,16 @@ export function AppShell({
       items: [
         { id: 'dashboard' as Route, label: 'Home', IconComponent: House, iconColor: '#2D5BE3', iconBg: '#EEF2FF' },
         { id: 'gigs' as Route, label: 'Gigs', IconComponent: CalendarCheck, iconColor: '#7C3AED', iconBg: '#F3F0FF' },
-        { id: 'expenses' as Route, label: 'Expenses', IconComponent: Receipt, iconColor: '#E11D48', iconBg: '#FFF1F2' },
         { id: 'invoices' as Route, label: 'Invoices', IconComponent: FileText, iconColor: '#059669', iconBg: '#ECFDF5' },
+        { id: 'expenses' as Route, label: 'Expenses', IconComponent: Receipt, iconColor: '#E11D48', iconBg: '#FFF1F2' },
+        { id: 'mileage' as Route, label: 'Mileage', IconComponent: NavigationArrow, iconColor: '#0D9488', iconBg: '#F0FDFA' },
       ],
     },
     {
       label: 'TOOLS',
       items: [
         { id: 'payers' as Route, label: 'Contacts', IconComponent: Users, iconColor: '#D97706', iconBg: '#FFFBEB' },
-        { id: 'mileage' as Route, label: 'Mileage', IconComponent: NavigationArrow, iconColor: '#0D9488', iconBg: '#F0FDFA' },
-        { id: 'exports' as Route, label: 'Exports', IconComponent: DownloadSimple, iconColor: '#475569', iconBg: '#F8FAFC' },
+        { id: 'exports' as Route, label: 'Tax Prep', IconComponent: DownloadSimple, iconColor: '#475569', iconBg: '#F8FAFC' },
       ],
     },
     {
@@ -517,9 +519,14 @@ export function AppShell({
           <View style={[styles.header, isDesktopWeb && styles.headerDesktop, isMobile && styles.headerMobile]}>
             <View style={styles.headerLeft}>
               {!isMobile && pageTitle && (
-                <Text style={[styles.pageTitle, isMobile && styles.pageTitleMobile]}>
-                  {pageTitle}
-                </Text>
+                <View>
+                  <Text style={[styles.pageTitle, isMobile && styles.pageTitleMobile]}>
+                    {pageTitle}
+                  </Text>
+                  {pageSubtitle ? (
+                    <Text style={styles.pageSubtitle}>{pageSubtitle}</Text>
+                  ) : null}
+                </View>
               )}
             </View>
             <View style={styles.headerRight}>
@@ -972,6 +979,12 @@ const styles = StyleSheet.create({
   },
   pageTitleMobile: {
     fontSize: 22,
+  },
+  pageSubtitle: {
+    fontSize: 13,
+    color: colors.text.subtle,
+    fontStyle: 'italic',
+    marginTop: 3,
   },
   actionBar: {
     backgroundColor: colors.surface.DEFAULT,

@@ -267,10 +267,23 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
       case 'expenses': return 'Expenses';
       case 'mileage': return 'Mileage';
       case 'invoices': return 'Invoices';
-      case 'exports': return 'Exports';
+      case 'exports': return 'Tax Prep';
       case 'subscription': return 'Subscription';
       case 'account': return 'Account Settings';
       default: return 'Dashboard';
+    }
+  }
+
+  function getPageSubtitle(): string | undefined {
+    switch (activeTab) {
+      case 'gigs': return 'Log every payment and track what you’re owed';
+      case 'invoices': return 'Send payment requests and track what’s overdue';
+      case 'expenses': return 'Track what you spend — every expense is a potential tax deduction';
+      case 'mileage': return 'Every mile driven for work reduces your tax bill';
+      case 'payers': return 'The clients and companies that pay you';
+      case 'exports': return 'Download your records for TurboTax or your accountant';
+      case 'subscription': return 'Manage your Bozzy plan';
+      default: return undefined;
     }
   }
 
@@ -387,6 +400,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
       activeRoute={activeTab}
       onNavigate={(route) => setActiveTab(route)}
       pageTitle={pageTitle}
+      pageSubtitle={getPageSubtitle()}
       userName={profile?.full_name || undefined}
       userEmail={user?.email || undefined}
       onSignOut={handleSignOut}

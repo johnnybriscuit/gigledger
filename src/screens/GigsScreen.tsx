@@ -705,7 +705,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
         items={[
           { label: 'TOTAL GIGS', value: filteredGigs?.length || 0 },
           { label: 'NET EARNINGS', value: formatCurrency(totalNet), subtitle: 'after fees & deductions' },
-          { label: 'TAX ASIDE', value: formatCurrency(totalTaxAside), valueColor: T.amber },
+          { label: 'SAVED FOR TAXES', value: formatCurrency(totalTaxAside), valueColor: T.amber },
         ]}
       />
 
@@ -727,9 +727,12 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
             <TouchableOpacity style={styles.btnGhost} onPress={() => setImportModalVisible(true)}>
               <NativeText style={styles.btnGhostText}>📥 Import</NativeText>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.btnGhost} onPress={() => setCreateTourModalVisible(true)}>
-              <NativeText style={styles.btnGhostText}>+ Tour</NativeText>
-            </TouchableOpacity>
+            <View style={styles.tourBtnWrap}>
+              <TouchableOpacity style={styles.btnGhost} onPress={() => setCreateTourModalVisible(true)}>
+                <NativeText style={styles.btnGhostText}>+ Tour</NativeText>
+              </TouchableOpacity>
+              <NativeText style={styles.tourBtnHint}>Group related gigs</NativeText>
+            </View>
             {hasReachedGigLimit ? (
               <TouchableOpacity style={styles.btnPrimary} onPress={handleUpgradeClick}>
                 <NativeText style={styles.btnPrimaryText}>⭐ Upgrade</NativeText>
@@ -1264,5 +1267,14 @@ const styles = StyleSheet.create({
   mixedTaxDismissText: {
     fontSize: 16,
     color: T.textMuted,
+  },
+  tourBtnWrap: {
+    alignItems: 'center',
+  },
+  tourBtnHint: {
+    fontSize: 9,
+    color: T.textMuted,
+    marginTop: 2,
+    textAlign: 'center',
   },
 });
