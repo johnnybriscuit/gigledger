@@ -163,7 +163,7 @@ export function Subcontractor1099Center({ onNavigateToExports }: Subcontractor10
           <Text style={styles.calloutIcon}>⚠️</Text>
           <View style={{ flex: 1 }}>
             <Text style={styles.calloutText}>
-              IRS filing not included in Bozzy yet — use exports to prepare forms or share with your CPA.
+              IRS filing not included in Bozzy yet — use Tax Prep to prepare forms or share with your CPA.
             </Text>
             {onNavigateToExports && (
               <TouchableOpacity onPress={onNavigateToExports} style={styles.exportsLink}>

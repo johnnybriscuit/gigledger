@@ -284,7 +284,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
 
       Alert.alert(
         'TurboTax Desktop TXF Export Complete',
-        'Your TXF file has been downloaded. This file can be imported into TurboTax Desktop (NOT TurboTax Online).\n\nThese exports organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
+        'Your TXF file has been downloaded. This file can be imported into TurboTax Desktop (NOT TurboTax Online).\n\nThese downloads organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
         [{ text: 'OK' }]
       );
     } catch (error: unknown) {
@@ -322,7 +322,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
 
       Alert.alert(
         'H&R Block Desktop TXF Export Complete',
-        'Your TXF file has been downloaded. This file can be imported into H&R Block Desktop.\n\nThese exports organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
+        'Your TXF file has been downloaded. This file can be imported into H&R Block Desktop.\n\nThese downloads organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
         [{ text: 'OK' }]
       );
     } catch (error: unknown) {
@@ -359,7 +359,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
 
       Alert.alert(
         'TaxAct Tax Prep Pack Export Complete',
-        'Your ZIP file has been downloaded with CSVs, PDF summary, and README.\n\nTaxAct export is a Tax Prep Pack (ZIP) designed for easy manual entry and CPA sharing.\n\nThese exports organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
+        'Your ZIP file has been downloaded with CSVs, PDF summary, and README.\n\nTaxAct export is a Tax Prep Pack (ZIP) designed for easy manual entry and CPA sharing.\n\nThese downloads organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you\'re unsure.',
         [
           { text: 'View Info', onPress: () => setShowTaxActInfo(true) },
           { text: 'Done' },
@@ -699,7 +699,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
       <View style={styles.disclaimer}>
         <Text style={styles.disclaimerIcon}>✅</Text>
         <Text style={styles.disclaimerTitle}>You have everything you need</Text>
-        <Text style={styles.disclaimerBody}>These exports organize your data for tax preparation. Review and verify all totals before filing.</Text>
+        <Text style={styles.disclaimerBody}>These downloads organize your data for tax preparation. Review and verify all totals before filing.</Text>
         <Text style={styles.disclaimerFine}>When in doubt, consult a tax professional for guidance specific to your situation.</Text>
       </View>
 
@@ -737,7 +737,7 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
             <Text style={styles.modalTitle}>TaxAct Tax Prep Pack</Text>
             <ScrollView style={styles.modalScroll}>
               <Text style={styles.modalText}>
-                {`Your ZIP file contains:\n\n• ScheduleC_Summary_${taxYear}.csv - Main Schedule C totals\n• Expense_Detail_${taxYear}.csv - All expenses with categories\n• Income_Detail_${taxYear}.csv - All income transactions\n• Mileage_${taxYear}.csv - Business mileage log\n• PDF_Summary_${taxYear}.pdf - Professional summary for your CPA\n• README_Tax_Filing_${taxYear}.txt - Instructions and notes\n\nHow to use:\n\n1. Extract the ZIP file\n2. Review the PDF summary for totals\n3. Use the CSV files for manual entry into TaxAct or share with your CPA\n4. Keep the README for reference\n\nImportant: These exports organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you're unsure.`}
+                {`Your ZIP file contains:\n\n• ScheduleC_Summary_${taxYear}.csv - Main Schedule C totals\n• Expense_Detail_${taxYear}.csv - All expenses with categories\n• Income_Detail_${taxYear}.csv - All income transactions\n• Mileage_${taxYear}.csv - Business mileage log\n• PDF_Summary_${taxYear}.pdf - Professional summary for your CPA\n• README_Tax_Filing_${taxYear}.txt - Instructions and notes\n\nHow to use:\n\n1. Extract the ZIP file\n2. Review the PDF summary for totals\n3. Use the CSV files for manual entry into TaxAct or share with your CPA\n4. Keep the README for reference\n\nImportant: These downloads organize your Bozzy data for tax preparation. They are not tax advice and may require review/adjustment. Please verify totals and consult a tax professional if you're unsure.`}
               </Text>
             </ScrollView>
             <TouchableOpacity
