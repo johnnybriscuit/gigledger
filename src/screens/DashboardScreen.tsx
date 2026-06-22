@@ -438,7 +438,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
               size="sm"
               onPress={() => setActiveTab('exports')}
             >
-              Export
+              Tax Prep
             </Button>
             {isDesktopWidth && (
               <>

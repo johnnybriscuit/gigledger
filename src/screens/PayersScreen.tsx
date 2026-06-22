@@ -236,7 +236,7 @@ export function PayersScreen({ onNavigateToExports }: PayersScreenProps = {}) {
       <StatsSummaryBar
         items={[
           { label: 'TOTAL CONTACTS', value: totalContacts },
-          { label: 'PAYERS', value: payers?.length ?? 0 },
+          { label: 'CLIENTS', value: payers?.length ?? 0 },
           { label: 'SUBCONTRACTORS', value: subcontractors?.length ?? 0 },
         ]}
       />
@@ -282,7 +282,7 @@ export function PayersScreen({ onNavigateToExports }: PayersScreenProps = {}) {
       <View style={styles.contentArea}>
         {activeTab === 'payers' ? (
           <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-            <Text style={styles.sectionLabel}>{payers?.length ?? 0} PAYERS</Text>
+            <Text style={styles.sectionLabel}>{payers?.length ?? 0} CLIENTS</Text>
             <View style={styles.cardList}>
               {!payers || payers.length === 0 ? (
                 <View style={styles.emptyState}>

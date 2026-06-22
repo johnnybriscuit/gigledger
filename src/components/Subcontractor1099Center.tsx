@@ -167,7 +167,7 @@ export function Subcontractor1099Center({ onNavigateToExports }: Subcontractor10
             </Text>
             {onNavigateToExports && (
               <TouchableOpacity onPress={onNavigateToExports} style={styles.exportsLink}>
-                <Text style={styles.exportsLinkText}>Go to Exports →</Text>
+                <Text style={styles.exportsLinkText}>Go to Tax Prep →</Text>
               </TouchableOpacity>
             )}
           </View>
