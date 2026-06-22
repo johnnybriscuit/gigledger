@@ -19,6 +19,7 @@ import { useDateRange } from '../hooks/useDateRange';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
 import { PayerFilter } from '../components/PayerFilter';
 import { usePayers } from '../hooks/usePayers';
+import { useAllocationBuckets } from '../hooks/useAllocationBuckets';
 import { Toast } from '../components/Toast';
 import { TaxProfileBanner } from '../components/TaxProfileBanner';
 import { RangePopover } from '../components/RangePopover';
@@ -95,6 +96,12 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
   
   // Fetch payers for filter
   const { data: payers = [] } = usePayers();
+
+  // Bucket state for money plan toolbar button (React Query deduplicates with EnhancedDashboard)
+  const { buckets: allocationBuckets, isLoading: bucketsLoading } = useAllocationBuckets();
+  const hasBucketsConfigured = !bucketsLoading &&
+    allocationBuckets.length > 0 &&
+    allocationBuckets.some(b => b.bucket_type !== 'spendable');
 
   // Check if we should show onboarding completion toast and tour
   useEffect(() => {
@@ -446,8 +453,27 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
             >
               Tax Prep
             </Button>
+            {!bucketsLoading && hasBucketsConfigured && onNavigateToMyMoney && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={onNavigateToMyMoney}
+              >
+                💰 My Money Plan →
+              </Button>
+            )}
+            {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={onNavigateToBucketSetup}
+              >
+                🎯 Set up money plan
+              </Button>
+            )}
             {isDesktopWidth && (
               <>
+                <View style={styles.toolbarSeparator} />
                 <PayerFilter
                   value={selectedPayerId}
                   onChange={setSelectedPayerId}
@@ -575,6 +601,13 @@ const styles = StyleSheet.create({
   tabBarContent: {
     flexDirection: 'row',
     paddingHorizontal: parseInt(spacing[1]),
+  },
+  toolbarSeparator: {
+    width: 1,
+    height: 20,
+    backgroundColor: colors.border.DEFAULT,
+    marginHorizontal: 4,
+    alignSelf: 'center',
   },
   bannerContainer: {
     paddingHorizontal: parseInt(spacing[5]),

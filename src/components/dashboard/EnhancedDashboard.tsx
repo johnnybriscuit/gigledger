@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { useResponsive } from '../../hooks/useResponsive';
 import { MonthlyOverview } from './MonthlyOverview';
 import { ExpenseBreakdown } from './ExpenseBreakdown';
@@ -66,17 +66,12 @@ export function EnhancedDashboard({
   onNavigateToMyMoney,
   onNavigateToRateGuide,
 }: EnhancedDashboardProps) {
-  const { buckets, isLoading: bucketsLoading } = useAllocationBuckets();
+  const { buckets } = useAllocationBuckets();
   const { isDesktop, isTablet } = useResponsive();
   const { width } = useWindowDimensions();
   const isPhone = width < 768;
   const [drillThroughMonth, setDrillThroughMonth] = useState<string | null>(null);
   const [selectedPayer, setSelectedPayer] = useState<string | null>(null);
-
-  // Check if buckets are configured using actual DB data — localStorage is unreliable
-  const hasBucketsConfigured = !bucketsLoading &&
-    buckets.length > 0 &&
-    buckets.some(b => b.bucket_type !== 'spendable');
 
   // Fetch dashboard data
   const data = useDashboardData(dateRange, customStart, customEnd, payerId);
@@ -156,24 +151,6 @@ export function EnhancedDashboard({
           isDesktop && styles.scrollContentDesktop,
         ]}
       >
-        {/* Money Plan CTA — mutually exclusive, DB-driven, no flash while loading */}
-        {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
-          <TouchableOpacity
-            style={styles.bucketSetupButton}
-            onPress={onNavigateToBucketSetup}
-          >
-            <Text style={styles.bucketSetupText}>🎯 Set up your money plan →</Text>
-          </TouchableOpacity>
-        )}
-        {!bucketsLoading && hasBucketsConfigured && onNavigateToMyMoney && (
-          <TouchableOpacity
-            style={styles.myMoneyButton}
-            onPress={onNavigateToMyMoney}
-          >
-            <Text style={styles.myMoneyButtonText}>💰 My Money Plan →</Text>
-          </TouchableOpacity>
-        )}
-
         {/* 1. Retroactive Allocation Prompt */}
         <RetroactivePromptBanner />
 
@@ -261,35 +238,6 @@ const styles = StyleSheet.create({
   },
   scrollContentDesktop: {
     padding: parseInt(spacing[6]),
-  },
-  bucketSetupButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginHorizontal: Platform.OS === 'web' ? 0 : 10,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  bucketSetupText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  myMoneyButton: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  myMoneyButtonText: {
-    color: '#1d4ed8',
-    fontSize: 15,
-    fontWeight: '600',
   },
   chartSection: {
     marginBottom: 16,
