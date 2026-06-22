@@ -98,13 +98,15 @@ function AppContent() {
       const pathname = window.location.pathname;
       if (pathname === '/login' || pathname === '/signup') return 'auth';
       if (pathname === '/auth/callback') return 'auth-callback';
-      if (pathname === '/dashboard') return 'dashboard';
       if (pathname === '/terms') return 'terms';
       if (pathname === '/privacy') return 'privacy';
       if (pathname === '/support') return 'support';
       if (pathname === '/forgot-password') return 'forgot-password';
       if (pathname === '/reset-password') return 'reset-password';
       if (pathname.startsWith('/invoices/')) return 'public-invoice';
+      // Dashboard tab paths — DashboardScreen manages its own URL within these
+      const dashboardTabPaths = ['/dashboard', '/gigs', '/invoices', '/expenses', '/mileage', '/contacts', '/exports', '/tax-prep', '/subscription', '/account', '/account-settings', '/settings'];
+      if (dashboardTabPaths.includes(pathname)) return 'dashboard';
     }
     return 'landing';
   };
@@ -144,6 +146,11 @@ function AppContent() {
       
       const targetPath = routeToPath[currentRoute];
       if (!targetPath) {
+        return;
+      }
+      // DashboardScreen manages its own tab-level URLs — don't overwrite them with /dashboard
+      const dashboardTabPaths = ['/gigs', '/invoices', '/expenses', '/mileage', '/contacts', '/exports', '/tax-prep', '/subscription', '/account', '/account-settings', '/settings'];
+      if (currentRoute === 'dashboard' && dashboardTabPaths.includes(window.location.pathname)) {
         return;
       }
       if (window.location.pathname !== targetPath) {

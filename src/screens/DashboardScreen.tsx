@@ -73,8 +73,11 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
         '/mileage': 'mileage',
         '/invoices': 'invoices',
         '/exports': 'exports',
+        '/tax-prep': 'exports',
         '/subscription': 'subscription',
         '/account': 'account',
+        '/account-settings': 'account',
+        '/settings': 'account',
       };
       const path = window.location.pathname;
       return pathToTab[path] || (localStorage.getItem('activeTab') as Tab) || 'dashboard';
@@ -221,7 +224,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
         expenses: '/expenses',
         mileage: '/mileage',
         invoices: '/invoices',
-        exports: '/exports',
+        exports: '/tax-prep',
         subscription: '/subscription',
         account: '/account',
       };
@@ -243,8 +246,11 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
       '/mileage': 'mileage',
       '/invoices': 'invoices',
       '/exports': 'exports',
+      '/tax-prep': 'exports',
       '/subscription': 'subscription',
       '/account': 'account',
+      '/account-settings': 'account',
+      '/settings': 'account',
     };
     const handlePopState = () => {
       isPopStateNavigation.current = true;
