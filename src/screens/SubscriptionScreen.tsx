@@ -424,13 +424,13 @@ export function SubscriptionScreen() {
           )}
 
           <Button
-            variant="primary"
+            variant="secondary"
             onPress={handleManageSubscription}
             disabled={createPortal.isPending}
             style={styles.manageButton}
           >
             {createPortal.isPending ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.brand.DEFAULT} />
             ) : (
               'Manage Subscription'
             )}
@@ -568,7 +568,7 @@ export function SubscriptionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f2f2f7',
+    backgroundColor: colors.surface.canvas,
   },
   loadingContainer: {
     flex: 1,
@@ -579,9 +579,9 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   
-  // Mobile: Current Plan Card (white card)
+  // Mobile: Current Plan Card
   currentPlanCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     borderRadius: 16,
     padding: 18,
     marginHorizontal: 10,
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
   cardLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#8e8e93',
+    color: colors.text.subtle,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   currentPlanName: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#1c1c1e',
+    color: colors.text.DEFAULT,
     marginBottom: 4,
   },
   currentPlanPriceRow: {
@@ -612,23 +612,23 @@ const styles = StyleSheet.create({
   currentPlanPrice: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#007AFF',
+    color: colors.brand.DEFAULT,
   },
   currentPlanPer: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#8e8e93',
+    color: colors.text.subtle,
   },
   renewDate: {
     fontSize: 13,
-    color: '#8e8e93',
+    color: colors.text.subtle,
   },
   
   // Mobile: Section Header
   sectionHeader: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1c1c1e',
+    color: colors.text.DEFAULT,
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 12,
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
   toggleContainer: {
     marginHorizontal: 10,
     marginBottom: 14,
-    backgroundColor: '#e5e5ea',
+    backgroundColor: colors.surface.muted,
     borderRadius: 12,
     padding: 3,
     flexDirection: 'row',
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   toggleOptionActive: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -662,10 +662,10 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#8e8e93',
+    color: colors.text.subtle,
   },
   toggleTextActive: {
-    color: '#1c1c1e',
+    color: colors.text.DEFAULT,
   },
   badge: {
     position: 'absolute',
@@ -796,30 +796,30 @@ const styles = StyleSheet.create({
   manageButton: {
     marginHorizontal: 10,
     marginBottom: 10,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1.5,
-    borderColor: '#007AFF',
+    borderColor: colors.brand.DEFAULT,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   manageButtonText: {
-    color: '#007AFF',
+    color: colors.brand.DEFAULT,
     fontSize: 15,
     fontWeight: '600',
   },
   syncButton: {
     marginHorizontal: 10,
     marginBottom: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.DEFAULT,
     borderWidth: 1.5,
-    borderColor: '#e0e0e0',
+    borderColor: colors.border.DEFAULT,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },
   syncButtonText: {
-    color: '#8e8e93',
+    color: colors.text.subtle,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -827,7 +827,7 @@ const styles = StyleSheet.create({
   // Mobile: Divider
   divider: {
     height: 1,
-    backgroundColor: '#e5e5ea',
+    backgroundColor: colors.border.DEFAULT,
     marginHorizontal: 10,
     marginBottom: 14,
   },
@@ -836,7 +836,7 @@ const styles = StyleSheet.create({
   footerNote: {
     textAlign: 'center',
     fontSize: 12,
-    color: '#8e8e93',
+    color: colors.text.subtle,
     paddingHorizontal: 20,
     lineHeight: 18,
   },
