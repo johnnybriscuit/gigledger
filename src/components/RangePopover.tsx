@@ -12,6 +12,7 @@ import {
   Modal,
   Pressable,
   Platform,
+  type ViewStyle,
 } from 'react-native';
 import { colors } from '../styles/theme';
 import type { DateRange } from '../hooks/useDashboardData';
@@ -24,9 +25,10 @@ interface RangePopoverProps {
   options: Array<{ value: DateRange; label: string }>;
   customStart?: Date;
   customEnd?: Date;
+  style?: ViewStyle;
 }
 
-export function RangePopover({ value, onChange, onCustomRangeChange, options, customStart, customEnd }: RangePopoverProps) {
+export function RangePopover({ value, onChange, onCustomRangeChange, options, customStart, customEnd, style }: RangePopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -93,7 +95,7 @@ export function RangePopover({ value, onChange, onCustomRangeChange, options, cu
     <>
       <TouchableOpacity
         ref={triggerRef}
-        style={styles.trigger}
+        style={[styles.trigger, style]}
         onPress={handleOpen}
         activeOpacity={0.7}
       >

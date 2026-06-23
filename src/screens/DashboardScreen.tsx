@@ -500,6 +500,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                 <Button 
                   variant="primary"
                   size="sm"
+                  style={styles.mobileToolbarItem}
                   onPress={() => setShowAddGigModal(true)}
                 >
                   + Add Gig
@@ -508,6 +509,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                   value={selectedPayerId}
                   onChange={setSelectedPayerId}
                   payers={payers.map(p => ({ id: p.id, name: p.name }))}
+                  style={styles.mobileToolbarItem}
                 />
                 <RangePopover
                   value={range}
@@ -521,12 +523,14 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                     { value: 'last90' as DateRange, label: 'Last 90 Days' },
                     { value: 'lastYear' as DateRange, label: 'Last Year' },
                   ]}
+                  style={styles.mobileToolbarItem}
                 />
               </View>
               <View style={styles.mobileToolbarRow}>
                 <Button 
                   variant="secondary"
                   size="sm"
+                  style={styles.mobileToolbarItem}
                   onPress={() => setShowAddExpenseModal(true)}
                 >
                   Add Expense
@@ -534,6 +538,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                 <Button 
                   variant="secondary"
                   size="sm"
+                  style={styles.mobileToolbarItem}
                   onPress={() => setActiveTab('exports')}
                 >
                   Tax Prep
@@ -542,6 +547,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                   <Button
                     variant="secondary"
                     size="sm"
+                    style={styles.mobileToolbarItem}
                     onPress={onNavigateToMyMoney}
                   >
                     💰 My Money Plan →
@@ -551,6 +557,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                   <Button
                     variant="primary"
                     size="sm"
+                    style={styles.mobileToolbarItem}
                     onPress={onNavigateToBucketSetup}
                   >
                     🎯 Set up money plan
@@ -725,7 +732,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    flexWrap: 'wrap',
+  },
+  mobileToolbarItem: {
+    flex: 1,
   },
   bannerContainer: {
     paddingHorizontal: parseInt(spacing[5]),

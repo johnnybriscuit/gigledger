@@ -13,6 +13,7 @@ import {
   Pressable,
   Platform,
   ScrollView,
+  type ViewStyle,
 } from 'react-native';
 import { colors } from '../styles/theme';
 
@@ -20,9 +21,10 @@ interface PayerFilterProps {
   value: string | null;
   onChange: (payerId: string | null) => void;
   payers: Array<{ id: string; name: string }>;
+  style?: ViewStyle;
 }
 
-export function PayerFilter({ value, onChange, payers }: PayerFilterProps) {
+export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef<any>(null);
@@ -66,7 +68,7 @@ export function PayerFilter({ value, onChange, payers }: PayerFilterProps) {
     <>
       <TouchableOpacity
         ref={triggerRef}
-        style={styles.trigger}
+        style={[styles.trigger, style]}
         onPress={handleOpen}
         activeOpacity={0.7}
       >
@@ -101,7 +103,7 @@ export function PayerFilter({ value, onChange, payers }: PayerFilterProps) {
               onStartShouldSetResponder={() => true}
             >
               <View style={styles.popoverHeader}>
-                <Text style={styles.popoverTitle}>Filter by Payer</Text>
+                <Text style={styles.popoverTitle}>Filter by Client</Text>
               </View>
               
               <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
