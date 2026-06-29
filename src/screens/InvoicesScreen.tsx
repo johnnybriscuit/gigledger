@@ -247,6 +247,13 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
     setSelectedInvoiceId(null);
   };
 
+  const handleSendNow = async (invoiceId: string) => {
+    await refetchInvoices();
+    setSelectedInvoiceId(invoiceId);
+    setViewMode('view');
+    setShowEmailModal(true);
+  };  
+
   const handleDeletePayment = async (paymentId: string) => {
     try {
       await deletePayment(paymentId);
@@ -341,6 +348,10 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
                 setSelectedInvoiceId(invoice.id);
                 setShowEmailModal(true);
               }}
+              onRecordPayment={(invoice) => {
+                setSelectedInvoiceId(invoice.id);
+                setShowPaymentModal(true);
+              }}
             />
           </View>
         </>
@@ -365,6 +376,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
           <View style={styles.detailContent}>
             <InvoiceForm
               onSuccess={handleFormSuccess}
+              onSendNow={handleSendNow}
               onCancel={() => {
                 setViewMode('list');
                 setDuplicatingInvoice(null);

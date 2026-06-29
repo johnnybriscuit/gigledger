@@ -5,6 +5,18 @@ import { Invoice, PAYMENT_METHODS, formatCurrency } from '../types/invoice';
 import { generatePaymentRef } from '../utils/paymentReference';
 import { getTodayDateString, parseStoredDate } from '../lib/date';
 import { roundCurrencyAmount } from '../utils/invoiceCalculations';
+import { colors } from '../styles/theme';
+
+const T = {
+  canvas: colors.surface.canvas,
+  surface: colors.surface.elevated,
+  border: colors.border.DEFAULT,
+  borderMuted: colors.border.muted,
+  textPrimary: colors.text.DEFAULT,
+  textMuted: colors.text.muted,
+  textSubtle: colors.text.subtle,
+  accent: colors.brand.DEFAULT,
+};
 
 interface RecordPaymentModalProps {
   invoice: Invoice;
@@ -257,7 +269,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
@@ -268,30 +280,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: T.borderMuted,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: T.textPrimary,
   },
   closeButton: {
     fontSize: 28,
-    color: '#6b7280',
+    color: T.textSubtle,
     fontWeight: '300',
   },
   modalBody: {
     padding: 20,
   },
   invoiceInfo: {
-    backgroundColor: '#f9fafb',
+    backgroundColor: T.canvas,
     padding: 16,
     borderRadius: 8,
     marginBottom: 20,
   },
   invoiceInfoLabel: {
     fontSize: 14,
-    color: '#374151',
+    color: T.textMuted,
     marginBottom: 4,
   },
   balanceDueText: {
@@ -305,7 +317,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 8,
     marginTop: 12,
-    color: '#374151',
+    color: T.textMuted,
   },
   selectedMethodText: {
     fontSize: 12,
@@ -315,11 +327,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: T.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
+    color: T.textPrimary,
   },
   textArea: {
     minHeight: 80,
@@ -336,8 +349,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: T.border,
+    backgroundColor: T.surface,
     cursor: 'pointer',
     minWidth: 80,
   },
@@ -347,7 +360,7 @@ const styles = StyleSheet.create({
   },
   paymentMethodButtonText: {
     fontSize: 14,
-    color: '#374151',
+    color: T.textMuted,
   },
   paymentMethodButtonTextActive: {
     color: '#fff',
@@ -358,18 +371,18 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: T.borderMuted,
   },
   cancelButton: {
     flex: 1,
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: T.border,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#374151',
+    color: T.textMuted,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -35,9 +35,10 @@ interface InvoiceListProps {
   onSelectInvoice?: (invoice: Invoice) => void;
   onCreateNew?: () => void;
   onSendReminder?: (invoice: Invoice) => void;
+  onRecordPayment?: (invoice: Invoice) => void;
 }
 
-export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, onSendReminder }: InvoiceListProps) {
+export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, onSendReminder, onRecordPayment }: InvoiceListProps) {
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'due_date'>('date');
@@ -332,14 +333,30 @@ export function InvoiceList({ invoices, loading, onSelectInvoice, onCreateNew, o
                   ) : null}
                 </View>
 
-                {status === 'overdue' && onSendReminder && (
-                  <TouchableOpacity
-                    style={styles.reminderBtn}
-                    onPress={(e) => { e.stopPropagation?.(); onSendReminder(invoice); }}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={styles.reminderBtnText}>📧 Send Reminder</Text>
-                  </TouchableOpacity>
+                {(
+                  (status === 'overdue' && !!onSendReminder) ||
+                  ((['sent', 'viewed', 'partially_paid', 'overdue'] as InvoiceStatus[]).includes(status) && !!onRecordPayment)
+                ) && (
+                  <View style={styles.cardActions}>
+                    {status === 'overdue' && onSendReminder && (
+                      <TouchableOpacity
+                        style={styles.reminderBtn}
+                        onPress={(e) => { e.stopPropagation?.(); onSendReminder(invoice); }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={styles.reminderBtnText}>📧 Send Reminder</Text>
+                      </TouchableOpacity>
+                    )}
+                    {(['sent', 'viewed', 'partially_paid', 'overdue'] as InvoiceStatus[]).includes(status) && onRecordPayment && (
+                      <TouchableOpacity
+                        style={styles.recordPaymentBtn}
+                        onPress={(e) => { e.stopPropagation?.(); onRecordPayment(invoice); }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={styles.recordPaymentBtnText}>💰 Record Payment</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 )}
               </TouchableOpacity>
             );
@@ -499,6 +516,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
+    borderWidth: 1,
   },
   cardStatusText: {
     fontSize: 11,
@@ -610,9 +628,15 @@ const styles = StyleSheet.create({
     width: 92,
     height: 14,
   },
+  cardActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 12,
+    marginTop: 2,
+  },
   reminderBtn: {
-    alignSelf: 'flex-start',
-    marginTop: 10,
     backgroundColor: colors.warning.muted,
     borderWidth: 1,
     borderColor: colors.warning.DEFAULT,
@@ -624,5 +648,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.warning.DEFAULT,
+  },
+  recordPaymentBtn: {
+    backgroundColor: colors.success.muted,
+    borderWidth: 1,
+    borderColor: colors.success.DEFAULT,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  recordPaymentBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.success.DEFAULT,
   },
 });

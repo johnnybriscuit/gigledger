@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
+import { colors } from '../styles/theme';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useInvoices } from '../hooks/useInvoices';
 import { useInvoiceSettings } from '../hooks/useInvoiceSettings';
@@ -14,15 +15,31 @@ import { supabase } from '../lib/supabase';
 import { getPaymentMethodsConfig, snapshotAcceptedPaymentMethods } from '../utils/paymentMethodsMigration';
 import { calculateInvoiceTotals, roundCurrencyAmount } from '../utils/invoiceCalculations';
 
+const T = {
+  canvas: colors.surface.canvas,
+  surface: colors.surface.elevated,
+  border: colors.border.DEFAULT,
+  borderMuted: colors.border.muted,
+  textPrimary: colors.text.DEFAULT,
+  textMuted: colors.text.muted,
+  textSubtle: colors.text.subtle,
+  accent: colors.brand.DEFAULT,
+  accentMuted: colors.brand.muted,
+  success: colors.success.DEFAULT,
+  successMuted: colors.success.muted,
+  danger: colors.danger.DEFAULT,
+};
+
 interface InvoiceFormProps {
   invoiceId?: string;
   duplicatingInvoice?: any;
   onSuccess?: () => void;
+  onSendNow?: (invoiceId: string) => void;
   onCancel?: () => void;
   onNavigateToAccount?: () => void;
 }
 
-export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel, onNavigateToAccount }: InvoiceFormProps) {
+export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onSendNow, onCancel, onNavigateToAccount }: InvoiceFormProps) {
   const { createInvoice, updateInvoice, invoices } = useInvoices();
   const { settings, getNextInvoiceNumber } = useInvoiceSettings();
   const { payers } = usePayers();
@@ -257,7 +274,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
     };
   };
 
-  const handleSave = async () => {
+  const handleSave = async (sendNow = false) => {
     if (!formData.client_name.trim()) {
       Alert.alert('Error', 'Client name is required');
       return;
@@ -332,9 +349,11 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
           return;
         }
 
+        let createdInvoiceId: string | undefined;
         try {
           const invoiceNumber = await getNextInvoiceNumber();
-          await createInvoice(buildPreparedFormData(invoiceNumber), invoiceNumber);
+          const created = await createInvoice(buildPreparedFormData(invoiceNumber), invoiceNumber);
+          createdInvoiceId = created?.id;
         } catch (createError) {
           if (limitCheck.incremented) {
             await supabase
@@ -360,7 +379,11 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
         Alert.alert('Success', 'Invoice created successfully');
       }
 
-      onSuccess?.();
+      if (sendNow && createdInvoiceId) {
+        onSendNow?.(createdInvoiceId);
+      } else {
+        onSuccess?.();
+      }
     } catch (error: any) {
       console.error('Error saving invoice:', error);
       
@@ -687,19 +710,35 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.saveButtonText}>
-              {invoiceId ? 'Update Invoice' : 'Create Invoice'}
+        <View style={styles.saveGroup}>
+          <TouchableOpacity
+            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+            onPress={() => handleSave(false)}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.saveButtonText}>
+                {invoiceId ? 'Update Invoice' : 'Create Invoice'}
+              </Text>
+            )}
+          </TouchableOpacity>
+          {!invoiceId && onSendNow && (
+            <TouchableOpacity
+              style={[styles.sendNowButton, saving && styles.saveButtonDisabled]}
+              onPress={() => handleSave(true)}
+              disabled={saving}
+            >
+              <Text style={styles.sendNowButtonText}>Send Now →</Text>
+            </TouchableOpacity>
+          )}
+          {!invoiceId && (
+            <Text style={styles.draftHelperText}>
+              Your invoice will be saved as a draft. You can review and send it from the Invoices list.
             </Text>
           )}
-        </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.bottomPadding} />
@@ -710,10 +749,10 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onCancel
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: T.canvas,
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
     padding: 20,
     marginBottom: 16,
   },
@@ -721,22 +760,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
-    color: '#111827',
+    color: T.textPrimary,
   },
   label: {
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
     marginTop: 12,
-    color: '#374151',
+    color: T.textMuted,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: T.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
+    color: T.textPrimary,
   },
   textArea: {
     minHeight: 60,
@@ -753,8 +793,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: T.border,
+    backgroundColor: T.surface,
     marginRight: 8,
   },
   clientButtonActive: {
@@ -763,7 +803,7 @@ const styles = StyleSheet.create({
   },
   clientButtonText: {
     fontSize: 14,
-    color: '#374151',
+    color: T.textMuted,
   },
   clientButtonTextActive: {
     color: '#fff',
@@ -771,7 +811,7 @@ const styles = StyleSheet.create({
   },
   orText: {
     textAlign: 'center',
-    color: '#6b7280',
+    color: T.textSubtle,
     marginVertical: 12,
     fontSize: 14,
   },
@@ -786,8 +826,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
   termButtonActive: {
     backgroundColor: '#2563eb',
@@ -795,7 +835,7 @@ const styles = StyleSheet.create({
   },
   termButtonText: {
     fontSize: 14,
-    color: '#374151',
+    color: T.textMuted,
   },
   termButtonTextActive: {
     color: '#fff',
@@ -803,11 +843,11 @@ const styles = StyleSheet.create({
   },
   lineItemContainer: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: T.borderMuted,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
-    backgroundColor: '#f9fafb',
+    backgroundColor: T.canvas,
   },
   lineItemHeader: {
     flexDirection: 'row',
@@ -818,7 +858,7 @@ const styles = StyleSheet.create({
   lineItemNumber: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: T.textPrimary,
   },
   removeButton: {
     color: '#dc2626',
@@ -835,7 +875,7 @@ const styles = StyleSheet.create({
   amountText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: T.textPrimary,
     paddingVertical: 12,
   },
   addButton: {
@@ -858,12 +898,12 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    color: '#374151',
+    color: T.textMuted,
   },
   totalValue: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#111827',
+    color: T.textPrimary,
   },
   inputRow: {
     flexDirection: 'row',
@@ -873,14 +913,14 @@ const styles = StyleSheet.create({
   },
   grandTotalRow: {
     borderTopWidth: 2,
-    borderTopColor: '#111827',
+    borderTopColor: T.textPrimary,
     marginTop: 12,
     paddingTop: 12,
   },
   grandTotalLabel: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: T.textPrimary,
   },
   grandTotalValue: {
     fontSize: 24,
@@ -897,8 +937,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
   paymentMethodChipActive: {
     backgroundColor: '#2563eb',
@@ -906,7 +946,7 @@ const styles = StyleSheet.create({
   },
   paymentMethodChipText: {
     fontSize: 13,
-    color: '#374151',
+    color: T.textMuted,
   },
   paymentMethodChipTextActive: {
     color: '#fff',
@@ -920,36 +960,36 @@ const styles = StyleSheet.create({
   },
   paymentWarningText: {
     fontSize: 12,
-    color: '#dc2626',
+    color: T.danger,
   },
   paymentWarningLink: {
     color: '#2563eb',
     textDecorationLine: 'underline',
   },
   paymentHelperBox: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: T.accentMuted,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: T.accent,
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   paymentHelperText: {
     fontSize: 13,
-    color: '#1e40af',
+    color: T.accent,
     lineHeight: 18,
   },
   paymentHelperBold: {
     fontWeight: '600',
   },
   paymentHelperLink: {
-    color: '#2563eb',
+    color: T.accent,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
   helperText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: T.textSubtle,
     marginBottom: 12,
     fontStyle: 'italic',
   },
@@ -963,11 +1003,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: T.border,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#374151',
+    color: T.textMuted,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -985,6 +1025,29 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  saveGroup: {
+    flex: 1,
+    gap: 10,
+  },
+  sendNowButton: {
+    backgroundColor: T.successMuted,
+    borderWidth: 1,
+    borderColor: T.success,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  sendNowButtonText: {
+    color: T.success,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  draftHelperText: {
+    fontSize: 12,
+    color: T.textSubtle,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   bottomPadding: {
     height: 40,
