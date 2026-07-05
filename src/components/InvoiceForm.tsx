@@ -42,7 +42,7 @@ interface InvoiceFormProps {
 export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onSendNow, onCancel, onNavigateToAccount }: InvoiceFormProps) {
   const { createInvoice, updateInvoice, invoices } = useInvoices();
   const { settings, getNextInvoiceNumber } = useInvoiceSettings();
-  const { payers } = usePayers();
+  const { data: payers = [] } = usePayers();
   const userId = useUserId();
   
   // Fetch payment method details for current user
@@ -50,6 +50,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onSendNo
   
   const [saving, setSaving] = useState(false);
   const [dueDateManuallyEdited, setDueDateManuallyEdited] = useState(false);
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
   const today = getTodayDateString();
   const [formData, setFormData] = useState<InvoiceFormData>({
     client_name: '',
@@ -324,6 +325,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onSendNo
 
     try {
       setSaving(true);
+      let createdInvoiceId: string | undefined;
 
       if (invoiceId) {
         const currentInvoice = invoices.find((invoice) => invoice.id === invoiceId);
@@ -349,7 +351,6 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onSendNo
           return;
         }
 
-        let createdInvoiceId: string | undefined;
         try {
           const invoiceNumber = await getNextInvoiceNumber();
           const created = await createInvoice(buildPreparedFormData(invoiceNumber), invoiceNumber);
@@ -376,7 +377,7 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onSendNo
           throw createError;
         }
 
-        Alert.alert('Success', 'Invoice created successfully');
+        if (!sendNow) Alert.alert('Success', 'Invoice created successfully');
       }
 
       if (sendNow && createdInvoiceId) {
@@ -401,44 +402,49 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onSendNo
     }
   };
 
+  const filteredPayers = showClientDropdown && formData.client_name.length >= 2
+    ? payers.filter((p) =>
+        p.name.toLowerCase().includes(formData.client_name.toLowerCase())
+      )
+    : [];
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Client Information</Text>
 
-        {payers && payers.length > 0 && !invoiceId && (
-          <>
-            <Text style={styles.label}>Select Existing Client</Text>
-            <ScrollView horizontal style={styles.clientSelector}>
-              {payers.map((payer) => (
-                <TouchableOpacity
-                  key={payer.id}
-                  style={[
-                    styles.clientButton,
-                    formData.client_id === payer.id && styles.clientButtonActive
-                  ]}
-                  onPress={() => selectClient(payer.id)}
-                >
-                  <Text style={[
-                    styles.clientButtonText,
-                    formData.client_id === payer.id && styles.clientButtonTextActive
-                  ]}>
-                    {payer.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <Text style={styles.orText}>OR</Text>
-          </>
-        )}
-
         <Text style={styles.label}>Client Name *</Text>
         <TextInput
           style={styles.input}
           value={formData.client_name}
-          onChangeText={(text) => setFormData({ ...formData, client_name: text })}
-          placeholder="Client Name"
+          onChangeText={(text) => {
+            setFormData({ ...formData, client_name: text });
+            setShowClientDropdown(text.length >= 2);
+          }}
+          onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
+          placeholder="Search or enter client name"
         />
+        {showClientDropdown && filteredPayers.length > 0 && (
+          <View style={styles.clientDropdown}>
+            {filteredPayers.map((payer) => (
+              <TouchableOpacity
+                key={payer.id}
+                style={styles.clientDropdownItem}
+                onPress={() => {
+                  selectClient(payer.id);
+                  setShowClientDropdown(false);
+                }}
+              >
+                <Text style={styles.clientDropdownName}>{payer.name}</Text>
+                {(payer.company || payer.email) && (
+                  <Text style={styles.clientDropdownSub}>
+                    {[payer.company, payer.email].filter(Boolean).join(' · ')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         <Text style={styles.label}>Company</Text>
         <TextInput
@@ -814,6 +820,35 @@ const styles = StyleSheet.create({
     color: T.textSubtle,
     marginVertical: 12,
     fontSize: 14,
+  },
+  clientDropdown: {
+    borderWidth: 1,
+    borderColor: T.border,
+    borderRadius: 8,
+    marginTop: 4,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    backgroundColor: T.surface,
+    zIndex: 100,
+  },
+  clientDropdownItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: T.borderMuted,
+  },
+  clientDropdownName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: T.textPrimary,
+  },
+  clientDropdownSub: {
+    fontSize: 13,
+    color: T.textMuted,
+    marginTop: 2,
   },
   paymentTermsContainer: {
     flexDirection: 'row',

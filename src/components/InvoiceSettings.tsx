@@ -6,6 +6,16 @@ import { PaymentMethodsConfig } from '../types/paymentMethods';
 import { PaymentMethodsEditor } from './PaymentMethodsEditor';
 import { getPaymentMethodsConfig, snapshotAcceptedPaymentMethods, validatePaymentMethodsConfig } from '../utils/paymentMethodsMigration';
 import { showAlert } from '../lib/dialog';
+import { colors } from '../styles/theme';
+
+const T = {
+  canvas: colors.surface.canvas,
+  surface: colors.surface.elevated,
+  border: colors.border.DEFAULT,
+  textPrimary: colors.text.DEFAULT,
+  textMuted: colors.text.muted,
+  textSubtle: colors.text.subtle,
+};
 
 interface InvoiceSettingsProps {
   onSuccess?: () => void;
@@ -174,8 +184,11 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
           style={styles.input}
           value={formData.invoice_prefix}
           onChangeText={(text) => setFormData({ ...formData, invoice_prefix: text })}
-          placeholder="INV-"
+          placeholder="e.g. INV- or ACME-"
         />
+        <Text style={styles.helperText}>
+          {`Your invoices: ${formData.invoice_prefix || 'INV-'}${new Date().getFullYear()}-001, ${formData.invoice_prefix || 'INV-'}${new Date().getFullYear()}-002...`}
+        </Text>
 
         <Text style={styles.label}>Default Payment Terms</Text>
         <TextInput
@@ -307,7 +320,7 @@ export function InvoiceSettings({ onSuccess }: InvoiceSettingsProps = {}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: T.canvas,
   },
   loadingContainer: {
     flex: 1,
@@ -315,7 +328,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
     padding: 20,
     marginBottom: 16,
   },
@@ -323,22 +336,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
-    color: '#111827',
+    color: T.textPrimary,
   },
   label: {
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
     marginTop: 12,
-    color: '#374151',
+    color: T.textMuted,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: T.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
+    color: T.textPrimary,
   },
   textArea: {
     minHeight: 80,
@@ -346,7 +360,7 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: T.textSubtle,
     marginBottom: 12,
   },
   paymentMethodContainer: {
@@ -361,7 +375,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: T.border,
     borderRadius: 4,
     marginRight: 12,
     justifyContent: 'center',
@@ -378,7 +392,7 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 16,
-    color: '#111827',
+    color: T.textPrimary,
   },
   paymentDetailsInput: {
     marginLeft: 36,
@@ -394,8 +408,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
   currencyButtonActive: {
     backgroundColor: '#2563eb',
@@ -403,7 +417,7 @@ const styles = StyleSheet.create({
   },
   currencyButtonText: {
     fontSize: 14,
-    color: '#374151',
+    color: T.textMuted,
   },
   currencyButtonTextActive: {
     color: '#fff',
@@ -420,8 +434,8 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
   colorSchemeButtonActive: {
     borderColor: '#2563eb',
@@ -435,7 +449,7 @@ const styles = StyleSheet.create({
   },
   colorSchemeName: {
     fontSize: 13,
-    color: '#374151',
+    color: T.textMuted,
   },
   optionContainer: {
     flexDirection: 'row',
@@ -448,8 +462,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#fff',
+    borderColor: T.border,
+    backgroundColor: T.surface,
   },
   optionButtonActive: {
     backgroundColor: '#2563eb',
@@ -457,7 +471,7 @@ const styles = StyleSheet.create({
   },
   optionButtonText: {
     fontSize: 14,
-    color: '#374151',
+    color: T.textMuted,
   },
   optionButtonTextActive: {
     color: '#fff',
