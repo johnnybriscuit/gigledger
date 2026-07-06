@@ -196,8 +196,8 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onSendNo
         client_id: payer.id,
         client_name: payer.name,
         client_email: payer.contact_email || '',
-        client_company: payer.company_name || '',
-        client_address: payer.address || ''
+        client_company: payer.w2_employer_name || '',
+        client_address: ''
       });
     }
   };
@@ -436,9 +436,9 @@ export function InvoiceForm({ invoiceId, duplicatingInvoice, onSuccess, onSendNo
                 }}
               >
                 <Text style={styles.clientDropdownName}>{payer.name}</Text>
-                {(payer.company_name || payer.contact_email) && (
+                {(payer.w2_employer_name || payer.contact_email) && (
                   <Text style={styles.clientDropdownSub}>
-                    {[payer.company_name, payer.contact_email].filter(Boolean).join(' · ')}
+                    {[payer.w2_employer_name, payer.contact_email].filter(Boolean).join(' · ')}
                   </Text>
                 )}
               </TouchableOpacity>
