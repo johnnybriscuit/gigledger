@@ -11,6 +11,7 @@ import { UsageLimitBanner } from '../components/UsageLimitBanner';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 import { useInvoices } from '../hooks/useInvoices';
 import { useEntitlements } from '../hooks/useEntitlements';
+import { usePayers } from '../hooks/usePayers';
 import { Invoice } from '../types/invoice';
 import { downloadInvoiceHTML, printInvoice } from '../utils/generateInvoicePDF';
 import { formatCurrency as formatCurrencyUtil } from '../utils/format';
@@ -71,6 +72,7 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
   );
 
   const entitlements = useEntitlements();
+  const { data: payers = [] } = usePayers();
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
@@ -496,6 +498,12 @@ export function InvoicesScreen({ onNavigateToAccount, onNavigateToSubscription }
       {showEmailModal && selectedInvoice ? (
         <SendInvoiceModal
           invoice={selectedInvoice}
+          defaultEmail={
+            selectedInvoice.client_email ||
+            (selectedInvoice.client_id
+              ? payers.find((p) => p.id === selectedInvoice.client_id)?.contact_email || ''
+              : '')
+          }
           visible={showEmailModal}
           onClose={() => setShowEmailModal(false)}
           onSuccess={handleEmailSuccess}

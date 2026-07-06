@@ -4,15 +4,16 @@ import { Invoice } from '../types/invoice';
 
 interface SendInvoiceModalProps {
   invoice: Invoice;
+  defaultEmail?: string;
   visible: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function SendInvoiceModal({ invoice, visible, onClose, onSuccess }: SendInvoiceModalProps) {
+export function SendInvoiceModal({ invoice, defaultEmail, visible, onClose, onSuccess }: SendInvoiceModalProps) {
   const [sending, setSending] = useState(false);
   const [formData, setFormData] = useState({
-    recipientEmail: invoice.client_email || '',
+    recipientEmail: defaultEmail || invoice.client_email || '',
     message: `Hi ${invoice.client_name},\n\nPlease find attached invoice ${invoice.invoice_number} for your review.\n\nThank you for your business!`
   });
 
@@ -111,7 +112,7 @@ export function SendInvoiceModal({ invoice, visible, onClose, onSuccess }: SendI
 
   const handleClose = () => {
     setFormData({
-      recipientEmail: invoice.client_email || '',
+      recipientEmail: defaultEmail || invoice.client_email || '',
       message: `Hi ${invoice.client_name},\n\nPlease find attached invoice ${invoice.invoice_number} for your review.\n\nThank you for your business!`
     });
     onClose();
