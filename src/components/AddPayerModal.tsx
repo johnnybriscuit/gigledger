@@ -186,6 +186,19 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
             </View>
 
             <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={contactEmail}
+                onChangeText={setContactEmail}
+                placeholder="client@example.com"
+                placeholderTextColor="#9ca3af"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
               <Text style={styles.label}>Type *</Text>
               <View style={styles.typeButtons}>
                 {PAYER_TYPES.map((t) => (
@@ -361,19 +374,6 @@ export function AddPayerModal({ visible, onClose, editingPayer }: AddPayerModalP
                 )}
               </View>
             )}
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Contact Email (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                value={contactEmail}
-                onChangeText={setContactEmail}
-                placeholder="email@example.com"
-                placeholderTextColor="#9ca3af"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Notes (Optional)</Text>

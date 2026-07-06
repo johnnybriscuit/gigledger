@@ -173,6 +173,19 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
             </View>
 
             <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={contactEmail}
+                onChangeText={setContactEmail}
+                placeholder="client@example.com"
+                placeholderTextColor="#9ca3af"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
               <Text style={styles.label}>Type</Text>
               <View style={styles.typeButtons}>
                 {PAYER_TYPES.map((payerType) => (
@@ -383,19 +396,6 @@ export function PayerFormModal({ visible, onClose, onSuccess, editingPayer }: Pa
                 )}
               </View>
             )}
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Contact Email</Text>
-              <TextInput
-                style={styles.input}
-                value={contactEmail}
-                onChangeText={setContactEmail}
-                placeholder="contact@example.com"
-                placeholderTextColor="#9ca3af"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Notes</Text>
