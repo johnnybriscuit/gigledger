@@ -17,6 +17,18 @@ import { validatePaymentMethodsConfig } from '../utils/paymentMethodsMigration';
 import { formatPaymentMethodsForDisplay } from '../utils/formatPaymentMethods';
 import { colors, spacing, radius, typography } from '../styles/theme';
 
+const T = {
+  surface: colors.surface.elevated,
+  surfaceMuted: colors.surface.muted,
+  border: colors.border.DEFAULT,
+  borderMuted: colors.border.muted,
+  textPrimary: colors.text.DEFAULT,
+  textMuted: colors.text.muted,
+  textSubtle: colors.text.subtle,
+  errorDefault: colors.error.DEFAULT,
+  errorMuted: colors.error.muted,
+};
+
 interface PaymentMethodsEditorProps {
   config: PaymentMethodsConfig;
   onChange: (config: PaymentMethodsConfig) => void;
@@ -460,11 +472,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#111827',
+    color: T.textPrimary,
   },
   helperText: {
     fontSize: 13,
-    color: '#6b7280',
+    color: T.textSubtle,
     marginBottom: 16,
   },
   methodsList: {
@@ -482,7 +494,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: T.border,
     borderRadius: 4,
     marginRight: 12,
     justifyContent: 'center',
@@ -499,31 +511,32 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontSize: 16,
-    color: '#111827',
+    color: T.textPrimary,
   },
   methodDetails: {
     marginLeft: 36,
     marginTop: 8,
     padding: parseInt(spacing[3]),
-    backgroundColor: '#f9fafb',
+    backgroundColor: T.surfaceMuted,
     borderRadius: parseInt(radius.sm),
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: T.borderMuted,
   },
   fieldLabel: {
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 6,
     marginTop: 12,
-    color: '#374151',
+    color: T.textMuted,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: T.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
+    color: T.textPrimary,
   },
   inputError: {
     borderColor: '#ef4444',
@@ -541,33 +554,33 @@ const styles = StyleSheet.create({
     marginTop: parseInt(spacing[2]),
     paddingTop: parseInt(spacing[2]),
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: T.borderMuted,
   },
   previewSection: {
     marginTop: parseInt(spacing[4]),
     padding: parseInt(spacing[4]),
-    backgroundColor: '#eff6ff',
+    backgroundColor: T.surfaceMuted,
     borderRadius: parseInt(radius.md),
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: T.border,
   },
   previewTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1e40af',
+    color: colors.brand.DEFAULT,
     marginBottom: 4,
   },
   previewSubtitle: {
     fontSize: 13,
-    color: '#3b82f6',
+    color: colors.brand.DEFAULT,
     marginBottom: 12,
   },
   previewBox: {
-    backgroundColor: '#fff',
+    backgroundColor: T.surface,
     padding: parseInt(spacing[3]),
     borderRadius: parseInt(radius.sm),
     borderWidth: 1,
-    borderColor: '#dbeafe',
+    borderColor: T.borderMuted,
   },
   previewItem: {
     marginBottom: 8,
@@ -575,25 +588,25 @@ const styles = StyleSheet.create({
   previewLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#111827',
+    color: T.textPrimary,
     marginBottom: 2,
   },
   previewDetails: {
     fontSize: 13,
-    color: '#374151',
+    color: T.textMuted,
     lineHeight: 18,
   },
   errorSummary: {
     marginTop: parseInt(spacing[3]),
     padding: parseInt(spacing[3]),
-    backgroundColor: '#fef2f2',
+    backgroundColor: T.errorMuted,
     borderRadius: parseInt(radius.sm),
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: T.errorMuted,
   },
   errorSummaryText: {
     fontSize: 14,
-    color: '#991b1b',
+    color: T.errorDefault,
     fontWeight: '500',
   },
 });
