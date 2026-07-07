@@ -633,7 +633,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
       }
     >
       {/* Show tax profile banner on dashboard tab if state is null */}
-      {activeTab === 'dashboard' && taxProfile && !taxProfile.state && (
+      {activeTab === 'dashboard' && !taxProfile?.state && (
         <View style={styles.bannerContainer}>
           <TaxProfileBanner
             onNavigateToTaxSettings={() => setActiveTab('account')}

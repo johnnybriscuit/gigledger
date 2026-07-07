@@ -26,6 +26,7 @@ import { PublicScheduleView } from './src/screens/PublicScheduleView';
 import { BucketSetupScreen } from './src/screens/BucketSetupScreen';
 import { MyMoneyScreen } from './src/screens/MyMoneyScreen';
 import { RateGuideScreen } from './src/screens/RateGuideScreen';
+import { OnboardingFlow } from './src/screens/OnboardingFlow';
 import { useAppBootstrap } from './src/hooks/useAppBootstrap';
 import { LoadingScreen } from './src/components/LoadingScreen';
 import { ErrorScreen } from './src/components/ErrorScreen';
@@ -240,14 +241,21 @@ function AppContent() {
     if (bootstrap.status === 'ready') {
       perf.mark('bootstrap-ready');
       console.log('[Perf] Bootstrap ready. View full report with: perf.getReport()');
-      
+
+      // Route new users to onboarding before anything else
+      if (bootstrap.needsOnboarding) {
+        console.log('[Routing] Onboarding incomplete, redirecting to onboarding flow');
+        setCurrentRoute('onboarding');
+        return;
+      }
+
       // Auto-route to dashboard if user just logged in and is still on landing/auth route
       if (currentRoute === 'landing' || currentRoute === 'auth') {
         console.log('[Routing] User authenticated, redirecting to dashboard');
         setCurrentRoute('dashboard');
       }
     }
-  }, [bootstrap.status, currentRoute]);
+  }, [bootstrap.status, bootstrap.needsOnboarding, currentRoute]);
 
   // Listen for auth changes (sign out, token refresh failures)
   useEffect(() => {
@@ -591,6 +599,23 @@ function AppContent() {
             setCurrentRoute('auth');
           }}
         />
+      </>
+    );
+  }
+
+  // Onboarding flow for new users (profile.onboarding_complete === false)
+  if (currentRoute === 'onboarding' || bootstrap.needsOnboarding) {
+    return (
+      <>
+        <StatusBar style={statusBarStyle} />
+        <UserProvider>
+          <OnboardingFlow
+            onComplete={() => {
+              // Re-bootstrap so needsOnboarding is re-evaluated with fresh profile data
+              bootstrap.retry();
+            }}
+          />
+        </UserProvider>
       </>
     );
   }
