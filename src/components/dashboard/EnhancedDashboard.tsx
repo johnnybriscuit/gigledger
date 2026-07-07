@@ -169,7 +169,7 @@ export function EnhancedDashboard({
         {/* OLD OpportunityAlertsSection removed — replaced by OpportunitiesSection */}
 
         {/* 5. AI Financial Coach — compact collapsible */}
-        <AICoachCard />
+        <AICoachCard onAddGig={onAddGig} />
 
         {/* 6. Tax Opportunities — static musician-specific provisions */}
         <OpportunitiesSection

@@ -8,6 +8,7 @@ Your job is to give ONE specific, actionable, encouraging piece of advice based 
 
 STRICT RULES:
 - Maximum 2 sentences total
+- CRITICAL: If gigCount > 0, this is an ACTIVE USER. NEVER tell an active user to log their "first gig," "get started," or imply they haven't begun using the app.
 - Must reference at least one specific dollar amount or percentage from their data
 - Rotate through these advice categories based on what is most relevant:
   * TAX: quarterly payments, coverage, setting aside
@@ -85,7 +86,7 @@ function buildUserPrompt(body: RequestBody): string {
   }
 
   prompt += `\n- Next quarterly tax payment: ${nextQuarterlyDate} (${daysUntilQuarterly} days away)
-- I have ${gigCount} paid gigs averaging $${avgGigAmount.toFixed(2)} each`
+- I have ${gigCount} paid gigs${gigCount > 0 ? ' (I AM AN ACTIVE USER — do NOT suggest I log my first gig or get started)' : ' (I am just getting started)'} averaging $${avgGigAmount.toFixed(2)} each`
 
   if (body.lastAdviceCategory) {
     prompt += `\n\nMy last advice was about: ${body.lastAdviceCategory}. Please advise on something DIFFERENT this time.`

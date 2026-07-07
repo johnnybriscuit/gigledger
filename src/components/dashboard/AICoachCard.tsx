@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { supabase } from '../../lib/supabase';
 
 interface AICoachCardProps {
   className?: string;
+  onAddGig?: () => void;
 }
 
 interface CoachTipCache {
@@ -35,6 +36,19 @@ function stripMarkdown(text: string): string {
     .replace(/_(.*?)_/g, '$1');
 }
 
+function isZeroGigTip(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("haven't logged") ||
+    lower.includes('first gig') ||
+    lower.includes('no gigs yet') ||
+    lower.includes('start by adding') ||
+    lower.includes('log your first') ||
+    lower.includes("haven't started") ||
+    lower.includes('get started by logging')
+  );
+}
+
 function detectCategory(tipText: string): string {
   const lower = tipText.toLowerCase();
   if (lower.includes('tax') || lower.includes('quarter')) return 'TAX';
@@ -45,14 +59,17 @@ function detectCategory(tipText: string): string {
   return 'GOAL';
 }
 
-export function AICoachCard({ className }: AICoachCardProps) {
+export function AICoachCard({ className, onAddGig }: AICoachCardProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { buckets } = useAllocationBuckets();
   const { ytdTotals } = useAllocationTransactions();
   const ytdStart = `${new Date().getFullYear()}-01-01`;
   const { data: gigs } = useGigs({ startDate: ytdStart });
-  
+  const paidGigs = useMemo(() => (gigs || []).filter(g => g.paid), [gigs]);
+  // undefined = still loading; number = loaded (even if 0)
+  const gigCount = gigs !== undefined ? paidGigs.length : undefined;
+
   const [tip, setTip] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
@@ -68,42 +85,48 @@ export function AICoachCard({ className }: AICoachCardProps) {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Load cached tip on mount
+  // Load/validate cache — re-runs when gigs load or gigCount changes
   useEffect(() => {
+    if (gigCount === undefined) return; // wait for gigs to finish loading
+
     if (Platform.OS === 'web') {
-      const cacheKey = `bozzy_coach_tip_v2_${today}`;
+      const cacheKey = `bozzy_coach_tip_v2_${today}_g${gigCount}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         try {
           const parsed: CoachTipCache = JSON.parse(cached);
           if (!parsed.fallback) {
-            setTip(parsed.tip);
-            setIsFallback(false);
-            if (parsed.category) setLastCategory(parsed.category);
-            return;
+            const isStale = gigCount > 0 && isZeroGigTip(parsed.tip);
+            if (!isStale) {
+              setTip(parsed.tip);
+              setIsFallback(false);
+              if (parsed.category) setLastCategory(parsed.category);
+              return;
+            }
           }
         } catch (e) {
           // Invalid cache, continue to fetch
         }
       }
     }
-    
-    // No cache, fetch new tip
+
+    if (gigCount === 0) return; // zero-gig users get static message, no AI call needed
     if (buckets.length > 0) {
       fetchTip();
     }
-  }, [buckets.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buckets.length, gigCount]);
 
   const fetchTip = async () => {
     if (buckets.length === 0) return;
+    if (gigs === undefined) return; // don't call AI until gigs have loaded
 
     setIsLoading(true);
     try {
-      // Calculate data for the prompt
-      const paidGigs = (gigs || []).filter(g => g.paid);
+      // Use component-level paidGigs (already filtered)
       const ytdIncome = paidGigs.reduce((sum, g) => sum + (g.gross_amount || 0), 0);
-      const gigCount = paidGigs.length;
-      const avgGigAmount = gigCount > 0 ? ytdIncome / gigCount : 0;
+      const count = paidGigs.length;
+      const avgGigAmount = count > 0 ? ytdIncome / count : 0;
 
       const taxBucket = buckets.find(b => b.bucket_type === 'federal_tax');
       const retirementBucket = buckets.find(b => b.bucket_type === 'retirement');
@@ -139,14 +162,14 @@ export function AICoachCard({ className }: AICoachCardProps) {
           ytdBalance: ytdTotals.find(t => t.bucket_id === b.id)?.total || 0,
           goalAmount: b.goal_amount,
         })),
-        gigCount,
+        gigCount: count,
         avgGigAmount,
         nextQuarterlyDate: nextQuarterly.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         daysUntilQuarterly,
         lastAdviceCategory: lastCategory || undefined,
       };
 
-      console.log('[AICoachCard] Sending to AI coach:', { ytdIncome, gigCount, avgGigAmount, bucketsCount: requestBody.buckets.length });
+      console.log('[AICoachCard] Sending to AI coach:', { ytdIncome, gigCount: count, avgGigAmount, bucketsCount: requestBody.buckets.length });
 
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession();
@@ -175,9 +198,9 @@ export function AICoachCard({ className }: AICoachCardProps) {
       const category = detectCategory(data.tip);
       setLastCategory(category);
 
-      // Cache only real (non-fallback) responses
+      // Cache only real (non-fallback) responses (key includes gigCount to avoid stale context)
       if (Platform.OS === 'web' && !data.fallback) {
-        const cacheKey = `bozzy_coach_tip_v2_${today}`;
+        const cacheKey = `bozzy_coach_tip_v2_${today}_g${count}`;
         const cache: CoachTipCache = {
           tip: data.tip,
           date: today,
@@ -198,8 +221,9 @@ export function AICoachCard({ className }: AICoachCardProps) {
 
   const handleRefresh = () => {
     if (Platform.OS === 'web') {
-      const cacheKey = `bozzy_coach_tip_v2_${today}`;
-      localStorage.removeItem(cacheKey);
+      const count = gigCount ?? 0;
+      localStorage.removeItem(`bozzy_coach_tip_v2_${today}_g${count}`);
+      localStorage.removeItem(`bozzy_coach_tip_v2_${today}`); // clear legacy key format
     }
     setTip(null);
     fetchTip();
@@ -208,6 +232,49 @@ export function AICoachCard({ className }: AICoachCardProps) {
   // Don't show if no buckets configured
   if (buckets.length === 0) {
     return null;
+  }
+
+  // Zero-gig state: gigs loaded but user has none — show static welcome message
+  if (gigs !== undefined && gigCount === 0) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.surface.elevated,
+            borderColor: colors.border.DEFAULT,
+          },
+        ]}
+      >
+        <View style={styles.collapsedRow}>
+          <Text style={styles.emoji}>🤖</Text>
+          <View style={styles.collapsedTextWrapper}>
+            <Text style={[styles.collapsedLabel, { color: colors.text.muted }]}>
+              Your Financial Coach
+            </Text>
+          </View>
+        </View>
+        <View style={styles.expandedContent}>
+          <View style={[styles.expandedDivider, { backgroundColor: colors.border.muted }]} />
+          <View style={styles.tipWrapper}>
+            <Text style={{ color: colors.text.DEFAULT, fontSize: 15, lineHeight: 23 }}>
+              {"Welcome to Bozzy! The first thing to do is log a gig. Once you add your first paid gig, I'll give you personalized advice on taxes, savings goals, and maximizing your income."}
+            </Text>
+          </View>
+          {onAddGig && (
+            <TouchableOpacity
+              onPress={onAddGig}
+              style={styles.addGigButton}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.addGigButtonText, { color: colors.brand.DEFAULT }]}>
+                + Add Gig →
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
   }
 
   // First sentence of tip for the collapsed preview
@@ -367,5 +434,13 @@ const styles = StyleSheet.create({
   refreshButton: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  addGigButton: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
+  addGigButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
