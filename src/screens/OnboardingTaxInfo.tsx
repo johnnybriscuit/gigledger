@@ -8,13 +8,14 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { updateUserTaxProfile } from '../services/taxService';
+import { supabase } from '../lib/supabase';
 
 // All US states + DC
 const US_STATES = [
@@ -81,9 +82,10 @@ const FILING_STATUSES = [
 interface OnboardingTaxInfoProps {
   onComplete: () => void;
   onSkip?: () => void;
+  onBack?: () => void;
 }
 
-export function OnboardingTaxInfo({ onComplete, onSkip }: OnboardingTaxInfoProps) {
+export function OnboardingTaxInfo({ onComplete, onBack }: OnboardingTaxInfoProps) {
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [selectedFilingStatus, setSelectedFilingStatus] = useState<'single' | 'married' | 'married_separate' | 'hoh'>('single');
   const [showStatePicker, setShowStatePicker] = useState(false);
@@ -104,8 +106,30 @@ export function OnboardingTaxInfo({ onComplete, onSkip }: OnboardingTaxInfoProps
 
     try {
       setSaving(true);
-      await updateUserTaxProfile(selectedState, selectedFilingStatus);
-      Alert.alert('Success', 'Tax information saved successfully');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const filingStatusMap: Record<string, string> = {
+        single: 'single',
+        married: 'married_joint',
+        married_separate: 'married_separate',
+        hoh: 'head',
+      };
+
+      const { error } = await supabase
+        .from('user_tax_profile')
+        .upsert({
+          user_id: user.id,
+          tax_year: 2025,
+          state: selectedState,
+          filing_status: filingStatusMap[selectedFilingStatus] || 'single',
+          deduction_method: 'standard',
+          se_income: true,
+          nyc_resident: false,
+          yonkers_resident: false,
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
       onComplete();
     } catch (err) {
       Alert.alert('Error', 'Failed to save tax information. Please try again.');
@@ -120,16 +144,17 @@ export function OnboardingTaxInfo({ onComplete, onSkip }: OnboardingTaxInfoProps
   return (
     <View style={styles.container}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.title}>Tax Information</Text>
+        <Text style={styles.stepLabel}>Step 2 of 6</Text>
+        <Text style={styles.title}>Tax Settings 📊</Text>
         <Text style={styles.subtitle}>
-          Help us calculate accurate tax withholding estimates for your gigs
+          This is the most critical setup step — it affects every calculation in the app.
         </Text>
 
         {/* State Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>State of Residence *</Text>
           <Text style={styles.sectionDescription}>
-            Where do you file your state income taxes?
+            Used to calculate your state tax rate (many states = $0 for freelancers)
           </Text>
           <TouchableOpacity
             style={styles.selectButton}
@@ -146,7 +171,7 @@ export function OnboardingTaxInfo({ onComplete, onSkip }: OnboardingTaxInfoProps
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Filing Status *</Text>
           <Text style={styles.sectionDescription}>
-            Your expected tax filing status for this year
+            How you file with the IRS. Most solo freelancers choose Single or Married Filing Jointly.
           </Text>
           <View style={styles.radioGroup}>
             {FILING_STATUSES.map((status) => (
@@ -178,27 +203,30 @@ export function OnboardingTaxInfo({ onComplete, onSkip }: OnboardingTaxInfoProps
           </Text>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-            disabled={saving || !selectedState}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save & Continue</Text>
-            )}
-          </TouchableOpacity>
-
-          {onSkip && (
-            <TouchableOpacity style={styles.skipButton} onPress={onSkip}>
-              <Text style={styles.skipButtonText}>Skip for now</Text>
-            </TouchableOpacity>
-          )}
-        </View>
       </ScrollView>
+
+      <View style={styles.footer}>
+        {onBack && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            disabled={saving}
+          >
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[styles.saveButton, (saving || !selectedState) && styles.buttonDisabled]}
+          onPress={handleSave}
+          disabled={saving || !selectedState}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save & Continue</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
       {/* State Picker Modal */}
       {showStatePicker && (
@@ -206,10 +234,17 @@ export function OnboardingTaxInfo({ onComplete, onSkip }: OnboardingTaxInfoProps
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select State</Text>
-              <TouchableOpacity onPress={() => setShowStatePicker(false)}>
+              <TouchableOpacity onPress={() => { setShowStatePicker(false); setStateSearch(''); }}>
                 <Text style={styles.modalClose}>Done</Text>
               </TouchableOpacity>
             </View>
+            <TextInput
+              style={styles.stateSearch}
+              placeholder="Search states..."
+              value={stateSearch}
+              onChangeText={setStateSearch}
+              autoFocus
+            />
             <ScrollView style={styles.stateList}>
               {filteredStates.map((state) => (
                 <TouchableOpacity
@@ -231,6 +266,11 @@ export function OnboardingTaxInfo({ onComplete, onSkip }: OnboardingTaxInfoProps
                   </Text>
                 </TouchableOpacity>
               ))}
+              {filteredStates.length === 0 && (
+                <View style={styles.noResults}>
+                  <Text style={styles.noResultsText}>No states found</Text>
+                </View>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -248,8 +288,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 20,
+    padding: 24,
     paddingBottom: 40,
+  },
+  stepLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
+    marginBottom: 8,
   },
   title: {
     fontSize: 28,
@@ -357,10 +403,30 @@ const styles = StyleSheet.create({
     color: '#78350f',
     lineHeight: 20,
   },
-  actions: {
+  footer: {
+    flexDirection: 'row',
+    padding: 24,
     gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    backgroundColor: '#fff',
+  },
+  backButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
   },
   saveButton: {
+    flex: 1,
     backgroundColor: '#3b82f6',
     borderRadius: 8,
     padding: 16,
@@ -371,14 +437,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-  skipButton: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6b7280',
+  buttonDisabled: {
+    opacity: 0.6,
   },
   modalOverlay: {
     position: 'absolute',
@@ -402,6 +462,22 @@ const styles = StyleSheet.create({
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+  },
+  stateSearch: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    fontSize: 14,
+    color: '#111827',
+    backgroundColor: '#f9fafb',
+  },
+  noResults: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: '#9ca3af',
   },
   modalTitle: {
     fontSize: 18,

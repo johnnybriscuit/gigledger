@@ -155,19 +155,14 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
           throw updateError;
         }
         console.log('✅ [OnboardingAddGig] Profile updated successfully');
-      } else {
-        console.log('✅ [OnboardingAddGig] Gig created successfully');
-
-        // Track onboarding completion
-        trackOnboardingComplete({ activation_type: 'first_gig' });
-
-        // Invalidate queries to refresh data
-        console.log('🔵 [OnboardingAddGig] Invalidating queries...');
-        queryClient.invalidateQueries();
-
-        console.log('✅ [OnboardingAddGig] Calling onComplete()');
-        onComplete();
       }
+
+      // Invalidate queries and complete regardless of user branch
+      console.log('🔵 [OnboardingAddGig] Invalidating queries...');
+      queryClient.invalidateQueries();
+
+      console.log('✅ [OnboardingAddGig] Calling onComplete()');
+      onComplete();
     } catch (error: any) {
       console.error('🔴 [OnboardingAddGig] Error in handleComplete:', error);
       console.error('🔴 [OnboardingAddGig] Error details:', {
@@ -217,10 +212,10 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
     <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.step}>Step 4 of 4</Text>
-          <Text style={styles.title}>Log your first gig 💰</Text>
+          <Text style={styles.step}>Step 6 of 6</Text>
+          <Text style={styles.title}>Log Your First Gig 💰</Text>
           <Text style={styles.subtitle}>
-            Use a real or sample gig so you can see your true net after expenses & taxes.
+            Log your first gig to see your money plan in action. Even a past gig works — just pick any recent one.
           </Text>
         </View>
 
@@ -339,31 +334,33 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={styles.footerContainer}>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            disabled={createGig.isPending}
+          >
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.completeButton, createGig.isPending && styles.buttonDisabled]}
+            onPress={handleComplete}
+            disabled={createGig.isPending}
+          >
+            {createGig.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.completeButtonText} numberOfLines={1} ellipsizeMode="tail">{buttonText}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
-          style={styles.backButton}
-          onPress={onBack}
-          disabled={createGig.isPending}
-        >
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
+          style={styles.skipSetupLink}
           onPress={handleSkip}
           disabled={createGig.isPending}
         >
-          <Text style={styles.skipButtonText}>Skip</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.completeButton, createGig.isPending && styles.buttonDisabled]}
-          onPress={handleComplete}
-          disabled={createGig.isPending}
-        >
-          {createGig.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.completeButtonText} numberOfLines={1} ellipsizeMode="tail">{buttonText}</Text>
-          )}
+          <Text style={styles.skipSetupLinkText}>Skip setup — I'll do this later</Text>
         </TouchableOpacity>
       </View>
 
@@ -618,13 +615,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#10b981',
   },
-  footer: {
-    flexDirection: 'row',
-    padding: 24,
-    gap: 12,
+  footerContainer: {
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     backgroundColor: '#fff',
+  },
+  footer: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 8,
+    gap: 12,
   },
   backButton: {
     paddingVertical: 16,
@@ -639,18 +640,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6b7280',
   },
-  skipButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+  skipSetupLink: {
+    paddingVertical: 14,
     alignItems: 'center',
   },
-  skipButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6b7280',
+  skipSetupLinkText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textDecorationLine: 'underline',
   },
   completeButton: {
     flex: 1,

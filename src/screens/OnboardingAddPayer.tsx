@@ -51,10 +51,10 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
     <View style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.step}>Step 3 of 4</Text>
-          <Text style={styles.title}>Who pays you for gigs?</Text>
+          <Text style={styles.step}>Step 5 of 6</Text>
+          <Text style={styles.title}>Add Your First Client 🎤</Text>
           <Text style={styles.subtitle}>
-            Add a band, artist, venue, church, or client so we can attach gigs to the right payers.
+            Who pays you? Add your most frequent client so Bozzy can track your income by payer.
           </Text>
         </View>
 
@@ -90,31 +90,33 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={styles.footerContainer}>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            disabled={createPayer.isPending}
+          >
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.continueButton, createPayer.isPending && styles.buttonDisabled]}
+            onPress={handleContinue}
+            disabled={createPayer.isPending}
+          >
+            {createPayer.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.continueButtonText} numberOfLines={1} ellipsizeMode="tail">{buttonText}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity
-          style={styles.backButton}
-          onPress={onBack}
-          disabled={createPayer.isPending}
-        >
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.skipButton}
+          style={styles.skipSetupLink}
           onPress={onSkip}
           disabled={createPayer.isPending}
         >
-          <Text style={styles.skipButtonText}>Skip</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.continueButton, createPayer.isPending && styles.buttonDisabled]}
-          onPress={handleContinue}
-          disabled={createPayer.isPending}
-        >
-          {createPayer.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.continueButtonText} numberOfLines={1} ellipsizeMode="tail">{buttonText}</Text>
-          )}
+          <Text style={styles.skipSetupLinkText}>Skip setup — I'll do this later</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -196,13 +198,17 @@ const styles = StyleSheet.create({
   typeButtonTextActive: {
     color: '#fff',
   },
-  footer: {
-    flexDirection: 'row',
-    padding: 24,
-    gap: 12,
+  footerContainer: {
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     backgroundColor: '#fff',
+  },
+  footer: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 8,
+    gap: 12,
   },
   backButton: {
     paddingVertical: 16,
@@ -217,18 +223,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6b7280',
   },
-  skipButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+  skipSetupLink: {
+    paddingVertical: 14,
     alignItems: 'center',
   },
-  skipButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6b7280',
+  skipSetupLinkText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textDecorationLine: 'underline',
   },
   continueButton: {
     flex: 1,
