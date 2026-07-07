@@ -352,10 +352,10 @@ export function AddGigModal({
       + (parseFloat(perDiem) || 0)
       + (parseFloat(otherIncome) || 0);
     
-    // Calculate total expenses for this gig (fees + inline expenses + mileage + subcontractor payments)
+    // Calculate total expenses for this gig (fees + inline expenses + subcontractor payments)
+    // Note: mileageDeduction is excluded — it is a tax-time deduction, not a per-gig cash expense.
     const gigTotalExpenses = (parseFloat(fees) || 0)
       + totalExpenses
-      + mileageDeduction
       + totalSubcontractorPayments;
     
     const gigData = {
@@ -385,7 +385,7 @@ export function AddGigModal({
       console.error('Error calculating tax set-aside:', error);
       return null;
     }
-  }, [taxProfile, ytdData, grossAmount, tips, perDiem, otherIncome, fees, totalExpenses, mileageDeduction, totalSubcontractorPayments]);
+  }, [taxProfile, ytdData, grossAmount, tips, perDiem, otherIncome, fees, totalExpenses, totalSubcontractorPayments]);
 
   const applyLoadedMileage = (tripMileage: any) => {
     lastAutoMileageRouteKeyRef.current = null;
