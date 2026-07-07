@@ -107,15 +107,16 @@ function GigCard({
     + (item.other_income || 0);
   
   const subcontractorPaymentsTotal = (item.subcontractor_payments || []).reduce((sum: number, p: any) => sum + p.amount, 0);
-  const expensesOnly = (item.expenses || []).reduce((sum: number, exp: any) => sum + exp.amount, 0) 
-    + (item.fees || 0)
-    + sumMileageDeduction(item.mileage || []);
-  const expensesTotal = expensesOnly + subcontractorPaymentsTotal;
-  const netBeforeTax = gross - expensesTotal;
-  
-  const { taxResult } = useGigTaxCalculation(gross, expensesTotal);
+  const mileageDeductionAmount = sumMileageDeduction(item.mileage || []);
+  const cashExpenses = (item.expenses || []).reduce((sum: number, exp: any) => sum + exp.amount, 0)
+    + (item.fees || 0);
+  const cashDeductions = cashExpenses + subcontractorPaymentsTotal;
+  const expensesForTax = cashDeductions + mileageDeductionAmount;
+  const netBeforeTax = gross - expensesForTax;
+
+  const { taxResult } = useGigTaxCalculation(gross, expensesForTax);
   const taxToSetAside = taxResult?.setAside || 0;
-  const takeHome = netBeforeTax - taxToSetAside;
+  const takeHome = gross - cashDeductions - taxToSetAside;
 
   const displayName = getGigDisplayName(item);
   const venueCity = item.location || (item.payer?.name || 'Unknown Payer');

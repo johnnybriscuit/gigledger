@@ -63,18 +63,17 @@ function GigCard({
     + (item.other_income || 0);
   
   const subcontractorPaymentsTotal = (item.subcontractor_payments || []).reduce((sum, p) => sum + p.amount, 0);
-  const expensesOnly = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0) 
-    + (item.fees || 0)
-    + sumMileageDeduction(item.mileage || []);
-  const expensesTotal = expensesOnly + subcontractorPaymentsTotal;
-  
-  const netBeforeTax = gross - expensesTotal;
-  
-  const { taxResult } = useGigTaxCalculation(gross, expensesTotal);
+  const mileageDeductionAmount = sumMileageDeduction(item.mileage || []);
+  const cashExpenses = (item.expenses || []).reduce((sum, exp) => sum + exp.amount, 0)
+    + (item.fees || 0);
+  const cashDeductions = cashExpenses + subcontractorPaymentsTotal;
+  const expensesForTax = cashDeductions + mileageDeductionAmount;
+
+  const { taxResult } = useGigTaxCalculation(gross, expensesForTax);
   const taxToSetAside = taxResult?.setAside || 0;
   const isNoSeTaxMode = taxResult?.mode === 'no_se_tax';
-  
-  const takeHome = netBeforeTax - taxToSetAside;
+
+  const takeHome = gross - cashDeductions - taxToSetAside;
   
   return (
     <Card 

@@ -37,7 +37,7 @@ export function StickySummary({
   const [showDetails, setShowDetails] = useState(false);
 
   const totalIncome = basePay + tips + perDiem + otherIncome;
-  const totalDeductions = fees + expenses + subcontractorPayments + mileageDeduction;
+  const totalDeductions = fees + expenses + subcontractorPayments;
   const netBeforeTax = totalIncome - totalDeductions;
   const takeHome = netBeforeTax - taxSetAside;
 
@@ -132,14 +132,6 @@ export function StickySummary({
               </Text>
             </View>
           )}
-          {mileageDeduction > 0 && (
-            <View style={styles.breakdownRow}>
-              <Text style={styles.breakdownLabel}>Mileage</Text>
-              <Text style={[styles.breakdownValue, styles.negative]}>
-                -{formatCurrency(mileageDeduction)}
-              </Text>
-            </View>
-          )}
           {taxEstimateAvailable && taxSetAside > 0 && (
             <View style={styles.breakdownRow}>
               <Text style={styles.breakdownLabel}>Tax set-aside</Text>
@@ -152,6 +144,16 @@ export function StickySummary({
             <Text style={styles.totalLabel}>{primaryLabel}</Text>
             <Text style={styles.totalValue}>{formatCurrency(takeHome)}</Text>
           </View>
+          {mileageDeduction > 0 && (
+            <View style={styles.taxBenefitSection}>
+              <Text style={styles.taxBenefitHeader}>🚗 Tax benefit from driving</Text>
+              <View style={styles.breakdownRow}>
+                <Text style={styles.taxBenefitLabel}>Mileage deduction</Text>
+                <Text style={styles.taxBenefitValue}>{formatCurrency(mileageDeduction)}</Text>
+              </View>
+              <Text style={styles.taxBenefitNote}>Reduces your taxable income — not your pay</Text>
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -298,5 +300,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: typography.fontWeight.bold,
     color: colors.success.DEFAULT,
+  },
+  taxBenefitSection: {
+    marginTop: parseInt(spacing[3]),
+    paddingTop: parseInt(spacing[2]),
+    borderTopWidth: 1,
+    borderTopColor: colors.border.muted,
+  },
+  taxBenefitHeader: {
+    fontSize: 12,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.text.muted,
+    marginBottom: parseInt(spacing[1]),
+  },
+  taxBenefitLabel: {
+    fontSize: 13,
+    color: colors.text.muted,
+  },
+  taxBenefitValue: {
+    fontSize: 13,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.text.muted,
+  },
+  taxBenefitNote: {
+    fontSize: 11,
+    color: colors.text.subtle,
+    fontStyle: 'italic',
+    marginTop: 2,
   },
 });
