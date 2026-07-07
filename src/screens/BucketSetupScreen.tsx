@@ -97,8 +97,8 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
         setGoalAmount(goalBucket.goal_amount?.toString() || '');
       }
 
-      // Skip to step 2 in edit mode
-      setStep(2);
+      // Skip to step 2 only during initial load (step 1), not after save
+      setStep(prev => prev === 1 ? 2 : prev);
     } else if (!editMode) {
       // Initial setup: use defaults
       const state = taxProfile?.state || 'CA';

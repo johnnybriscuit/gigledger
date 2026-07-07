@@ -206,6 +206,7 @@ export function useAllocationTransactions(filters?: TransactionFilters) {
     },
 
     createAllocationsForGig: createMutation.mutateAsync,
+    createAllocationForGig: createMutation.mutateAsync,
     isCreating: createMutation.isPending,
     getBucketBalance: (bucketId: string, year?: number) =>
       getBucketBalance(userId!, bucketId, year),

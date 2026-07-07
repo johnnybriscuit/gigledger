@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
@@ -27,6 +26,7 @@ export function RetroactivePromptBanner() {
   const [processedCount, setProcessedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   const [isCheckingDismissed, setIsCheckingDismissed] = useState(true);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function RetroactivePromptBanner() {
     gigsWithoutAllocations.length > 0 &&
     !isDismissed;
 
-  if (isCheckingDismissed || !shouldShow) {
+  if (isCheckingDismissed || (!shouldShow && !isComplete)) {
     return null;
   }
 
@@ -90,12 +90,10 @@ export function RetroactivePromptBanner() {
 
       // Mark as complete
       await ExpoSecureStoreAdapter.setItem('bozzy_retroactive_prompt_dismissed', 'true');
-      setIsDismissed(true);
-
-      Alert.alert('Success', '✅ Calculated allocations for all your past gigs!');
+      setIsComplete(true);
+      setTimeout(() => setIsDismissed(true), 2500);
     } catch (error) {
       console.error('[RetroactivePromptBanner] Error:', error);
-      Alert.alert('Error', 'Failed to calculate allocations. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -104,7 +102,6 @@ export function RetroactivePromptBanner() {
   const handleStartFresh = async () => {
     await ExpoSecureStoreAdapter.setItem('bozzy_retroactive_prompt_dismissed', 'true');
     setIsDismissed(true);
-    Alert.alert('Got it', 'Your buckets will fill up as you log new paid gigs');
   };
 
   return (
@@ -136,7 +133,14 @@ export function RetroactivePromptBanner() {
         reflect your real year so far.
       </Text>
 
-      {isProcessing ? (
+      {isComplete ? (
+        <View style={styles.successContainer}>
+          <Text style={styles.successEmoji}>✅</Text>
+          <Text style={[styles.successText, { color: colors.text.DEFAULT }]}>
+            Done! Your history has been calculated ✓
+          </Text>
+        </View>
+      ) : isProcessing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.brand.DEFAULT} />
           <Text style={[styles.loadingText, { color: colors.text.DEFAULT }]}>
@@ -216,6 +220,19 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  successContainer: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  successEmoji: {
+    fontSize: 28,
+  },
+  successText: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   buttonContainer: {
     width: '100%',
