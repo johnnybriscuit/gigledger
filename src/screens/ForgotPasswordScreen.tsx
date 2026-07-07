@@ -255,6 +255,7 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
             ref={emailInputRef}
             style={[styles.input, emailError && styles.inputError]}
             placeholder="your@email.com"
+            placeholderTextColor="#9ca3af"
             value={email}
             onChangeText={(text) => {
               setEmail(text);
@@ -366,6 +367,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     backgroundColor: '#ffffff',
+    color: '#111827',
   },
   inputError: {
     borderColor: '#ef4444',

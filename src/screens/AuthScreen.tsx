@@ -867,6 +867,7 @@ export function AuthScreen({
               ref={emailInputRef}
               style={[styles.input, emailError && styles.inputError]}
               placeholder="your@email.com"
+              placeholderTextColor="#9ca3af"
               value={email}
               onChangeText={(text) => {
                 setEmail(text);
@@ -899,6 +900,7 @@ export function AuthScreen({
                 ref={passwordInputRef}
                 style={[styles.input, passwordError && styles.inputError]}
                 placeholder={mode === 'signup' ? 'Min 10 characters, letter + number' : 'Enter your password'}
+                placeholderTextColor="#9ca3af"
                 value={password}
                 onChangeText={(text) => {
                   setPassword(text);
@@ -1240,6 +1242,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: '#ffffff',
+    color: '#111827',
   },
   inputError: {
     borderColor: '#ef4444',
