@@ -882,7 +882,10 @@ export function AddGigModal({
   const generateDefaultTitle = () => {
     const payer = payers?.find(p => p.id === payerId);
     const payerName = payer?.name || 'Gig';
-    const gigDate = date ? new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const gigDate = date ? (() => {
+      const [y, m, d] = date.split('-').map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    })() : '';
     return gigDate ? `${payerName} - ${gigDate}` : payerName;
   };
 

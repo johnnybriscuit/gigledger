@@ -665,15 +665,17 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   });
 
   const totalGross = filteredGigs?.reduce((sum, gig) => sum + (gig.gross_amount || 0), 0) || 0;
-  // Calculate total net including gig expenses
+  // Calculate total net-before-tax (gross minus cash deductions) matching gig card logic
   const totalNet = filteredGigs?.reduce((sum, gig) => {
     const gigExpensesTotal = (gig.expenses || []).reduce((expSum, exp) => expSum + exp.amount, 0);
+    const subcontractorTotal = (gig.subcontractor_payments || []).reduce((s: number, p: any) => s + p.amount, 0);
     const actualNet = gig.gross_amount 
       + (gig.tips || 0) 
       + (gig.per_diem || 0) 
       + (gig.other_income || 0) 
       - (gig.fees || 0)
-      - gigExpensesTotal;
+      - gigExpensesTotal
+      - subcontractorTotal;
     return sum + actualNet;
   }, 0) || 0;
 
@@ -697,6 +699,8 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
     const ytd = ytdTotals.find(t => t.bucket_id === b.id);
     return sum + (ytd?.total ?? 0);
   }, 0);
+  // Take-home = net-before-tax minus actual tax set-aside (matches per-gig card calculation)
+  const totalTakeHome = totalNet - totalTaxAside;
 
   return (
     <View style={styles.container}>
@@ -705,7 +709,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
       <StatsSummaryBar
         items={[
           { label: 'TOTAL GIGS', value: filteredGigs?.length || 0 },
-          { label: 'TAKE-HOME PAY', value: formatCurrency(totalNet), subtitle: 'after fees & deductions', tooltip: 'What you actually keep after subtracting fees, platform charges, and expenses from your gross pay.' },
+          { label: 'TAKE-HOME PAY', value: formatCurrency(totalTakeHome), subtitle: 'after fees, expenses & taxes', tooltip: 'What you actually keep after subtracting fees, expenses, and tax set-aside from your gross pay.' },
           { label: 'SAVED FOR TAXES', value: formatCurrency(totalTaxAside), valueColor: T.amber },
         ]}
       />
