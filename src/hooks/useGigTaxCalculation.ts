@@ -10,6 +10,8 @@ import { useProfile, type BusinessStructure } from './useProfile';
 import { useSubscription } from './useSubscription';
 import { taxDeltaForGig, type YTDData, type GigData } from '../tax/engine';
 import { getResolvedPlan, isSCalcEligibleForBusinessStructure, type PlanId } from '../lib/businessStructure';
+import { sumMileageDeduction } from '../lib/mileage';
+import type { GigWithPayer } from './useGigs';
 
 export interface GigTaxResult {
   setAside: number;
@@ -158,4 +160,92 @@ export function useGigTaxCalculation(
     console.error('[useGigTaxCalculation] Error:', error);
     return { taxResult: null, loading: false };
   }
+}
+
+/**
+ * Sums the tax engine set-aside across a list of gigs — same logic as each GigCard uses.
+ * Use this for stats bar totals so they match what individual cards show.
+ */
+export function useTotalTaxSetAsideForGigs(gigs: GigWithPayer[] | undefined): number {
+  const { data: taxProfile } = useTaxProfile();
+
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+
+  const { data: profile } = useProfile(user?.id);
+  const { data: subscription } = useSubscription();
+
+  const plan = getResolvedPlan({
+    subscriptionTier: subscription?.tier,
+    subscriptionStatus: subscription?.status,
+  });
+
+  const businessStructure = (profile?.business_structure || 'individual') as BusinessStructure;
+  const eligibilityForProfile = isSCalcEligibleForBusinessStructure(businessStructure, plan);
+  const calcBusinessStructure: BusinessStructure =
+    eligibilityForProfile.requiresProForSelection && plan !== 'pro'
+      ? 'individual'
+      : businessStructure;
+
+  const { data: ytdData } = useQuery<{ ytdGross: number; ytdExpenses: number }>({
+    queryKey: ['ytd-tax-data'],
+    queryFn: async () => {
+      const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+      const { data: gigsYTD, error: gigsError } = await supabase
+        .from('gigs')
+        .select('gross_amount, tips, per_diem, other_income, fees, tax_treatment, payer_id, payers!inner(tax_treatment)')
+        .gte('date', yearStart);
+      if (gigsError) throw gigsError;
+      const { data: expenses, error: expensesError } = await supabase
+        .from('expenses')
+        .select('amount')
+        .gte('date', yearStart);
+      if (expensesError) throw expensesError;
+      const ytdGross = (gigsYTD || []).reduce((sum, gig: any) => {
+        const effectiveTreatment = gig.tax_treatment || gig.payers?.tax_treatment || 'contractor_1099';
+        if (effectiveTreatment === 'w2') return sum;
+        return sum + (gig.gross_amount || 0) + (gig.tips || 0) + (gig.per_diem || 0) + (gig.other_income || 0) - (gig.fees || 0);
+      }, 0);
+      const ytdExpenses = (expenses || []).reduce((sum, exp: any) => sum + (exp.amount || 0), 0);
+      return { ytdGross, ytdExpenses };
+    },
+  });
+
+  if (!taxProfile || !ytdData) return 0;
+
+  const eligibility = isSCalcEligibleForBusinessStructure(calcBusinessStructure, plan);
+  if (!eligibility.usesSelfEmploymentTax) return 0;
+
+  const ytdInput: YTDData = {
+    grossIncome: ytdData.ytdGross,
+    adjustments: 0,
+    netSE: ytdData.ytdGross - ytdData.ytdExpenses,
+  };
+
+  return (gigs || []).reduce((sum, gig) => {
+    const gross =
+      gig.gross_amount +
+      (gig.tips || 0) +
+      (gig.per_diem || 0) +
+      (gig.other_income || 0);
+    const gigExpensesTotal = (gig.expenses || []).reduce((s, e) => s + e.amount, 0);
+    const subcontractorTotal = (gig.subcontractor_payments || []).reduce(
+      (s: number, p: any) => s + p.amount,
+      0
+    );
+    const mileageDeduction = sumMileageDeduction(gig.mileage || []);
+    const expensesForTax =
+      (gig.fees || 0) + gigExpensesTotal + subcontractorTotal + mileageDeduction;
+    try {
+      const result = taxDeltaForGig(ytdInput, { gross, expenses: expensesForTax }, taxProfile);
+      return sum + result.amount;
+    } catch {
+      return sum;
+    }
+  }, 0);
 }

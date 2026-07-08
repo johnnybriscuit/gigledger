@@ -21,7 +21,7 @@ import { PaywallModal } from '../components/PaywallModal';
 import { UsageLimitBanner } from '../components/UsageLimitBanner';
 import { OnboardingHelperCard } from '../components/OnboardingHelperCard';
 import { usePayers } from '../hooks/usePayers';
-import { useGigTaxCalculation } from '../hooks/useGigTaxCalculation';
+import { useGigTaxCalculation, useTotalTaxSetAsideForGigs } from '../hooks/useGigTaxCalculation';
 import { useEntitlements } from '../hooks/useEntitlements';
 import { SkeletonGigCard } from '../components/SkeletonCard';
 import { TaxBadge } from '../components/ui/TaxBadge';
@@ -691,16 +691,10 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   ) ?? [];
   const showMixedTaxBanner = !taxBannerDismissed && mixedTaxGigs.length >= 3;
 
-  // Total tax aside: sum of actual allocation_transactions YTD for all tax buckets
-  const taxBuckets = buckets.filter(
-    b => b.bucket_type === 'federal_tax' || b.bucket_type === 'state_tax'
-  );
-  const totalTaxAside = taxBuckets.reduce((sum, b) => {
-    const ytd = ytdTotals.find(t => t.bucket_id === b.id);
-    return sum + (ytd?.total ?? 0);
-  }, 0);
-  // Take-home = net-before-tax minus actual tax set-aside (matches per-gig card calculation)
-  const totalTakeHome = totalNet - totalTaxAside;
+  // Sum per-gig tax engine set-asides — matches what each individual gig card shows
+  const totalSavedForTaxes = useTotalTaxSetAsideForGigs(filteredGigs);
+  // Take-home = net-before-tax minus per-gig engine tax
+  const totalTakeHome = totalNet - totalSavedForTaxes;
 
   return (
     <View style={styles.container}>
@@ -710,7 +704,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
         items={[
           { label: 'TOTAL GIGS', value: filteredGigs?.length || 0 },
           { label: 'TAKE-HOME PAY', value: formatCurrency(totalTakeHome), subtitle: 'after fees, expenses & taxes', tooltip: 'What you actually keep after subtracting fees, expenses, and tax set-aside from your gross pay.' },
-          { label: 'SAVED FOR TAXES', value: formatCurrency(totalTaxAside), valueColor: T.amber },
+          { label: 'SAVED FOR TAXES', value: formatCurrency(totalSavedForTaxes), valueColor: T.amber },
         ]}
       />
 
