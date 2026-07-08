@@ -622,6 +622,16 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
 
   const formatCurrency = formatCurrencyUtil;
 
+  // Must be computed before early returns so the hook below is always called
+  const filteredGigs: GigWithPayer[] = gigs?.filter(gig => {
+    if (tourFilter === 'all') return true;
+    if (tourFilter === 'none') return !gig.tour_id;
+    return gig.tour_id === tourFilter;
+  }) || [];
+
+  // Hook must be called before any early returns (Rules of Hooks)
+  const totalSavedForTaxes = useTotalTaxSetAsideForGigs(filteredGigs);
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -651,14 +661,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
     );
   }
 
-  // Filter gigs based on tour filter
-  const filteredGigs = gigs?.filter(gig => {
-    if (tourFilter === 'all') return true;
-    if (tourFilter === 'none') return !gig.tour_id;
-    return gig.tour_id === tourFilter;
-  }) || [];
-
-  // Check if all selected gigs have tours (must be AFTER filteredGigs is defined)
+  // Check if all selected gigs have tours
   const allSelectedHaveTour = selectedGigIds.length > 0 && selectedGigIds.every(id => {
     const gig = filteredGigs?.find(g => g.id === id);
     return gig?.tour_id != null;
@@ -691,8 +694,6 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   ) ?? [];
   const showMixedTaxBanner = !taxBannerDismissed && mixedTaxGigs.length >= 3;
 
-  // Sum per-gig tax engine set-asides — matches what each individual gig card shows
-  const totalSavedForTaxes = useTotalTaxSetAsideForGigs(filteredGigs);
   // Take-home = net-before-tax minus per-gig engine tax
   const totalTakeHome = totalNet - totalSavedForTaxes;
 
