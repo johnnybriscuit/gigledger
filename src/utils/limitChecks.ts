@@ -36,7 +36,6 @@ async function isPaidUser(userId: string, profilePlan: string | null | undefined
     .maybeSingle();
 
   if (error) {
-    console.warn('[limitChecks] Error fetching subscription for limit check:', error);
   }
 
   if (hasActivePaidSubscription(subscription)) {
@@ -62,7 +61,6 @@ export async function checkAndIncrementLimit(
       console.error('Error fetching profile for limit check:', error);
       // If columns don't exist yet, allow the action (graceful degradation)
       if (error.message?.includes('column') || error.code === '42703') {
-        console.warn('Monthly limit columns not found - allowing action');
         return { allowed: true };
       }
       return { allowed: false, message: 'Profile not found' };

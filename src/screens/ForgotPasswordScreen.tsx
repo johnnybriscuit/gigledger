@@ -59,7 +59,6 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
     } catch (error) {
       if (isLocalWebDev) {
         setServerApiAvailable(false);
-        console.warn('[ForgotPassword] Server API unavailable on local web; using direct Supabase flow.');
         return null;
       }
 
@@ -101,12 +100,10 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
     setLoading(true);
     setEmailError('');
 
-    console.debug('[ForgotPassword] Requesting password reset', { email });
 
     try {
       let tokenToUse = csrfToken;
       if (serverApiAvailable && !tokenToUse) {
-        console.log('[ForgotPassword] No CSRF token found, fetching now...');
         tokenToUse = await fetchCsrfToken();
       }
 
@@ -117,7 +114,6 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
 
         if (error) throw error;
 
-        console.log('[ForgotPassword] Password reset email sent via direct Supabase flow');
         setEmailSent(true);
         return;
       }
@@ -142,7 +138,6 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
 
           if (error) throw error;
 
-          console.log('[ForgotPassword] Password reset email sent via direct Supabase flow');
           setEmailSent(true);
           return;
         }
@@ -151,7 +146,6 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
         return;
       }
 
-      console.debug('[ForgotPassword] Response', { status: response.status, data });
 
       if (!response.ok) {
         if (data.code === 'CSRF_FAILED') {
@@ -175,7 +169,6 @@ export function ForgotPasswordScreen({ onBack }: ForgotPasswordScreenProps) {
       }
 
       // Success - show confirmation
-      console.log('[ForgotPassword] Password reset email sent');
       setEmailSent(true);
     } catch (error: any) {
       console.error('[ForgotPassword] Error:', error);

@@ -87,7 +87,6 @@ export async function calculateDistance(
     ]);
 
     if (!fromCoords || !toCoords) {
-      console.warn('Failed to geocode one or both locations');
       return null;
     }
 

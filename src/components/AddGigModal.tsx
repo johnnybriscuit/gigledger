@@ -364,22 +364,9 @@ export function AddGigModal({
     };
     
     // Debug logging
-    console.log('Tax Calculation Debug:', {
-      ytdGross: ytdData.ytdGross,
-      ytdExpenses: ytdData.ytdExpenses,
-      ytdNetSE: ytdInput.netSE,
-      gigGross: gigData.gross,
-      gigExpenses: gigData.expenses,
-      gigNet: gigData.gross - gigData.expenses,
-      taxProfile: {
-        state: taxProfile.state,
-        filingStatus: taxProfile.filingStatus,
-      }
-    });
     
     try {
       const result = taxDeltaForGig(ytdInput, gigData, taxProfile);
-      console.log('Tax Result:', result);
       return result;
     } catch (error) {
       console.error('Error calculating tax set-aside:', error);
@@ -982,11 +969,9 @@ export function AddGigModal({
         end_time: endTime || undefined,
       };
 
-      console.log('Form data before validation:', formData);
       let validated;
       try {
         validated = gigSchema.parse(formData);
-        console.log('Validated data:', validated);
       } catch (validationError: any) {
         console.error('Validation failed:', validationError);
         if (validationError.errors) {
@@ -1020,7 +1005,6 @@ export function AddGigModal({
       } : undefined;
 
       // Prepare subcontractor payments data (used for both create and edit)
-      console.log('inlineSubcontractorPayments state:', inlineSubcontractorPayments);
       const subcontractorPaymentsData = inlineSubcontractorPayments
         .filter(payment => payment.subcontractor_id && payment.amount)
         .map(payment => ({
@@ -1028,7 +1012,6 @@ export function AddGigModal({
           amount: parseFloat(payment.amount) || 0,
           note: payment.note,
         }));
-      console.log('Prepared subcontractorPaymentsData:', subcontractorPaymentsData);
 
       if (editingGig) {
         const userId = await getSharedUserId();
@@ -1037,10 +1020,6 @@ export function AddGigModal({
         }
 
         // Update gig with inline items
-        console.log('Calling updateGigWithLines with:', {
-          gigId: editingGig.id,
-          subcontractorPayments: subcontractorPaymentsData,
-        });
         await updateGigWithLines({
           gigId: editingGig.id,
           gig: validated,
@@ -1077,11 +1056,6 @@ export function AddGigModal({
           return;
         }
 
-        console.log('Creating gig with data:', {
-          gig: validated,
-          expenses: expensesData,
-          mileage: mileageData,
-        });
         
         try {
           const result = await createGigWithLines({
@@ -1090,7 +1064,6 @@ export function AddGigModal({
             mileage: mileageData,
             subcontractorPayments: subcontractorPaymentsData,
           });
-          console.log('Gig created successfully:', result);
 
           // Create allocation transactions if gig is paid and buckets are configured
           if (paid && buckets.length > 0 && result.gig?.id) {
@@ -1099,7 +1072,6 @@ export function AddGigModal({
                 gigId: result.gig.id,
                 grossAmount: parseFloat(grossAmount) || 0,
               });
-              console.log('Allocations created successfully for gig:', result.gig.id);
             } catch (allocationError: any) {
               console.error('Error creating allocations:', allocationError);
               // Don't fail the whole operation if allocations fail
@@ -1113,7 +1085,6 @@ export function AddGigModal({
 
         const usageIncrement = await incrementLimitUsage(userId, 'gigs');
         if (!usageIncrement.allowed) {
-          console.warn('Gig saved but monthly usage counter did not increment:', usageIncrement.message);
         }
 
         await refreshGigRelatedQueries(userId);

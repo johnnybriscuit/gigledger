@@ -85,24 +85,6 @@ class DebugTotalsLogger {
       ? 'color: #10b981; font-weight: bold;' // green
       : 'color: #f59e0b; font-weight: bold;'; // amber
     
-    console.log(
-      `%c[DebugTotals +${timestamp}ms] ${location}`,
-      style,
-      {
-        ready: allReady,
-        userId: data.userId,
-        range: data.range,
-        gigs: `${data.gigsStatus} (${data.gigsCount})`,
-        expenses: data.expensesStatus ? `${data.expensesStatus} (${data.expensesCount})` : 'n/a',
-        taxProfile: data.taxProfileStatus,
-        computed: {
-          netProfit: `$${data.computed.netProfit.toFixed(2)}`,
-          setAside: `$${data.computed.setAside.toFixed(2)}`,
-          rate: `${(data.computed.setAsideRate * 100).toFixed(1)}%`,
-        },
-        notes: data.notes,
-      }
-    );
   }
   
   /**
@@ -118,7 +100,6 @@ class DebugTotalsLogger {
   clear() {
     this.logs = [];
     this.startTime = Date.now();
-    console.log('%c[DebugTotals] Logs cleared', 'color: #6b7280;');
   }
   
   /**
@@ -126,11 +107,9 @@ class DebugTotalsLogger {
    */
   summary() {
     if (!this.isEnabled()) {
-      console.log('%c[DebugTotals] Debug mode not enabled. Set window.__GL_DEBUG_TOTALS__ = true', 'color: #6b7280;');
       return;
     }
     
-    console.log('%c[DebugTotals] Summary', 'color: #3b82f6; font-weight: bold;');
     console.table(
       this.logs.map(log => ({
         time: `+${log.data.timestamp}ms`,
@@ -163,10 +142,8 @@ class DebugTotalsLogger {
     }
     
     if (issues.length > 0) {
-      console.log('%c[DebugTotals] Issues Found:', 'color: #ef4444; font-weight: bold;');
       issues.forEach(issue => console.log(`  ${issue}`));
     } else {
-      console.log('%c[DebugTotals] ✓ No issues detected', 'color: #10b981;');
     }
   }
 }
@@ -176,8 +153,4 @@ export const debugTotals = new DebugTotalsLogger();
 // Make available in browser console
 if (typeof window !== 'undefined') {
   (window as any).__debugTotals__ = debugTotals;
-  console.log(
-    '%c[DebugTotals] Available in console. Enable with: window.__GL_DEBUG_TOTALS__ = true',
-    'color: #6b7280; font-style: italic;'
-  );
 }

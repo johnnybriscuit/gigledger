@@ -59,7 +59,6 @@ export function useAppBootstrap() {
   // Listen for auth state changes to trigger re-bootstrap
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      console.log('🟡 Bootstrap: Auth state changed:', event);
       if (event === 'SIGNED_OUT' || event === 'SIGNED_IN') {
         // Trigger bootstrap re-run
         setAuthTrigger(prev => prev + 1);
@@ -75,10 +74,8 @@ export function useAppBootstrap() {
     const runId = Math.random().toString(36).substring(7); // Unique ID for this bootstrap run
 
     async function bootstrap() {
-      console.log(`🟡 Bootstrap [${runId}]: Starting...`);
       try {
         // Set timeout to prevent infinite loading
-        console.log(`🟡 Bootstrap [${runId}]: Timeout set (${BOOTSTRAP_TIMEOUT}ms)`);
         timeoutId = setTimeout(() => {
           if (!cancelled) {
             console.error(`🔴 Bootstrap [${runId}]: TIMEOUT FIRED after ${BOOTSTRAP_TIMEOUT}ms`);
@@ -98,8 +95,6 @@ export function useAppBootstrap() {
         // If session check fails (e.g., CSRF token error), treat as unauthenticated
         // This allows user to proceed to login screen instead of showing error
         if (sessionError) {
-          console.warn(`🟡 Bootstrap [${runId}]: Session error, treating as unauthenticated:`, sessionError.message);
-          console.log(`🟡 Bootstrap [${runId}]: Timeout cleared (session error)`);
           clearTimeout(timeoutId); // Clear timeout immediately
           setStatus({
             status: 'unauthenticated',
@@ -117,8 +112,6 @@ export function useAppBootstrap() {
         }
 
         if (!session) {
-          console.log(`🟡 Bootstrap [${runId}]: No session found, returning unauthenticated status`);
-          console.log(`🟡 Bootstrap [${runId}]: Timeout cleared (no session)`);
           clearTimeout(timeoutId); // Clear timeout immediately - no need to wait
           setStatus({
             status: 'unauthenticated',
@@ -228,11 +221,9 @@ export function useAppBootstrap() {
             },
           }),
         ]).catch(err => {
-          console.warn('[Bootstrap] Prefetch failed (non-critical):', err);
         });
 
         // Bootstrap complete
-        console.log(`🟢 Bootstrap [${runId}]: Complete! Timeout cleared.`);
         clearTimeout(timeoutId);
         setStatus({
           status: 'ready',
@@ -249,7 +240,6 @@ export function useAppBootstrap() {
       } catch (error: any) {
         if (!cancelled) {
           console.error(`🔴 Bootstrap [${runId}]: Error:`, error);
-          console.log(`🟡 Bootstrap [${runId}]: Timeout cleared (error)`);
           clearTimeout(timeoutId);
           
           // Check if this is a session/auth error (user deleted)
@@ -286,7 +276,6 @@ export function useAppBootstrap() {
     bootstrap();
 
     return () => {
-      console.log(`🟡 Bootstrap [${runId}]: Cleanup - cancelled and timeout cleared`);
       cancelled = true;
       clearTimeout(timeoutId);
     };

@@ -53,7 +53,6 @@ export function MFAChallengeScreen({ onNavigateToDashboard, onNavigateToAuth }: 
       }
 
       setChallengeId(challenge.id);
-      console.log('[MFA Challenge] Initialized:', challenge.id);
     } catch (err: any) {
       console.error('[MFA Challenge] Init error:', err);
       Alert.alert('Error', err.message || 'Failed to initialize 2FA challenge');
@@ -87,7 +86,6 @@ export function MFAChallengeScreen({ onNavigateToDashboard, onNavigateToAuth }: 
 
       if (error) throw error;
 
-      console.log('[MFA Challenge] Verification successful');
 
       // Redirect to dashboard
       onNavigateToDashboard?.();

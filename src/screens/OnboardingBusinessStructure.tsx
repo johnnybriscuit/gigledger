@@ -98,7 +98,6 @@ export function OnboardingBusinessStructure({ onNext, onSkip, onBack }: Onboardi
         business_structure: selectedStructure,
       });
 
-      console.log('[OnboardingBusinessStructure] Saved business structure:', selectedStructure);
       onNext();
     } catch (error: any) {
       console.error('[OnboardingBusinessStructure] Error saving business structure:', error);
@@ -112,7 +111,6 @@ export function OnboardingBusinessStructure({ onNext, onSkip, onBack }: Onboardi
         );
       } else {
         // Fallback to individual on any error
-        console.warn('[OnboardingBusinessStructure] Falling back to individual structure');
         try {
           await updateProfile.mutateAsync({
             business_structure: 'individual',
@@ -135,7 +133,6 @@ export function OnboardingBusinessStructure({ onNext, onSkip, onBack }: Onboardi
   const handleSkip = () => {
     // Skip does NOT mark onboarding complete
     // Just advance to next step with default structure
-    console.log('[OnboardingBusinessStructure] Skipped - keeping default structure');
     onSkip();
   };
 

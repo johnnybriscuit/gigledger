@@ -34,10 +34,8 @@ export function useTaxProfile() {
   const mountedRef = useRef(true);
   
   useEffect(() => {
-    console.log('🔵 [useTaxProfile] Fetching userId...');
     getSharedUserId().then((id) => {
       if (!mountedRef.current) return; // Don't update state if unmounted
-      console.log('🔵 [useTaxProfile] UserId fetched:', !!id);
       setUserId(id);
       setIsInitializing(false);
     });
@@ -51,11 +49,9 @@ export function useTaxProfile() {
     queryKey: userId ? queryKeys.taxProfile(userId) : ['taxProfile-loading'],
     queryFn: async (): Promise<TaxProfile | null> => {
       if (!userId) {
-        console.log('🔵 Tax Profile: No authenticated user');
         return null;
       }
 
-      console.log('🔵 Tax Profile: Fetching for user', userId);
       const { data, error } = await supabase
         .from('user_tax_profile')
         .select('*')
@@ -69,7 +65,6 @@ export function useTaxProfile() {
 
       // If no profile exists, return defaults with null state
       if (!data) {
-        console.log('🔵 Tax Profile: No profile found, returning defaults');
         return {
           filingStatus: 'single' as const,
           state: null as any, // User must set their state
@@ -82,7 +77,6 @@ export function useTaxProfile() {
       }
 
       const row = data as TaxProfileRow;
-      console.log('🔵 Tax Profile: Found profile', { state: row.state, filingStatus: row.filing_status });
 
       return {
         filingStatus: row.filing_status as TaxProfile['filingStatus'],

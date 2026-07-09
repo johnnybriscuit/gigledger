@@ -51,13 +51,11 @@ export async function processReceiptBeforeCreation(
   mimeType?: string
 ): Promise<ProcessReceiptResponse> {
   try {
-    console.log('[Receipt] Calling edge function with:', { receipt_storage_path, mimeType });
     
     const { data, error } = await supabase.functions.invoke('process-receipt', {
       body: { receipt_storage_path, mimeType }
     });
 
-    console.log('[Receipt] Edge function response:', { data, error });
 
     if (error) {
       console.error('[Receipt] Edge function error:', error);

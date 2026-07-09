@@ -206,17 +206,13 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 setScanningReceipt(true);
                 setScanningStep('uploading');
                 
-                console.log('[Receipt] Creating draft expense...');
                 // 1. Create draft expense
                 const expenseId = await createDraftExpense();
                 setDraftExpenseId(expenseId);
                 setCurrentExpenseId(expenseId);
-                console.log('[Receipt] Draft expense created:', expenseId);
                 
                 // 2. Upload receipt to user-scoped path
-                console.log('[Receipt] Uploading receipt...');
                 const receiptPath = await uploadReceipt(expenseId, file);
-                console.log('[Receipt] Receipt uploaded to:', receiptPath);
                 
                 // 3. Update draft with receipt path
                 await updateExpense.mutateAsync({
@@ -228,12 +224,10 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 
                 // 4. Scan receipt
                 setScanningStep('analyzing');
-                console.log('[Receipt] Scanning receipt...');
                 const result = await processReceipt(expenseId);
                 
                 setScanningStep('extracting');
                 setScanResult(result);
-                console.log('[Receipt] Scan result:', result);
                 
                 // 5. Auto-populate fields from scan results
                 if (result.success && result.extracted) {
@@ -247,10 +241,8 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                       if (!isNaN(testDate.getTime())) {
                         setDate(result.extracted.date);
                       } else {
-                        console.warn('[Receipt] Invalid date extracted:', result.extracted.date);
                       }
                     } catch (e) {
-                      console.warn('[Receipt] Failed to parse date:', result.extracted.date, e);
                     }
                   }
                   if (!amount && result.extracted.total) {
@@ -369,7 +361,6 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               setDate(result.extracted.date);
             }
           } catch (e) {
-            console.warn('[Receipt] Failed to parse date on retry:', result.extracted.date, e);
           }
         }
         if (!amount && result.extracted.total) {

@@ -68,7 +68,6 @@ export function AddressAutocomplete({
       const trimmed = query.trim();
 
       if (trimmed.length < 3) {
-        console.log('[AddressAutocomplete] Query too short, clearing predictions');
         setPredictions([]);
         setHighlightedIndex(-1);
         if (!isFocusedRef.current) {
@@ -84,7 +83,6 @@ export function AddressAutocomplete({
 
       setIsLoading(true);
       setFetchError(null);
-      console.log('[AddressAutocomplete] Fetching predictions for:', trimmed);
 
       try {
         const params = new URLSearchParams({
@@ -113,19 +111,16 @@ export function AddressAutocomplete({
         setPredictions(newPredictions);
         setHighlightedIndex(newPredictions.length > 0 ? 0 : -1);
 
-        console.log('[AddressAutocomplete] Received', newPredictions.length, 'predictions');
 
         // Only open dropdown if we are still focused when async finishes
         if (isFocusedRef.current && newPredictions.length > 0) {
           measure();
           setIsOpen(true);
-          console.log('[AddressAutocomplete] Opening dropdown with results');
         } else if (!newPredictions.length) {
           setIsOpen(false);
         }
       } catch (err: any) {
         if (err.name === 'AbortError') {
-          console.log('[AddressAutocomplete] Request aborted');
           return;
         }
 
@@ -160,7 +155,6 @@ export function AddressAutocomplete({
   // Handle selection from dropdown
   const handleSelect = useCallback(
     (prediction: PlacePrediction) => {
-      console.log('[AddressAutocomplete] Option selected:', prediction.description);
 
       if (blurTimeoutRef.current) {
         clearTimeout(blurTimeoutRef.current);
@@ -187,13 +181,11 @@ export function AddressAutocomplete({
 
   // Focus handler - only open if we have predictions
   const handleFocus = () => {
-    console.log('[AddressAutocomplete] Input focus, predictions:', predictions.length, 'isOpen:', isOpen);
 
     // Clear any pending blur timeout immediately
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
-      console.log('[AddressAutocomplete] Cleared blur timeout on focus');
     }
 
     setIsFocused(true);
@@ -202,7 +194,6 @@ export function AddressAutocomplete({
     // Only open if we have predictions and dropdown is closed
     // Don't re-open if already open to prevent flicker
     if (predictions.length > 0 && !isOpen) {
-      console.log('[AddressAutocomplete] Opening dropdown on focus');
       measure();
       setIsOpen(true);
     }
@@ -210,14 +201,12 @@ export function AddressAutocomplete({
 
   // Delayed blur
   const handleBlur = () => {
-    console.log('[AddressAutocomplete] Input blur - scheduling close in 300ms');
 
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
     }
 
     blurTimeoutRef.current = setTimeout(() => {
-      console.log('[AddressAutocomplete] Blur timeout fired - closing dropdown');
       setIsFocused(false);
       isFocusedRef.current = false;
       setIsOpen(false);
@@ -356,7 +345,6 @@ export function AddressAutocomplete({
                 onMouseDown={(e: any) => {
                   // FLICKER FIX: Prevent input blur when clicking option
                   e.preventDefault();
-                  console.log('[AddressAutocomplete] Option mousedown - preventing blur');
                 }}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 accessibilityRole={Platform.OS === 'web' ? 'option' : undefined}

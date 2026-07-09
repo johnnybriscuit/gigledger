@@ -33,7 +33,6 @@ export async function drivingMiles(
       return { miles: result, provider: 'google' };
     }
   } catch (err) {
-    console.warn('Google Distance Matrix proxy failed, trying fallback:', err);
   }
 
   // Try Mapbox Directions API
@@ -45,7 +44,6 @@ export async function drivingMiles(
         return { miles: result, provider: 'mapbox' };
       }
     } catch (err) {
-      console.warn('Mapbox Directions failed:', err);
     }
   }
 
@@ -72,13 +70,11 @@ async function googleDistanceMatrixViaProxy(origin: LatLng, dest: LatLng): Promi
   const data = await response.json();
 
   if (data.status !== 'OK') {
-    console.warn('Google Distance Matrix proxy status:', data.status);
     return null;
   }
 
   const element = data.rows?.[0]?.elements?.[0];
   if (element?.status !== 'OK') {
-    console.warn('Google Distance Matrix proxy element status:', element?.status);
     return null;
   }
 
@@ -114,7 +110,6 @@ async function mapboxDirections(
   const data = await response.json();
   
   if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-    console.warn('Mapbox Directions returned no routes');
     return null;
   }
 

@@ -105,22 +105,17 @@ export function OnboardingAddGig({ payerId, payerName, onComplete, onSkip, onBac
   const estimatedNet = netBeforeTax - (taxEstimate?.total || 0);
 
   const handleComplete = async () => {
-    console.log('🔵 [OnboardingAddGig] handleComplete called');
-    console.log('🔵 [OnboardingAddGig] Form data:', { payerId, title, grossAmount, fees, otherIncome });
     
     if (!payerId) {
-      console.log('🔴 [OnboardingAddGig] Validation failed: No payer');
       Alert.alert('Error', 'No payer selected. Please go back and add a payer first.');
       return;
     }
 
     if (!grossAmount || parseFloat(grossAmount) <= 0) {
-      console.log('🔴 [OnboardingAddGig] Validation failed: Invalid amount');
       Alert.alert('Amount Required', 'Please enter a valid amount');
       return;
     }
 
-    console.log('✅ [OnboardingAddGig] Validation passed, creating gig...');
 
     try {
       const gigData = {
@@ -139,24 +134,19 @@ export function OnboardingAddGig({ payerId, payerName, onComplete, onSkip, onBac
         taxes_withheld: taxesWithheld,
       };
       
-      console.log('🔵 [OnboardingAddGig] Calling createGig.mutateAsync with:', gigData);
       
       const createdGig = await createGig.mutateAsync(gigData);
       
-      console.log('✅ [OnboardingAddGig] Gig created successfully');
 
       if (isPaid && createdGig?.id) {
-        console.log('🔵 [OnboardingAddGig] Creating allocations for paid gig...');
         await createAllocationsForGig({
           gigId: createdGig.id,
           grossAmount: parseFloat(grossAmount),
           gigDate: date,
         });
-        console.log('✅ [OnboardingAddGig] Allocations created');
       }
 
       // Mark onboarding as complete
-      console.log('🔵 [OnboardingAddGig] Marking onboarding as complete...');
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { error: updateError } = await supabase
@@ -168,14 +158,11 @@ export function OnboardingAddGig({ payerId, payerName, onComplete, onSkip, onBac
           console.error('🔴 [OnboardingAddGig] Error updating profile:', updateError);
           throw updateError;
         }
-        console.log('✅ [OnboardingAddGig] Profile updated successfully');
       }
 
       // Invalidate queries and complete regardless of user branch
-      console.log('🔵 [OnboardingAddGig] Invalidating queries...');
       queryClient.invalidateQueries();
 
-      console.log('✅ [OnboardingAddGig] Calling onComplete()');
       onComplete();
     } catch (error: any) {
       console.error('🔴 [OnboardingAddGig] Error in handleComplete:', error);
@@ -194,7 +181,7 @@ export function OnboardingAddGig({ payerId, payerName, onComplete, onSkip, onBac
         [
           { 
             text: 'OK',
-            onPress: () => console.log('🔵 [OnboardingAddGig] User dismissed error alert')
+            onPress: () => {}
           }
         ]
       );

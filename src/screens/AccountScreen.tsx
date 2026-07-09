@@ -95,13 +95,6 @@ export function AccountScreen({
   // Initialize form values when profile loads
   useEffect(() => {
     if (profile) {
-      console.log('[AccountScreen] Loading profile data:', {
-        home_address: profile.home_address,
-        home_address_full: profile.home_address_full,
-        home_address_place_id: profile.home_address_place_id,
-        home_address_lat: profile.home_address_lat,
-        home_address_lng: profile.home_address_lng,
-      });
       setFullName(profile.full_name || '');
       setHomeAddress(profile.home_address || '');
       setHomeAddressFull(profile.home_address_full || '');
@@ -319,11 +312,9 @@ export function AccountScreen({
       home_address_lng: homeAddressLng ?? undefined,
     };
     
-    console.log('[AccountScreen] Saving profile with updates:', updates);
     
     try {
       const result = await updateProfileMutation.mutateAsync(updates);
-      console.log('[AccountScreen] Profile saved successfully:', result);
       setIsEditingProfile(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error: any) {

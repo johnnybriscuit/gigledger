@@ -20,13 +20,8 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
         const navGigs = document.querySelector('.nav-gigs');
         
         if (navDashboard && navGigs) {
-          console.log('✅ Tour elements ready');
           setIsReady(true);
         } else {
-          console.log('⏳ Waiting for nav elements...', { 
-            hasNavDashboard: !!navDashboard,
-            hasNavGigs: !!navGigs
-          });
           setTimeout(checkElements, 100);
         }
       };
@@ -39,7 +34,6 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
   }, [show]);
 
   const handleAddFirstGig = () => {
-    console.log('🎯 Add First Gig clicked from tour');
     if (onNavigateToGigs) {
       onNavigateToGigs();
     }
@@ -136,14 +130,6 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, action, index, type, lifecycle } = data;
 
-    console.log('🎯 Tour event:', { 
-      status, 
-      action, 
-      index, 
-      type, 
-      lifecycle,
-      stepIndex 
-    });
 
     // Handle tour completion - only close on final step or explicit close/skip actions
     const isLastStep = index === steps.length - 1;
@@ -155,7 +141,6 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
       (lifecycle === 'complete' && isLastStep);
     
     if (shouldClose) {
-      console.log('✅ Tour completed:', { status, action, lifecycle, index, isLastStep });
       setStepIndex(0);
       setIsReady(false);
       
@@ -181,14 +166,12 @@ export const DashboardTour: React.FC<DashboardTourProps> = ({ show, onComplete, 
 
     // Handle errors
     if (type === EVENTS.TARGET_NOT_FOUND) {
-      console.warn('⚠️ Target not found for step:', index);
       setStepIndex(index + 1);
     }
   };
 
   // Don't render until elements are ready
   if (!isReady) {
-    console.log('⏳ Tour waiting for elements...');
     return null;
   }
 

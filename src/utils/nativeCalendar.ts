@@ -75,7 +75,6 @@ function parseDateTime(date: string, time?: string): Date {
  */
 export async function addGigToCalendar(event: CalendarEventData): Promise<string | null> {
   if (Platform.OS === 'web') {
-    console.warn('addGigToCalendar is only supported on mobile');
     return null;
   }
 
@@ -143,7 +142,6 @@ export async function updateCalendarEvent(
   event: CalendarEventData
 ): Promise<boolean> {
   if (Platform.OS === 'web') {
-    console.warn('updateCalendarEvent is only supported on mobile');
     return false;
   }
 
@@ -192,7 +190,6 @@ export async function updateCalendarEvent(
  */
 export async function deleteCalendarEvent(calendarEventId: string): Promise<boolean> {
   if (Platform.OS === 'web') {
-    console.warn('deleteCalendarEvent is only supported on mobile');
     return false;
   }
 

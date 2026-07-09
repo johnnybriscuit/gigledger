@@ -7,6 +7,7 @@ import { BucketSetupScreen } from './BucketSetupScreen';
 import { OnboardingAddPayer } from './OnboardingAddPayer';
 import { OnboardingAddGig } from './OnboardingAddGig';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { useTaxProfile } from '../hooks/useTaxProfile';
 import { createDefaultBuckets } from '../lib/createDefaultBuckets';
@@ -22,6 +23,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [payerId, setPayerId] = useState<string | null>(null);
   const [payerName, setPayerName] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const { preference: themePreference, setTheme } = useTheme();
   const { data: taxProfile } = useTaxProfile();
 
   const createBuckets = async () => {
@@ -65,14 +67,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const handleComplete = async (gigCreated = false, gigId?: string) => {
-    console.log('[OnboardingFlow] handleComplete — gigCreated:', gigCreated);
 
     if (Platform.OS === 'web') {
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('bozzy_coach_tip')) localStorage.removeItem(key);
       });
-      if (!localStorage.getItem('bozzy-theme-preference')) {
-        localStorage.setItem('bozzy-theme-preference', 'light');
+      if (!themePreference) {
+        setTheme('light');
       }
       sessionStorage.setItem('show_dashboard_tour', 'true');
       sessionStorage.setItem('onboarding_just_completed', 'true');

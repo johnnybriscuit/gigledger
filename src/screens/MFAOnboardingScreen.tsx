@@ -34,7 +34,6 @@ export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScre
       setQrUri(data.qrCode);
       setSecret(data.secret);
       setLoading(false);
-      console.log('[MFA] Enrollment initiated:', data.factorId);
     } catch (err: any) {
       console.error('[MFA] Enrollment error:', err);
       Alert.alert('Error', err.message || 'Failed to set up 2FA');
@@ -53,7 +52,6 @@ export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScre
 
     try {
       await verifyTOTPEnrollment(factorId, code);
-      console.log('[MFA] Verification successful');
       const codes = await generateBackupCodes();
       setRecoveryCodes(codes);
       setStep('recovery');

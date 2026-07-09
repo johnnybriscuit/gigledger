@@ -165,7 +165,6 @@ export async function uploadReceipt(expenseId: string, file: File): Promise<stri
   // Object key: userId/expenseId/timestamp_filename
   const objectKey = `${userId}/${expenseId}/${Date.now()}_${safeName}`;
   
-  console.log('[uploadReceipt] Uploading to key:', objectKey);
 
   const { error: uploadError } = await supabase.storage
     .from('receipts')
@@ -179,7 +178,6 @@ export async function uploadReceipt(expenseId: string, file: File): Promise<stri
     throw uploadError;
   }
 
-  console.log('[uploadReceipt] Upload successful');
   return objectKey;
 }
 

@@ -77,11 +77,9 @@ export function AccountSetupPrompts({
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, action, index, type } = data;
 
-    console.log('🎯 AccountSetupPrompts callback:', { status, action, index, type });
 
     // Handle tour completion
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-      console.log('✅ Tour completed, calling onComplete');
       setRun(false);
       onComplete();
       return;
@@ -89,7 +87,6 @@ export function AccountSetupPrompts({
 
     // Handle close button
     if (action === ACTIONS.CLOSE) {
-      console.log('❌ Tour closed');
       setRun(false);
       onComplete();
       return;
@@ -101,7 +98,6 @@ export function AccountSetupPrompts({
       
       // If clicking next on the last step, finish the tour
       if (action === ACTIONS.NEXT && nextStepIndex >= steps.length) {
-        console.log('✅ Last step completed');
         setRun(false);
         onComplete();
         return;

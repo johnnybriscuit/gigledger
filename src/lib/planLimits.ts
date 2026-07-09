@@ -69,7 +69,6 @@ export async function getPlanAndUsage(
     .maybeSingle();
 
   if (subError) {
-    console.warn('[getPlanAndUsage] Error fetching subscription:', subError);
   }
 
   // 2. Fallback: read profile plan for webhook-sync or legacy edge cases
@@ -80,7 +79,6 @@ export async function getPlanAndUsage(
     .maybeSingle();
 
   if (profileError) {
-    console.warn('[getPlanAndUsage] Error fetching profile plan:', profileError);
   }
 
   let plan: PlanId = 'free';

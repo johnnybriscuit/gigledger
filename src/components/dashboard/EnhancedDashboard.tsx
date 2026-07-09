@@ -93,8 +93,6 @@ export function EnhancedDashboard({
       perf.mark('dashboard-interactive');
       // Log full performance report
       if (typeof window !== 'undefined' && __DEV__) {
-        console.log('\n📊 Performance Report:');
-        console.log('To view detailed timings, run: perf.getReport()');
         perf.getReport();
       }
     }

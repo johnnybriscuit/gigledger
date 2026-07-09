@@ -78,7 +78,6 @@ export function useEntitlements(): Entitlements {
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated');
 
-      console.log('🔵 [useEntitlements] Fetching entitlements for user:', userId);
       const profileResult = await supabase
         .from('profiles')
         .select(`
@@ -105,7 +104,6 @@ export function useEntitlements(): Entitlements {
         .maybeSingle();
 
       if (subscriptionResult.error) {
-        console.warn('🟡 [useEntitlements] Subscription fetch warning:', subscriptionResult.error);
       }
 
       const profile = profileResult.data;
@@ -118,15 +116,6 @@ export function useEntitlements(): Entitlements {
 
       const legacyFreePlan = !paidFromSubscription && profile?.legacy_free_plan === true;
 
-      console.log('🔵 [useEntitlements] Fetched successfully:', {
-        plan: normalizedPlan,
-        subscriptionTier: subscriptionResult.data?.tier,
-        subscriptionStatus: subscriptionResult.data?.status,
-        gigsCount: profile?.gigs_used_this_month,
-        expensesCount: profile?.expenses_used_this_month,
-        invoicesCreatedCount: profile?.invoices_used_this_month,
-        exportsCount: profile?.exports_used_this_month,
-      });
 
       return {
         plan: normalizedPlan === 'legacy_free' ? 'free' : (normalizedPlan as UserPlan),

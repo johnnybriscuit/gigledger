@@ -74,7 +74,6 @@ export function useCreateCheckoutSession() {
       if (!user) throw new Error('Not authenticated');
 
       const url = `${SUPABASE_URL}/functions/v1/create-stripe-checkout`;
-      console.log('[Stripe] Creating checkout session at:', url);
 
       const { data, error } = await supabase.functions.invoke('create-stripe-checkout', {
         body: {
@@ -104,7 +103,6 @@ export function useCreatePortalSession() {
       if (!user) throw new Error('Not authenticated');
 
       const url = `${SUPABASE_URL}/functions/v1/create-stripe-portal`;
-      console.log('[Stripe] Creating portal session at:', url);
 
       const { data, error } = await supabase.functions.invoke('create-stripe-portal', {
         body: {},
@@ -116,7 +114,6 @@ export function useCreatePortalSession() {
         throw new Error(error.context?.error || error.message || 'Failed to create portal session');
       }
 
-      console.log('[Stripe] Portal response data:', data);
 
       if (!data?.url) {
         console.error('[Stripe] No URL in response. Full data:', JSON.stringify(data, null, 2));

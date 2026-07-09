@@ -112,7 +112,6 @@ export function useTaxCalculation(
             total: 0,
             effectiveRate: 0,
           };
-          console.log('[useTaxCalculation] SE tax disabled for business structure:', businessStructure);
         } else {
           taxResult = calcTotalTax(ytd, engineProfile);
         }

@@ -225,10 +225,6 @@ export function useInvoices(filters?: InvoiceQueryFilters) {
           throw error;
         }
 
-        console.warn(
-          '[Invoices] Missing invoices.public_token column. Retrying without public links; apply the latest Supabase migrations to restore full invoicing features.',
-          error
-        );
         invoicesData = await fetchInvoiceRows(false);
       }
 
@@ -453,12 +449,9 @@ export function useInvoices(filters?: InvoiceQueryFilters) {
 
   const deleteInvoice = async (invoiceId: string) => {
     try {
-      console.log('🗑️ Attempting to delete invoice:', invoiceId);
       const user = await getSharedUser();
       if (!user) throw new Error('Not authenticated');
-      console.log('✓ User authenticated:', user.id);
 
-      console.log('Deleting invoice with params:', { id: invoiceId, user_id: user.id });
       const { data, error: deleteError } = await supabase
         .from('invoices')
         .delete()
@@ -466,14 +459,12 @@ export function useInvoices(filters?: InvoiceQueryFilters) {
         .eq('user_id', user.id)
         .select();
 
-      console.log('Delete response:', { data, error: deleteError });
 
       if (deleteError) {
         console.error('❌ Delete error:', deleteError);
         throw deleteError;
       }
 
-      console.log('✓ Invoice deleted successfully');
       // Invalidate query to refetch invoices
       await fetchInvoices();
     } catch (err) {
@@ -530,10 +521,6 @@ export function useInvoices(filters?: InvoiceQueryFilters) {
       const user = await getSharedUser();
       if (!user) throw new Error('Not authenticated');
 
-      console.log('Inserting payment record:', {
-        invoice_id: invoiceId,
-        ...paymentData
-      });
       const paymentPayload: InvoicePaymentInsert = {
         invoice_id: invoiceId,
         ...paymentData,
@@ -550,7 +537,6 @@ export function useInvoices(filters?: InvoiceQueryFilters) {
         throw new Error(paymentError.message || 'Failed to record payment');
       }
 
-      console.log('Payment recorded successfully:', data);
       await Promise.all([
         queryClient.refetchQueries({ queryKey: ['invoices', userId] }),
         queryClient.invalidateQueries({ queryKey: ['invoices_aggregated', userId] }),
@@ -566,7 +552,6 @@ export function useInvoices(filters?: InvoiceQueryFilters) {
       const user = await getSharedUser();
       if (!user) throw new Error('Not authenticated');
 
-      console.log('Deleting payment:', paymentId);
 
       const { error: deleteError } = await supabase
         .from('invoice_payments')
@@ -578,7 +563,6 @@ export function useInvoices(filters?: InvoiceQueryFilters) {
         throw new Error(deleteError.message || 'Failed to delete payment');
       }
 
-      console.log('Payment deleted successfully');
       await fetchInvoices();
     } catch (err: unknown) {
       console.error('Error deleting payment:', err);

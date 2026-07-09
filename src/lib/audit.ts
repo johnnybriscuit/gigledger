@@ -33,7 +33,6 @@ export function audit(event: string, meta?: AuditMetadata): void {
   };
 
   // Log as JSON for easy parsing
-  console.log(JSON.stringify(logEntry));
 }
 
 /**

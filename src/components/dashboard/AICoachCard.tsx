@@ -170,7 +170,6 @@ export function AICoachCard({ className, onAddGig }: AICoachCardProps) {
         lastAdviceCategory: lastCategory || undefined,
       };
 
-      console.log('[AICoachCard] Sending to AI coach:', { ytdIncome, gigCount: count, avgGigAmount, bucketsCount: requestBody.buckets.length });
 
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession();

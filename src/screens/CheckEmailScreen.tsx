@@ -21,7 +21,6 @@ export function CheckEmailScreen({ email, onVerified, onResend }: CheckEmailScre
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user?.email_confirmed_at) {
-          console.log('[CheckEmail] Email verified!');
           setPollingEnabled(false);
           onVerified?.();
         }
@@ -42,7 +41,6 @@ export function CheckEmailScreen({ email, onVerified, onResend }: CheckEmailScre
       if (error) throw error;
 
       if (session?.user?.email_confirmed_at) {
-        console.log('[CheckEmail] Email verified via manual check!');
         onVerified?.();
       } else {
         // Show a message that it's not verified yet

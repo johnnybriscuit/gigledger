@@ -103,7 +103,6 @@ export function PlaceAutocomplete({
 
       // Don't fire requests for very short queries
       if (trimmed.length < 2) {
-        console.log('[PlaceAutocomplete] Query too short, clearing predictions');
         setPredictions([]);
         setActiveIndex(-1);
         // If we're not focused anymore, make sure dropdown stays closed
@@ -121,7 +120,6 @@ export function PlaceAutocomplete({
 
       setIsLoading(true);
       setFetchError(null);
-      console.log('[PlaceAutocomplete] Fetching predictions for:', trimmed);
 
       try {
         const params = new URLSearchParams({
@@ -156,20 +154,17 @@ export function PlaceAutocomplete({
         setPredictions(newPredictions);
         setActiveIndex(newPredictions.length > 0 ? 0 : -1);
 
-        console.log('[PlaceAutocomplete] Received', newPredictions.length, 'predictions');
 
         // Only open dropdown if input is STILL focused when the async call resolves
         if (isFocusedRef.current && newPredictions.length > 0) {
           measure();
           setIsOpen(true);
-          console.log('[PlaceAutocomplete] Opening dropdown with results');
         } else if (!newPredictions.length) {
           // No predictions: keep dropdown closed unless it was already open
           setIsOpen(false);
         }
       } catch (err: any) {
         if (err.name === 'AbortError') {
-          console.log('[PlaceAutocomplete] Request aborted');
           return;
         }
 
@@ -208,7 +203,6 @@ export function PlaceAutocomplete({
 
   // Handle selection
   const handleSelect = useCallback((prediction: PlacePrediction) => {
-    console.log('[PlaceAutocomplete] Option selected:', prediction.description);
     
     // Clear blur timeout to prevent it from interfering
     if (blurTimeoutRef.current) {
@@ -227,14 +221,12 @@ export function PlaceAutocomplete({
 
   // Delayed blur handler
   const handleBlur = () => {
-    console.log('[PlaceAutocomplete] Input blur - scheduling close in 150ms');
 
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
     }
 
     blurTimeoutRef.current = setTimeout(() => {
-      console.log('[PlaceAutocomplete] Blur timeout fired - closing dropdown');
       setIsFocused(false);
       isFocusedRef.current = false;
       setIsOpen(false);
@@ -245,12 +237,10 @@ export function PlaceAutocomplete({
   // Focus handler - only open if we have predictions
   const handleFocus = () => {
     measureInputPosition();
-    console.log('[PlaceAutocomplete] Input focus, predictions:', predictions.length, 'isOpen:', isOpen);
 
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
-      console.log('[PlaceAutocomplete] Cleared blur timeout on focus');
     }
 
     setIsFocused(true);
@@ -259,7 +249,6 @@ export function PlaceAutocomplete({
     // Only reopen if dropdown is currently closed AND we have predictions
     // This prevents focus/blur loops when Modal opens
     if (predictions.length > 0 && !isOpen) {
-      console.log('[PlaceAutocomplete] Opening dropdown on focus');
       measure();
       setIsOpen(true);
     }

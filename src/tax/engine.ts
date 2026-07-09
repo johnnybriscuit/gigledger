@@ -282,15 +282,6 @@ export function calcTotalTax(
   
   // Debug logging (dev mode only)
   if (process.env.NODE_ENV === 'development') {
-    console.log('Tax debug:', {
-      netProfit: ytd.netSE,
-      seTax,
-      federalTax: federal,
-      stateTax: state,
-      localTax: local,
-      totalSetAside: total,
-      effectiveRate: (effectiveRate * 100).toFixed(2) + '%',
-    });
   }
   
   return {

@@ -11,7 +11,6 @@ export function track(eventName: string, params?: TrackingParams): void {
     ...params
   });
   
-  console.log('🔥 [Tracking]', eventName, params);
 }
 
 declare global {

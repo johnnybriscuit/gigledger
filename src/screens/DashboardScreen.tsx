@@ -53,13 +53,11 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
   
   // Mark dashboard mount
   useEffect(() => {
-    console.log('🔵 [DashboardScreen] Component mounted');
     perf.mark('dashboard-mounted');
   }, []);
 
   // Simple check: if we have profile, render dashboard
   // Don't wait for loading states - just render with what we have
-  console.log('🔵 [DashboardScreen] Profile:', !!profile, 'TaxProfile:', !!taxProfile);
 
   const isPopStateNavigation = useRef(false);
 
@@ -123,7 +121,6 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
         
         // If tour is manually requested via URL param, show it
         if (tourParam) {
-          console.log('✅ Starting tour (manual request)...');
           setTimeout(() => {
             setShowTour(true);
             window.history.replaceState({}, '', '/dashboard');
@@ -144,7 +141,6 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
           
           // If tour already completed in database, don't show
           if (settings?.dashboard_tour_completed) {
-            console.log('❌ Tour not shown - already completed in database');
             return;
           }
           
@@ -154,22 +150,14 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id);
           
-          console.log('🎯 Tour decision logic:', {
-            tourCompleted: settings?.dashboard_tour_completed,
-            gigCount,
-            shouldShowTour,
-            isNewUser: gigCount === 0
-          });
           
           // Only show tour for truly new users (no gigs) OR if explicitly requested
           if (shouldShowTour === 'true' && gigCount === 0) {
-            console.log('✅ Starting tour for new user...');
             setTimeout(() => {
               setShowTour(true);
               sessionStorage.removeItem('show_dashboard_tour');
             }, 500);
           } else {
-            console.log('❌ Tour not shown - user has existing data or tour not requested');
           }
         } catch (error) {
           console.error('Error checking tour status:', error);
@@ -388,11 +376,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
   };
 
   const handleSignOut = async () => {
-    console.log('🔴 Sign Out button clicked');
     try {
-      console.log('🔴 Calling supabase.auth.signOut()');
       await supabase.auth.signOut();
-      console.log('🔴 Sign out successful');
       // Auth state change will be handled by App.tsx
     } catch (error) {
       console.error('🔴 Error signing out:', error);

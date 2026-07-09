@@ -187,27 +187,17 @@ export function getFederalConfig(year: number): FederalConfig2025 {
 export function printFederalPreview(year: number, filingStatus: FilingStatus): void {
   const config = getFederalConfig(year);
   
-  console.log(`\n=== Federal Tax Parameters ${year} (${filingStatus}) ===`);
-  console.log(`Version: ${config.constantsVersion}`);
-  console.log(`\nStandard Deduction: $${config.standardDeduction[filingStatus].toLocaleString()}`);
   
-  console.log(`\nAdditional Standard Deduction:`);
   if (filingStatus === 'married_joint') {
-    console.log(`  Per eligible spouse: $${config.additionalStandardDeduction.marriedJointPerEligible.toLocaleString()}`);
   } else {
-    console.log(`  Per eligible person: $${config.additionalStandardDeduction.unmarriedPerEligible.toLocaleString()}`);
   }
   
-  console.log(`\nTax Brackets:`);
   config.brackets[filingStatus].forEach((bracket, i) => {
     const upToStr = bracket.upTo === null ? 'and above' : `to $${bracket.upTo.toLocaleString()}`;
     const rateStr = `${(bracket.rate * 100).toFixed(0)}%`;
-    console.log(`  ${i + 1}. ${rateStr.padStart(4)} - ${upToStr}`);
   });
   
-  console.log(`\nSources:`);
   config.sources.forEach(source => console.log(`  - ${source}`));
-  console.log('');
 }
 
 /**

@@ -22,7 +22,6 @@ export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDel
   );
   const invoiceStatus = getEffectiveInvoiceStatus(invoice);
   const handleDeletePayment = async (paymentId: string, paymentAmount: number) => {
-    console.log('Delete payment clicked:', paymentId, paymentAmount);
     
     if (!onDeletePayment) {
       console.error('onDeletePayment callback not provided');
@@ -35,7 +34,6 @@ export function InvoiceTemplate({ invoice, settings, paymentMethodDetails, onDel
     );
 
     if (confirmed) {
-      console.log('Delete confirmed, calling onDeletePayment');
       onDeletePayment(paymentId);
     }
   };

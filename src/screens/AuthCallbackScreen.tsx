@@ -48,10 +48,8 @@ export function AuthCallbackScreen({
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         if (code) {
-          console.log('[AuthCallback] Web: exchanging PKCE code for session');
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) {
-            console.warn('[AuthCallback] PKCE exchange warning (may already be exchanged):', exchangeError.message);
           }
           window.history.replaceState({}, '', window.location.pathname);
         }
@@ -61,11 +59,9 @@ export function AuthCallbackScreen({
       if (Platform.OS !== 'web') {
         // Use the URL passed from App.tsx (from deep link handler)
         const url = oauthCallbackUrl || await Linking.getInitialURL();
-        console.log('[AuthCallback] OAuth callback URL:', url);
         
         if (url) {
           const { queryParams } = Linking.parse(url);
-          console.log('[AuthCallback] Query params:', Object.keys(queryParams || {}));
           
           // Handle OAuth tokens from deep link
           const accessToken = queryParams?.access_token as string | undefined;
@@ -73,7 +69,6 @@ export function AuthCallbackScreen({
           const code = queryParams?.code as string | undefined;
           
           if (accessToken && refreshToken) {
-            console.log('[AuthCallback] Setting session from access_token + refresh_token');
             const { error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
@@ -83,14 +78,12 @@ export function AuthCallbackScreen({
               throw sessionError;
             }
           } else if (code) {
-            console.log('[AuthCallback] Exchanging code for session');
             const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
             if (exchangeError) {
               console.error('[AuthCallback] Failed to exchange code:', exchangeError);
               throw exchangeError;
             }
           } else {
-            console.log('[AuthCallback] No OAuth params found in deep link, checking existing session');
           }
         }
       }
@@ -125,7 +118,6 @@ export function AuthCallbackScreen({
         return;
       }
 
-      console.log('[AuthCallback] Session established for:', session.user.email);
       const pendingSignupMethod = consumePendingSignup();
       const isSignupCompletion = !!pendingSignupMethod;
 
@@ -134,7 +126,6 @@ export function AuthCallbackScreen({
                       session.user.identities?.some(id => id.provider === 'google');
       
       if (isOAuth) {
-        console.log('[AuthCallback] OAuth (Google) login detected');
         await logSecurityEvent('oauth_google_success', { 
           email: session.user.email,
           provider: 'google',
@@ -155,11 +146,9 @@ export function AuthCallbackScreen({
       }
 
       const verifiedFactor = await getVerifiedTOTPFactor();
-      console.log('[AuthCallback] MFA check - has verified factor:', !!verifiedFactor);
 
       if (!verifiedFactor) {
         // First time login - redirect to MFA setup
-        console.log('[AuthCallback] Redirecting to MFA setup');
         setLoading(false);
         onNavigateToMFASetup?.();
       } else {
@@ -169,13 +158,11 @@ export function AuthCallbackScreen({
           : false;
 
         if (isTrustedDevice) {
-          console.log('[AuthCallback] Trusted device verified, redirecting to dashboard');
           setLoading(false);
           onNavigateToDashboard?.();
           return;
         }
 
-        console.log('[AuthCallback] Redirecting to MFA verification');
         setLoading(false);
         onNavigateToMFAVerify?.(verifiedFactor);
       }

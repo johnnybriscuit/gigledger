@@ -51,13 +51,6 @@ export async function getProfile(supabase: SupabaseClient, userId: string) {
       return { data: null, error };
     }
     
-    console.log('[getProfile] Data from database:', {
-      home_address: data?.home_address,
-      home_address_full: data?.home_address_full,
-      home_address_place_id: data?.home_address_place_id,
-      home_address_lat: data?.home_address_lat,
-      home_address_lng: data?.home_address_lng,
-    });
     
     return { data, error: null };
   } catch (err) {
@@ -83,8 +76,6 @@ export async function updateProfile(
   }
 ) {
   try {
-    console.log('[updateProfile] Updating profile for user:', userId);
-    console.log('[updateProfile] Updates:', updates);
     
     const { data, error } = await supabase
       .from('profiles')
@@ -98,7 +89,6 @@ export async function updateProfile(
       return { data: null, error };
     }
     
-    console.log('[updateProfile] Success! Data returned:', data);
     return { data, error: null };
   } catch (err) {
     console.error('[updateProfile] Exception:', err);

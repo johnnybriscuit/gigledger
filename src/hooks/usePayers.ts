@@ -94,10 +94,6 @@ export function useCreatePayer() {
         .single();
 
       if (error && isMissingOnConflictConstraint(error)) {
-        console.warn(
-          '[Payers] Missing payers(user_id, normalized_name) unique constraint. Retrying with plain insert.',
-          error
-        );
 
         ({ data, error } = await supabase
           .from('payers')
@@ -157,7 +153,6 @@ export function useDeletePayer() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      console.log('Attempting to delete payer:', id);
       
       const { data, error } = await supabase
         .from('payers')
@@ -165,7 +160,6 @@ export function useDeletePayer() {
         .eq('id', id)
         .select();
 
-      console.log('Delete response:', { data, error });
 
       if (error) {
         console.error('Delete error:', error);
@@ -175,7 +169,6 @@ export function useDeletePayer() {
       return data;
     },
     onSuccess: async () => {
-      console.log('Delete successful, invalidating cache');
       const userId = getCachedUserId();
       if (userId) {
         queryClient.invalidateQueries({ queryKey: queryKeys.payers(userId) });

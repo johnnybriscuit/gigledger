@@ -31,7 +31,6 @@ export function ResetPasswordScreen({ onSuccess, onBack }: ResetPasswordScreenPr
   useEffect(() => {
     const verifySession = async () => {
       try {
-        console.debug('[ResetPassword] Verifying recovery session');
         
         // Get current session (Supabase automatically handles recovery tokens from URL)
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -56,7 +55,6 @@ export function ResetPasswordScreen({ onSuccess, onBack }: ResetPasswordScreenPr
           return;
         }
 
-        console.log('[ResetPassword] Valid recovery session found');
         setSessionValid(true);
       } catch (error) {
         console.error('[ResetPassword] Verification error:', error);
@@ -118,7 +116,6 @@ export function ResetPasswordScreen({ onSuccess, onBack }: ResetPasswordScreenPr
     setPasswordError('');
     setConfirmError('');
 
-    console.debug('[ResetPassword] Updating password');
 
     try {
       // Update user password
@@ -138,7 +135,6 @@ export function ResetPasswordScreen({ onSuccess, onBack }: ResetPasswordScreenPr
         return;
       }
 
-      console.log('[ResetPassword] Password updated successfully');
 
       // Sign out to force re-authentication
       await supabase.auth.signOut();

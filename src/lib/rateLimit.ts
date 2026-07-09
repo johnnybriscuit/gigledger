@@ -214,12 +214,4 @@ export function logRateLimitEvent(
   const ipHash = hashValue(ip);
   const emailHash = hashValue(email.toLowerCase());
 
-  console.log(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    event: `ratelimit_${event}`,
-    action,
-    ipHash,
-    emailHash,
-    remaining,
-  }));
 }

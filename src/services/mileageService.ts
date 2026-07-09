@@ -39,7 +39,6 @@ export async function calculateDrivingDistance(
       })();
   
   try {
-    console.log('Calculating distance from:', origin, 'to:', destination);
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -64,7 +63,6 @@ export async function calculateDrivingDistance(
     }
     
     const data = await response.json();
-    console.log('Distance API response:', data);
     
     if (data.status === 'OK' && data.rows[0]?.elements[0]?.status === 'OK') {
       const element = data.rows[0].elements[0];

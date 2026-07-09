@@ -117,12 +117,10 @@ export function AuthScreen({
 
       setServerApiAvailable(true);
       setCsrfToken(data.csrfToken);
-      console.debug('[Auth] CSRF token fetched:', data.csrfToken.substring(0, 16) + '...');
       return data.csrfToken;
     } catch (error) {
       if (isLocalWebDev) {
         setServerApiAvailable(false);
-        console.warn('[Auth] Server API unavailable on local web; using direct Supabase auth flows.');
         return null;
       }
 
@@ -229,7 +227,6 @@ export function AuthScreen({
       // Ensure we have a CSRF token before proceeding
       let tokenToUse = csrfToken;
       if (serverApiAvailable && !tokenToUse) {
-        console.log('[Auth] No CSRF token found, fetching now...');
         tokenToUse = await fetchCsrfToken();
       }
 
@@ -255,7 +252,6 @@ export function AuthScreen({
 
         setEmailSent(true);
         setCooldown(60);
-        console.log('[Auth] Magic link sent to:', email);
         return;
       }
 
@@ -336,7 +332,6 @@ export function AuthScreen({
       setEmailSent(true);
       setCooldown(60); // 60 second cooldown
 
-      console.log('[Auth] Magic link sent to:', email);
     } catch (error: any) {
       console.error('[Auth] Magic link error:', error);
       setEmailError('Something went wrong. Please try again.');
@@ -357,14 +352,12 @@ export function AuthScreen({
     setEmailError('');
     setPasswordError('');
 
-    console.debug('[Auth] Starting password flow', { mode, email });
 
     try {
       if (mode === 'signup') {
         rememberPendingSignup('password');
         let tokenToUse = csrfToken;
         if (serverApiAvailable && !tokenToUse) {
-          console.log('[Auth] No CSRF token found for password signup, fetching now...');
           tokenToUse = await fetchCsrfToken();
         }
 
@@ -379,17 +372,12 @@ export function AuthScreen({
 
           if (error) throw error;
 
-          console.log('[Auth] Password signup successful', {
-            emailConfirmationRequired: !data.session,
-            localFallback: true,
-          });
           await logSecurityEvent('password_signup', { email });
           setEmailSent(true);
           return;
         }
 
         // Call our rate-limited API endpoint
-        console.debug('[Auth] Calling /api/auth/signup-password');
         const response = await fetch('/api/auth/signup-password', {
           method: 'POST',
           headers: {
@@ -419,10 +407,6 @@ export function AuthScreen({
 
             if (error) throw error;
 
-            console.log('[Auth] Password signup successful', {
-              emailConfirmationRequired: !fallbackData.session,
-              localFallback: true,
-            });
             await logSecurityEvent('password_signup', { email });
             setEmailSent(true);
             return;
@@ -432,7 +416,6 @@ export function AuthScreen({
           return;
         }
 
-        console.debug('[Auth] Signup response', { status: response.status, data });
 
         if (!response.ok) {
           // Handle specific error codes
@@ -440,7 +423,6 @@ export function AuthScreen({
             console.error('[Auth] CSRF validation failed');
             // Refetch CSRF token
             const refreshedToken = await fetchCsrfToken();
-            console.debug('[Auth] CSRF token refetched:', refreshedToken?.substring(0, 16) + '...');
             setEmailError('Security check failed. Please try again.');
             setTimeout(() => emailInputRef.current?.focus(), 100);
           } else if (data.code === 'RATE_LIMIT_EXCEEDED') {
@@ -477,13 +459,11 @@ export function AuthScreen({
         }
 
         // Success - always navigate to Check Email screen for signups
-        console.log('[Auth] Password signup successful', { emailConfirmationRequired: data.emailConfirmationRequired });
         await logSecurityEvent('password_signup', { email });
 
         // Always show "Check your email" screen for signups
         // Even if emailConfirmationRequired is false, we want users to verify their email
         setEmailSent(true);
-        console.log('[Auth] Showing Check Email screen - user must verify email before signing in');
       } else {
         clearPendingSignup();
         // Sign in with password
@@ -501,7 +481,6 @@ export function AuthScreen({
         trackLogin('password');
         track('login', { method: 'password' });
 
-        console.log('[Auth] Password sign-in successful');
       }
     } catch (error: any) {
       console.error('[Auth] Password error:', error);
@@ -532,7 +511,6 @@ export function AuthScreen({
     if (isSiteUrlMissing) return;
 
     setLoading(true);
-    console.debug('[Auth] Starting Google OAuth flow');
 
     try {
       // Log OAuth start
@@ -548,8 +526,6 @@ export function AuthScreen({
         ? `${getBaseUrl()}/auth/callback`
         : Linking.createURL('auth/callback');
 
-      console.debug('[Auth] Platform:', Platform.OS);
-      console.debug('[Auth] Redirect URL:', redirectUrl);
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

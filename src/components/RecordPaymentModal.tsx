@@ -64,7 +64,6 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
   };
 
   const handleSave = async () => {
-    console.log('Recording payment with data:', formData);
     
     if (!formData.payment_method) {
       Alert.alert('Validation Error', 'Please select a payment method (Cash, Check, etc.)');
@@ -96,13 +95,6 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
 
     try {
       setSaving(true);
-      console.log('Recording payment with data:', {
-        payment_date: formData.payment_date,
-        amount: roundCurrencyAmount(amount),
-        payment_method: formData.payment_method,
-        reference_number: formData.reference_number || undefined,
-        notes: formData.notes || undefined
-      });
       
       await recordPayment(invoice.id, {
         payment_date: formData.payment_date,
@@ -193,9 +185,7 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
                     formData.payment_method === method && styles.paymentMethodButtonActive
                   ]}
                   onPress={() => {
-                    console.log('Payment method button clicked:', method);
                     const newFormData = { ...formData, payment_method: method };
-                    console.log('New form data:', newFormData);
                     setFormData(newFormData);
                   }}
                 >
@@ -205,7 +195,6 @@ export function RecordPaymentModal({ invoice, visible, onClose, onSuccess }: Rec
                       formData.payment_method === method && styles.paymentMethodButtonTextActive
                     ]}
                     onPress={() => {
-                      console.log('Text clicked, selecting:', method);
                       setFormData({ ...formData, payment_method: method });
                     }}
                   >

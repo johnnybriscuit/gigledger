@@ -46,7 +46,6 @@ export function VenuePlacesInput({
                  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const handlePlaceSelect = (place: any) => {
-    console.log('[VenuePlacesInput] Place selected:', place.structuredFormat?.mainText?.text);
     
     // Extract description from the place object
     // The library returns place.text.text (full address) or place.structuredFormat.mainText.text (venue name only)

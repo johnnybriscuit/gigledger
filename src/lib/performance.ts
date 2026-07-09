@@ -29,7 +29,6 @@ class PerformanceTracker {
     this.marks.push({ name, timestamp });
 
     if (__DEV__) {
-      console.log(`[Perf] ${name}: ${(timestamp - this.startTime).toFixed(2)}ms`);
     }
   }
 
@@ -44,7 +43,6 @@ class PerformanceTracker {
     const duration = end.timestamp - start.timestamp;
     
     if (__DEV__) {
-      console.log(`[Perf] ${startMark} → ${endMark}: ${duration.toFixed(2)}ms`);
     }
 
     return duration;
@@ -68,7 +66,6 @@ class PerformanceTracker {
 
     if (__DEV__) {
       console.table(report.marks);
-      console.log('[Perf] Measurements:', report.measurements);
     }
 
     return report;

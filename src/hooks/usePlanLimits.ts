@@ -69,7 +69,6 @@ export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): P
       if (user?.id) {
         setUserId(user.id);
       } else {
-        console.warn('[usePlanLimits] User ID is undefined - cannot fetch subscription');
       }
     });
   }, []);
@@ -80,7 +79,6 @@ export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): P
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.warn('[usePlanLimits] No authenticated user found');
         return null;
       }
 
@@ -93,7 +91,6 @@ export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): P
       if (error) {
         // If no subscription exists (PGRST116 = no rows), user is on free plan
         if (error.code === 'PGRST116') {
-          console.log('[usePlanLimits] No subscription found - defaulting to free plan');
           return {
             tier: 'free' as SubscriptionTier,
             status: 'active' as SubscriptionStatus,
@@ -104,10 +101,6 @@ export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): P
         throw error;
       }
 
-      console.log('[usePlanLimits] Subscription found:', {
-        tier: data.tier,
-        status: data.status,
-      });
       
       return data;
     },
@@ -137,22 +130,6 @@ export function usePlanLimits(gigCount: number = 0, expenseCount: number = 0): P
   const expensesRemaining = Math.max(0, maxExpenses - expenseCount);
 
   // Debug logging (matches the format from GigsScreen)
-  console.log('=== Bozzy Plan Debug ===');
-  console.log('User ID:', userId);
-  console.log('Plan from DB:', subscription?.tier);
-  console.log('Status from DB:', subscription?.status);
-  console.log('Is beta tester?:', isBetaTester);
-  console.log('Resolved userPlan:', tier);
-  console.log('Is free plan?:', isFreePlan);
-  console.log('Is paid plan?:', isPaidPlan);
-  console.log('Effectively paid (inc. beta)?:', effectivelyPaid);
-  console.log('Gig count:', gigCount);
-  console.log('Max gigs:', maxGigs);
-  console.log('Has reached gig limit?:', hasReachedGigLimit);
-  console.log('Expense count:', expenseCount);
-  console.log('Max expenses:', maxExpenses);
-  console.log('Has reached expense limit?:', hasReachedExpenseLimit);
-  console.log('===========================');
 
   return {
     // Subscription info

@@ -69,7 +69,6 @@ export function mapUiToDbCategory(uiCategory: string): DbExpenseCategory {
   const dbCategory = mapping[uiCategory];
   
   if (!dbCategory) {
-    console.warn(`Unknown category "${uiCategory}", defaulting to "Other"`);
     return 'Other';
   }
 
@@ -87,7 +86,6 @@ export function mapDbToUiCategory(dbCategory: string): UiExpenseCategory {
     return dbCategory as UiExpenseCategory;
   }
 
-  console.warn(`Unknown database category "${dbCategory}", defaulting to "Other"`);
   return 'Other';
 }
 

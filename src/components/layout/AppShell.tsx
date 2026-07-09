@@ -176,21 +176,9 @@ export function AppShell({
   // Runtime assertion: mobile web with closed hamburger should have NO sidebar in DOM
   useEffect(() => {
     if (__DEV__ && isMobileWeb && !mobileMenuOpen) {
-      console.log('✅ Mobile Web Layout (Hamburger CLOSED):', {
-        width,
-        isMobileWeb,
-        mobileMenuOpen,
-        sidebarInDOM: false,
-        expectedMarginLeft: 0,
-      });
     }
     
     if (__DEV__ && isMobileWeb && mobileMenuOpen) {
-      console.log('📱 Mobile Web Layout (Hamburger OPEN):', {
-        width,
-        mobileMenuOpen,
-        sidebarRenderedAsOverlay: true,
-      });
     }
   }, [isMobileWeb, width, mobileMenuOpen]);
 
@@ -293,8 +281,6 @@ export function AppShell({
       ]}
       onLayout={(e) => {
         if (__DEV__ && isMobileWeb) {
-          console.log('📐 [AppShell] Root container width:', e.nativeEvent.layout.width);
-          console.log('📐 [AppShell] flexDirection:', isMobileWeb ? 'column' : 'row');
         }
       }}
     >
@@ -509,7 +495,6 @@ export function AppShell({
         ]}
         onLayout={(e) => {
           if (__DEV__ && isMobileWeb) {
-            console.log('📐 [AppShell] Main container width:', e.nativeEvent.layout.width);
           }
         }}
       >
@@ -563,7 +548,6 @@ export function AppShell({
             showsVerticalScrollIndicator={false}
             onLayout={(e) => {
               if (__DEV__ && isMobileWeb) {
-                console.log('📐 [AppShell] ScrollView width:', e.nativeEvent.layout.width);
               }
             }}
           >
@@ -571,7 +555,6 @@ export function AppShell({
               style={[styles.contentInner, isMobile && styles.contentInnerMobile]}
               onLayout={(e) => {
                 if (__DEV__ && isMobileWeb) {
-                  console.log('📐 [AppShell] Content inner width:', e.nativeEvent.layout.width);
                 }
               }}
             >

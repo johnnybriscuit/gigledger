@@ -109,7 +109,6 @@ export function generateICSFile(event: CalendarEventData): string {
  */
 export function downloadICSFile(icsContent: string, filename: string): void {
   if (Platform.OS !== 'web') {
-    console.warn('downloadICSFile is only supported on web');
     return;
   }
   

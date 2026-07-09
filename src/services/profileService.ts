@@ -31,12 +31,10 @@ export async function ensureUserProfile(userId: string, email: string) {
 
     // Profile already exists
     if (existing) {
-      console.log('[ensureUserProfile] Profile already exists for user:', userId);
       return { success: true, created: false };
     }
 
     // Create new profile
-    console.log('[ensureUserProfile] Creating new profile for user:', userId);
     const { error: insertError } = await supabase
       .from('profiles')
       .insert({
@@ -51,7 +49,6 @@ export async function ensureUserProfile(userId: string, email: string) {
     if (insertError) {
       // Check if it's a duplicate key error (race condition)
       if (insertError.code === '23505') {
-        console.log('[ensureUserProfile] Profile was created by another process (race condition)');
         return { success: true, created: false };
       }
       
@@ -67,7 +64,6 @@ export async function ensureUserProfile(userId: string, email: string) {
       throw insertError;
     }
 
-    console.log('[ensureUserProfile] Profile created successfully');
     return { success: true, created: true };
   } catch (error: any) {
     console.error('[ensureUserProfile] Unexpected error:', error);
@@ -102,12 +98,10 @@ export async function ensureUserSettings(userId: string) {
 
     // Settings already exist
     if (existing) {
-      console.log('[ensureUserSettings] Settings already exist for user:', userId);
       return { success: true, created: false };
     }
 
     // Create new settings
-    console.log('[ensureUserSettings] Creating new settings for user:', userId);
     const { error: insertError } = await supabase
       .from('user_settings')
       .insert({
@@ -119,7 +113,6 @@ export async function ensureUserSettings(userId: string) {
     if (insertError) {
       // Check if it's a duplicate key error (race condition)
       if (insertError.code === '23505') {
-        console.log('[ensureUserSettings] Settings were created by another process (race condition)');
         return { success: true, created: false };
       }
       
@@ -135,7 +128,6 @@ export async function ensureUserSettings(userId: string) {
       throw insertError;
     }
 
-    console.log('[ensureUserSettings] Settings created successfully');
     return { success: true, created: true };
   } catch (error) {
     console.error('[ensureUserSettings] Unexpected error:', error);
@@ -148,7 +140,6 @@ export async function ensureUserSettings(userId: string) {
  * Ensures profile and settings exist.
  */
 export async function initializeUserData(userId: string, email: string) {
-  console.log('[initializeUserData] Initializing data for user:', userId);
   
   const profileResult = await ensureUserProfile(userId, email);
   const settingsResult = await ensureUserSettings(userId);

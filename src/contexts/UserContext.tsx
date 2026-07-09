@@ -44,13 +44,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const { data: user, isLoading: userLoading, error: userError } = useQuery({
     queryKey: ['user'],
     queryFn: async () => {
-      console.log('🔵 [UserContext] Fetching user...');
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) {
         console.error('🔴 [UserContext] Error fetching user:', error);
         throw error;
       }
-      console.log('✅ [UserContext] User fetched:', !!user);
       return user;
     },
     retry: 1,
@@ -105,23 +103,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Log loading state for debugging
   if (isLoading || loadingTimeout) {
-    console.log('🔵 [UserContext] Loading state:', {
-      userLoading,
-      profileLoading,
-      taxProfileLoading,
-      userId: !!userId,
-      hasUser: !!user,
-      hasProfile: !!profile,
-      hasTaxProfile: !!taxProfile,
-      isLoading,
-      isReady,
-      loadingTimeout,
-      errors: {
-        userError: userError?.message,
-        profileError: profileError?.message,
-        taxProfileError: taxProfileError?.message,
-      },
-    });
   }
 
   // If timeout occurred, log error and continue anyway

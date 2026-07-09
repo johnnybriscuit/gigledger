@@ -41,7 +41,6 @@ export async function getStateRate(
       .single();
     
     if (error) {
-      console.warn(`No tax rate found for ${stateCode} in ${year}:`, error.message);
       return null;
     }
     
@@ -160,7 +159,6 @@ export async function preloadCommonStateRates(
       .eq('effective_year', year);
     
     if (error) {
-      console.warn('Error preloading state rates:', error);
       return;
     }
     
@@ -170,7 +168,6 @@ export async function preloadCommonStateRates(
       stateRateCache.set(cacheKey, rate as StateRate);
     });
     
-    console.log(`Preloaded ${data?.length || 0} state tax rates`);
   } catch (err) {
     console.error('Error in preloadCommonStateRates:', err);
   }

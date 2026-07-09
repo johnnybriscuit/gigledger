@@ -113,7 +113,6 @@ export function AddressPlacesInput({
 
         if (!details || !details.location) {
           if (isDev) {
-            console.warn('[Places] coords FAILED', { place_id: placeId, error: 'No location returned from resolver' });
           }
           onCoordsFailed?.();
           return;
@@ -124,11 +123,6 @@ export function AddressPlacesInput({
             typeof details.location.lng === 'number') {
           
           if (isDev) {
-            console.debug('[Places] coords resolved', { 
-              place_id: placeId, 
-              lat: details.location.lat,
-              lng: details.location.lng
-            });
           }
           
           // Call onSelect again with coordinates
@@ -143,20 +137,11 @@ export function AddressPlacesInput({
         } else {
           // Coordinates missing or invalid
           if (isDev) {
-            console.warn('[Places] coords FAILED', { 
-              place_id: placeId, 
-              error: 'Missing or invalid lat/lng in response',
-              details
-            });
           }
           onCoordsFailed?.();
         }
       } catch (error) {
         if (isDev) {
-          console.warn('[Places] coords FAILED', { 
-            place_id: placeId, 
-            error: error instanceof Error ? error.message : 'Unknown error' 
-          });
         }
         onCoordsFailed?.();
       }

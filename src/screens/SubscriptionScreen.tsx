@@ -41,7 +41,6 @@ const STRIPE_YEARLY_PRICE_ID =
 
 const STRIPE_CONFIGURED = !!(STRIPE_MONTHLY_PRICE_ID && STRIPE_YEARLY_PRICE_ID);
 if (!STRIPE_CONFIGURED) {
-  console.warn('[Subscription] Stripe Price IDs not configured. Set EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID_PROD and EXPO_PUBLIC_STRIPE_YEARLY_PRICE_ID_PROD.');
 }
 
 const MONTHLY_PRICE = 7.99;
@@ -78,7 +77,6 @@ export function SubscriptionScreen() {
   useEffect(() => {
     if (Platform.OS === 'web') {
       const handleFocus = () => {
-        console.log('[SubscriptionScreen] Window focused - refreshing subscription data');
         refetch();
         // Also invalidate entitlements to ensure fresh plan data
         queryClient.invalidateQueries({ queryKey: ['entitlements'] });
@@ -92,7 +90,6 @@ export function SubscriptionScreen() {
 
   const handleSubscribe = async (plan: 'monthly' | 'yearly') => {
     try {
-      console.log('[SubscriptionScreen] Starting checkout session creation...');
       const priceId = plan === 'monthly' ? STRIPE_MONTHLY_PRICE_ID : STRIPE_YEARLY_PRICE_ID;
       
       const timeoutPromise = new Promise((_, reject) => 
@@ -104,7 +101,6 @@ export function SubscriptionScreen() {
         timeoutPromise
       ]) as { url: string };
       
-      console.log('[SubscriptionScreen] Checkout session created, opening URL:', result.url);
       if (result.url) {
         await Linking.openURL(result.url);
       }
@@ -116,7 +112,6 @@ export function SubscriptionScreen() {
 
   const handleManageSubscription = async () => {
     try {
-      console.log('[SubscriptionScreen] Starting portal session creation...');
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Request timed out after 10 seconds')), 10000)
       );
@@ -126,7 +121,6 @@ export function SubscriptionScreen() {
         timeoutPromise
       ]) as { url: string };
       
-      console.log('[SubscriptionScreen] Portal session created, opening URL:', result.url);
       if (result.url) {
         await Linking.openURL(result.url);
       }

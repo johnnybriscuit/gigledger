@@ -30,17 +30,14 @@ const PENDING_SIGNUP_MAX_AGE_MS = 24 * 60 * 60 * 1000;
  * @param params - Event parameters (must not contain PII)
  */
 export function track(eventName: string, params?: Record<string, any>): void {
-  console.log('🔐 [Analytics] track called:', { eventName, params });
   
   // Only run in browser
   if (typeof window === 'undefined') {
-    console.log('🔐 [Analytics] Not in browser - skipping track');
     return;
   }
 
   // Initialize dataLayer if it doesn't exist
   window.dataLayer = window.dataLayer || [];
-  console.log('🔐 [Analytics] dataLayer initialized, pushing event');
 
   // Push event to dataLayer
   const eventData = {
@@ -49,11 +46,9 @@ export function track(eventName: string, params?: Record<string, any>): void {
   };
   
   window.dataLayer.push(eventData);
-  console.log('🔐 [Analytics] Event pushed to dataLayer:', eventData);
 
   // Log in development for debugging
   if (__DEV__) {
-    console.log('[Analytics]', eventName, params);
   }
 }
 
@@ -72,11 +67,9 @@ function isGTMReady(): boolean {
  * Waits up to 2 seconds for GTM to load
  */
 export function trackWithGTMCheck(eventName: string, params?: Record<string, any>): void {
-  console.log('🔐 [Analytics] trackWithGTMCheck called:', { eventName, params });
   
   // Only run in browser
   if (typeof window === 'undefined') {
-    console.log('🔐 [Analytics] Not in browser - skipping');
     return;
   }
 
@@ -97,7 +90,6 @@ export function trackWithGTMCheck(eventName: string, params?: Record<string, any
       track(eventName, params);
     } else if (attempts >= maxAttempts) {
       clearInterval(checkInterval);
-      console.warn('[Analytics] GTM not ready after 2 seconds, event not tracked:', eventName);
     }
   }, 100);
 }
@@ -184,8 +176,6 @@ export function trackSignUp(method: AuthMethod): void {
 }
 
 export function trackLogin(method: AuthMethod): void {
-  console.log('🔐 [Analytics] trackLogin called with method:', method);
-  console.log('🔐 [Analytics] window.dataLayer:', window.dataLayer);
   trackWithGTMCheck('login', { method });
 }
 
