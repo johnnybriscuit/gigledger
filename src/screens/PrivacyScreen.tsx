@@ -28,8 +28,8 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
 
         {/* Header */}
         <Text style={styles.mainTitle}>Bozzy Privacy Policy</Text>
-        <Text style={styles.effectiveDate}>Effective Date: Upon Acceptance</Text>
-        <Text style={styles.effectiveDate}>Last Updated: January 9, 2026</Text>
+        <Text style={styles.effectiveDate}>Effective Date: January 9, 2026</Text>
+        <Text style={styles.effectiveDate}>Last Updated: July 9, 2026</Text>
 
         {/* Introduction */}
         <Text style={styles.paragraph}>
@@ -178,7 +178,10 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
             <Text style={styles.bold}>Authentication / Infrastructure Providers</Text> – e.g., identity, storage, or hosting services that support secure login and data storage (such as Supabase or similar providers).
           </Text>
           <Text style={styles.paragraph}>
-            <Text style={styles.bold}>Payment Processors (if/when applicable)</Text> – Limited billing information and status (we do not store full payment card numbers on our own servers).
+            <Text style={styles.bold}>Payment Processing</Text> – We use Stripe to process subscription payments. Stripe receives your payment information directly and we receive only a token and subscription status. Stripe's privacy policy is available at stripe.com/privacy.
+          </Text>
+          <Text style={styles.paragraph}>
+            <Text style={styles.bold}>AI Features</Text> – Our Financial Coach feature uses Anthropic's Claude AI to generate personalized financial tips. To do this, anonymized financial summaries (income totals, bucket percentages, gig counts) are sent to Anthropic's API. No personally identifiable information such as your name or email is included in these requests. Anthropic's privacy policy is available at anthropic.com/privacy.
           </Text>
           <Text style={styles.paragraph}>
             <Text style={styles.bold}>Other Integrations</Text> – If you choose to connect third-party tools in the future (e.g., calendar, accounting, or tax software), we'll receive the data you authorize.
@@ -413,7 +416,7 @@ export function PrivacyScreen({ onNavigateBack }: PrivacyScreenProps) {
             <Text style={styles.emailLink}>Email: support@bozzygigs.com</Text>
           </TouchableOpacity>
           <Text style={styles.paragraph}>
-            (Additional contact details can be added once finalized.)
+            Website: bozzygigs.com{'\n'}Nashville, Tennessee, United States
           </Text>
         </View>
 
