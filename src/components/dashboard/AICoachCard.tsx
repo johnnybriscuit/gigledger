@@ -69,6 +69,7 @@ export function AICoachCard({ className, onAddGig }: AICoachCardProps) {
   const paidGigs = useMemo(() => (gigs || []).filter(g => g.paid), [gigs]);
   // undefined = still loading; number = loaded (even if 0)
   const gigCount = gigs !== undefined ? paidGigs.length : undefined;
+  const allGigCount = gigs !== undefined ? gigs.length : undefined;
 
   const [tip, setTip] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -234,8 +235,19 @@ export function AICoachCard({ className, onAddGig }: AICoachCardProps) {
     return null;
   }
 
-  // Zero-gig state: gigs loaded but user has none — show static welcome message
-  if (gigs !== undefined && gigCount === 0) {
+  const zeroStateMessage = (() => {
+    if (gigs === undefined || allGigCount === undefined) return null;
+    if (allGigCount === 0) {
+      return "Welcome to Bozzy! The first thing to do is log a gig. Once you add your first paid gig, I'll give you personalized advice on taxes, savings goals, and maximizing your income.";
+    }
+    if (gigCount === 0) {
+      return "Great — your first gig is logged! Mark it as paid once you receive payment and I'll show you exactly where your money goes across your tax, savings, and spending buckets.";
+    }
+    return null;
+  })();
+
+  // Zero or unpaid-only state: show static contextual message
+  if (zeroStateMessage !== null) {
     return (
       <View
         style={[
@@ -258,10 +270,10 @@ export function AICoachCard({ className, onAddGig }: AICoachCardProps) {
           <View style={[styles.expandedDivider, { backgroundColor: colors.border.muted }]} />
           <View style={styles.tipWrapper}>
             <Text style={{ color: colors.text.DEFAULT, fontSize: 15, lineHeight: 23 }}>
-              {"Welcome to Bozzy! The first thing to do is log a gig. Once you add your first paid gig, I'll give you personalized advice on taxes, savings goals, and maximizing your income."}
+              {zeroStateMessage}
             </Text>
           </View>
-          {onAddGig && (
+          {allGigCount === 0 && onAddGig && (
             <TouchableOpacity
               onPress={onAddGig}
               style={styles.addGigButton}

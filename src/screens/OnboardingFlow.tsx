@@ -19,6 +19,7 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState(1);
   const [payerId, setPayerId] = useState<string | null>(null);
+  const [payerName, setPayerName] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { data: taxProfile } = useTaxProfile();
 
@@ -66,6 +67,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     console.log('[OnboardingFlow] handleComplete — gigCreated:', gigCreated);
 
     if (Platform.OS === 'web') {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('bozzy_coach_tip')) localStorage.removeItem(key);
+      });
       sessionStorage.setItem('show_dashboard_tour', 'true');
       sessionStorage.setItem('onboarding_just_completed', 'true');
       sessionStorage.setItem('onboarding_v2_completed', 'true');
@@ -130,7 +134,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   if (step === 5) {
     return (
       <OnboardingAddPayer
-        onNext={(id) => { setPayerId(id); setStep(6); }}
+        onNext={(id, name) => { setPayerId(id); setPayerName(name); setStep(6); }}
         onSkip={() => void handleComplete(false)}
         onBack={() => setStep(4)}
       />
@@ -141,6 +145,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   return (
     <OnboardingAddGig
       payerId={payerId}
+      payerName={payerName}
       onComplete={() => void handleComplete(true)}
       onSkip={() => void handleComplete(false)}
       onBack={() => setStep(5)}

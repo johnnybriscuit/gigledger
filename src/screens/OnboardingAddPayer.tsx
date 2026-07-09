@@ -14,7 +14,7 @@ import { useResponsiveButtonText, BUTTON_TEXT } from '../hooks/useResponsiveButt
 import { PAYER_TYPES, type PayerType } from '../constants/payerTypes';
 
 interface OnboardingAddPayerProps {
-  onNext: (payerId: string) => void;
+  onNext: (payerId: string, payerName: string) => void;
   onSkip: () => void;
   onBack: () => void;
 }
@@ -39,7 +39,7 @@ export function OnboardingAddPayer({ onNext, onSkip, onBack }: OnboardingAddPaye
       });
 
       if (result) {
-        onNext(result.id);
+        onNext(result.id, name.trim());
       }
     } catch (error: any) {
       console.error('[OnboardingAddPayer] Error creating payer:', error);

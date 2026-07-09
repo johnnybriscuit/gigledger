@@ -249,8 +249,8 @@ function AppContent() {
         return;
       }
 
-      // Auto-route to dashboard if user just logged in and is still on landing/auth route
-      if (currentRoute === 'landing' || currentRoute === 'auth') {
+      // Auto-route to dashboard once onboarding, landing, or auth are done
+      if (currentRoute === 'landing' || currentRoute === 'auth' || currentRoute === 'onboarding') {
         console.log('[Routing] User authenticated, redirecting to dashboard');
         setCurrentRoute('dashboard');
       }
@@ -611,8 +611,8 @@ function AppContent() {
         <UserProvider>
           <OnboardingFlow
             onComplete={() => {
-              // Re-bootstrap so needsOnboarding is re-evaluated with fresh profile data
-              bootstrap.retry();
+              setCurrentRoute('dashboard'); // navigate away immediately
+              bootstrap.retry();            // re-verify in background
             }}
           />
         </UserProvider>
@@ -626,7 +626,7 @@ function AppContent() {
       <>
         <StatusBar style={statusBarStyle} />
         <UserProvider>
-          <BucketSetupScreen onComplete={() => setCurrentRoute('dashboard')} />
+          <BucketSetupScreen editMode={true} onComplete={() => setCurrentRoute('dashboard')} />
         </UserProvider>
       </>
     );

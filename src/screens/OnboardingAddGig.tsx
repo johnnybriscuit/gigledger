@@ -40,12 +40,13 @@ const US_STATES = [
 
 interface OnboardingAddGigProps {
   payerId: string | null;
+  payerName?: string | null;
   onComplete: () => void;
   onSkip: () => void;
   onBack: () => void;
 }
 
-export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: OnboardingAddGigProps) {
+export function OnboardingAddGig({ payerId, payerName, onComplete, onSkip, onBack }: OnboardingAddGigProps) {
   const buttonText = useResponsiveButtonText(BUTTON_TEXT.SAVE_GIG_DASHBOARD);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -57,6 +58,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
   const [fees, setFees] = useState('');
   const [otherIncome, setOtherIncome] = useState('');
   const [taxesWithheld, setTaxesWithheld] = useState(false);
+  const [isPaid, setIsPaid] = useState(true);
   const createGig = useCreateGig();
   const queryClient = useQueryClient();
 
@@ -131,7 +133,7 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
         per_diem: 0,
         other_income: parseFloat(otherIncome) || 0,
         net_amount: netBeforeTax,
-        paid: false,
+        paid: isPaid,
         taxes_withheld: taxesWithheld,
       };
       
@@ -220,6 +222,15 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
         </View>
 
         <View style={styles.form}>
+          {payerName && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Payer</Text>
+              <View style={[styles.input, styles.readOnlyField]}>
+                <Text style={styles.readOnlyText}>{payerName}</Text>
+              </View>
+            </View>
+          )}
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Date *</Text>
             <TouchableOpacity
@@ -301,6 +312,20 @@ export function OnboardingAddGig({ payerId, onComplete, onSkip, onBack }: Onboar
               editable={!createGig.isPending}
             />
           </View>
+
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setIsPaid(!isPaid)}
+            disabled={createGig.isPending}
+          >
+            <View style={[styles.checkbox, isPaid && styles.checkboxChecked]}>
+              {isPaid && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.checkboxLabel}>Mark as paid</Text>
+              <Text style={styles.checkboxSubLabel}>Already received payment? Toggle on to see your money plan in action right away.</Text>
+            </View>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.checkboxContainer}
@@ -570,6 +595,21 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 14,
     color: '#374151',
+  },
+  checkboxSubLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  readOnlyField: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#e5e7eb',
+    justifyContent: 'center',
+  },
+  readOnlyText: {
+    fontSize: 16,
+    color: '#374151',
+    fontWeight: '500',
   },
   summaryCard: {
     backgroundColor: '#eff6ff',
