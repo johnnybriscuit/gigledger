@@ -5,6 +5,8 @@
 
 import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getThemePalette } from '../../styles/theme';
 
 interface KardProps {
   /** Card title */
@@ -20,13 +22,15 @@ interface KardProps {
 }
 
 export function Kard({ title, icon, onInfoPress, children, style }: KardProps) {
+  const { theme } = useTheme();
+  const colors = getThemePalette(theme);
   return (
-    <View style={[styles.card, style]}>
+    <View style={[styles.card, { backgroundColor: colors.surface.elevated, borderColor: colors.border.DEFAULT }, style]}>
       {/* Header Row */}
       <View style={styles.header}>
         <View style={styles.titleRow}>
           {icon && <Text style={styles.icon}>{icon}</Text>}
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: colors.text.DEFAULT }]}>{title}</Text>
         </View>
         
         {onInfoPress && (
@@ -36,7 +40,7 @@ export function Kard({ title, icon, onInfoPress, children, style }: KardProps) {
             accessibilityLabel={`More information about ${title}`}
             accessibilityRole="button"
           >
-            <Text style={styles.infoIcon}>ℹ️</Text>
+            <Text style={[styles.infoIcon, { backgroundColor: colors.surface.muted, borderRadius: 8 }]}>ℹ️</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -51,10 +55,8 @@ export function Kard({ title, icon, onInfoPress, children, style }: KardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
     borderRadius: 16, // rounded-2xl
     borderWidth: 1,
-    borderColor: '#e5e7eb', // border-gray-200
     ...Platform.select({
       web: {
         boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', // shadow-sm
@@ -86,12 +88,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18, // text-lg
     fontWeight: '600', // font-semibold
-    color: '#111827', // text-gray-900
   },
   infoButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#e0e7ff', // Light blue-gray (indigo-100)
     minWidth: 32,
     minHeight: 32,
     justifyContent: 'center',

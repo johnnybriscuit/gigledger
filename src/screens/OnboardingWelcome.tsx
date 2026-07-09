@@ -45,7 +45,7 @@ export function OnboardingWelcome({ onNext }: OnboardingWelcomeProps) {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.step}>Step 1 of 6</Text>
-          <Text style={styles.title}>Welcome to Bozzy �</Text>
+          <Text style={styles.title}>Welcome to Bozzy 🎸</Text>
           <Text style={styles.subtitle}>Financial clarity for musicians and freelancers</Text>
           <Text style={styles.body}>
             Bozzy makes sure you never accidentally spend money you owe in taxes. Let's get you set up — takes about 3 minutes.

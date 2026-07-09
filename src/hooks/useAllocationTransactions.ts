@@ -49,7 +49,7 @@ async function fetchTransactions(
   return data || [];
 }
 
-async function createAllocationForGig(
+export async function createAllocationForGig(
   userId: string,
   input: CreateAllocationInput
 ): Promise<DbAllocationTransaction[]> {

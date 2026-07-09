@@ -50,14 +50,11 @@ type GigLimitError = Error & {
 export function useGigs(filters?: GigQueryFilters) {
   const userId = useUserId();
   
-  console.log('[useGigs] userId:', userId, 'enabled:', !!userId);
-  
   const result = useQuery({
     queryKey: userId
       ? [...queryKeys.gigs(userId), filters?.startDate ?? null, filters?.endDate ?? null]
       : ['gigs-loading'],
     queryFn: async () => {
-      console.log('[useGigs] queryFn called, userId:', userId);
       if (!userId) throw new Error('Not authenticated');
 
       let query = supabase
@@ -81,7 +78,6 @@ export function useGigs(filters?: GigQueryFilters) {
 
       const { data, error } = await query.order('date', { ascending: false });
 
-      console.log('[useGigs] Query result:', data?.length, 'gigs, error:', error);
       if (error) throw error;
       return data as unknown as GigWithPayer[];
     },
@@ -92,7 +88,6 @@ export function useGigs(filters?: GigQueryFilters) {
     placeholderData: (previousData) => previousData, // Show previous data while refetching
   });
   
-  console.log('[useGigs] Returning data:', result.data?.length, 'isLoading:', result.isLoading);
   return result;
 }
 

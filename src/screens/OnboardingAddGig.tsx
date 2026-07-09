@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useCreateGig } from '../hooks/useGigs';
+import { useAllocationTransactions } from '../hooks/useAllocationTransactions';
 import { supabase } from '../lib/supabase';
 import { useTaxEstimate } from '../hooks/useTaxEstimate';
 import { useQueryClient } from '@tanstack/react-query';
@@ -60,6 +61,7 @@ export function OnboardingAddGig({ payerId, payerName, onComplete, onSkip, onBac
   const [taxesWithheld, setTaxesWithheld] = useState(false);
   const [isPaid, setIsPaid] = useState(true);
   const createGig = useCreateGig();
+  const { createAllocationsForGig } = useAllocationTransactions();
   const queryClient = useQueryClient();
 
   // Calendar helper functions
@@ -139,9 +141,19 @@ export function OnboardingAddGig({ payerId, payerName, onComplete, onSkip, onBac
       
       console.log('🔵 [OnboardingAddGig] Calling createGig.mutateAsync with:', gigData);
       
-      await createGig.mutateAsync(gigData);
+      const createdGig = await createGig.mutateAsync(gigData);
       
       console.log('✅ [OnboardingAddGig] Gig created successfully');
+
+      if (isPaid && createdGig?.id) {
+        console.log('🔵 [OnboardingAddGig] Creating allocations for paid gig...');
+        await createAllocationsForGig({
+          gigId: createdGig.id,
+          grossAmount: parseFloat(grossAmount),
+          gigDate: date,
+        });
+        console.log('✅ [OnboardingAddGig] Allocations created');
+      }
 
       // Mark onboarding as complete
       console.log('🔵 [OnboardingAddGig] Marking onboarding as complete...');

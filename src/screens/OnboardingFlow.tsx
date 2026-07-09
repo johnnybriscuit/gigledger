@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase';
 import { useTaxProfile } from '../hooks/useTaxProfile';
 import { createDefaultBuckets } from '../lib/createDefaultBuckets';
 import { trackOnboardingComplete, trackFirstGigCreated } from '../lib/analytics';
+import { createAllocationForGig } from '../hooks/useAllocationTransactions';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -76,6 +77,40 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     }
 
     await persistCompletion();
+
+    // Auto-backfill safety net: if paid gigs exist but no allocation_transactions yet, create them now
+    if (gigCreated) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { count: allocCount } = await supabase
+            .from('allocation_transactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+          if ((allocCount ?? 0) === 0) {
+            const { data: paidGigs } = await supabase
+              .from('gigs')
+              .select('id, gross_amount, date')
+              .eq('user_id', user.id)
+              .eq('paid', true)
+              .gt('gross_amount', 0);
+            if (paidGigs && paidGigs.length > 0) {
+              await Promise.allSettled(
+                paidGigs.map(g =>
+                  createAllocationForGig(user.id, {
+                    gigId: g.id,
+                    grossAmount: g.gross_amount,
+                    gigDate: g.date ?? undefined,
+                  })
+                )
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[OnboardingFlow] Auto-backfill error (non-fatal):', err);
+      }
+    }
 
     trackOnboardingComplete({ activation_type: gigCreated ? 'first_gig' : 'first_action' });
     if (gigCreated && gigId) {
