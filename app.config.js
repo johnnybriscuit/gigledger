@@ -17,7 +17,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.bozzygigs.bozzy',
-      buildNumber: '2',
+      buildNumber: '3',
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },

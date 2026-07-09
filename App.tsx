@@ -122,7 +122,7 @@ function AppContent() {
   const [publicInvoiceRoute, setPublicInvoiceRoute] = useState(initialPublicInvoiceRoute);
 
   const [shareToken] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
     const path = window.location.pathname;
     if (path.startsWith('/share/')) {
       return path.split('/share/')[1] || null;
