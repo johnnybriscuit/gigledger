@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import {
   enrollTOTP,
@@ -75,7 +75,7 @@ export function MFAOnboardingScreen({ onNavigateToDashboard }: MFAOnboardingScre
 
   const downloadRecoveryCodes = () => {
     // For web, create a download link
-    if (typeof window !== 'undefined') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const blob = new Blob([recoveryCodes.map((code) => code.code).join('\n')], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');

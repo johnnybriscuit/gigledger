@@ -10,6 +10,8 @@
  * - Only send IDs, counts, types, and categorical data
  */
 
+import { Platform } from 'react-native';
+
 declare global {
   interface Window {
     dataLayer?: any[];
@@ -30,9 +32,9 @@ const PENDING_SIGNUP_MAX_AGE_MS = 24 * 60 * 60 * 1000;
  * @param params - Event parameters (must not contain PII)
  */
 export function track(eventName: string, params?: Record<string, any>): void {
-  
+
   // Only run in browser
-  if (typeof window === 'undefined') {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
     return;
   }
 
@@ -56,8 +58,9 @@ export function track(eventName: string, params?: Record<string, any>): void {
  * Check if GTM is loaded and ready
  */
 function isGTMReady(): boolean {
-  return typeof window !== 'undefined' && 
-         !!window.dataLayer && 
+  return Platform.OS === 'web' &&
+         typeof window !== 'undefined' &&
+         !!window.dataLayer &&
          window.dataLayer.length > 0 && 
          window.dataLayer.some((item: any) => item.event === 'gtm.js');
 }
@@ -67,9 +70,9 @@ function isGTMReady(): boolean {
  * Waits up to 2 seconds for GTM to load
  */
 export function trackWithGTMCheck(eventName: string, params?: Record<string, any>): void {
-  
+
   // Only run in browser
-  if (typeof window === 'undefined') {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
     return;
   }
 
@@ -106,7 +109,7 @@ export function trackPageView(path: string, title?: string): void {
 }
 
 function readPendingSignupContext(): { method: AuthMethod; createdAt: number } | null {
-  if (typeof window === 'undefined') {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
     return null;
   }
 
@@ -138,7 +141,7 @@ function readPendingSignupContext(): { method: AuthMethod; createdAt: number } |
 }
 
 export function rememberPendingSignup(method: AuthMethod): void {
-  if (typeof window === 'undefined') {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
     return;
   }
 
@@ -153,14 +156,14 @@ export function rememberPendingSignup(method: AuthMethod): void {
 
 export function consumePendingSignup(): AuthMethod | null {
   const pending = readPendingSignupContext();
-  if (typeof window !== 'undefined') {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
     window.localStorage.removeItem(PENDING_SIGNUP_STORAGE_KEY);
   }
   return pending?.method ?? null;
 }
 
 export function clearPendingSignup(): void {
-  if (typeof window === 'undefined') {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
     return;
   }
 
