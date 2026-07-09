@@ -71,6 +71,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('bozzy_coach_tip')) localStorage.removeItem(key);
       });
+      if (!localStorage.getItem('bozzy-theme-preference')) {
+        localStorage.setItem('bozzy-theme-preference', 'light');
+      }
       sessionStorage.setItem('show_dashboard_tour', 'true');
       sessionStorage.setItem('onboarding_just_completed', 'true');
       sessionStorage.setItem('onboarding_v2_completed', 'true');
@@ -160,6 +163,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   if (step === 4) {
     return (
       <BucketSetupScreen
+        isOnboarding={true}
         onComplete={() => setStep(5)}
       />
     );

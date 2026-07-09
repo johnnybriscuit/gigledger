@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Kard } from './Kard';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
 import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
+import { useTheme } from '../../contexts/ThemeContext';
+import { getThemePalette } from '../../styles/theme';
 
 interface HealthScoreWidgetProps {
   ytdGrossIncome: number;
@@ -25,6 +27,8 @@ function getCurrentMonthNumber(): number {
 }
 
 export function HealthScoreWidget({ ytdGrossIncome }: HealthScoreWidgetProps) {
+  const { theme } = useTheme();
+  const colors = getThemePalette(theme);
   const { buckets } = useAllocationBuckets();
   const { ytdTotals } = useAllocationTransactions();
 
@@ -119,8 +123,8 @@ export function HealthScoreWidget({ ytdGrossIncome }: HealthScoreWidgetProps) {
         {rows.map((row, i) => (
           <View key={i} style={styles.row}>
             <View style={[styles.dot, { backgroundColor: row.color }]} />
-            <Text style={styles.label}>{row.label}</Text>
-            <Text style={styles.phrase}>{row.phrase}</Text>
+            <Text style={[styles.label, { color: colors.text.DEFAULT }]}>{row.label}</Text>
+            <Text style={[styles.phrase, { color: colors.text.muted }]}>{row.phrase}</Text>
           </View>
         ))}
       </View>
@@ -150,11 +154,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#111827',
   },
   phrase: {
     fontSize: 12,
-    color: '#6b7280',
     textAlign: 'right',
   },
 });

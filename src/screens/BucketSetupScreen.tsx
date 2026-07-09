@@ -38,9 +38,10 @@ interface BucketConfig {
 interface BucketSetupScreenProps {
   onComplete: () => void;
   editMode?: boolean;
+  isOnboarding?: boolean;
 }
 
-export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupScreenProps) {
+export function BucketSetupScreen({ onComplete, editMode = false, isOnboarding = false }: BucketSetupScreenProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { taxProfile } = useUser();
@@ -301,7 +302,7 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
 
   const renderStep1 = () => (
     <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.step1Content}>
-      <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 1 of 4  ●○○○</Text>
+      {!isOnboarding && <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 1 of 4  ●○○○</Text>}
       
       <Text style={styles.largeEmoji}>💸</Text>
       
@@ -364,7 +365,7 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
 
     return (
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-        <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 2 of 4  ●●○○</Text>
+        {!isOnboarding && <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 2 of 4  ●●○○</Text>}
         
         <Text style={[styles.header, { color: colors.text.DEFAULT }]}>
           Start with the non-negotiables
@@ -530,7 +531,7 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
 
   const renderStep3 = () => (
     <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-      <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 3 of 4  ●●●○</Text>
+      {!isOnboarding && <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 3 of 4  ●●●○</Text>}
       
       <Text style={[styles.header, { color: colors.text.DEFAULT }]}>Want to supercharge your finances?</Text>
       <Text style={[styles.subtext, { color: colors.text.muted, marginBottom: 24 }]}>
@@ -678,7 +679,7 @@ export function BucketSetupScreen({ onComplete, editMode = false }: BucketSetupS
 
     return (
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-        <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 4 of 4  ●●●●</Text>
+        {!isOnboarding && <Text style={[styles.progressIndicator, { color: colors.text.subtle }]}>Step 4 of 4  ●●●●</Text>}
         
         <Text style={[styles.header, { color: colors.text.DEFAULT }]}>
           🎉 Here's your money plan
