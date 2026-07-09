@@ -59,6 +59,18 @@ module.exports = {
           iosUrlScheme: 'com.googleusercontent.apps.366405399265-c543egs7vgjpo30kh1ijqaq0j6gdd9s',
         },
       ],
+      [
+        'expo-build-properties',
+        {
+          ios: {
+            extraPods: [
+              { name: 'GoogleUtilities', modular_headers: true },
+              { name: 'RecaptchaInterop', modular_headers: true },
+              { name: 'AppCheckCore', modular_headers: true },
+            ],
+          },
+        },
+      ],
     ],
     extra: {
       EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
