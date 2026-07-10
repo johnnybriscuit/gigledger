@@ -46,6 +46,15 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
     }).format(value);
   };
 
+  // formatCurrency already prepends "-" for negative amounts, so only add the
+  // "+" for genuinely positive amounts — otherwise "+" and "-" concatenate
+  // into "+-$X". Zero renders with no sign at all.
+  const formatCumulativeDelta = (value: number) => {
+    if (value === 0) return formatCurrency(0);
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${formatCurrency(value)}`;
+  };
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
 
@@ -140,7 +149,10 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
         <Text style={moStyles.title}>📅 Monthly Overview</Text>
       </View>
       {cumulativeData.map((point, index) => {
-        const isZero = point.net === 0;
+        const netStyle =
+          point.net > 0 ? moStyles.monthNetPositive :
+          point.net < 0 ? moStyles.monthNetNegative :
+          moStyles.monthNetZero;
         return (
           <TouchableOpacity
             key={index}
@@ -150,11 +162,11 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
           >
             <Text style={moStyles.monthLabel}>{point.month}</Text>
             <View style={moStyles.monthRight}>
-              <Text style={[moStyles.monthNet, isZero && moStyles.monthNetZero]}>
+              <Text style={[moStyles.monthNet, netStyle]}>
                 {formatCurrency(point.net)}
               </Text>
               <Text style={moStyles.monthSub}>
-                {isZero ? 'net' : `net · +${formatCurrency(point.cumulative)} cumulative`}
+                net · {formatCumulativeDelta(point.cumulative)} cumulative
               </Text>
             </View>
           </TouchableOpacity>
@@ -203,7 +215,12 @@ const moStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
+  },
+  monthNetPositive: {
     color: themeColors.success.DEFAULT,
+  },
+  monthNetNegative: {
+    color: themeColors.error.DEFAULT,
   },
   monthNetZero: {
     color: themeColors.text.subtle,
