@@ -8,7 +8,7 @@ import { View, Text, Platform, StyleSheet, TouchableOpacity, Modal, ScrollView }
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, getThemeColors } from '../../lib/charts/colors';
-import { colors as themeColors } from '../../styles/theme';
+import { colors as themeColors, getDashboardCardTokens } from '../../styles/theme';
 import { Kard } from './Kard';
 import type { ExpenseCategoryPoint } from '../../hooks/useDashboardData';
 
@@ -36,6 +36,10 @@ interface ExpenseBreakdownProps {
 export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
+  // Dashboard cards are dark regardless of the in-app theme toggle; the
+  // static `themeColors` import used by mStyles resolves to the light
+  // palette on native, so override colors on the mobile card at usage sites.
+  const cardColors = getDashboardCardTokens(theme);
   const [showInfo, setShowInfo] = useState(false);
 
   // Take top 5 for the chart
@@ -166,35 +170,35 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
   const maxAmount = top5.length > 0 ? Math.max(...top5.map(d => d.amount)) : 1;
 
   return (
-    <View style={mStyles.card}>
+    <View style={[mStyles.card, { backgroundColor: cardColors.background, borderColor: cardColors.border }]}>
       <View style={mStyles.header}>
         <View style={mStyles.titleRow}>
-          <Ionicons name="bar-chart-outline" size={18} color={themeColors.text.DEFAULT} />
-          <Text style={mStyles.title}>Expense Breakdown</Text>
+          <Ionicons name="bar-chart-outline" size={18} color={cardColors.title} />
+          <Text style={[mStyles.title, { color: cardColors.title }]}>Expense Breakdown</Text>
         </View>
         {onViewAll && (
           <TouchableOpacity onPress={onViewAll}>
-            <Text style={mStyles.viewAllLink}>View all →</Text>
+            <Text style={[mStyles.viewAllLink, { color: cardColors.brand }]}>View all →</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {isEmpty ? (
         <View style={mStyles.emptyState}>
-          <Ionicons name="file-tray-outline" size={36} color={themeColors.text.subtle} style={mStyles.emptyIcon} />
-          <Text style={mStyles.emptyText}>No expenses yet</Text>
-          <Text style={mStyles.emptyHint}>Add expenses to see your breakdown</Text>
+          <Ionicons name="file-tray-outline" size={36} color={cardColors.subtle} style={mStyles.emptyIcon} />
+          <Text style={[mStyles.emptyText, { color: cardColors.title }]}>No expenses yet</Text>
+          <Text style={[mStyles.emptyHint, { color: cardColors.subtle }]}>Add expenses to see your breakdown</Text>
         </View>
       ) : (
         top5.map((item, index) => {
           const widthPct = (item.amount / maxAmount) * 100;
           return (
-            <View key={index} style={mStyles.expRow}>
+            <View key={index} style={[mStyles.expRow, { borderTopColor: cardColors.borderMuted }]}>
               <View style={mStyles.expRowTop}>
-                <Text style={mStyles.expName}>{item.category}</Text>
-                <Text style={mStyles.expAmount}>{formatCurrency(item.amount)}</Text>
+                <Text style={[mStyles.expName, { color: cardColors.title }]}>{item.category}</Text>
+                <Text style={[mStyles.expAmount, { color: cardColors.title }]}>{formatCurrency(item.amount)}</Text>
               </View>
-              <View style={mStyles.barTrack}>
+              <View style={[mStyles.barTrack, { backgroundColor: cardColors.borderMuted }]}>
                 <View
                   style={[
                     mStyles.barFill,
@@ -215,10 +219,8 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
 
 const mStyles = StyleSheet.create({
   card: {
-    backgroundColor: themeColors.surface.DEFAULT,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: themeColors.border.DEFAULT,
     overflow: 'hidden',
   },
   header: {
@@ -237,12 +239,10 @@ const mStyles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: themeColors.text.DEFAULT,
   },
   viewAllLink: {
     fontSize: 13,
     fontWeight: '600',
-    color: themeColors.brand.DEFAULT,
   },
   emptyState: {
     alignItems: 'center',
@@ -251,13 +251,12 @@ const mStyles = StyleSheet.create({
     gap: 6,
   },
   emptyIcon: { fontSize: 36, marginBottom: 4 },
-  emptyText: { fontSize: 15, fontWeight: '600', color: themeColors.text.DEFAULT },
-  emptyHint: { fontSize: 13, color: themeColors.text.subtle },
+  emptyText: { fontSize: 15, fontWeight: '600' },
+  emptyHint: { fontSize: 13 },
   expRow: {
     paddingHorizontal: 10,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: themeColors.border.muted,
   },
   expRowTop: {
     flexDirection: 'row',
@@ -267,18 +266,15 @@ const mStyles = StyleSheet.create({
   expName: {
     fontSize: 13,
     fontWeight: '500',
-    color: themeColors.text.DEFAULT,
     flex: 1,
   },
   expAmount: {
     fontSize: 13,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    color: themeColors.text.DEFAULT,
   },
   barTrack: {
     height: 6,
-    backgroundColor: themeColors.surface.muted,
     borderRadius: 3,
     overflow: 'hidden',
   },

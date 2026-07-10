@@ -8,7 +8,7 @@ import { View, Text, Platform, StyleSheet, TouchableOpacity, Modal } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, chartPalette, getThemeColors } from '../../lib/charts/colors';
-import { colors as themeColors } from '../../styles/theme';
+import { colors as themeColors, getDashboardCardTokens } from '../../styles/theme';
 import { Kard } from './Kard';
 import type { PayerBreakdown } from '../../hooks/useDashboardData';
 
@@ -31,6 +31,10 @@ interface TopPayersProps {
 export function TopPayers({ data, onPayerClick }: TopPayersProps) {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
+  // Dashboard cards are dark regardless of the in-app theme toggle; the
+  // static `themeColors` import used by pStyles resolves to the light
+  // palette on native, so override colors on the mobile card at usage sites.
+  const cardColors = getDashboardCardTokens(theme);
   const [showInfo, setShowInfo] = useState(false);
 
   const totalIncome = data.reduce((sum, p) => sum + p.amount, 0);
@@ -175,21 +179,21 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
 
   // Mobile view
   return (
-    <View style={pStyles.card}>
+    <View style={[pStyles.card, { backgroundColor: cardColors.background, borderColor: cardColors.border }]}>
       {/* Header: title + total income */}
       <View style={pStyles.header}>
         <View style={pStyles.titleRow}>
-          <Ionicons name="cash-outline" size={18} color={themeColors.text.DEFAULT} />
-          <Text style={pStyles.title}>Top Payers</Text>
+          <Ionicons name="cash-outline" size={18} color={cardColors.title} />
+          <Text style={[pStyles.title, { color: cardColors.title }]}>Top Payers</Text>
         </View>
-        <Text style={pStyles.totalInHeader}>{formatCurrency(totalIncome)}</Text>
+        <Text style={[pStyles.totalInHeader, { color: cardColors.subtle }]}>{formatCurrency(totalIncome)}</Text>
       </View>
 
       {isEmpty ? (
         <View style={pStyles.emptyState}>
-          <Ionicons name="file-tray-outline" size={36} color={themeColors.text.subtle} style={pStyles.emptyIcon} />
-          <Text style={pStyles.emptyText}>No payers yet</Text>
-          <Text style={pStyles.emptyHint}>Add gigs to see your top payers</Text>
+          <Ionicons name="file-tray-outline" size={36} color={cardColors.subtle} style={pStyles.emptyIcon} />
+          <Text style={[pStyles.emptyText, { color: cardColors.title }]}>No payers yet</Text>
+          <Text style={[pStyles.emptyHint, { color: cardColors.subtle }]}>Add gigs to see your top payers</Text>
         </View>
       ) : (
         <>
@@ -214,7 +218,7 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
           {data.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={pStyles.payerRow}
+              style={[pStyles.payerRow, { borderTopColor: cardColors.borderMuted }]}
               onPress={() => onPayerClick?.(item.payer)}
               activeOpacity={0.7}
             >
@@ -224,10 +228,10 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
                   { backgroundColor: chartPalette.payers[index % chartPalette.payers.length] },
                 ]}
               />
-              <Text style={pStyles.payerName} numberOfLines={1}>{item.payer}</Text>
+              <Text style={[pStyles.payerName, { color: cardColors.title }]} numberOfLines={1}>{item.payer}</Text>
               <View style={pStyles.payerRight}>
-                <Text style={pStyles.payerAmount}>{formatCurrency(item.amount)}</Text>
-                <Text style={pStyles.payerPct}>{formatPercent(item.amount)}</Text>
+                <Text style={[pStyles.payerAmount, { color: cardColors.title }]}>{formatCurrency(item.amount)}</Text>
+                <Text style={[pStyles.payerPct, { color: cardColors.subtle }]}>{formatPercent(item.amount)}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -239,10 +243,8 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
 
 const pStyles = StyleSheet.create({
   card: {
-    backgroundColor: themeColors.surface.DEFAULT,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: themeColors.border.DEFAULT,
     overflow: 'hidden',
   },
   header: {
@@ -261,13 +263,11 @@ const pStyles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: themeColors.text.DEFAULT,
   },
   totalInHeader: {
     fontSize: 13,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    color: themeColors.text.subtle,
   },
   emptyState: {
     alignItems: 'center',
@@ -276,8 +276,8 @@ const pStyles = StyleSheet.create({
     gap: 6,
   },
   emptyIcon: { fontSize: 36, marginBottom: 4 },
-  emptyText: { fontSize: 15, fontWeight: '600', color: themeColors.text.DEFAULT },
-  emptyHint: { fontSize: 13, color: themeColors.text.subtle },
+  emptyText: { fontSize: 15, fontWeight: '600' },
+  emptyHint: { fontSize: 13 },
   propBarWrap: {
     flexDirection: 'row',
     height: 6,
@@ -297,7 +297,6 @@ const pStyles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: themeColors.border.muted,
   },
   dot: {
     width: 10,
@@ -309,7 +308,6 @@ const pStyles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: themeColors.text.DEFAULT,
   },
   payerRight: {
     alignItems: 'flex-end',
@@ -318,11 +316,9 @@ const pStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
-    color: themeColors.text.DEFAULT,
   },
   payerPct: {
     fontSize: 12,
-    color: themeColors.text.subtle,
     marginTop: 1,
   },
 });

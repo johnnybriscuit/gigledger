@@ -146,6 +146,28 @@ export function getThemePalette(theme: ThemeMode) {
   return themePalettes[theme];
 }
 
+/**
+ * Shared color tokens for dashboard cards. All dashboard cards render as
+ * "dark cards" regardless of the in-app light/dark theme toggle (they use
+ * the elevated surface color, not the canvas), so new cards should read
+ * these instead of hardcoding hex values or reaching for the static
+ * `colors` export (which resolves to the light palette on native).
+ */
+export function getDashboardCardTokens(theme: ThemeMode) {
+  const palette = getThemePalette(theme);
+  return {
+    background: palette.surface.elevated,
+    border: palette.border.DEFAULT,
+    borderMuted: palette.border.muted,
+    title: palette.text.DEFAULT,
+    body: palette.text.muted,
+    subtle: palette.text.subtle,
+    brand: palette.brand.DEFAULT,
+    positive: palette.success.DEFAULT,
+    negative: palette.error.DEFAULT,
+  };
+}
+
 const cssVar = (token: string, fallback: string) =>
   Platform.OS === 'web' ? `var(${token}, ${fallback})` : fallback;
 

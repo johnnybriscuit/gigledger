@@ -9,7 +9,7 @@ import { View, Text, Platform, StyleSheet, TouchableOpacity } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, getThemeColors } from '../../lib/charts/colors';
-import { colors as themeColors } from '../../styles/theme';
+import { colors as themeColors, getDashboardCardTokens } from '../../styles/theme';
 import { ChartCard } from '../charts/ChartCard';
 import { Kard } from './Kard';
 import type { MonthlyPoint } from '../../hooks/useDashboardData';
@@ -37,6 +37,10 @@ interface MonthlyOverviewProps {
 export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
+  // Dashboard cards are dark regardless of the in-app theme toggle; the
+  // static `themeColors` import used by moStyles resolves to the light
+  // palette on native, so override colors on the mobile card at usage sites.
+  const cardColors = getDashboardCardTokens(theme);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -145,31 +149,31 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
   });
 
   return (
-    <View style={moStyles.card}>
+    <View style={[moStyles.card, { backgroundColor: cardColors.background, borderColor: cardColors.border }]}>
       <View style={moStyles.header}>
         <View style={moStyles.titleRow}>
-          <Ionicons name="calendar-outline" size={18} color={themeColors.text.DEFAULT} />
-          <Text style={moStyles.title}>Monthly Overview</Text>
+          <Ionicons name="calendar-outline" size={18} color={cardColors.title} />
+          <Text style={[moStyles.title, { color: cardColors.title }]}>Monthly Overview</Text>
         </View>
       </View>
       {cumulativeData.map((point, index) => {
-        const netStyle =
-          point.net > 0 ? moStyles.monthNetPositive :
-          point.net < 0 ? moStyles.monthNetNegative :
-          moStyles.monthNetZero;
+        const netColor =
+          point.net > 0 ? cardColors.positive :
+          point.net < 0 ? cardColors.negative :
+          cardColors.subtle;
         return (
           <TouchableOpacity
             key={index}
-            style={moStyles.monthRow}
+            style={[moStyles.monthRow, { borderTopColor: cardColors.borderMuted }]}
             onPress={() => onMonthClick?.(point.month)}
             activeOpacity={0.7}
           >
-            <Text style={moStyles.monthLabel}>{point.month}</Text>
+            <Text style={[moStyles.monthLabel, { color: cardColors.title }]}>{point.month}</Text>
             <View style={moStyles.monthRight}>
-              <Text style={[moStyles.monthNet, netStyle]}>
+              <Text style={[moStyles.monthNet, { color: netColor }]}>
                 {formatCurrency(point.net)}
               </Text>
-              <Text style={moStyles.monthSub}>
+              <Text style={[moStyles.monthSub, { color: cardColors.subtle }]}>
                 net · {formatCumulativeDelta(point.cumulative)} cumulative
               </Text>
             </View>
@@ -182,10 +186,8 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
 
 const moStyles = StyleSheet.create({
   card: {
-    backgroundColor: themeColors.surface.DEFAULT,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: themeColors.border.DEFAULT,
     overflow: 'hidden',
   },
   header: {
@@ -201,7 +203,6 @@ const moStyles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: themeColors.text.DEFAULT,
   },
   monthRow: {
     flexDirection: 'row',
@@ -210,12 +211,10 @@ const moStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: themeColors.border.muted,
   },
   monthLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: themeColors.text.DEFAULT,
   },
   monthRight: {
     alignItems: 'flex-end',
@@ -225,18 +224,8 @@ const moStyles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: Platform.OS === 'ios' ? 'Courier New' : 'monospace',
   },
-  monthNetPositive: {
-    color: themeColors.success.DEFAULT,
-  },
-  monthNetNegative: {
-    color: themeColors.error.DEFAULT,
-  },
-  monthNetZero: {
-    color: themeColors.text.subtle,
-  },
   monthSub: {
     fontSize: 11,
-    color: themeColors.text.subtle,
     marginTop: 1,
   },
 });
