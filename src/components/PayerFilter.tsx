@@ -15,7 +15,9 @@ import {
   ScrollView,
   type ViewStyle,
 } from 'react-native';
-import { colors } from '../styles/theme';
+import { colors, getThemePalette } from '../styles/theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { FilterBottomSheet } from './ui/FilterBottomSheet';
 
 interface PayerFilterProps {
   value: string | null;
@@ -28,8 +30,24 @@ export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef<any>(null);
+  const { theme } = useTheme();
 
   const selectedPayer = payers.find(p => p.id === value);
+
+  // The option row styles below are hardcoded for the web popover's light
+  // background. On native the same rows now sit inside a dark bottom sheet
+  // (see FilterBottomSheet), so override with theme-aware colors there.
+  const nativeColors = getThemePalette(theme);
+  const rowOverride = Platform.OS === 'web'
+    ? null
+    : {
+        text: { color: nativeColors.text.DEFAULT },
+        textActive: { color: nativeColors.brand.DEFAULT },
+        activeBg: { backgroundColor: nativeColors.brand.muted },
+        radioOuter: { borderColor: nativeColors.border.strong },
+        radioInner: { backgroundColor: nativeColors.brand.DEFAULT },
+        checkmark: { color: nativeColors.brand.DEFAULT },
+      };
 
   const handleOpen = () => {
     if (Platform.OS === 'web' && triggerRef.current) {
@@ -64,6 +82,71 @@ export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
+  const optionsList = (
+    <>
+      {/* All Payers option */}
+      <TouchableOpacity
+        style={[
+          styles.option,
+          value === null && styles.optionActive,
+          value === null && rowOverride?.activeBg,
+        ]}
+        onPress={() => handleSelect(null)}
+      >
+        <View style={[styles.radioOuter, rowOverride?.radioOuter]}>
+          {value === null && (
+            <View style={[styles.radioInner, rowOverride?.radioInner]} />
+          )}
+        </View>
+        <Text
+          style={[
+            styles.optionText,
+            rowOverride?.text,
+            value === null && styles.optionTextActive,
+            value === null && rowOverride?.textActive,
+          ]}
+        >
+          All Clients
+        </Text>
+        {value === null && (
+          <Text style={[styles.checkmark, rowOverride?.checkmark]}>✓</Text>
+        )}
+      </TouchableOpacity>
+
+      {/* Individual payers */}
+      {payers.map((payer) => (
+        <TouchableOpacity
+          key={payer.id}
+          style={[
+            styles.option,
+            value === payer.id && styles.optionActive,
+            value === payer.id && rowOverride?.activeBg,
+          ]}
+          onPress={() => handleSelect(payer.id)}
+        >
+          <View style={[styles.radioOuter, rowOverride?.radioOuter]}>
+            {value === payer.id && (
+              <View style={[styles.radioInner, rowOverride?.radioInner]} />
+            )}
+          </View>
+          <Text
+            style={[
+              styles.optionText,
+              rowOverride?.text,
+              value === payer.id && styles.optionTextActive,
+              value === payer.id && rowOverride?.textActive,
+            ]}
+          >
+            {payer.name}
+          </Text>
+          {value === payer.id && (
+            <Text style={[styles.checkmark, rowOverride?.checkmark]}>✓</Text>
+          )}
+        </TouchableOpacity>
+      ))}
+    </>
+  );
+
   return (
     <>
       <TouchableOpacity
@@ -79,92 +162,48 @@ export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps
         <Text style={styles.triggerArrow}>▼</Text>
       </TouchableOpacity>
 
-      {isOpen && (
-        <Modal
-          visible={isOpen}
-          transparent
-          animationType="none"
-          onRequestClose={() => setIsOpen(false)}
-        >
-          <Pressable
-            style={styles.backdrop}
-            onPress={() => setIsOpen(false)}
+      {Platform.OS === 'web' ? (
+        isOpen && (
+          <Modal
+            visible={isOpen}
+            transparent
+            animationType="none"
+            onRequestClose={() => setIsOpen(false)}
           >
-            <View
-              style={[
-                styles.popover,
-                {
-                  position: 'absolute',
-                  top: position.top,
-                  left: position.left,
-                  minWidth: position.width,
-                },
-              ]}
-              onStartShouldSetResponder={() => true}
+            <Pressable
+              style={styles.backdrop}
+              onPress={() => setIsOpen(false)}
             >
-              <View style={styles.popoverHeader}>
-                <Text style={styles.popoverTitle}>Filter by Client</Text>
+              <View
+                style={[
+                  styles.popover,
+                  {
+                    position: 'absolute',
+                    top: position.top,
+                    left: position.left,
+                    minWidth: position.width,
+                  },
+                ]}
+                onStartShouldSetResponder={() => true}
+              >
+                <View style={styles.popoverHeader}>
+                  <Text style={styles.popoverTitle}>Filter by Client</Text>
+                </View>
+                <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+                  {optionsList}
+                </ScrollView>
               </View>
-              
-              <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* All Payers option */}
-                <TouchableOpacity
-                  style={[
-                    styles.option,
-                    value === null && styles.optionActive,
-                  ]}
-                  onPress={() => handleSelect(null)}
-                >
-                  <View style={styles.radioOuter}>
-                    {value === null && (
-                      <View style={styles.radioInner} />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.optionText,
-                      value === null && styles.optionTextActive,
-                    ]}
-                  >
-                    All Clients
-                  </Text>
-                  {value === null && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
-                </TouchableOpacity>
-
-                {/* Individual payers */}
-                {payers.map((payer) => (
-                  <TouchableOpacity
-                    key={payer.id}
-                    style={[
-                      styles.option,
-                      value === payer.id && styles.optionActive,
-                    ]}
-                    onPress={() => handleSelect(payer.id)}
-                  >
-                    <View style={styles.radioOuter}>
-                      {value === payer.id && (
-                        <View style={styles.radioInner} />
-                      )}
-                    </View>
-                    <Text
-                      style={[
-                        styles.optionText,
-                        value === payer.id && styles.optionTextActive,
-                      ]}
-                    >
-                      {payer.name}
-                    </Text>
-                    {value === payer.id && (
-                      <Text style={styles.checkmark}>✓</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </Pressable>
-        </Modal>
+            </Pressable>
+          </Modal>
+        )
+      ) : (
+        <FilterBottomSheet
+          visible={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Filter by Client"
+        >
+          {optionsList}
+        </FilterBottomSheet>
       )}
     </>
   );

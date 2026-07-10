@@ -14,9 +14,11 @@ import {
   Platform,
   type ViewStyle,
 } from 'react-native';
-import { colors } from '../styles/theme';
+import { colors, getThemePalette } from '../styles/theme';
+import { useTheme } from '../contexts/ThemeContext';
 import type { DateRange } from '../hooks/useDashboardData';
 import { CustomDateRangePicker } from './CustomDateRangePicker';
+import { FilterBottomSheet } from './ui/FilterBottomSheet';
 
 interface RangePopoverProps {
   value: DateRange;
@@ -33,8 +35,24 @@ export function RangePopover({ value, onChange, onCustomRangeChange, options, cu
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef<any>(null);
+  const { theme } = useTheme();
 
   const selectedOption = options.find(opt => opt.value === value);
+
+  // The option row styles below are hardcoded for the web popover's light
+  // background. On native the same rows now sit inside a dark bottom sheet
+  // (see FilterBottomSheet), so override with theme-aware colors there.
+  const nativeColors = getThemePalette(theme);
+  const rowOverride = Platform.OS === 'web'
+    ? null
+    : {
+        text: { color: nativeColors.text.DEFAULT },
+        textActive: { color: nativeColors.brand.DEFAULT },
+        activeBg: { backgroundColor: nativeColors.brand.muted },
+        radioOuter: { borderColor: nativeColors.border.strong },
+        radioInner: { backgroundColor: nativeColors.brand.DEFAULT },
+        checkmark: { color: nativeColors.brand.DEFAULT },
+      };
   
   const getDisplayLabel = () => {
     if (value === 'custom' && customStart && customEnd) {
@@ -91,6 +109,70 @@ export function RangePopover({ value, onChange, onCustomRangeChange, options, cu
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
+  const optionsList = (
+    <>
+      {options.map((option) => (
+        <TouchableOpacity
+          key={option.value}
+          style={[
+            styles.option,
+            value === option.value && styles.optionActive,
+            value === option.value && rowOverride?.activeBg,
+          ]}
+          onPress={() => handleSelect(option.value)}
+        >
+          <View style={[styles.radioOuter, rowOverride?.radioOuter]}>
+            {value === option.value && (
+              <View style={[styles.radioInner, rowOverride?.radioInner]} />
+            )}
+          </View>
+          <Text
+            style={[
+              styles.optionText,
+              rowOverride?.text,
+              value === option.value && styles.optionTextActive,
+              value === option.value && rowOverride?.textActive,
+            ]}
+          >
+            {option.label}
+          </Text>
+          {value === option.value && (
+            <Text style={[styles.checkmark, rowOverride?.checkmark]}>✓</Text>
+          )}
+        </TouchableOpacity>
+      ))}
+
+      {/* Custom option */}
+      <TouchableOpacity
+        style={[
+          styles.option,
+          value === 'custom' && styles.optionActive,
+          value === 'custom' && rowOverride?.activeBg,
+        ]}
+        onPress={() => handleSelect('custom')}
+      >
+        <View style={[styles.radioOuter, rowOverride?.radioOuter]}>
+          {value === 'custom' && (
+            <View style={[styles.radioInner, rowOverride?.radioInner]} />
+          )}
+        </View>
+        <Text
+          style={[
+            styles.optionText,
+            rowOverride?.text,
+            value === 'custom' && styles.optionTextActive,
+            value === 'custom' && rowOverride?.textActive,
+          ]}
+        >
+          Custom Range...
+        </Text>
+        {value === 'custom' && (
+          <Text style={[styles.checkmark, rowOverride?.checkmark]}>✓</Text>
+        )}
+      </TouchableOpacity>
+    </>
+  );
+
   return (
     <>
       <TouchableOpacity
@@ -104,88 +186,46 @@ export function RangePopover({ value, onChange, onCustomRangeChange, options, cu
         <Text style={styles.triggerArrow}>▼</Text>
       </TouchableOpacity>
 
-      {isOpen && (
-        <Modal
-          visible={isOpen}
-          transparent
-          animationType="none"
-          onRequestClose={() => setIsOpen(false)}
-        >
-          <Pressable
-            style={styles.backdrop}
-            onPress={() => setIsOpen(false)}
+      {Platform.OS === 'web' ? (
+        isOpen && (
+          <Modal
+            visible={isOpen}
+            transparent
+            animationType="none"
+            onRequestClose={() => setIsOpen(false)}
           >
-            <View
-              style={[
-                styles.popover,
-                {
-                  position: 'absolute',
-                  top: position.top,
-                  left: position.left,
-                  minWidth: position.width,
-                },
-              ]}
-              onStartShouldSetResponder={() => true}
+            <Pressable
+              style={styles.backdrop}
+              onPress={() => setIsOpen(false)}
             >
-              <View style={styles.popoverHeader}>
-                <Text style={styles.popoverTitle}>Date Range</Text>
-              </View>
-              {options.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.option,
-                    value === option.value && styles.optionActive,
-                  ]}
-                  onPress={() => handleSelect(option.value)}
-                >
-                  <View style={styles.radioOuter}>
-                    {value === option.value && (
-                      <View style={styles.radioInner} />
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.optionText,
-                      value === option.value && styles.optionTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {value === option.value && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
-                </TouchableOpacity>
-              ))}
-              
-              {/* Custom option */}
-              <TouchableOpacity
+              <View
                 style={[
-                  styles.option,
-                  value === 'custom' && styles.optionActive,
+                  styles.popover,
+                  {
+                    position: 'absolute',
+                    top: position.top,
+                    left: position.left,
+                    minWidth: position.width,
+                  },
                 ]}
-                onPress={() => handleSelect('custom')}
+                onStartShouldSetResponder={() => true}
               >
-                <View style={styles.radioOuter}>
-                  {value === 'custom' && (
-                    <View style={styles.radioInner} />
-                  )}
+                <View style={styles.popoverHeader}>
+                  <Text style={styles.popoverTitle}>Date Range</Text>
                 </View>
-                <Text
-                  style={[
-                    styles.optionText,
-                    value === 'custom' && styles.optionTextActive,
-                  ]}
-                >
-                  Custom Range...
-                </Text>
-                {value === 'custom' && (
-                  <Text style={styles.checkmark}>✓</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Modal>
+                {optionsList}
+              </View>
+            </Pressable>
+          </Modal>
+        )
+      ) : (
+        <FilterBottomSheet
+          visible={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Date Range"
+        >
+          {optionsList}
+        </FilterBottomSheet>
       )}
 
       {/* Custom Date Range Picker Modal */}
