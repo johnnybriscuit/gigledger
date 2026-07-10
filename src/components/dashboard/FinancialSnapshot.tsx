@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { InfoTooltip } from '../ui/InfoTooltip';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
@@ -49,6 +50,22 @@ function getAllocationLabel(bucket: AllocationBucket): string {
 
 function getBucketAmount(bucket: AllocationBucket, ytdGrossIncome: number): number {
   return Math.round(ytdGrossIncome * (bucket.percentage / 100) * 100) / 100;
+}
+
+// bucket.emoji is user/DB-configured (see getDefaultBuckets / bucket setup), so
+// this maps the known bucket types to a semantically equivalent vector icon.
+// Custom goal/debt buckets with no clear mapping fall back to the stored emoji.
+function getBucketIconName(bucket: AllocationBucket): keyof typeof Ionicons.glyphMap | null {
+  switch (bucket.bucket_type) {
+    case 'federal_tax':
+    case 'state_tax': return 'business-outline';
+    case 'retirement': return 'trending-up-outline';
+    case 'emergency_fund': return 'shield-checkmark-outline';
+    case 'debt': return 'card-outline';
+    case 'goal': return 'flag-outline';
+    case 'spendable': return 'checkmark-circle-outline';
+    default: return null;
+  }
 }
 
 interface FinancialSnapshotProps {
@@ -130,11 +147,20 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
       {/* ── ALLOCATION ROWS ── */}
       {nonSpendable.map(bucket => {
         const amount = ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0;
-        const bucketColor = bucket.color || colors.brand.DEFAULT;
+        // Tax buckets default to red in the DB (see getDefaultBuckets), but
+        // saving for taxes is desired behavior, not a warning — reserve red
+        // for genuinely negative states. Other buckets keep their identity color.
+        const isTaxBucket = bucket.bucket_type === 'federal_tax' || bucket.bucket_type === 'state_tax';
+        const bucketColor = isTaxBucket ? colors.brand.DEFAULT : (bucket.color || colors.brand.DEFAULT);
+        const iconName = getBucketIconName(bucket);
 
         return (
           <View key={bucket.id} style={styles.allocationRow}>
-            <Text style={styles.rowEmoji}>{bucket.emoji}</Text>
+            {iconName ? (
+              <Ionicons name={iconName} size={20} color={colors.text.subtle} style={styles.rowEmoji} />
+            ) : (
+              <Text style={styles.rowEmoji}>{bucket.emoji}</Text>
+            )}
             <View style={styles.rowLabelWrap}>
               <Text
                 style={[
@@ -181,7 +207,12 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
             { backgroundColor: noIncome ? colors.surface.muted : colors.success.muted },
           ]}
         >
-          <Text style={styles.spendableEmoji}>{spendableBucket.emoji}</Text>
+          <Ionicons
+            name={getBucketIconName(spendableBucket) ?? 'checkmark-circle-outline'}
+            size={22}
+            color={noIncome ? colors.text.subtle : colors.success.DEFAULT}
+            style={styles.spendableEmoji}
+          />
           <View style={styles.spendableLabelRow}>
             <Text style={[styles.spendableLabel, { color: noIncome ? colors.text.subtle : colors.success.DEFAULT }]}>
               Yours to spend
@@ -202,7 +233,7 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
       {/* ── QUARTERLY TAX REMINDER (only if within 60 days and has income) ── */}
       {showTaxReminder && !noIncome && (
         <View style={[styles.quarterlyRow, { borderTopColor: colors.border.muted }]}>
-          <Text style={styles.quarterlyIcon}>📅</Text>
+          <Ionicons name="calendar-outline" size={16} color={colors.text.subtle} style={styles.quarterlyIcon} />
           <View style={styles.quarterlyText}>
             <Text style={[styles.quarterlyLabel, { color: colors.text.DEFAULT }]}>
               {deadline.quarter} tax due {deadline.label} · {daysUntilQuarterly} {daysUntilQuarterly === 1 ? 'day' : 'days'}

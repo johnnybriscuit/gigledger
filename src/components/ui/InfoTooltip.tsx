@@ -12,7 +12,7 @@ export function InfoTooltip({ text }: InfoTooltipProps) {
     <View style={styles.wrapper}>
       <TouchableOpacity
         onPress={() => setVisible(v => !v)}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
         activeOpacity={0.7}
         accessibilityLabel="More information"
         accessibilityRole="button"

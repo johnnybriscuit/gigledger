@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, Platform, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, chartPalette, getThemeColors } from '../../lib/charts/colors';
 import { colors as themeColors } from '../../styles/theme';
@@ -70,12 +71,12 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
     return (
       <Kard
         title="Top Payers"
-        icon="💰"
+        icon={<Ionicons name="cash-outline" size={20} color={themeColors.text.subtle} />}
         onInfoPress={() => setShowInfo(true)}
       >
         {isEmpty ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📭</Text>
+            <Ionicons name="file-tray-outline" size={48} color={themeColors.text.subtle} style={styles.emptyIcon} />
             <Text style={styles.emptyText}>No payers yet</Text>
             <Text style={styles.emptyHint}>Add gigs to see your top payers</Text>
           </View>
@@ -177,13 +178,16 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
     <View style={pStyles.card}>
       {/* Header: title + total income */}
       <View style={pStyles.header}>
-        <Text style={pStyles.title}>💵 Top Payers</Text>
+        <View style={pStyles.titleRow}>
+          <Ionicons name="cash-outline" size={18} color={themeColors.text.DEFAULT} />
+          <Text style={pStyles.title}>Top Payers</Text>
+        </View>
         <Text style={pStyles.totalInHeader}>{formatCurrency(totalIncome)}</Text>
       </View>
 
       {isEmpty ? (
         <View style={pStyles.emptyState}>
-          <Text style={pStyles.emptyIcon}>📭</Text>
+          <Ionicons name="file-tray-outline" size={36} color={themeColors.text.subtle} style={pStyles.emptyIcon} />
           <Text style={pStyles.emptyText}>No payers yet</Text>
           <Text style={pStyles.emptyHint}>Add gigs to see your top payers</Text>
         </View>
@@ -248,6 +252,11 @@ const pStyles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingTop: 16,
     paddingBottom: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   title: {
     fontSize: 15,

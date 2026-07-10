@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Platform, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
@@ -70,16 +71,19 @@ function TaxCard({
 
   return (
     <View style={[styles.card, { borderLeftColor: borderColor, backgroundColor: colors.surface.elevated }]}>
-      <Text style={[styles.cardIcon]}>🏛️</Text>
+      <Ionicons name="business-outline" size={18} color={colors.text.subtle} style={styles.cardIcon} />
       <Text style={[styles.cardTitle, { color: colors.text.muted }]}>TAX COVERAGE</Text>
       <Text style={[styles.cardPrimary, { color: colors.text.DEFAULT }]}>
         {fmt(taxYTD)} set aside
       </Text>
-      <Text style={[styles.cardStatus, { color: covered ? colors.success.DEFAULT : colors.error.DEFAULT }]}>
-        {ytdGrossIncome === 0
-          ? '— no income yet'
-          : `✅ On track for ${deadline.quarter}`}
-      </Text>
+      <View style={styles.cardStatusRow}>
+        {ytdGrossIncome > 0 && (
+          <Ionicons name="checkmark-circle-outline" size={14} color={covered ? colors.success.DEFAULT : colors.error.DEFAULT} />
+        )}
+        <Text style={[styles.cardStatus, { color: covered ? colors.success.DEFAULT : colors.error.DEFAULT }]}>
+          {ytdGrossIncome === 0 ? '— no income yet' : `On track for ${deadline.quarter}`}
+        </Text>
+      </View>
       {daysUntil <= 60 && ytdGrossIncome > 0 && (
         <Text style={[styles.cardMeta, { color: colors.text.subtle }]}>
           {deadline.quarter} due {deadline.label} · {daysUntil}d
@@ -115,23 +119,34 @@ function RetirementCard({
 
   let status: string;
   let statusColor: string;
+  let statusIcon: keyof typeof Ionicons.glyphMap | null = null;
   if (ytdGrossIncome === 0) {
     status = '— no income yet';
     statusColor = colors.text.subtle;
   } else if (pct >= 10) {
-    status = `✅ ${pct}% of income — great pace`;
+    status = `${pct}% of income — great pace`;
     statusColor = colors.success.DEFAULT;
+    statusIcon = 'checkmark-circle-outline';
   } else if (pct >= 5) {
-    status = `💪 ${pct}% of income — keep going`;
+    status = `${pct}% of income — keep going`;
     statusColor = colors.warning.DEFAULT;
+    statusIcon = 'flash-outline';
   } else {
-    status = `💡 Try increasing to 10%`;
+    status = 'Try increasing to 10%';
     statusColor = colors.text.muted;
+    statusIcon = 'bulb-outline';
   }
+
+  const statusContent = (
+    <View style={styles.cardStatusRow}>
+      {statusIcon && <Ionicons name={statusIcon} size={14} color={statusColor} />}
+      <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+    </View>
+  );
 
   return (
     <View style={[styles.card, { borderLeftColor: '#3b82f6', backgroundColor: colors.surface.elevated }]}>
-      <Text style={styles.cardIcon}>📈</Text>
+      <Ionicons name="trending-up-outline" size={18} color={colors.text.subtle} style={styles.cardIcon} />
       <Text style={[styles.cardTitle, { color: colors.text.muted }]}>RETIREMENT</Text>
       <Text style={[styles.cardPrimary, { color: colors.text.DEFAULT }]}>
         {fmt(ytd)} this year
@@ -141,10 +156,10 @@ function RetirementCard({
           onPress={() => setShowPctModal(true)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+          {statusContent}
         </Pressable>
       ) : (
-        <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+        statusContent
       )}
       <Text style={[styles.cardMeta, { color: colors.text.subtle }]}>
         IRS limit: $69,000 Self-Employed Retirement Account (SEP-IRA)
@@ -153,14 +168,14 @@ function RetirementCard({
         isVisible={showPctModal}
         onClose={() => setShowPctModal(false)}
         bucketName={bucket.name}
-        bucketEmoji="📈"
+        bucketEmoji={<Ionicons name="trending-up-outline" size={20} color={colors.text.subtle} />}
         currentPercentage={pct}
         suggestedPercentage={10}
         annualIncome={ytdGrossIncome}
         onSave={async (newPct) => {
           await updateBucket(bucket.id, { percentage: newPct });
           setShowPctModal(false);
-          onShowToast(`Retirement updated to ${newPct}% 📈`);
+          onShowToast(`Retirement updated to ${newPct}%`);
         }}
       />
     </View>
@@ -195,6 +210,7 @@ function EmergencyCard({
 
   let status: string;
   let statusColor: string;
+  let statusIcon: keyof typeof Ionicons.glyphMap | null = null;
   if (ytdGrossIncome === 0) {
     status = '— no income yet';
     statusColor = colors.text.subtle;
@@ -202,21 +218,29 @@ function EmergencyCard({
     status = 'Set a savings target →';
     statusColor = colors.brand.DEFAULT;
   } else if (progress >= 1) {
-    status = '✅ Goal reached!';
+    status = 'Goal reached!';
     statusColor = colors.success.DEFAULT;
+    statusIcon = 'checkmark-circle-outline';
   } else if (progress >= 0.5) {
-    status = `💪 ${progressPct}% of goal`;
+    status = `${progressPct}% of goal`;
     statusColor = colors.warning.DEFAULT;
+    statusIcon = 'flash-outline';
   } else {
     status = `${progressPct}% of goal — keep building`;
     statusColor = colors.text.muted;
   }
 
   const barWidth = progressPct ?? 0;
+  const statusContent = (
+    <View style={styles.cardStatusRow}>
+      {statusIcon && <Ionicons name={statusIcon} size={14} color={statusColor} />}
+      <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+    </View>
+  );
 
   return (
     <View style={[styles.card, { borderLeftColor: '#0d9488', backgroundColor: colors.surface.elevated }]}>
-      <Text style={styles.cardIcon}>🛟</Text>
+      <Ionicons name="shield-checkmark-outline" size={18} color={colors.text.subtle} style={styles.cardIcon} />
       <Text style={[styles.cardTitle, { color: colors.text.muted }]}>EMERGENCY FUND</Text>
       <Text style={[styles.cardPrimary, { color: colors.text.DEFAULT }]}>
         {fmt(ytd)} saved
@@ -239,10 +263,10 @@ function EmergencyCard({
           onPress={() => setShowGoalModal(true)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+          {statusContent}
         </Pressable>
       ) : (
-        <Text style={[styles.cardStatus, { color: statusColor }]}>{status}</Text>
+        statusContent
       )}
       {goal && goal > 0 && (
         <Text style={[styles.cardMeta, { color: colors.text.subtle }]}>
@@ -266,7 +290,7 @@ function EmergencyCard({
             goal_name: `Monthly expenses: $${monthlyExpenses}`,
           });
           setShowGoalModal(false);
-          onShowToast("Goal set! We'll track your progress 🎯");
+          onShowToast("Goal set! We'll track your progress.");
         }}
       />
     </View>
@@ -372,6 +396,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginTop: 2,
+  },
+  cardStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   cardStatus: {
     fontSize: 12,

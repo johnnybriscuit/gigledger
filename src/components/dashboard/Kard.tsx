@@ -11,8 +11,8 @@ import { getThemePalette } from '../../styles/theme';
 interface KardProps {
   /** Card title */
   title: string;
-  /** Optional icon to display before title */
-  icon?: string;
+  /** Optional icon to display before title — a string renders as emoji/text, a ReactNode (e.g. an Ionicons element) renders as-is */
+  icon?: string | ReactNode;
   /** Optional info button handler */
   onInfoPress?: () => void;
   /** Card content */
@@ -29,7 +29,7 @@ export function Kard({ title, icon, onInfoPress, children, style }: KardProps) {
       {/* Header Row */}
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          {icon && <Text style={styles.icon}>{icon}</Text>}
+          {icon && (typeof icon === 'string' ? <Text style={styles.icon}>{icon}</Text> : icon)}
           <Text style={[styles.title, { color: colors.text.DEFAULT }]}>{title}</Text>
         </View>
         

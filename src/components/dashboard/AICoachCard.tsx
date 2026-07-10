@@ -9,6 +9,7 @@ import {
   LayoutAnimation,
 } from 'react-native';
 import Markdown from 'react-native-markdown-display';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
@@ -258,7 +259,7 @@ export function AICoachCard({ className, onAddGig }: AICoachCardProps) {
         ]}
       >
         <View style={styles.collapsedRow}>
-          <Text style={styles.emoji}>🤖</Text>
+          <Ionicons name="sparkles-outline" size={20} color={colors.text.subtle} />
           <View style={styles.collapsedTextWrapper}>
             <Text style={[styles.collapsedLabel, { color: colors.text.muted }]}>
               Your Financial Coach
@@ -307,7 +308,7 @@ export function AICoachCard({ className, onAddGig }: AICoachCardProps) {
     >
       {/* ── COLLAPSED ROW (always visible) ── */}
       <View style={styles.collapsedRow}>
-        <Text style={styles.emoji}>🤖</Text>
+        <Ionicons name="sparkles-outline" size={20} color={colors.text.subtle} />
         <View style={styles.collapsedTextWrapper}>
           <Text style={[styles.collapsedLabel, { color: colors.text.muted }]}>
             Your Financial Coach
@@ -399,9 +400,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-  },
-  emoji: {
-    fontSize: 20,
   },
   collapsedTextWrapper: {
     flex: 1,

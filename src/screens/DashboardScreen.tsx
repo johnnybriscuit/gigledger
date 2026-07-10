@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useResponsive } from '../hooks/useResponsive';
 import { useUser } from '../contexts/UserContext';
@@ -444,18 +445,20 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                 <Button
                   variant="secondary"
                   size="sm"
+                  leftIcon={<Ionicons name="wallet-outline" size={16} color={colors.text.DEFAULT} />}
                   onPress={onNavigateToMyMoney}
                 >
-                  💰 My Money Plan →
+                  My Money Plan →
                 </Button>
               )}
               {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
                 <Button
                   variant="primary"
                   size="sm"
+                  leftIcon={<Ionicons name="flag-outline" size={16} color={colors.brand.foreground} />}
                   onPress={onNavigateToBucketSetup}
                 >
-                  🎯 Set up money plan
+                  Set up money plan
                 </Button>
               )}
               <View style={styles.toolbarSeparator} />
@@ -533,9 +536,10 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                     variant="secondary"
                     size="sm"
                     style={styles.mobileToolbarItem}
+                    leftIcon={<Ionicons name="wallet-outline" size={16} color={colors.text.DEFAULT} />}
                     onPress={onNavigateToMyMoney}
                   >
-                    💰 My Money Plan →
+                    My Money Plan →
                   </Button>
                 )}
                 {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
@@ -543,9 +547,10 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                     variant="primary"
                     size="sm"
                     style={styles.mobileToolbarItem}
+                    leftIcon={<Ionicons name="flag-outline" size={16} color={colors.brand.foreground} />}
                     onPress={onNavigateToBucketSetup}
                   >
-                    🎯 Set up money plan
+                    Set up money plan
                   </Button>
                 )}
               </View>
@@ -578,18 +583,20 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                 <Button
                   variant="secondary"
                   size="sm"
+                  leftIcon={<Ionicons name="wallet-outline" size={16} color={colors.text.DEFAULT} />}
                   onPress={onNavigateToMyMoney}
                 >
-                  💰 My Money Plan →
+                  My Money Plan →
                 </Button>
               )}
               {!bucketsLoading && !hasBucketsConfigured && onNavigateToBucketSetup && (
                 <Button
                   variant="primary"
                   size="sm"
+                  leftIcon={<Ionicons name="flag-outline" size={16} color={colors.brand.foreground} />}
                   onPress={onNavigateToBucketSetup}
                 >
-                  🎯 Set up money plan
+                  Set up money plan
                 </Button>
               )}
               <View style={styles.toolbarSeparator} />

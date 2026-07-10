@@ -21,7 +21,8 @@ export interface AdjustBucketPercentageModalProps {
   isVisible: boolean;
   onClose: () => void;
   bucketName: string;
-  bucketEmoji: string;
+  /** A string renders as emoji/text, a ReactNode (e.g. an Ionicons element) renders as-is */
+  bucketEmoji: string | React.ReactNode;
   currentPercentage: number;
   suggestedPercentage: number;
   onSave: (newPercentage: number) => void;
@@ -89,7 +90,9 @@ export function AdjustBucketPercentageModal({
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerLeft}>
-                <Text style={styles.headerIcon}>{bucketEmoji}</Text>
+                {typeof bucketEmoji === 'string' ? (
+                  <Text style={styles.headerIcon}>{bucketEmoji}</Text>
+                ) : bucketEmoji}
                 <Text style={[styles.headerTitle, isDark && styles.textLight]}>
                   Adjust {bucketName}
                 </Text>

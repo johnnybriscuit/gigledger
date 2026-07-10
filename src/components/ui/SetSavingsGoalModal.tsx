@@ -10,6 +10,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const fmt = (n: number) =>
@@ -77,7 +78,7 @@ export function SetSavingsGoalModal({
     }
     if (monthlyPace <= 0 || computedGoal <= 0) return null;
     const remaining = computedGoal - currentBalance;
-    if (remaining <= 0) return '✅ Goal already reached!';
+    if (remaining <= 0) return 'Goal already reached!';
     const months = Math.ceil(remaining / monthlyPace);
     return `At your current pace (${fmt(monthlyPace)}/mo) you'll reach this in ~${months} month${months !== 1 ? 's' : ''}`;
   })();
@@ -131,7 +132,7 @@ export function SetSavingsGoalModal({
               {/* Header */}
               <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                  <Text style={styles.headerIcon}>🛟</Text>
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#9CA3AF" />
                   <Text style={[styles.headerTitle, isDark && styles.textLight]}>
                     Set your {bucketName} goal
                   </Text>

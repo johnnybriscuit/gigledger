@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { View, Text, Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, getThemeColors } from '../../lib/charts/colors';
 import { colors as themeColors } from '../../styles/theme';
@@ -146,7 +147,10 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
   return (
     <View style={moStyles.card}>
       <View style={moStyles.header}>
-        <Text style={moStyles.title}>📅 Monthly Overview</Text>
+        <View style={moStyles.titleRow}>
+          <Ionicons name="calendar-outline" size={18} color={themeColors.text.DEFAULT} />
+          <Text style={moStyles.title}>Monthly Overview</Text>
+        </View>
       </View>
       {cumulativeData.map((point, index) => {
         const netStyle =
@@ -188,6 +192,11 @@ const moStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   title: {
     fontSize: 15,

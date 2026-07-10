@@ -12,6 +12,7 @@ import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
 import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
 import { useGigs } from '../../hooks/useGigs';
 import { useUserId } from '../../hooks/useCurrentUser';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase, ExpoSecureStoreAdapter } from '../../lib/supabase';
 
 export function RetroactivePromptBanner() {
@@ -114,7 +115,7 @@ export function RetroactivePromptBanner() {
         },
       ]}
     >
-      <Text style={styles.emoji}>💡</Text>
+      <Ionicons name="bulb-outline" size={32} color={colors.text.subtle} style={styles.emoji} />
       <Text style={[styles.title, { color: colors.text.DEFAULT }]}>
         Your buckets are set up but empty
       </Text>
@@ -135,9 +136,9 @@ export function RetroactivePromptBanner() {
 
       {isComplete ? (
         <View style={styles.successContainer}>
-          <Text style={styles.successEmoji}>✅</Text>
+          <Ionicons name="checkmark-circle-outline" size={28} color={colors.success.DEFAULT} style={styles.successEmoji} />
           <Text style={[styles.successText, { color: colors.text.DEFAULT }]}>
-            Done! Your history has been calculated ✓
+            Done! Your history has been calculated
           </Text>
         </View>
       ) : isProcessing ? (

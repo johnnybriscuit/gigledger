@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Kard } from './Kard';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
 import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
@@ -121,7 +122,11 @@ export function HealthScoreWidget({ ytdGrossIncome }: HealthScoreWidgetProps) {
   if (rows.length === 0) return null;
 
   return (
-    <Kard title="Financial health" icon="🩺" style={styles.card}>
+    <Kard
+      title="Financial health"
+      icon={<Ionicons name="pulse-outline" size={20} color={colors.text.subtle} />}
+      style={styles.card}
+    >
       <View style={styles.rows}>
         {rows.map((row, i) => (
           <View key={i} style={styles.row}>

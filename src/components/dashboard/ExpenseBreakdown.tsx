@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { View, Text, Platform, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, getThemeColors } from '../../lib/charts/colors';
 import { colors as themeColors } from '../../styles/theme';
@@ -50,13 +51,15 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
     }).format(value);
   };
 
-  // Color palette for categories - use chart.expenses from theme
+  // Expenses here are normal spending (and tax deductions), not an alarm
+  // state, so bars use a neutral brand color rather than the red used for
+  // genuinely negative signals elsewhere.
   const categoryColors = [
-    themeColors.chart.expenses,
-    themeColors.chart.expenses,
-    themeColors.chart.expenses,
-    themeColors.chart.expenses,
-    themeColors.chart.expenses,
+    themeColors.chart.primary,
+    themeColors.chart.primary,
+    themeColors.chart.primary,
+    themeColors.chart.primary,
+    themeColors.chart.primary,
   ];
 
   // Custom tooltip component
@@ -76,12 +79,12 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
     return (
       <Kard
         title="Expense Breakdown"
-        icon="📊"
+        icon={<Ionicons name="bar-chart-outline" size={20} color={themeColors.text.subtle} />}
         onInfoPress={() => setShowInfo(true)}
       >
         {isEmpty ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📭</Text>
+            <Ionicons name="file-tray-outline" size={48} color={themeColors.text.subtle} style={styles.emptyIcon} />
             <Text style={styles.emptyText}>No expenses yet</Text>
             <Text style={styles.emptyHint}>Add expenses to see your breakdown</Text>
           </View>
@@ -165,7 +168,10 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
   return (
     <View style={mStyles.card}>
       <View style={mStyles.header}>
-        <Text style={mStyles.title}>📊 Expense Breakdown</Text>
+        <View style={mStyles.titleRow}>
+          <Ionicons name="bar-chart-outline" size={18} color={themeColors.text.DEFAULT} />
+          <Text style={mStyles.title}>Expense Breakdown</Text>
+        </View>
         {onViewAll && (
           <TouchableOpacity onPress={onViewAll}>
             <Text style={mStyles.viewAllLink}>View all →</Text>
@@ -175,7 +181,7 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
 
       {isEmpty ? (
         <View style={mStyles.emptyState}>
-          <Text style={mStyles.emptyIcon}>📭</Text>
+          <Ionicons name="file-tray-outline" size={36} color={themeColors.text.subtle} style={mStyles.emptyIcon} />
           <Text style={mStyles.emptyText}>No expenses yet</Text>
           <Text style={mStyles.emptyHint}>Add expenses to see your breakdown</Text>
         </View>
@@ -222,6 +228,11 @@ const mStyles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingTop: 16,
     paddingBottom: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   title: {
     fontSize: 15,
