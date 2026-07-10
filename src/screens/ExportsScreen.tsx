@@ -11,7 +11,6 @@ import { Text } from '../ui';
 import { colors } from '../styles/theme';
 import { HowToImportModal, type TaxSoftware } from '../components/HowToImportModal';
 import { generateCSVBundle } from '../lib/exports/csv-bundle-generator';
-import { downloadExcelFromPackage } from '../lib/exports/excel-generator-canonical';
 import { downloadJSONBackup as downloadJSONBackupCanonical } from '../lib/exports/json-backup-generator';
 import { generateScheduleCSummaryPdf } from '../lib/exports/taxpdf';
 import { useQuery } from '@tanstack/react-query';
@@ -208,8 +207,13 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
     }
 
     try {
-      downloadExcelFromPackage(taxPackage.data);
-      
+      // Lazy-load: exceljs is a heavy Node-oriented library. Statically importing it
+      // pulls its module-init code into the app's eager bundle path (Dashboard ->
+      // ExportsScreen -> excel-generator-canonical -> exceljs), which was crashing on
+      // every app load. Load it only when the user actually requests an Excel export.
+      const { downloadExcelFromPackage } = await import('../lib/exports/excel-generator-canonical');
+      await downloadExcelFromPackage(taxPackage.data);
+
       // Track analytics
       const { trackExportCreated } = await import('../lib/analytics');
       trackExportCreated({ export_type: 'excel', source: 'exports_screen' });
