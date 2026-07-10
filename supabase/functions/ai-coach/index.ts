@@ -173,7 +173,13 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 150,
+        // 150 was too tight for a "2 sentence" reply once bold markdown and
+        // specific dollar figures are included — Claude would occasionally
+        // run past the cap and get hard-truncated mid-sentence (e.g. "Your
+        // emergency fund at $211." missing "is"). Give real headroom; the
+        // system prompt still constrains length, this just stops us from
+        // cutting off a valid response.
+        max_tokens: 300,
         system: SYSTEM_PROMPT,
         messages: [
           {
@@ -191,10 +197,26 @@ serve(async (req) => {
     }
 
     const data = await response.json()
+
+    // If Claude's response was cut off by the token cap, it may be a broken
+    // partial sentence (e.g. missing a word mid-clause). Don't serve that —
+    // fall back to the static tip instead of showing users a truncated message.
+    if (data.stop_reason === 'max_tokens') {
+      console.error('[AI Coach] Response truncated at max_tokens, using fallback')
+      return new Response(
+        JSON.stringify({
+          tip: FALLBACK_TIP,
+          fallback: true,
+          generatedAt: new Date().toISOString(),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
     const tip = data.content?.[0]?.text || FALLBACK_TIP
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         tip,
         fallback: false,
         generatedAt: new Date().toISOString(),
