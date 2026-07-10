@@ -289,9 +289,13 @@ export function AICoachCard({ className, onAddGig }: AICoachCardProps) {
     );
   }
 
-  // First sentence of tip for the collapsed preview
+  // First sentence of tip for the collapsed preview. The naive version of
+  // this regex (matching up to the first ./!/?) breaks on decimal points in
+  // dollar amounts or percentages the model echoes back (e.g. "$211.00" or
+  // "1.5%"), truncating mid-number ("...at $211."). A "." followed by a
+  // digit is treated as part of the number, not a sentence boundary.
   const firstSentence = tip
-    ? (tip.match(/^[^.!?]+[.!?]/) ?? [tip])[0]
+    ? (tip.match(/^(?:[^.!?]|\.(?=\d))+(?:[!?]|\.(?!\d))/) ?? [tip])[0]
     : null;
 
   return (

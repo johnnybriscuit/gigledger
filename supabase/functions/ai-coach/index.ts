@@ -22,6 +22,7 @@ STRICT RULES:
 - Never say "consider" — say what to DO
 - Do not mention competitors or other apps
 - You may use **bold** for emphasis on the single most important number or date in your response. Keep formatting minimal — bold at most one key figure.
+- Use whole dollar amounts only (e.g. "$211", never "$211.00" or "$211.50")
 
 EXAMPLES OF GOOD ADVICE:
 "You've set aside $1,082 for taxes — you're fully covered for Q3. Move that money to a dedicated savings account before you're tempted to spend it."
@@ -53,6 +54,15 @@ interface RequestBody {
   lastAdviceCategory?: string
 }
 
+// Whole-dollar, comma-formatted — matches how the app displays currency
+// everywhere else. Using .toFixed(2) here previously produced amounts like
+// "$211.00" in the prompt, which Claude would echo back verbatim; the
+// client's "first sentence" preview then misread that decimal point as a
+// sentence boundary and truncated mid-number.
+function fmtDollars(n: number): string {
+  return Math.round(n).toLocaleString('en-US')
+}
+
 function buildUserPrompt(body: RequestBody): string {
   const {
     ytdIncome,
@@ -76,17 +86,17 @@ function buildUserPrompt(body: RequestBody): string {
   const estimatedTaxOwed = ytdIncome * ((taxBucket?.percentage || 20) / 100)
 
   let prompt = `My financial data:
-- YTD gig income: $${ytdIncome.toFixed(2)}
-- Tax bucket: $${taxBalance.toFixed(2)} set aside (estimated owed: $${estimatedTaxOwed.toFixed(2)})
-- Retirement: $${retirementBalance.toFixed(2)} saved this year (${(retirementBucket?.percentage || 0).toFixed(1)}% of income)
-- Emergency fund: $${emergencyBalance.toFixed(2)} of $${(emergencyBucket?.goalAmount || 5000).toFixed(2)} goal (${((emergencyBalance / (emergencyBucket?.goalAmount || 5000)) * 100).toFixed(0)}% complete)`
+- YTD gig income: $${fmtDollars(ytdIncome)}
+- Tax bucket: $${fmtDollars(taxBalance)} set aside (estimated owed: $${fmtDollars(estimatedTaxOwed)})
+- Retirement: $${fmtDollars(retirementBalance)} saved this year (${Math.round(retirementBucket?.percentage || 0)}% of income)
+- Emergency fund: $${fmtDollars(emergencyBalance)} of $${fmtDollars(emergencyBucket?.goalAmount || 5000)} goal (${((emergencyBalance / (emergencyBucket?.goalAmount || 5000)) * 100).toFixed(0)}% complete)`
 
   if (debtBucket && debtBalance > 0) {
-    prompt += `\n- Debt payoff: $${debtBalance.toFixed(2)} applied to ${debtBucket.name}`
+    prompt += `\n- Debt payoff: $${fmtDollars(debtBalance)} applied to ${debtBucket.name}`
   }
 
   prompt += `\n- Next quarterly tax payment: ${nextQuarterlyDate} (${daysUntilQuarterly} days away)
-- I have ${gigCount} paid gigs${gigCount > 0 ? ' (I AM AN ACTIVE USER — do NOT suggest I log my first gig or get started)' : ' (I am just getting started)'} averaging $${avgGigAmount.toFixed(2)} each`
+- I have ${gigCount} paid gigs${gigCount > 0 ? ' (I AM AN ACTIVE USER — do NOT suggest I log my first gig or get started)' : ' (I am just getting started)'} averaging $${fmtDollars(avgGigAmount)} each`
 
   if (body.lastAdviceCategory) {
     prompt += `\n\nMy last advice was about: ${body.lastAdviceCategory}. Please advise on something DIFFERENT this time.`
