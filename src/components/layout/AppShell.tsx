@@ -911,6 +911,11 @@ const styles = StyleSheet.create({
     color: colors.text.subtle,
   },
   nativeActionBar: {
+    // Without these, this horizontal ScrollView (a flex child of the
+    // column-flex mainContainer) grows to fill available vertical space
+    // instead of hugging its content height.
+    flexGrow: 0,
+    flexShrink: 0,
     backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.muted,
