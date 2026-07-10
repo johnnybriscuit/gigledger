@@ -527,11 +527,17 @@ export function AppShell({
             {pageActions}
           </View>
         )}
-        {/* Native: action bar below header */}
+        {/* Native: action bar below header, horizontally scrollable so all
+            chips and the client/date filters are reachable on narrow screens */}
         {pageActions && isNative && (
-          <View style={styles.nativeActionBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.nativeActionBar}
+            contentContainerStyle={styles.nativeActionBarContent}
+          >
             {pageActions}
-          </View>
+          </ScrollView>
         )}
 
         {/* Content with max width constraint */}
@@ -908,7 +914,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.DEFAULT,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.muted,
+  },
+  nativeActionBarContent: {
     paddingHorizontal: 16,
+    // Extra trailing space beyond the last chip so it isn't flush against the
+    // screen edge, and so the chip before it peeks in as a scroll affordance.
+    paddingRight: 40,
     paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',

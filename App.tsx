@@ -661,7 +661,11 @@ function AppContent() {
 
   return (
     <>
-      <StatusBar style={statusBarStyle} />
+      {/* AppShell's chrome (header/canvas) is always light-shelled on native
+          (see AppShell.tsx's use of the static `colors` export), independent
+          of the in-app theme toggle, so the status bar must stay dark here
+          rather than following statusBarStyle. */}
+      <StatusBar style="dark" />
       <UserProvider>
         <DashboardScreen
           onNavigateToBusinessStructures={() => setCurrentRoute('business-structures')}
