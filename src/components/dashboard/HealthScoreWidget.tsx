@@ -74,7 +74,10 @@ export function HealthScoreWidget({ ytdGrossIncome }: HealthScoreWidgetProps) {
 
     let color: DotColor;
     let phrase: string;
-    if (retirementPct >= 10) {
+    if (actualRetirementAllocated === 0) {
+      color = DOT_RED;
+      phrase = 'Not started';
+    } else if (retirementPct >= 10) {
       color = DOT_GREEN;
       phrase = 'On track';
     } else if (retirementPct >= 5) {
@@ -82,7 +85,7 @@ export function HealthScoreWidget({ ytdGrossIncome }: HealthScoreWidgetProps) {
       phrase = 'Could improve';
     } else {
       color = DOT_RED;
-      phrase = 'Not started';
+      phrase = 'Just started — increase to 5%+';
     }
 
     rows.push({ label: 'Retirement', color, phrase });

@@ -5,7 +5,7 @@ import { getThemePalette } from '../../styles/theme';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
 import { useAllocationTransactions } from '../../hooks/useAllocationTransactions';
 import type { UpdateBucketInput } from '../../hooks/useAllocationBuckets';
-import type { AllocationBucket } from '../../types/allocation';
+import type { AllocationBucket, BucketYTDTotal } from '../../types/allocation';
 import { SetSavingsGoalModal } from '../ui/SetSavingsGoalModal';
 import { AdjustBucketPercentageModal } from '../ui/AdjustBucketPercentageModal';
 import { Toast } from '../Toast';
@@ -92,12 +92,14 @@ function TaxCard({
 function RetirementCard({
   buckets,
   ytdGrossIncome,
+  ytdTotals,
   colors,
   updateBucket,
   onShowToast,
 }: {
   buckets: AllocationBucket[];
   ytdGrossIncome: number;
+  ytdTotals: BucketYTDTotal[];
   colors: ReturnType<typeof getThemePalette>;
   updateBucket: (id: string, input: UpdateBucketInput) => Promise<any>;
   onShowToast: (msg: string) => void;
@@ -107,7 +109,9 @@ function RetirementCard({
   if (!bucket) return null;
 
   const pct = bucket.percentage;
-  const ytd = ytdGrossIncome * (pct / 100);
+  // Actual amount allocated to this bucket (single source of truth — matches
+  // FinancialSnapshot and HealthScoreWidget), not a projection from percentage.
+  const ytd = ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0;
 
   let status: string;
   let statusColor: string;
@@ -166,12 +170,14 @@ function RetirementCard({
 function EmergencyCard({
   buckets,
   ytdGrossIncome,
+  ytdTotals,
   colors,
   updateBucket,
   onShowToast,
 }: {
   buckets: AllocationBucket[];
   ytdGrossIncome: number;
+  ytdTotals: BucketYTDTotal[];
   colors: ReturnType<typeof getThemePalette>;
   updateBucket: (id: string, input: UpdateBucketInput) => Promise<any>;
   onShowToast: (msg: string) => void;
@@ -180,7 +186,9 @@ function EmergencyCard({
   const bucket = buckets.find(b => b.bucket_type === 'emergency_fund');
   if (!bucket) return null;
 
-  const ytd = ytdGrossIncome * (bucket.percentage / 100);
+  // Actual amount allocated to this bucket (single source of truth — matches
+  // FinancialSnapshot and HealthScoreWidget), not a projection from percentage.
+  const ytd = ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0;
   const goal = bucket.goal_amount;
   const progress = goal && goal > 0 ? Math.min(ytd / goal, 1) : null;
   const progressPct = progress !== null ? Math.round(progress * 100) : null;
@@ -305,6 +313,7 @@ export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) 
           <RetirementCard
             buckets={buckets}
             ytdGrossIncome={ytdGrossIncome}
+            ytdTotals={ytdTotals}
             colors={colors}
             updateBucket={updateBucket}
             onShowToast={handleShowToast}
@@ -314,6 +323,7 @@ export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) 
           <EmergencyCard
             buckets={buckets}
             ytdGrossIncome={ytdGrossIncome}
+            ytdTotals={ytdTotals}
             colors={colors}
             updateBucket={updateBucket}
             onShowToast={handleShowToast}
