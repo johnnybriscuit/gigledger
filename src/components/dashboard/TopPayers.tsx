@@ -29,6 +29,7 @@ interface TopPayersProps {
 }
 
 export function TopPayers({ data, onPayerClick }: TopPayersProps) {
+  data = data ?? [];
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
   // Dashboard cards are dark regardless of the in-app theme toggle; the

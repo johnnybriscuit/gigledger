@@ -48,8 +48,9 @@ function TaxCard({
   ytdTaxTotal: number;
   colors: ReturnType<typeof getThemePalette>;
 }) {
-  const federal = buckets.find(b => b.bucket_type === 'federal_tax');
-  const state = buckets.find(b => b.bucket_type === 'state_tax' && b.percentage > 0);
+  const safeBuckets = buckets ?? [];
+  const federal = safeBuckets.find(b => b.bucket_type === 'federal_tax');
+  const state = safeBuckets.find(b => b.bucket_type === 'state_tax' && b.percentage > 0);
 
   if (!federal) return null;
 
@@ -109,13 +110,13 @@ function RetirementCard({
   onShowToast: (msg: string) => void;
 }) {
   const [showPctModal, setShowPctModal] = useState(false);
-  const bucket = buckets.find(b => b.bucket_type === 'retirement');
+  const bucket = (buckets ?? []).find(b => b.bucket_type === 'retirement');
   if (!bucket) return null;
 
   const pct = bucket.percentage;
   // Actual amount allocated to this bucket (single source of truth — matches
   // FinancialSnapshot and HealthScoreWidget), not a projection from percentage.
-  const ytd = ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0;
+  const ytd = (ytdTotals ?? []).find(t => t.bucket_id === bucket.id)?.total ?? 0;
 
   let status: string;
   let statusColor: string;
@@ -198,12 +199,12 @@ function EmergencyCard({
   onShowToast: (msg: string) => void;
 }) {
   const [showGoalModal, setShowGoalModal] = useState(false);
-  const bucket = buckets.find(b => b.bucket_type === 'emergency_fund');
+  const bucket = (buckets ?? []).find(b => b.bucket_type === 'emergency_fund');
   if (!bucket) return null;
 
   // Actual amount allocated to this bucket (single source of truth — matches
   // FinancialSnapshot and HealthScoreWidget), not a projection from percentage.
-  const ytd = ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0;
+  const ytd = (ytdTotals ?? []).find(t => t.bucket_id === bucket.id)?.total ?? 0;
   const goal = bucket.goal_amount;
   const progress = goal && goal > 0 ? Math.min(ytd / goal, 1) : null;
   const progressPct = progress !== null ? Math.round(progress * 100) : null;
@@ -302,11 +303,18 @@ function EmergencyCard({
 export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
-  const { buckets: rawBuckets, updateBucket } = useAllocationBuckets();
-  const { ytdTotals } = useAllocationTransactions();
-  const buckets = rawBuckets as unknown as AllocationBucket[];
+  const { buckets: rawBuckets, updateBucket, isLoading: bucketsLoading } = useAllocationBuckets();
+  const { ytdTotals: rawYtdTotals, isLoadingYTD } = useAllocationTransactions();
+  const buckets = (rawBuckets ?? []) as unknown as AllocationBucket[];
+  const ytdTotals = rawYtdTotals ?? [];
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+
+  // Race guard: allocation queries can still be in flight on first render
+  // (observed once as "Cannot read property 'find' of undefined" on cold
+  // launch) — render nothing until both have resolved rather than reading
+  // .find()/.filter() against partially-loaded data.
+  if (bucketsLoading || isLoadingYTD) return null;
 
   const handleShowToast = (msg: string) => {
     setToastMessage(msg);
@@ -329,7 +337,7 @@ export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) 
             ytdGrossIncome={ytdGrossIncome}
             ytdTaxTotal={buckets
               .filter(b => b.bucket_type === 'federal_tax' || b.bucket_type === 'state_tax')
-              .reduce((sum, b) => sum + (ytdTotals.find(t => t.bucket_id === b.id)?.total ?? 0), 0)}
+              .reduce((sum, b) => sum + ((ytdTotals ?? []).find(t => t.bucket_id === b.id)?.total ?? 0), 0)}
             colors={colors}
           />
         )}

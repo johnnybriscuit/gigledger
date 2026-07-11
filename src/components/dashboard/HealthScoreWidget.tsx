@@ -30,9 +30,14 @@ function getCurrentMonthNumber(): number {
 export function HealthScoreWidget({ ytdGrossIncome }: HealthScoreWidgetProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
-  const { buckets } = useAllocationBuckets();
-  const { ytdTotals } = useAllocationTransactions();
+  const { buckets: rawBuckets, isLoading: bucketsLoading } = useAllocationBuckets();
+  const { ytdTotals: rawYtdTotals, isLoadingYTD } = useAllocationTransactions();
+  const buckets = rawBuckets ?? [];
+  const ytdTotals = rawYtdTotals ?? [];
 
+  // Race guard: allocation queries can still be in flight on first render —
+  // wait for both before reading .find() against them.
+  if (bucketsLoading || isLoadingYTD) return null;
   if (buckets.length === 0 || ytdGrossIncome === 0) return null;
 
   const rows: IndicatorRow[] = [];

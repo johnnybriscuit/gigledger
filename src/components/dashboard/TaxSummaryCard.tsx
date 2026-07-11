@@ -55,7 +55,7 @@ export function TaxSummaryCard({ dateRange = 'ytd', onUpdateProfile }: TaxSummar
   const { gigIncome1099, gigIncomeW2, gigIncomeOther, expenseBreakdown } = dashboardData;
   
   // Sum all expense categories to get total deductions
-  const totalDeductions = expenseBreakdown.reduce((sum, cat) => sum + cat.amount, 0);
+  const totalDeductions = (expenseBreakdown ?? []).reduce((sum, cat) => sum + cat.amount, 0);
   
   // Calculate split tax using new engine
   const splitTaxResult = calculateSplitTax(

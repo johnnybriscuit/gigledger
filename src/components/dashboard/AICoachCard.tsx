@@ -63,8 +63,10 @@ function detectCategory(tipText: string): string {
 export function AICoachCard({ className, onAddGig }: AICoachCardProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
-  const { buckets } = useAllocationBuckets();
-  const { ytdTotals } = useAllocationTransactions();
+  const { buckets: rawBuckets, isLoading: bucketsLoading } = useAllocationBuckets();
+  const { ytdTotals: rawYtdTotals, isLoadingYTD } = useAllocationTransactions();
+  const buckets = rawBuckets ?? [];
+  const ytdTotals = rawYtdTotals ?? [];
   const ytdStart = `${new Date().getFullYear()}-01-01`;
   const { data: gigs } = useGigs({ startDate: ytdStart });
   const paidGigs = useMemo(() => (gigs || []).filter(g => g.paid), [gigs]);

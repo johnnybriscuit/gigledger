@@ -34,6 +34,7 @@ interface ExpenseBreakdownProps {
 }
 
 export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
+  data = data ?? [];
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
   // Dashboard cards are dark regardless of the in-app theme toggle; the

@@ -35,6 +35,7 @@ interface MonthlyOverviewProps {
 }
 
 export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
+  data = data ?? [];
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
   // Dashboard cards are dark regardless of the in-app theme toggle; the

@@ -76,11 +76,15 @@ interface FinancialSnapshotProps {
 export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSnapshotProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
-  const { buckets: rawBuckets } = useAllocationBuckets();
-  const { ytdTotals } = useAllocationTransactions();
+  const { buckets: rawBuckets, isLoading: bucketsLoading } = useAllocationBuckets();
+  const { ytdTotals: rawYtdTotals, isLoadingYTD } = useAllocationTransactions();
 
-  const buckets = rawBuckets as unknown as AllocationBucket[];
+  const buckets = (rawBuckets ?? []) as unknown as AllocationBucket[];
+  const ytdTotals = rawYtdTotals ?? [];
 
+  // Race guard: allocation queries can still be in flight on first render —
+  // wait for both before reading .find()/.filter() against them.
+  if (bucketsLoading || isLoadingYTD) return null;
   if (buckets.length === 0) return null;
 
   const paidCount = paidGigsCount;
