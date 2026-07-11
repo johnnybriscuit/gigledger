@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { GigWithPayer } from '../hooks/useGigs';
 import { usePayers, type Payer } from '../hooks/usePayers';
 import { useProfile } from '../hooks/useProfile';
@@ -141,6 +142,7 @@ export function AddGigModal({
   source = 'dashboard',
 }: AddGigModalProps) {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const grossAmountInputRef = useRef<TextInput>(null);
   const { buckets } = useAllocationBuckets();
   const { createAllocationForGig } = useAllocationTransactions();
@@ -1195,7 +1197,7 @@ export function AddGigModal({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { paddingTop: Math.max(20, insets.top) }]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {editingGig ? 'Edit Gig' : duplicatingGig ? 'Repeat Gig (Draft)' : 'Add New Gig'}
@@ -2022,7 +2024,7 @@ export function AddGigModal({
               taxEstimateAvailable={footerTaxEstimateAvailable}
               showTopBorder={false}
             />
-            <View style={styles.dockButtonArea}>
+            <View style={[styles.dockButtonArea, { paddingBottom: Math.max(styles.dockButtonArea.paddingBottom, insets.bottom) }]}>
               <Button
                 fullWidth
                 onPress={handleSubmit}
