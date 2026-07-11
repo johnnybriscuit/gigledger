@@ -144,6 +144,40 @@ export function AddGigModal({
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const grossAmountInputRef = useRef<TextInput>(null);
+  const payerSearchInputRef = useRef<TextInput>(null);
+  const titleInputRef = useRef<TextInput>(null);
+  const venueFieldRef = useRef<View>(null);
+  const startTimeInputRef = useRef<TextInput>(null);
+  const endTimeInputRef = useRef<TextInput>(null);
+  const invoiceLinkInputRef = useRef<TextInput>(null);
+  const cityFieldRef = useRef<View>(null);
+  const tipsInputRef = useRef<TextInput>(null);
+  const feesInputRef = useRef<TextInput>(null);
+  const perDiemInputRef = useRef<TextInput>(null);
+  const otherIncomeInputRef = useRef<TextInput>(null);
+  const notesInputRef = useRef<TextInput>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollContentRef = useRef<View>(null);
+
+  // Shared keyboard-avoidance mechanism: scrolls the focused field to just
+  // below the header so it's never hidden behind the keyboard, regardless of
+  // how far down the form it sits. Measures each field relative to a wrapper
+  // View around the ScrollView's content (not the ScrollView itself, whose
+  // ref is a composite component rather than a host instance and isn't a
+  // reliable measureLayout target) so the returned y is an absolute content
+  // offset usable directly as a scrollTo target.
+  const scrollFieldIntoView = (ref: React.RefObject<TextInput | View | null>) => {
+    if (!ref.current || !scrollContentRef.current) return;
+    setTimeout(() => {
+      ref.current?.measureLayout(
+        scrollContentRef.current as any,
+        (_x: number, y: number) => {
+          scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 100), animated: true });
+        },
+        () => {}
+      );
+    }, 50);
+  };
   const { buckets } = useAllocationBuckets();
   const { createAllocationForGig } = useAllocationTransactions();
   const hasTrackedOpenRef = useRef(false);
@@ -1207,7 +1241,12 @@ export function AddGigModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.form}
+            showsVerticalScrollIndicator={false}
+          >
+            <View ref={scrollContentRef}>
             <CoreDetailsSection
               isStacked={isMobile}
               headerActions={
@@ -1263,9 +1302,11 @@ export function AddGigModal({
                           <View style={styles.payerDropdownSearch}>
                             <Text style={styles.searchIcon}>🔍</Text>
                             <TextInput
+                              ref={payerSearchInputRef}
                               style={styles.searchInput}
                               value={payerSearch}
                               onChangeText={setPayerSearch}
+                              onFocus={() => scrollFieldIntoView(payerSearchInputRef)}
                               placeholder="Search payers..."
                               placeholderTextColor={colors.text.subtle}
                               autoCapitalize="none"
@@ -1356,6 +1397,7 @@ export function AddGigModal({
                       ref={grossAmountInputRef}
                       style={styles.amountInput}
                       value={grossAmount}
+                      onFocus={() => scrollFieldIntoView(grossAmountInputRef)}
                       onChangeText={(text) => {
                         setGrossAmount(text);
                         if (fieldErrors.grossAmount && text && parseFloat(text) >= 0) {
@@ -1385,21 +1427,25 @@ export function AddGigModal({
               titleField={
                 <Field label="Title" help="Optional. We can suggest one from payer + date if you leave it blank.">
                   <TextInput
+                    ref={titleInputRef}
                     style={styles.input}
                     value={title}
                     onChangeText={setTitle}
+                    onFocus={() => scrollFieldIntoView(titleInputRef)}
                     placeholder="Optional title"
                     placeholderTextColor={colors.text.subtle}
                   />
                 </Field>
               }
               venueField={
+                <View ref={venueFieldRef}>
                 <Field label="Venue">
                   <PlaceAutocomplete
                     label=""
                     placeholder="Search for a venue or type it manually..."
                     types="establishment"
                     value={location}
+                    onFocus={() => scrollFieldIntoView(venueFieldRef)}
                     onChange={(text: string) => {
                       setLocation(text);
                       setVenueDetails(null);
@@ -1436,6 +1482,7 @@ export function AddGigModal({
                     locationBias={cityDetails?.location}
                   />
                 </Field>
+                </View>
               }
               venueHelper={
                 needsManualLocationDetails ? (
@@ -1482,9 +1529,11 @@ export function AddGigModal({
               startTimeField={
                 <Field label="Start time">
                   <TextInput
+                    ref={startTimeInputRef}
                     style={styles.input}
                     value={startTime}
                     onChangeText={setStartTime}
+                    onFocus={() => scrollFieldIntoView(startTimeInputRef)}
                     placeholder="19:00"
                     placeholderTextColor={colors.text.subtle}
                   />
@@ -1493,9 +1542,11 @@ export function AddGigModal({
               endTimeField={
                 <Field label="End time">
                   <TextInput
+                    ref={endTimeInputRef}
                     style={styles.input}
                     value={endTime}
                     onChangeText={setEndTime}
+                    onFocus={() => scrollFieldIntoView(endTimeInputRef)}
                     placeholder="21:00"
                     placeholderTextColor={colors.text.subtle}
                   />
@@ -1504,9 +1555,11 @@ export function AddGigModal({
               invoiceField={
                 <Field label="Invoice link">
                   <TextInput
+                    ref={invoiceLinkInputRef}
                     style={styles.input}
                     value={invoiceLink}
                     onChangeText={setInvoiceLink}
+                    onFocus={() => scrollFieldIntoView(invoiceLinkInputRef)}
                     placeholder="https://..."
                     placeholderTextColor={colors.text.subtle}
                     keyboardType="url"
@@ -1520,13 +1573,14 @@ export function AddGigModal({
                     Venue lookup usually fills these in. Adjust them only if you need more precise reporting.
                   </Text>
 
-                  <View style={styles.inputGroup}>
+                  <View style={styles.inputGroup} ref={cityFieldRef}>
                     <Field label="City">
                       <PlaceAutocomplete
                         label=""
                         placeholder="Search for a city..."
                         types="(cities)"
                         value={city}
+                        onFocus={() => scrollFieldIntoView(cityFieldRef)}
                         onChange={(text: string) => {
                           setCity(text);
                           setCityDetails(null);
@@ -1639,9 +1693,11 @@ export function AddGigModal({
               tipsField={
                 <Field label="Tips">
                   <TextInput
+                    ref={tipsInputRef}
                     style={styles.input}
                     value={tips}
                     onChangeText={setTips}
+                    onFocus={() => scrollFieldIntoView(tipsInputRef)}
                     placeholder="0.00"
                     placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
@@ -1651,9 +1707,11 @@ export function AddGigModal({
               feesField={
                 <Field label="Fees">
                   <TextInput
+                    ref={feesInputRef}
                     style={styles.input}
                     value={fees}
                     onChangeText={setFees}
+                    onFocus={() => scrollFieldIntoView(feesInputRef)}
                     placeholder="0.00"
                     placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
@@ -1663,9 +1721,11 @@ export function AddGigModal({
               perDiemField={
                 <Field label="Per Diem">
                   <TextInput
+                    ref={perDiemInputRef}
                     style={styles.input}
                     value={perDiem}
                     onChangeText={setPerDiem}
+                    onFocus={() => scrollFieldIntoView(perDiemInputRef)}
                     placeholder="0.00"
                     placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
@@ -1675,9 +1735,11 @@ export function AddGigModal({
               otherIncomeField={
                 <Field label="Other Income">
                   <TextInput
+                    ref={otherIncomeInputRef}
                     style={styles.input}
                     value={otherIncome}
                     onChangeText={setOtherIncome}
+                    onFocus={() => scrollFieldIntoView(otherIncomeInputRef)}
                     placeholder="0.00"
                     placeholderTextColor={colors.text.subtle}
                     keyboardType="decimal-pad"
@@ -1993,9 +2055,11 @@ export function AddGigModal({
             <Accordion title="Notes" description="Additional notes about this gig">
               <Field label="Notes">
                 <TextInput
+                  ref={notesInputRef}
                   style={[styles.input, styles.textArea]}
                   value={notes}
                   onChangeText={setNotes}
+                  onFocus={() => scrollFieldIntoView(notesInputRef)}
                   placeholder="Add notes about this gig..."
                   placeholderTextColor={colors.text.subtle}
                   multiline
@@ -2006,6 +2070,7 @@ export function AddGigModal({
             </Accordion>
 
             <View style={styles.footerSpacer} />
+            </View>
           </ScrollView>
 
           <View style={styles.bottomDock}>

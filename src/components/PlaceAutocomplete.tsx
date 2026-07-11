@@ -43,6 +43,7 @@ interface PlaceAutocompleteProps {
   value: string;
   onChange: (text: string) => void;
   onSelect: (item: { description: string; place_id: string }) => void;
+  onFocus?: () => void;
   initialQuery?: string;
   disabled?: boolean;
   error?: string;
@@ -56,6 +57,7 @@ export function PlaceAutocomplete({
   value,
   onChange,
   onSelect,
+  onFocus,
   disabled = false,
   error,
   locationBias,
@@ -237,6 +239,7 @@ export function PlaceAutocomplete({
   // Focus handler - only open if we have predictions
   const handleFocus = () => {
     measureInputPosition();
+    onFocus?.();
 
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
