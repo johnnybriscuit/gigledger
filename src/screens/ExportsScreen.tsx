@@ -10,9 +10,7 @@ import {
 import { Text } from '../ui';
 import { colors } from '../styles/theme';
 import { HowToImportModal, type TaxSoftware } from '../components/HowToImportModal';
-import { generateCSVBundle } from '../lib/exports/csv-bundle-generator';
 import { downloadJSONBackup as downloadJSONBackupCanonical } from '../lib/exports/json-backup-generator';
-import { generateScheduleCSummaryPdf } from '../lib/exports/taxpdf';
 import { useQuery } from '@tanstack/react-query';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getSharedUserId } from '../lib/sharedAuth';
@@ -24,8 +22,6 @@ import {
 import { getTXFImportInstructions } from '../lib/exports/txf-generator';
 import { useTaxExportPackage } from '../hooks/useTaxExportPackage';
 import { generateTXFv042 } from '../lib/exports/txf-v042-generator';
-import { generateTaxActPackZip } from '../lib/exports/taxact-pack';
-import { generateTurboTaxOnlinePack } from '../lib/exports/turbotax-online-pack';
 import { downloadTXF as downloadTXFWeb, downloadZip } from '../lib/exports/webDownloadHelpers';
 import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
 import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
@@ -133,12 +129,16 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
     }
 
     try {
+      // Lazy-load: jszip is a heavy Node-oriented library. Statically importing it
+      // pulls its module-init code into the app's eager bundle path, the same
+      // crash-on-launch pattern fixed for exceljs (see handleDownloadExcel).
+      const { generateCSVBundle } = await import('../lib/exports/csv-bundle-generator');
       await generateCSVBundle(taxPackage.data);
-      
+
       // Track analytics
       const { trackExportCreated } = await import('../lib/analytics');
       trackExportCreated({ export_type: 'csv_bundle', source: 'exports_screen' });
-      
+
       Alert.alert('CSV Bundle Downloaded', 'Your ZIP file contains 7 CSV files for CPA sharing and tax prep.');
     } catch (error: unknown) {
       console.error('CSV export error:', error);
@@ -249,6 +249,10 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
     }
 
     try {
+      // Lazy-load: pdf-lib is a heavy Node-oriented library. Statically importing it
+      // pulls its module-init code into the app's eager bundle path, the same
+      // crash-on-launch pattern fixed for exceljs (see handleDownloadExcel).
+      const { generateScheduleCSummaryPdf } = await import('../lib/exports/taxpdf');
       const pdfBytes = await generateScheduleCSummaryPdf({
         pkg: taxPackage.data,
         appVersion: 'Bozzy v1.0',
@@ -354,6 +358,10 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
     }
 
     try {
+      // Lazy-load: pulls in jszip and pdf-lib (via taxpdf), both heavy
+      // Node-oriented libraries — same crash-on-launch pattern fixed for
+      // exceljs (see handleDownloadExcel).
+      const { generateTaxActPackZip } = await import('../lib/exports/taxact-pack');
       const { filename, bytes } = await generateTaxActPackZip({
         pkg: taxPackage.data,
         appVersion: '1.0.0',
@@ -394,6 +402,10 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
     }
 
     try {
+      // Lazy-load: pulls in jszip and pdf-lib (via taxpdf), both heavy
+      // Node-oriented libraries — same crash-on-launch pattern fixed for
+      // exceljs (see handleDownloadExcel).
+      const { generateTurboTaxOnlinePack } = await import('../lib/exports/turbotax-online-pack');
       const bytes = await generateTurboTaxOnlinePack(taxPackage.data);
       const filename = `TurboTax_Online_Manual_Entry_Pack_${taxYear}.zip`;
 
