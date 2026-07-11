@@ -34,6 +34,7 @@ import { StickySummary } from './gigs/StickySummary';
 import { Accordion } from './ui/Accordion';
 import { UpgradeModal } from './UpgradeModal';
 import { DatePickerModal } from './ui/DatePickerModal';
+import { TimePickerModal, formatTime12Hour } from './ui/TimePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
 import { checkLimit, incrementLimitUsage } from '../utils/limitChecks';
 import { getEffectiveTaxTreatment, getTaxTreatmentShortLabel } from '../lib/taxTreatment';
@@ -147,8 +148,6 @@ export function AddGigModal({
   const payerSearchInputRef = useRef<TextInput>(null);
   const titleInputRef = useRef<TextInput>(null);
   const venueFieldRef = useRef<View>(null);
-  const startTimeInputRef = useRef<TextInput>(null);
-  const endTimeInputRef = useRef<TextInput>(null);
   const invoiceLinkInputRef = useRef<TextInput>(null);
   const cityFieldRef = useRef<View>(null);
   const tipsInputRef = useRef<TextInput>(null);
@@ -197,6 +196,8 @@ export function AddGigModal({
   const [cityError, setCityError] = useState('');
   const [grossAmount, setGrossAmount] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [showStatePicker, setShowStatePicker] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [stateSearch, setStateSearch] = useState('');
@@ -1528,28 +1529,36 @@ export function AddGigModal({
               isStacked={isMobile}
               startTimeField={
                 <Field label="Start time">
-                  <TextInput
-                    ref={startTimeInputRef}
-                    style={styles.input}
-                    value={startTime}
-                    onChangeText={setStartTime}
-                    onFocus={() => scrollFieldIntoView(startTimeInputRef)}
-                    placeholder="19:00"
-                    placeholderTextColor={colors.text.subtle}
-                  />
+                  <TouchableOpacity
+                    style={styles.pickerButton}
+                    onPress={() => setShowStartTimePicker(true)}
+                  >
+                    <Text style={[styles.pickerButtonText, !startTime && styles.placeholderText]}>
+                      {startTime ? formatTime12Hour(startTime) : 'Select time'}
+                    </Text>
+                    <Text style={styles.pickerButtonIcon}>🕐</Text>
+                  </TouchableOpacity>
                 </Field>
               }
               endTimeField={
                 <Field label="End time">
-                  <TextInput
-                    ref={endTimeInputRef}
-                    style={styles.input}
-                    value={endTime}
-                    onChangeText={setEndTime}
-                    onFocus={() => scrollFieldIntoView(endTimeInputRef)}
-                    placeholder="21:00"
-                    placeholderTextColor={colors.text.subtle}
-                  />
+                  <View>
+                    <TouchableOpacity
+                      style={styles.pickerButton}
+                      onPress={() => setShowEndTimePicker(true)}
+                    >
+                      <Text style={[styles.pickerButtonText, !endTime && styles.placeholderText]}>
+                        {endTime ? formatTime12Hour(endTime) : 'Select time'}
+                      </Text>
+                      <Text style={styles.pickerButtonIcon}>🕐</Text>
+                    </TouchableOpacity>
+                    {/* Overnight gigs are common for musicians (e.g. 10pm-2am), so an
+                        end time before the start time is treated as ending the next
+                        day rather than a validation error. */}
+                    {startTime && endTime && endTime <= startTime ? (
+                      <Text style={styles.helperText}>Ends after midnight (next day)</Text>
+                    ) : null}
+                  </View>
                 </Field>
               }
               invoiceField={
@@ -2155,6 +2164,24 @@ export function AddGigModal({
         onChange={handleDateChange}
         title="Select gig date"
         showTodayShortcut={true}
+        isDark={theme === 'dark'}
+      />
+
+      {/* Start/End Time Picker Modals */}
+      <TimePickerModal
+        open={showStartTimePicker}
+        onOpenChange={setShowStartTimePicker}
+        value={startTime}
+        onChange={setStartTime}
+        title="Select start time"
+        isDark={theme === 'dark'}
+      />
+      <TimePickerModal
+        open={showEndTimePicker}
+        onOpenChange={setShowEndTimePicker}
+        value={endTime}
+        onChange={setEndTime}
+        title="Select end time"
         isDark={theme === 'dark'}
       />
 
