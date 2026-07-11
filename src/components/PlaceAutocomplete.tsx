@@ -14,12 +14,20 @@ import {
   ActivityIndicator,
   ScrollView,
   Pressable,
+  LogBox,
 } from 'react-native';
 import { Text } from '../ui';
 import { colors, spacing, radius, typography } from '../styles/theme';
 import DropdownOverlay from './DropdownOverlay';
 import { useAnchorLayout } from '../hooks/useAnchorLayout';
 import { isPrintableKey, isNavKey, isCloseKey } from '../lib/keyboard';
+
+// Autocomplete is a progressive enhancement: prediction-fetch failures are
+// expected (e.g. no network, proxy misconfigured) and are handled inline via
+// fetchError below, so they should never interrupt the user with LogBox's
+// dev-mode error banner. The failure is still logged to the console for
+// debugging.
+LogBox.ignoreLogs(['[PlaceAutocomplete] Error fetching predictions']);
 
 // Lazy-load createPortal so native bundles never import react-dom
 let createPortal: any = null;
