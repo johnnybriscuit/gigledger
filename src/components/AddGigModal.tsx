@@ -939,8 +939,8 @@ export function AddGigModal({
     if (!date) {
       errors.date = 'Date is required';
     }
-    if (!grossAmount || parseFloat(grossAmount) < 0) {
-      errors.grossAmount = 'Base pay must be 0 or greater';
+    if (!grossAmount || isNaN(parseFloat(grossAmount)) || parseFloat(grossAmount) < 0) {
+      errors.grossAmount = "Base pay can't be negative";
     }
     
     setFieldErrors(errors);
@@ -964,7 +964,7 @@ export function AddGigModal({
         }
       } else if (!date) {
         setShowDatePicker(true);
-      } else if (!grossAmount || parseFloat(grossAmount) < 0) {
+      } else if (!grossAmount || isNaN(parseFloat(grossAmount)) || parseFloat(grossAmount) < 0) {
         setTimeout(() => grossAmountInputRef.current?.focus(), 100);
       }
 
