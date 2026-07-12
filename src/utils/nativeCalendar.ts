@@ -70,6 +70,33 @@ function parseDateTime(date: string, time?: string): Date {
 }
 
 /**
+ * Compute the calendar event's end Date from a gig's start Date and optional
+ * end time. A gig's date is its start date; an end time earlier than the
+ * start time means the gig runs past midnight (e.g. 10pm-2am), so the event
+ * ends the next day. An end time equal to the start time is treated as
+ * unset (falls back to the default 2-hour event) rather than a 24-hour event.
+ */
+function computeEndDate(startDate: Date, endTime?: string): Date {
+  if (!endTime) {
+    return new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+  }
+
+  const endDate = new Date(startDate);
+  const [hours, minutes] = endTime.split(':').map(Number);
+  endDate.setHours(hours, minutes, 0, 0);
+
+  if (endDate.getTime() === startDate.getTime()) {
+    return new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+  }
+
+  if (endDate.getTime() < startDate.getTime()) {
+    endDate.setDate(endDate.getDate() + 1);
+  }
+
+  return endDate;
+}
+
+/**
  * Add a gig to the native device calendar
  * @returns The calendar event ID if successful, null otherwise
  */
@@ -94,9 +121,7 @@ export async function addGigToCalendar(event: CalendarEventData): Promise<string
 
     // Parse dates
     const startDate = parseDateTime(event.date, event.startTime);
-    const endDate = event.endTime 
-      ? parseDateTime(event.date, event.endTime)
-      : new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // 2 hours later
+    const endDate = computeEndDate(startDate, event.endTime);
 
     // Build notes/description
     const notesParts: string[] = [];
@@ -152,9 +177,7 @@ export async function updateCalendarEvent(
     }
 
     const startDate = parseDateTime(event.date, event.startTime);
-    const endDate = event.endTime 
-      ? parseDateTime(event.date, event.endTime)
-      : new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+    const endDate = computeEndDate(startDate, event.endTime);
 
     const notesParts: string[] = [];
     if (event.payerName) {

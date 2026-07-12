@@ -31,13 +31,31 @@ function formatICSDateTime(date: string, time?: string): string {
 }
 
 /**
- * Calculate end time (2 hours after start if not provided)
+ * Add one day to a YYYY-MM-DD date string, handling month/year rollover.
+ */
+function addOneDay(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const next = new Date(Date.UTC(year, month - 1, day + 1));
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Calculate end time (2 hours after start if not provided).
+ * A gig's date is its start date; an end time earlier than the start time
+ * means the gig runs past midnight (e.g. 10pm-2am), so the event ends the
+ * next day. An end time equal to the start time is treated as unset rather
+ * than a 24-hour event.
  */
 function getEndTime(date: string, startTime?: string, endTime?: string): string {
-  if (endTime) {
+  if (endTime && startTime && endTime !== startTime) {
+    const isOvernight = endTime < startTime;
+    return formatICSDateTime(isOvernight ? addOneDay(date) : date, endTime);
+  }
+
+  if (endTime && !startTime) {
     return formatICSDateTime(date, endTime);
   }
-  
+
   const [hours, minutes] = startTime ? startTime.split(':').map(Number) : [19, 0];
   const endHours = (hours + 2) % 24;
   const endTimeStr = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;

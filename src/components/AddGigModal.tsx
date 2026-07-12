@@ -1554,8 +1554,10 @@ export function AddGigModal({
                     </TouchableOpacity>
                     {/* Overnight gigs are common for musicians (e.g. 10pm-2am), so an
                         end time before the start time is treated as ending the next
-                        day rather than a validation error. */}
-                    {startTime && endTime && endTime <= startTime ? (
+                        day rather than a validation error. An end time equal to the
+                        start time isn't overnight -- it's just not a meaningful
+                        duration, so no note is shown for that case. */}
+                    {startTime && endTime && endTime < startTime ? (
                       <Text style={styles.helperText}>Ends after midnight (next day)</Text>
                     ) : null}
                   </View>
