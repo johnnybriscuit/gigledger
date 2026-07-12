@@ -21,6 +21,12 @@ import { colors, spacing, radius, typography } from '../styles/theme';
 import DropdownOverlay from './DropdownOverlay';
 import { useAnchorLayout } from '../hooks/useAnchorLayout';
 import { isPrintableKey, isNavKey, isCloseKey } from '../lib/keyboard';
+import { env } from '../config/env';
+
+// On web, a relative URL resolves against the current origin. Native has no
+// origin to resolve against, so native builds need an absolute base URL
+// pointing at the deployed proxy.
+const API_BASE = Platform.OS === 'web' ? '' : env.siteUrl;
 
 // Autocomplete is a progressive enhancement: prediction-fetch failures are
 // expected (e.g. no network, proxy misconfigured) and are handled inline via
@@ -143,7 +149,7 @@ export function PlaceAutocomplete({
           params.append('radius', '50000');
         }
 
-        const response = await fetch(`/api/places/autocomplete?${params}`, {
+        const response = await fetch(`${API_BASE}/api/places/autocomplete?${params}`, {
           credentials: 'include',
           signal: abortController.current.signal,
         });
