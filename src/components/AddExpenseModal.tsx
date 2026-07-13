@@ -12,6 +12,8 @@ import {
   Image,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useScrollFieldIntoView } from '../hooks/useScrollFieldIntoView';
 import { useCreateExpense, useUpdateExpense, uploadReceipt, createDraftExpense, deleteDraftExpense } from '../hooks/useExpenses';
 import { expenseSchema, type ExpenseFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
@@ -52,7 +54,13 @@ const CATEGORIES_WITH_BUSINESS_USE = [
 export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingExpense }: AddExpenseModalProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  
+  const insets = useSafeAreaInsets();
+  const { scrollViewRef, scrollContentRef, scrollFieldIntoView } = useScrollFieldIntoView();
+  const descriptionInputRef = useRef<TextInput>(null);
+  const amountInputRef = useRef<TextInput>(null);
+  const vendorInputRef = useRef<TextInput>(null);
+  const notesInputRef = useRef<TextInput>(null);
+
   const [date, setDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [category, setCategory] = useState<typeof EXPENSE_CATEGORIES[number]>('Other');
@@ -561,7 +569,15 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            {
+              paddingTop: Math.max(20, insets.top),
+              paddingBottom: Math.max(styles.modalContent.paddingBottom, insets.bottom),
+            },
+          ]}
+        >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {editingExpense ? 'Edit Expense' : duplicatingExpense ? 'Repeat Expense (Draft)' : 'Add New Expense'}
@@ -571,7 +587,8 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+          <ScrollView ref={scrollViewRef} style={styles.form} showsVerticalScrollIndicator={false}>
+            <View ref={scrollContentRef}>
             {/* Section 0: Receipt Upload (Receipt-First UX) */}
             {!editingExpense && (
               <View style={styles.receiptFirstSection}>
@@ -775,9 +792,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Description <Text style={styles.required}>*</Text></Text>
                 <TextInput
+                  ref={descriptionInputRef}
                   style={[styles.input, styles.textArea]}
                   value={description}
                   onChangeText={setDescription}
+                  onFocus={() => scrollFieldIntoView(descriptionInputRef)}
                   placeholder="e.g., Gas for tour to Chicago - Jan 5-7 weekend run"
                   placeholderTextColor="#9ca3af"
                   multiline
@@ -790,9 +809,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 <View style={[styles.inputGroup, isMobile ? {} : { flex: 0.6 }]}>
                   <Text style={styles.label}>Amount <Text style={styles.required}>*</Text></Text>
                   <TextInput
+                    ref={amountInputRef}
                     style={styles.input}
                     value={amount}
                     onChangeText={setAmount}
+                    onFocus={() => scrollFieldIntoView(amountInputRef)}
                     placeholder="0.00"
                     placeholderTextColor="#9ca3af"
                     keyboardType="decimal-pad"
@@ -802,9 +823,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 <View style={[styles.inputGroup, isMobile ? {} : { flex: 0.4 }]}>
                   <Text style={styles.label}>Vendor (Optional)</Text>
                   <TextInput
+                    ref={vendorInputRef}
                     style={styles.input}
                     value={vendor}
                     onChangeText={setVendor}
+                    onFocus={() => scrollFieldIntoView(vendorInputRef)}
                     placeholder="e.g., Shell"
                     placeholderTextColor="#9ca3af"
                   />
@@ -835,9 +858,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Notes (Optional)</Text>
                 <TextInput
+                  ref={notesInputRef}
                   style={[styles.input, styles.textArea]}
                   value={notes}
                   onChangeText={setNotes}
+                  onFocus={() => scrollFieldIntoView(notesInputRef)}
                   placeholder="Add notes about this expense..."
                   placeholderTextColor="#9ca3af"
                   multiline
@@ -864,6 +889,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                   : 'Add'}
               </Text>
             </TouchableOpacity>
+            </View>
           </ScrollView>
         </View>
       </View>

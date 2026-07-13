@@ -62,6 +62,7 @@ import {
   trackGigModalOpened,
   trackGigValidationFailed,
 } from '../lib/analytics';
+import { useScrollFieldIntoView } from '../hooks/useScrollFieldIntoView';
 
 interface AddGigModalProps {
   visible: boolean;
@@ -155,28 +156,7 @@ export function AddGigModal({
   const perDiemInputRef = useRef<TextInput>(null);
   const otherIncomeInputRef = useRef<TextInput>(null);
   const notesInputRef = useRef<TextInput>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const scrollContentRef = useRef<View>(null);
-
-  // Shared keyboard-avoidance mechanism: scrolls the focused field to just
-  // below the header so it's never hidden behind the keyboard, regardless of
-  // how far down the form it sits. Measures each field relative to a wrapper
-  // View around the ScrollView's content (not the ScrollView itself, whose
-  // ref is a composite component rather than a host instance and isn't a
-  // reliable measureLayout target) so the returned y is an absolute content
-  // offset usable directly as a scrollTo target.
-  const scrollFieldIntoView = (ref: React.RefObject<TextInput | View | null>) => {
-    if (!ref.current || !scrollContentRef.current) return;
-    setTimeout(() => {
-      ref.current?.measureLayout(
-        scrollContentRef.current as any,
-        (_x: number, y: number) => {
-          scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 100), animated: true });
-        },
-        () => {}
-      );
-    }, 50);
-  };
+  const { scrollViewRef, scrollContentRef, scrollFieldIntoView } = useScrollFieldIntoView();
   const { buckets } = useAllocationBuckets();
   const { createAllocationForGig } = useAllocationTransactions();
   const hasTrackedOpenRef = useRef(false);

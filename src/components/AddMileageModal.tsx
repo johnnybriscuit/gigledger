@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useScrollFieldIntoView } from '../hooks/useScrollFieldIntoView';
 import {
   useCreateMileage,
   useUpdateMileage,
@@ -35,6 +37,14 @@ interface AddMileageModalProps {
 
 export function AddMileageModal({ visible, onClose, editingMileage }: AddMileageModalProps) {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { scrollViewRef, scrollContentRef, scrollFieldIntoView } = useScrollFieldIntoView();
+  const purposeInputRef = useRef<TextInput>(null);
+  const startLocationFieldRef = useRef<View>(null);
+  const endLocationFieldRef = useRef<View>(null);
+  const milesInputRef = useRef<TextInput>(null);
+  const notesInputRef = useRef<TextInput>(null);
+  const routeNameInputRef = useRef<TextInput>(null);
   const [date, setDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [purpose, setPurpose] = useState('');
@@ -303,7 +313,15 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            {
+              paddingTop: Math.max(20, insets.top),
+              paddingBottom: Math.max(styles.modalContent.paddingBottom, insets.bottom),
+            },
+          ]}
+        >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
               {editingMileage ? 'Edit Trip' : 'Add New Trip'}
@@ -313,7 +331,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+          <ScrollView ref={scrollViewRef} style={styles.form} showsVerticalScrollIndicator={false}>
+            <View ref={scrollContentRef}>
             {!editingMileage && savedRoutes.length > 0 && (
               <View style={styles.quickSelectSection}>
                 <Text style={styles.quickSelectTitle}>🚀 Quick Select</Text>
@@ -360,18 +379,22 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Purpose *</Text>
               <TextInput
+                ref={purposeInputRef}
                 style={styles.input}
                 value={purpose}
                 onChangeText={setPurpose}
+                onFocus={() => scrollFieldIntoView(purposeInputRef)}
                 placeholder="e.g., Drive to gig in Columbus"
                 placeholderTextColor={colors.text.subtle}
               />
             </View>
 
+            <View ref={startLocationFieldRef}>
             <AddressPlacesInput
               label="Start Location *"
               placeholder="e.g., Ryman Auditorium or 123 Main St"
               value={startLocation}
+              onFocus={() => scrollFieldIntoView(startLocationFieldRef)}
               onChange={(text) => {
                 setStartLocation(text);
                 setStartPlaceId(null); // Reset place ID when typing
@@ -396,11 +419,14 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               helperText="Choose a suggestion for the most accurate mileage"
               error={selectionError && !startPlaceId ? selectionError : startCoordsError || undefined}
             />
+            </View>
 
+            <View ref={endLocationFieldRef}>
             <AddressPlacesInput
               label="End Location *"
               placeholder="e.g., The Ryman or 500 Broadway"
               value={endLocation}
+              onFocus={() => scrollFieldIntoView(endLocationFieldRef)}
               onChange={(text) => {
                 setEndLocation(text);
                 setEndPlaceId(null); // Reset place ID when typing
@@ -425,6 +451,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
               helperText="Choose a suggestion for the most accurate mileage"
               error={selectionError && !endPlaceId ? selectionError : endCoordsError || undefined}
             />
+            </View>
 
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
@@ -442,6 +469,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                 </TouchableOpacity>
               </View>
               <TextInput
+                ref={milesInputRef}
                 style={styles.input}
                 value={miles}
                 onChangeText={(text) => {
@@ -449,6 +477,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                   setIsAutoCalculated(false);
                   setAutoCalculatedOneWayMiles(null);
                 }}
+                onFocus={() => scrollFieldIntoView(milesInputRef)}
                 placeholder="0"
                 placeholderTextColor={colors.text.subtle}
                 keyboardType="decimal-pad"
@@ -495,9 +524,11 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Notes (Optional)</Text>
               <TextInput
+                ref={notesInputRef}
                 style={[styles.input, styles.textArea]}
                 value={notes}
                 onChangeText={setNotes}
+                onFocus={() => scrollFieldIntoView(notesInputRef)}
                 placeholder="Add notes about this trip..."
                 placeholderTextColor={colors.text.subtle}
                 multiline
@@ -525,9 +556,11 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                   <View style={styles.inputGroup}>
                     <Text style={styles.label}>Route Name</Text>
                     <TextInput
+                      ref={routeNameInputRef}
                       style={styles.input}
                       value={routeName}
                       onChangeText={setRouteName}
+                      onFocus={() => scrollFieldIntoView(routeNameInputRef)}
                       placeholder="e.g., Home → Office"
                       placeholderTextColor={colors.text.subtle}
                     />
@@ -549,6 +582,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
                   : 'Add'}
               </Text>
             </TouchableOpacity>
+            </View>
           </ScrollView>
         </View>
       </View>

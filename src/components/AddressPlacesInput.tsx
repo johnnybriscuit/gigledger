@@ -30,9 +30,11 @@ interface AddressPlacesInputProps {
     lng?: number;
   }) => void;
   onCoordsFailed?: () => void; // Callback when coordinates fail to resolve
+  onFocus?: () => void;
   disabled?: boolean;
   error?: string;
   helperText?: string;
+  scrollEnabled?: boolean;
 }
 
 export function AddressPlacesInput({
@@ -42,9 +44,11 @@ export function AddressPlacesInput({
   onChange,
   onSelect,
   onCoordsFailed,
+  onFocus,
   disabled = false,
   error,
   helperText,
+  scrollEnabled = true,
 }: AddressPlacesInputProps) {
   const [internalValue, setInternalValue] = useState(value);
   const [hasSelected, setHasSelected] = useState(false);
@@ -195,12 +199,14 @@ export function AddressPlacesInput({
         value={internalValue}
         onTextChange={handleTextChange}
         onPlaceSelect={handlePlaceSelect}
+        onFocus={onFocus}
         placeHolderText={placeholder || 'Search for an address...'}
         editable={!disabled}
         fetchDetails={false}
         debounceDelay={300}
         minCharsToFetch={2}
         types={['establishment', 'geocode']}
+        scrollEnabled={scrollEnabled}
         style={{
           ...placesStyles,
           input: [
