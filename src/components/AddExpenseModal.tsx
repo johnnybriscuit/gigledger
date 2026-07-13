@@ -9,12 +9,15 @@ import {
   ScrollView,
   Platform,
   Alert,
+  ActionSheetIOS,
   Image,
   useWindowDimensions,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScrollFieldIntoView } from '../hooks/useScrollFieldIntoView';
-import { useCreateExpense, useUpdateExpense, uploadReceipt, createDraftExpense, deleteDraftExpense } from '../hooks/useExpenses';
+import { useCreateExpense, useUpdateExpense, uploadReceipt, createDraftExpense, deleteDraftExpense, type NativeReceiptFile } from '../hooks/useExpenses';
 import { expenseSchema, type ExpenseFormData } from '../lib/validations';
 import { DatePickerModal } from './ui/DatePickerModal';
 import { toUtcDateString, fromUtcDateString } from '../lib/date';
@@ -69,7 +72,8 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   const [amount, setAmount] = useState('');
   const [vendor, setVendor] = useState('');
   const [notes, setNotes] = useState('');
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | NativeReceiptFile | null>(null);
+  const [showAndroidReceiptSheet, setShowAndroidReceiptSheet] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [businessUsePercent, setBusinessUsePercent] = useState(100);
   const [mealsDeductiblePercent, setMealsDeductiblePercent] = useState<50 | 100>(50);
@@ -181,6 +185,214 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     setFieldErrors({});
   };
 
+  const showFileAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}: ${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  const processPickedFile = async (file: File | NativeReceiptFile) => {
+    const fileSize = 'size' in file ? file.size : file.data.byteLength;
+    // Check file size (5MB limit)
+    if (fileSize > 5 * 1024 * 1024) {
+      showFileAlert('File Too Large', 'File size must be less than 5MB');
+      return;
+    }
+    setReceiptFile(file);
+    setScanResult(null);
+    scanAttemptedRef.current = false;
+
+    if (editingExpense) {
+      // Edit mode: upload directly to expense
+      try {
+        setUploading(true);
+        const receiptPath = await uploadReceipt(editingExpense.id, file);
+        await updateExpense.mutateAsync({
+          id: editingExpense.id,
+          receipt_url: receiptPath,
+          receipt_storage_path: receiptPath,
+        });
+        scanAttemptedRef.current = true;
+        await handleReceiptScan(editingExpense.id);
+      } catch (error: any) {
+        console.error('Receipt upload error:', error);
+        showFileAlert('Upload Failed', 'Failed to upload receipt: ' + error.message);
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      // New expense mode: create draft expense, upload receipt, then scan
+      if (enableReceiptScan) {
+        try {
+          setUploading(true);
+          setScanningReceipt(true);
+          setScanningStep('uploading');
+
+          // 1. Create draft expense
+          const expenseId = await createDraftExpense();
+          setDraftExpenseId(expenseId);
+          setCurrentExpenseId(expenseId);
+
+          // 2. Upload receipt to user-scoped path
+          const receiptPath = await uploadReceipt(expenseId, file);
+
+          // 3. Update draft with receipt path
+          await updateExpense.mutateAsync({
+            id: expenseId,
+            receipt_url: receiptPath,
+            receipt_storage_path: receiptPath,
+            receipt_mime: file.type,
+          });
+
+          // 4. Scan receipt
+          setScanningStep('analyzing');
+          const result = await processReceipt(expenseId);
+
+          setScanningStep('extracting');
+          setScanResult(result);
+
+          // 5. Auto-populate fields from scan results
+          if (result.success && result.extracted) {
+            if (!vendor && result.extracted.vendor) {
+              setVendor(result.extracted.vendor);
+            }
+            if (!dateTouched && result.extracted.date) {
+              // Validate date before setting to prevent invalid date errors
+              try {
+                const testDate = new Date(result.extracted.date);
+                if (!isNaN(testDate.getTime())) {
+                  setDate(result.extracted.date);
+                } else {
+                }
+              } catch (e) {
+              }
+            }
+            if (!amount && result.extracted.total) {
+              setAmount(result.extracted.total.toString());
+            }
+            if (category === 'Other' && result.suggestion?.category) {
+              const suggestedCategory = result.suggestion.category as typeof EXPENSE_CATEGORIES[number];
+              if (EXPENSE_CATEGORIES.includes(suggestedCategory)) {
+                setCategory(suggestedCategory);
+              }
+            }
+            // Generate default description if empty
+            if (!description && result.extracted.vendor) {
+              const desc = `Receipt: ${result.extracted.vendor}${result.extracted.date ? ' - ' + result.extracted.date : ''}`;
+              setDescription(desc);
+            }
+          }
+
+          scanAttemptedRef.current = true;
+        } catch (error: any) {
+          console.error('[Receipt] Upload/scan error:', error);
+
+          // Determine specific error message based on error type
+          let errorMessage = 'Unable to scan receipt. You can continue entering details manually.';
+          let errorType = 'unknown';
+
+          if (error.message?.includes('Invalid time value') || error.message?.includes('date')) {
+            errorMessage = 'Receipt date format not recognized. Please enter the date manually.';
+            errorType = 'date_parse_error';
+          } else if (error.message?.includes('download') || error.message?.includes('storage')) {
+            errorMessage = 'Unable to access receipt file. Please try uploading again.';
+            errorType = 'storage_error';
+          } else if (error.message?.includes('quality') || error.message?.includes('image')) {
+            errorMessage = 'Receipt image quality too low. Try a clearer photo or enter details manually.';
+            errorType = 'quality_error';
+          } else if (error.message?.includes('format') || error.message?.includes('type')) {
+            errorMessage = 'Receipt format not recognized. Please enter details manually.';
+            errorType = 'format_error';
+          } else if (error.message?.includes('network') || error.message?.includes('timeout')) {
+            errorMessage = 'Network error. Please check your connection and try again.';
+            errorType = 'network_error';
+          }
+
+          setScanResult({
+            success: false,
+            error: error.message,
+            message: errorMessage,
+            errorType
+          });
+
+          // Clean up draft expense on error
+          if (draftExpenseId) {
+            await deleteDraftExpense(draftExpenseId);
+            setDraftExpenseId(null);
+          }
+        } finally {
+          setUploading(false);
+          setScanningReceipt(false);
+          setScanningStep(null);
+        }
+      }
+    }
+  };
+
+  const uriToNativeReceiptFile = async (
+    uri: string,
+    name: string,
+    mimeType: string
+  ): Promise<NativeReceiptFile> => {
+    const response = await fetch(uri);
+    const data = await response.arrayBuffer();
+    return { name, type: mimeType, data };
+  };
+
+  const handlePickFromLibrary = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Needed', 'Please allow access to your photo library in Settings to attach a receipt.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.8,
+      // iOS photo library defaults to HEIC, which our OCR providers (Document AI/Mindee)
+      // don't accept — force the "most compatible" export so we get JPEG instead.
+      preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    const asset = result.assets[0];
+    const ext = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = asset.mimeType || `image/${ext}`;
+    const nativeFile = await uriToNativeReceiptFile(asset.uri, asset.fileName || `receipt.${ext}`, mimeType);
+    await processPickedFile(nativeFile);
+  };
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Needed', 'Please allow camera access in Settings to photograph a receipt.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: false,
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    const asset = result.assets[0];
+    const ext = asset.uri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeType = asset.mimeType || `image/${ext}`;
+    const nativeFile = await uriToNativeReceiptFile(asset.uri, asset.fileName || `receipt.${ext}`, mimeType);
+    await processPickedFile(nativeFile);
+  };
+
+  const handlePickDocument = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/*'],
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled || !result.assets?.[0]?.uri) return;
+    const asset = result.assets[0];
+    const mimeType = asset.mimeType || 'application/pdf';
+    const nativeFile = await uriToNativeReceiptFile(asset.uri, asset.name || 'receipt.pdf', mimeType);
+    await processPickedFile(nativeFile);
+  };
+
   const handleFileSelect = async () => {
     if (Platform.OS === 'web') {
       const input = document.createElement('input');
@@ -189,143 +401,25 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
       input.onchange = async (e: any) => {
         const file = e.target?.files?.[0];
         if (file) {
-          // Check file size (5MB limit)
-          if (file.size > 5 * 1024 * 1024) {
-            window.alert('File size must be less than 5MB');
-            return;
-          }
-          setReceiptFile(file);
-          setScanResult(null);
-          scanAttemptedRef.current = false;
-          
-          if (editingExpense) {
-            // Edit mode: upload directly to expense
-            try {
-              setUploading(true);
-              const receiptPath = await uploadReceipt(editingExpense.id, file);
-              await updateExpense.mutateAsync({
-                id: editingExpense.id,
-                receipt_url: receiptPath,
-                receipt_storage_path: receiptPath,
-              });
-              scanAttemptedRef.current = true;
-              await handleReceiptScan(editingExpense.id);
-            } catch (error: any) {
-              console.error('Receipt upload error:', error);
-              window.alert('Failed to upload receipt: ' + error.message);
-            } finally {
-              setUploading(false);
-            }
-          } else {
-            // New expense mode: create draft expense, upload receipt, then scan
-            if (enableReceiptScan) {
-              try {
-                setUploading(true);
-                setScanningReceipt(true);
-                setScanningStep('uploading');
-                
-                // 1. Create draft expense
-                const expenseId = await createDraftExpense();
-                setDraftExpenseId(expenseId);
-                setCurrentExpenseId(expenseId);
-                
-                // 2. Upload receipt to user-scoped path
-                const receiptPath = await uploadReceipt(expenseId, file);
-                
-                // 3. Update draft with receipt path
-                await updateExpense.mutateAsync({
-                  id: expenseId,
-                  receipt_url: receiptPath,
-                  receipt_storage_path: receiptPath,
-                  receipt_mime: file.type,
-                });
-                
-                // 4. Scan receipt
-                setScanningStep('analyzing');
-                const result = await processReceipt(expenseId);
-                
-                setScanningStep('extracting');
-                setScanResult(result);
-                
-                // 5. Auto-populate fields from scan results
-                if (result.success && result.extracted) {
-                  if (!vendor && result.extracted.vendor) {
-                    setVendor(result.extracted.vendor);
-                  }
-                  if (!dateTouched && result.extracted.date) {
-                    // Validate date before setting to prevent invalid date errors
-                    try {
-                      const testDate = new Date(result.extracted.date);
-                      if (!isNaN(testDate.getTime())) {
-                        setDate(result.extracted.date);
-                      } else {
-                      }
-                    } catch (e) {
-                    }
-                  }
-                  if (!amount && result.extracted.total) {
-                    setAmount(result.extracted.total.toString());
-                  }
-                  if (category === 'Other' && result.suggestion?.category) {
-                    const suggestedCategory = result.suggestion.category as typeof EXPENSE_CATEGORIES[number];
-                    if (EXPENSE_CATEGORIES.includes(suggestedCategory)) {
-                      setCategory(suggestedCategory);
-                    }
-                  }
-                  // Generate default description if empty
-                  if (!description && result.extracted.vendor) {
-                    const desc = `Receipt: ${result.extracted.vendor}${result.extracted.date ? ' - ' + result.extracted.date : ''}`;
-                    setDescription(desc);
-                  }
-                }
-                
-                scanAttemptedRef.current = true;
-              } catch (error: any) {
-                console.error('[Receipt] Upload/scan error:', error);
-                
-                // Determine specific error message based on error type
-                let errorMessage = 'Unable to scan receipt. You can continue entering details manually.';
-                let errorType = 'unknown';
-                
-                if (error.message?.includes('Invalid time value') || error.message?.includes('date')) {
-                  errorMessage = 'Receipt date format not recognized. Please enter the date manually.';
-                  errorType = 'date_parse_error';
-                } else if (error.message?.includes('download') || error.message?.includes('storage')) {
-                  errorMessage = 'Unable to access receipt file. Please try uploading again.';
-                  errorType = 'storage_error';
-                } else if (error.message?.includes('quality') || error.message?.includes('image')) {
-                  errorMessage = 'Receipt image quality too low. Try a clearer photo or enter details manually.';
-                  errorType = 'quality_error';
-                } else if (error.message?.includes('format') || error.message?.includes('type')) {
-                  errorMessage = 'Receipt format not recognized. Please enter details manually.';
-                  errorType = 'format_error';
-                } else if (error.message?.includes('network') || error.message?.includes('timeout')) {
-                  errorMessage = 'Network error. Please check your connection and try again.';
-                  errorType = 'network_error';
-                }
-                
-                setScanResult({
-                  success: false,
-                  error: error.message,
-                  message: errorMessage,
-                  errorType
-                });
-                
-                // Clean up draft expense on error
-                if (draftExpenseId) {
-                  await deleteDraftExpense(draftExpenseId);
-                  setDraftExpenseId(null);
-                }
-              } finally {
-                setUploading(false);
-                setScanningReceipt(false);
-                setScanningStep(null);
-              }
-            }
-          }
+          await processPickedFile(file);
         }
       };
       input.click();
+    } else if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Take Photo', 'Choose from Library', 'Choose PDF', 'Cancel'],
+          cancelButtonIndex: 3,
+          title: 'Add Receipt',
+        },
+        (index) => {
+          if (index === 0) handleTakePhoto();
+          else if (index === 1) handlePickFromLibrary();
+          else if (index === 2) handlePickDocument();
+        }
+      );
+    } else {
+      setShowAndroidReceiptSheet(true);
     }
   };
 
@@ -974,6 +1068,51 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         title="Select expense date"
         showTodayShortcut={true}
       />
+
+      {/* Android receipt picker sheet (iOS uses ActionSheetIOS natively) */}
+      {showAndroidReceiptSheet && (
+        <Modal
+          visible={showAndroidReceiptSheet}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowAndroidReceiptSheet(false)}
+        >
+          <TouchableOpacity
+            style={styles.sheetBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowAndroidReceiptSheet(false)}
+          >
+            <TouchableOpacity activeOpacity={1} style={styles.sheet}>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.sheetTitle}>Add Receipt</Text>
+              <TouchableOpacity
+                style={styles.sheetOption}
+                onPress={() => { setShowAndroidReceiptSheet(false); handleTakePhoto(); }}
+              >
+                <Text style={styles.sheetOptionLabel}>📷 Take Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sheetOption}
+                onPress={() => { setShowAndroidReceiptSheet(false); handlePickFromLibrary(); }}
+              >
+                <Text style={styles.sheetOptionLabel}>🖼️ Choose from Library</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sheetOption}
+                onPress={() => { setShowAndroidReceiptSheet(false); handlePickDocument(); }}
+              >
+                <Text style={styles.sheetOptionLabel}>📄 Choose PDF</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sheetCancel}
+                onPress={() => setShowAndroidReceiptSheet(false)}
+              >
+                <Text style={styles.sheetCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </Modal>
   );
 }
@@ -1326,6 +1465,54 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 13,
     marginTop: 4,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 32,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#e5e7eb',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  sheetOption: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  sheetOptionLabel: {
+    fontSize: 16,
+    color: '#111827',
+    textAlign: 'center',
+  },
+  sheetCancel: {
+    paddingVertical: 16,
+    marginTop: 8,
+  },
+  sheetCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+    textAlign: 'center',
   },
   column: {
     flexDirection: 'column',

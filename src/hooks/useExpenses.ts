@@ -151,24 +151,34 @@ export function useDeleteExpense() {
   });
 }
 
+// Native picker (expo-image-picker / expo-document-picker) result, pre-converted
+// to bytes via fetch(uri).arrayBuffer() since Supabase Storage's JS client
+// cannot upload a bare `file://` URI or a browser File object on-device.
+export interface NativeReceiptFile {
+  name: string;
+  type: string;
+  data: ArrayBuffer;
+}
+
 // Upload receipt to Supabase Storage
-export async function uploadReceipt(expenseId: string, file: File): Promise<string> {
+export async function uploadReceipt(expenseId: string, file: File | NativeReceiptFile): Promise<string> {
   const user = await getSharedUser();
   if (!user?.id) throw new Error('Not authenticated');
 
   const userId = user.id;
-  
+
   // Create safe filename (replace spaces and special chars with underscores)
   const safeName = (file.name || 'receipt')
     .replace(/[^a-zA-Z0-9._-]/g, '_');
 
   // Object key: userId/expenseId/timestamp_filename
   const objectKey = `${userId}/${expenseId}/${Date.now()}_${safeName}`;
-  
+
+  const body = 'data' in file ? file.data : file;
 
   const { error: uploadError } = await supabase.storage
     .from('receipts')
-    .upload(objectKey, file, {
+    .upload(objectKey, body, {
       contentType: file.type || 'application/octet-stream',
       upsert: true,
     });

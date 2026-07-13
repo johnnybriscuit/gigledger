@@ -42,8 +42,8 @@ module.exports = {
       [
         'expo-image-picker',
         {
-          photosPermission: 'Allow Bozzy to access your photos to set a profile picture.',
-          cameraPermission: 'Allow Bozzy to use your camera to take a profile photo.',
+          photosPermission: 'Allow Bozzy to access your photos to set a profile picture or attach a receipt.',
+          cameraPermission: 'Allow Bozzy to use your camera to take a profile photo or photograph a receipt.',
         },
       ],
       [
