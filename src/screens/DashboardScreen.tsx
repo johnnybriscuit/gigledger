@@ -16,6 +16,7 @@ import { SecuritySettingsScreen } from './SecuritySettingsScreen';
 // ToursScreen removed - now accessed from within Gigs page
 import { AddGigModal } from '../components/AddGigModal';
 import { AddExpenseModal } from '../components/AddExpenseModal';
+import { AddMileageModal } from '../components/AddMileageModal';
 import { useDateRange } from '../hooks/useDateRange';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
 import { PayerFilter } from '../components/PayerFilter';
@@ -87,6 +88,25 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
   const { range, customStart, customEnd, setRange, setCustomRange } = useDateRange();
   const [showAddGigModal, setShowAddGigModal] = useState(false);
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
+  const [showAddMileageModal, setShowAddMileageModal] = useState(false);
+  const [gigLinkedExpenseContext, setGigLinkedExpenseContext] = useState<{ gigId: string; date: string } | null>(null);
+  const [gigLinkedMileageContext, setGigLinkedMileageContext] = useState<{ gigId: string; date: string } | null>(null);
+
+  const handleGigNavigateToExpenses = ({ gigId, date }: { gigId: string; date: string }) => {
+    setShowAddGigModal(false);
+    setGigLinkedExpenseContext({ gigId, date });
+    setShowAddExpenseModal(true);
+  };
+
+  const handleGigNavigateToMileage = ({ gigId, date, viewOnly }: { gigId: string; date: string; viewOnly?: boolean }) => {
+    setShowAddGigModal(false);
+    if (viewOnly) {
+      setActiveTab('mileage');
+      return;
+    }
+    setGigLinkedMileageContext({ gigId, date });
+    setShowAddMileageModal(true);
+  };
   const [showOnboardingToast, setShowOnboardingToast] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [selectedPayerId, setSelectedPayerId] = useState<string | null>(null);
@@ -304,6 +324,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
             onNavigateToRateGuide={onNavigateToRateGuide}
             onNavigateToAccount={() => setActiveTab('account')}
             onNavigateToPayers={() => setActiveTab('payers')}
+            onNavigateToExpenses={handleGigNavigateToExpenses}
+            onNavigateToMileage={handleGigNavigateToMileage}
           />
         );
       case 'expenses':
@@ -657,14 +679,8 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
       <AddGigModal
         visible={showAddGigModal}
         onClose={() => setShowAddGigModal(false)}
-        onNavigateToExpenses={() => {
-          setShowAddGigModal(false);
-          setActiveTab('expenses');
-        }}
-        onNavigateToMileage={() => {
-          setShowAddGigModal(false);
-          setActiveTab('mileage');
-        }}
+        onNavigateToExpenses={handleGigNavigateToExpenses}
+        onNavigateToMileage={handleGigNavigateToMileage}
         onNavigateToSubscription={() => {
           setShowAddGigModal(false);
           setActiveTab('subscription');
@@ -675,7 +691,22 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
 
       <AddExpenseModal
         visible={showAddExpenseModal}
-        onClose={() => setShowAddExpenseModal(false)}
+        onClose={() => {
+          setShowAddExpenseModal(false);
+          setGigLinkedExpenseContext(null);
+        }}
+        initialDate={gigLinkedExpenseContext?.date}
+        initialGigId={gigLinkedExpenseContext?.gigId}
+      />
+
+      <AddMileageModal
+        visible={showAddMileageModal}
+        onClose={() => {
+          setShowAddMileageModal(false);
+          setGigLinkedMileageContext(null);
+        }}
+        initialDate={gigLinkedMileageContext?.date}
+        initialGigId={gigLinkedMileageContext?.gigId}
       />
 
       <Toast

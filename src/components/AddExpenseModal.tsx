@@ -33,6 +33,8 @@ interface AddExpenseModalProps {
   onClose: () => void;
   editingExpense?: any;
   duplicatingExpense?: any;
+  initialDate?: string;
+  initialGigId?: string;
 }
 
 const EXPENSE_CATEGORIES = [
@@ -55,7 +57,7 @@ const CATEGORIES_WITH_BUSINESS_USE = [
   'Rent/Studio',
 ];
 
-export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingExpense }: AddExpenseModalProps) {
+export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingExpense, initialDate, initialGigId }: AddExpenseModalProps) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
   const insets = useSafeAreaInsets();
@@ -151,13 +153,15 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
       setAttachToSameGig(false);
     } else if (!justSaved) {
       resetForm();
+      if (initialDate) setDate(initialDate);
+      if (initialGigId) setGigId(initialGigId);
     }
     
     // Reset justSaved flag when modal closes
     if (!visible && justSaved) {
       setJustSaved(false);
     }
-  }, [editingExpense, duplicatingExpense, visible, justSaved]);
+  }, [editingExpense, duplicatingExpense, visible, justSaved, initialDate, initialGigId]);
 
   const resetForm = async (skipDraftCleanup = false) => {
     // Clean up draft expense if exists (unless we just saved it)

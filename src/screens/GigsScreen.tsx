@@ -375,9 +375,11 @@ interface GigsScreenProps {
   onNavigateToRateGuide?: () => void;
   onNavigateToAccount?: () => void;
   onNavigateToPayers?: () => void;
+  onNavigateToExpenses?: (context: { gigId: string; date: string }) => void;
+  onNavigateToMileage?: (context: { gigId: string; date: string; viewOnly?: boolean }) => void;
 }
 
-export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, onNavigateToRateGuide, onNavigateToAccount, onNavigateToPayers }: GigsScreenProps = {}) {
+export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, onNavigateToRateGuide, onNavigateToAccount, onNavigateToPayers, onNavigateToExpenses, onNavigateToMileage }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
@@ -911,6 +913,8 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
         duplicatingGig={duplicatingGig}
         source="gigs"
         onNavigateToRateGuide={onNavigateToRateGuide}
+        onNavigateToExpenses={onNavigateToExpenses}
+        onNavigateToMileage={onNavigateToMileage}
       />
       
       <CSVImportWizard

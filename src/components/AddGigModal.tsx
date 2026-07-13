@@ -69,8 +69,8 @@ interface AddGigModalProps {
   visible: boolean;
   onClose: () => void;
   onNavigateToSubscription?: () => void;
-  onNavigateToExpenses?: () => void;
-  onNavigateToMileage?: () => void;
+  onNavigateToExpenses?: (context: { gigId: string; date: string }) => void;
+  onNavigateToMileage?: (context: { gigId: string; date: string; viewOnly?: boolean }) => void;
   onNavigateToRateGuide?: () => void;
   editingGig?: GigWithPayer | null;
   duplicatingGig?: GigWithPayer | null;
@@ -1031,6 +1031,8 @@ export function AddGigModal({
           note: payment.note,
         }));
 
+      let newGigId: string | undefined;
+
       if (editingGig) {
         const userId = await getSharedUserId();
         if (!userId) {
@@ -1083,11 +1085,13 @@ export function AddGigModal({
             subcontractorPayments: subcontractorPaymentsData,
           });
 
+          newGigId = result.id;
+
           // Create allocation transactions if gig is paid and buckets are configured
-          if (paid && buckets.length > 0 && result.gig?.id) {
+          if (paid && buckets.length > 0 && result.id) {
             try {
               await createAllocationForGig({
-                gigId: result.gig.id,
+                gigId: result.id,
                 grossAmount: parseFloat(grossAmount) || 0,
               });
             } catch (allocationError: any) {
@@ -1134,16 +1138,18 @@ export function AddGigModal({
             : 'Your income is on the books. What would you like to do next?',
           [
             { text: 'Done', style: 'cancel' },
-            ...(onNavigateToExpenses
+            ...(onNavigateToExpenses && newGigId
               ? [{
                   text: 'Add Expense',
-                  onPress: () => onNavigateToExpenses(),
+                  onPress: () => onNavigateToExpenses({ gigId: newGigId!, date }),
                 } as const]
               : []),
-            ...(onNavigateToMileage
+            ...(onNavigateToMileage && newGigId
               ? [{
                   text: hasSavedMileage ? 'View Mileage' : 'Add Mileage',
-                  onPress: () => onNavigateToMileage(),
+                  onPress: () => onNavigateToMileage(
+                    hasSavedMileage ? { gigId: newGigId!, date, viewOnly: true } : { gigId: newGigId!, date }
+                  ),
                 } as const]
               : []),
           ]

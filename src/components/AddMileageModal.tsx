@@ -33,9 +33,11 @@ interface AddMileageModalProps {
   visible: boolean;
   onClose: () => void;
   editingMileage?: any;
+  initialDate?: string;
+  initialGigId?: string;
 }
 
-export function AddMileageModal({ visible, onClose, editingMileage }: AddMileageModalProps) {
+export function AddMileageModal({ visible, onClose, editingMileage, initialDate, initialGigId }: AddMileageModalProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { scrollViewRef, scrollContentRef, scrollFieldIntoView } = useScrollFieldIntoView();
@@ -66,6 +68,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
   const [startCoordsError, setStartCoordsError] = useState(''); // For start location coord issues
   const [endCoordsError, setEndCoordsError] = useState(''); // For end location coord issues
   const [autoCalculatedOneWayMiles, setAutoCalculatedOneWayMiles] = useState<number | null>(null);
+  const [gigId, setGigId] = useState<string | null>(null);
 
   const createMileage = useCreateMileage();
   const updateMileage = useUpdateMileage();
@@ -99,8 +102,10 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
       );
     } else {
       resetForm();
+      if (initialDate) setDate(initialDate);
+      if (initialGigId) setGigId(initialGigId);
     }
-  }, [editingMileage, visible]);
+  }, [editingMileage, visible, initialDate, initialGigId]);
 
   const resetForm = () => {
     setDate(toUtcDateString(new Date()));
@@ -113,6 +118,7 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
     setShouldSaveRoute(false);
     setRouteName('');
     setIsAutoCalculated(false);
+    setGigId(null);
     setStartPlaceId(null);
     setEndPlaceId(null);
     setStartCoords(null);
@@ -271,6 +277,8 @@ export function AddMileageModal({ visible, onClose, editingMileage }: AddMileage
           ...validated,
           is_auto_calculated: isAutoCalculated,
           is_round_trip: isRoundTrip,
+          gig_id: gigId || undefined,
+          linked_gig_id: gigId || undefined,
         });
 
         // Save route if requested
