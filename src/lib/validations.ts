@@ -55,7 +55,7 @@ export const expenseSchema = z.object({
   date: z.string().min(1, 'Date is required'),
   category: z.enum(['Meals & Entertainment', 'Travel', 'Lodging', 'Equipment/Gear', 'Supplies', 'Software/Subscriptions', 'Marketing/Promotion', 'Professional Fees', 'Education/Training', 'Rent/Studio', 'Other']),
   description: z.string().min(1, 'Description is required'),
-  amount: z.number().min(0, 'Must be 0 or greater'),
+  amount: z.number().positive('Amount must be greater than 0'),
   vendor: z.string().optional(),
   notes: z.string().optional(),
   gig_id: z.string().optional(),

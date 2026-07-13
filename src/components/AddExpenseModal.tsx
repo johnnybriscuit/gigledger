@@ -82,6 +82,11 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   const scanAttemptedRef = useRef(false);
   const [dateTouched, setDateTouched] = useState(false);
   const [currentExpenseId, setCurrentExpenseId] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    date?: string;
+    description?: string;
+    amount?: string;
+  }>({});
   
   // Draft expense state (for receipt-first flow)
   const [draftExpenseId, setDraftExpenseId] = useState<string | null>(null);
@@ -99,6 +104,9 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
   const handleDateChange = (selectedDate: Date) => {
     setDate(toUtcDateString(selectedDate));
     setDateTouched(true);
+    if (fieldErrors.date) {
+      setFieldErrors({ ...fieldErrors, date: undefined });
+    }
   };
 
   useEffect(() => {
@@ -152,7 +160,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
       await deleteDraftExpense(draftExpenseId);
     }
     
-    setDate('');
+    setDate(toUtcDateString(new Date()));
     setCategory('Other');
     setDescription('');
     setAmount('');
@@ -169,6 +177,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     setDateTouched(false);
     setCurrentExpenseId(null);
     setDraftExpenseId(null);
+    setFieldErrors({});
   };
 
   const handleFileSelect = async () => {
@@ -242,7 +251,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                   if (!vendor && result.extracted.vendor) {
                     setVendor(result.extracted.vendor);
                   }
-                  if (!date && result.extracted.date) {
+                  if (!dateTouched && result.extracted.date) {
                     // Validate date before setting to prevent invalid date errors
                     try {
                       const testDate = new Date(result.extracted.date);
@@ -457,7 +466,41 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
     await handleReceiptScan(editingExpense.id);
   };
 
+  const validateForm = () => {
+    const errors: typeof fieldErrors = {};
+
+    if (!date) {
+      errors.date = 'Date is required';
+    }
+    if (!description.trim()) {
+      errors.description = 'Description is required';
+    }
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      errors.amount = 'Amount must be greater than 0';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      if (!date) {
+        setShowDatePicker(true);
+      } else if (!description.trim()) {
+        setTimeout(() => descriptionInputRef.current?.focus(), 100);
+      } else if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        setTimeout(() => amountInputRef.current?.focus(), 100);
+      }
+
+      Alert.alert(
+        'Missing Required Fields',
+        'Please fill in all required fields marked with *',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
       setUploading(true);
 
@@ -469,16 +512,27 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
         vendor: vendor || undefined,
         notes: notes || undefined,
         gig_id: gigId || undefined,
-        business_use_percent: CATEGORIES_WITH_BUSINESS_USE.includes(category) 
-          ? businessUsePercent 
+        business_use_percent: CATEGORIES_WITH_BUSINESS_USE.includes(category)
+          ? businessUsePercent
           : undefined,
         // Normalize to 0-1 range for DB (0.5 = 50%, 1.0 = 100%)
-        meals_percent_allowed: category === 'Meals & Entertainment' 
-          ? mealsDeductiblePercent / 100 
+        meals_percent_allowed: category === 'Meals & Entertainment'
+          ? mealsDeductiblePercent / 100
           : undefined,
       };
 
-      const validated = expenseSchema.parse(formData);
+      let validated;
+      try {
+        validated = expenseSchema.parse(formData);
+      } catch (validationError: any) {
+        console.error('Validation failed:', validationError);
+        if (validationError.errors) {
+          Alert.alert('Validation Error', validationError.errors[0].message);
+        } else {
+          Alert.alert('Validation Error', validationError.message || 'Invalid form data');
+        }
+        return;
+      }
 
       let expenseId: string;
       let receiptPath: string | undefined;
@@ -538,22 +592,24 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
       onClose();
     } catch (error: any) {
       console.error('Expense submission error:', error);
+      const showAlert = (title: string, message: string) => {
+        if (Platform.OS === 'web') {
+          window.alert(`${title}: ${message}`);
+        } else {
+          Alert.alert(title, message);
+        }
+      };
+
       if (error.errors) {
         // Zod validation error
-        if (Platform.OS === 'web') {
-          window.alert(`Validation Error: ${error.errors[0].message}`);
-        }
+        showAlert('Validation Error', error.errors[0].message);
       } else {
         // User-friendly error for constraint violations
         const errorMessage = error.message || '';
         if (errorMessage.includes('meals_percent') || errorMessage.includes('constraint')) {
-          if (Platform.OS === 'web') {
-            window.alert('Meals expenses must be marked 50% or 100% deductible.');
-          }
+          showAlert('Error', 'Meals expenses must be marked 50% or 100% deductible.');
         } else {
-          if (Platform.OS === 'web') {
-            window.alert(`Error: ${error.message || 'Failed to save expense'}`);
-          }
+          showAlert('Error', error.message || 'Failed to save expense');
         }
       }
     } finally {
@@ -703,7 +759,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Date <Text style={styles.required}>*</Text></Text>
                 <TouchableOpacity
-                  style={styles.dateButton}
+                  style={[styles.dateButton, fieldErrors.date && styles.inputError]}
                   onPress={() => setShowDatePicker(true)}
                 >
                   <Text style={styles.dateButtonText}>
@@ -711,6 +767,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                   </Text>
                   <Text style={styles.calendarIcon}>📅</Text>
                 </TouchableOpacity>
+                {fieldErrors.date && <Text style={styles.errorText}>{fieldErrors.date}</Text>}
               </View>
 
               <View style={styles.inputGroup}>
@@ -793,9 +850,14 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 <Text style={styles.label}>Description <Text style={styles.required}>*</Text></Text>
                 <TextInput
                   ref={descriptionInputRef}
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, fieldErrors.description && styles.inputError]}
                   value={description}
-                  onChangeText={setDescription}
+                  onChangeText={(text) => {
+                    setDescription(text);
+                    if (fieldErrors.description && text.trim()) {
+                      setFieldErrors({ ...fieldErrors, description: undefined });
+                    }
+                  }}
                   onFocus={() => scrollFieldIntoView(descriptionInputRef)}
                   placeholder="e.g., Gas for tour to Chicago - Jan 5-7 weekend run"
                   placeholderTextColor="#9ca3af"
@@ -803,6 +865,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                   numberOfLines={3}
                   textAlignVertical="top"
                 />
+                {fieldErrors.description && <Text style={styles.errorText}>{fieldErrors.description}</Text>}
               </View>
 
               <View style={isMobile ? styles.column : styles.row}>
@@ -810,14 +873,20 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                   <Text style={styles.label}>Amount <Text style={styles.required}>*</Text></Text>
                   <TextInput
                     ref={amountInputRef}
-                    style={styles.input}
+                    style={[styles.input, fieldErrors.amount && styles.inputError]}
                     value={amount}
-                    onChangeText={setAmount}
+                    onChangeText={(text) => {
+                      setAmount(text);
+                      if (fieldErrors.amount && text && parseFloat(text) > 0) {
+                        setFieldErrors({ ...fieldErrors, amount: undefined });
+                      }
+                    }}
                     onFocus={() => scrollFieldIntoView(amountInputRef)}
                     placeholder="0.00"
                     placeholderTextColor="#9ca3af"
                     keyboardType="decimal-pad"
                   />
+                  {fieldErrors.amount && <Text style={styles.errorText}>{fieldErrors.amount}</Text>}
                 </View>
 
                 <View style={[styles.inputGroup, isMobile ? {} : { flex: 0.4 }]}>
@@ -1246,6 +1315,15 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 14,
     fontWeight: '700',
+  },
+  inputError: {
+    borderColor: '#ef4444',
+    borderWidth: 2,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 13,
+    marginTop: 4,
   },
   column: {
     flexDirection: 'column',
