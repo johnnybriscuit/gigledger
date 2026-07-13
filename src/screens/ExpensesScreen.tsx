@@ -101,19 +101,34 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
   const hasReachedExpenseLimit = !entitlements.can.createExpense;
 
   const handleDelete = async (id: string, description: string) => {
-    const confirmed = Platform.OS === 'web'
-      ? window.confirm(`Are you sure you want to delete "${description}"?`)
-      : true; // Will add Alert for mobile later
-
-    if (!confirmed) return;
-
-    try {
-      await deleteExpense.mutateAsync(id);
-    } catch (error: any) {
-      if (Platform.OS === 'web') {
-        window.alert(`Error: ${error.message || 'Failed to delete expense'}`);
+    const confirmDelete = async () => {
+      try {
+        await deleteExpense.mutateAsync(id);
+      } catch (error: any) {
+        if (Platform.OS === 'web') {
+          window.alert(`Error: ${error.message || 'Failed to delete expense'}`);
+        } else {
+          Alert.alert('Error', error.message || 'Failed to delete expense');
+        }
       }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Are you sure you want to delete "${description}"?`);
+      if (confirmed) {
+        await confirmDelete();
+      }
+      return;
     }
+
+    Alert.alert(
+      'Delete this expense?',
+      `This will permanently remove "${description}" and cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => void confirmDelete() },
+      ]
+    );
   };
 
   const handleEdit = (expense: any) => {
