@@ -209,7 +209,7 @@ export function ExpensesScreen({ onNavigateToSubscription }: ExpensesScreenProps
   const CATEGORY_OPTIONS = [
     { label: 'All Categories', icon: '📋' },
     { label: 'Equipment/Gear', icon: '🎸' },
-    { label: 'Meals & Entertainment', icon: '🍽️' },
+    { label: 'Meals', icon: '🍽️' },
     { label: 'Mileage', icon: '🚗' },
     { label: 'Other', icon: '📦' },
   ];

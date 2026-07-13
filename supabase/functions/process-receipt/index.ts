@@ -616,12 +616,15 @@ function suggestExpenseCategory({ vendor, total, rawText }: { vendor?: string; t
     { keywords: ['southwest', 'delta', 'united', 'american airlines', 'jetblue', 'spirit', 'frontier', 'airline', 'flight'], category: 'Travel', confidence: 0.8 },
     { keywords: ['guitar center', 'sweetwater', 'sam ash', 'musicians friend', 'music store'], category: 'Equipment/Gear', confidence: 0.85 },
     { keywords: ['apple', 'adobe', 'spotify', 'google', 'microsoft', 'dropbox', 'zoom', 'slack', 'subscription'], category: 'Software/Subscriptions', confidence: 0.7 },
-    { keywords: ['restaurant', 'cafe', 'coffee', 'starbucks', 'dunkin', 'mcdonald', 'burger', 'pizza', 'food', 'dining'], category: 'Meals & Entertainment', confidence: 0.65 },
+    { keywords: ['restaurant', 'cafe', 'coffee', 'starbucks', 'dunkin', 'mcdonald', 'burger', 'pizza', 'food', 'dining'], category: 'Meals', confidence: 0.65 },
     { keywords: ['office depot', 'staples', 'amazon', 'target', 'walmart', 'supplies'], category: 'Supplies', confidence: 0.6 },
     { keywords: ['facebook ads', 'google ads', 'instagram', 'marketing', 'advertising', 'promotion'], category: 'Marketing/Promotion', confidence: 0.75 },
     { keywords: ['lawyer', 'attorney', 'accountant', 'cpa', 'consultant', 'professional'], category: 'Professional Fees', confidence: 0.8 },
     { keywords: ['course', 'training', 'education', 'workshop', 'seminar', 'class', 'udemy', 'coursera'], category: 'Education/Training', confidence: 0.75 },
-    { keywords: ['rent', 'lease', 'studio', 'rehearsal space', 'storage'], category: 'Rent/Studio', confidence: 0.8 }
+    { keywords: ['rent', 'lease', 'studio', 'rehearsal space', 'storage'], category: 'Rent/Studio', confidence: 0.8 },
+    { keywords: ['luthier', 'repair', 'restring', 'setup', 'string change'], category: 'Instrument Repair & Maintenance', confidence: 0.75 },
+    { keywords: ['union dues', 'afm', 'local 257', 'membership dues', 'annual dues'], category: 'Dues & Memberships', confidence: 0.75 },
+    { keywords: ['insurance', 'geico', 'progressive', 'state farm', 'allstate', 'liability policy'], category: 'Insurance', confidence: 0.75 }
   ]
 
   for (const pattern of patterns) {

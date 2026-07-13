@@ -27,6 +27,7 @@ import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getSharedUserId } from '../lib/sharedAuth';
 import { processReceipt, processReceiptBeforeCreation, getConfidenceLabel, getConfidenceColor, type ProcessReceiptResponse } from '../lib/receipts/processReceipt';
 import { sanitizeAmountInput } from '../utils/sanitizeAmountInput';
+import { UI_EXPENSE_CATEGORIES } from '../lib/categoryMapping';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -37,19 +38,7 @@ interface AddExpenseModalProps {
   initialGigId?: string;
 }
 
-const EXPENSE_CATEGORIES = [
-  'Meals & Entertainment',
-  'Travel',
-  'Lodging',
-  'Equipment/Gear',
-  'Supplies',
-  'Software/Subscriptions',
-  'Marketing/Promotion',
-  'Professional Fees',
-  'Education/Training',
-  'Rent/Studio',
-  'Other',
-] as const;
+const EXPENSE_CATEGORIES = UI_EXPENSE_CATEGORIES;
 
 const CATEGORIES_WITH_BUSINESS_USE = [
   'Software/Subscriptions',
@@ -615,7 +604,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
           ? businessUsePercent
           : undefined,
         // Normalize to 0-1 range for DB (0.5 = 50%, 1.0 = 100%)
-        meals_percent_allowed: category === 'Meals & Entertainment'
+        meals_percent_allowed: category === 'Meals'
           ? mealsDeductiblePercent / 100
           : undefined,
       };
@@ -909,7 +898,7 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                 </View>
               )}
 
-              {category === 'Meals & Entertainment' && (
+              {category === 'Meals' && (
                 <View style={styles.mealsDeductibleContainer}>
                   <Text style={styles.label}>Meals Deductible %</Text>
                   <Text style={styles.helperText}>Most meals are 50% deductible. Select 100% only for specific exceptions (e.g., office snacks, team meals).</Text>

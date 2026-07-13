@@ -274,7 +274,7 @@ export function useQuickAddExpense() {
           vendor: template.vendor,
           notes: template.notes,
           recurring_expense_id: recurringExpenseId,
-          meals_percent_allowed: mappedCategory === 'Meals & Entertainment' ? 0.5 : null,
+          meals_percent_allowed: mappedCategory === 'Meals' ? 0.5 : null,
         })
         .select()
         .single();

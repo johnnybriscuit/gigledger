@@ -6,6 +6,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { colors, radius, spacing, typography } from '../../styles/theme';
+import { UI_EXPENSE_CATEGORIES } from '../../lib/categoryMapping';
 
 export interface InlineExpense {
   id: string; // Temporary ID for UI
@@ -21,19 +22,7 @@ interface InlineExpensesListProps {
   onChange: (expenses: InlineExpense[]) => void;
 }
 
-const EXPENSE_CATEGORIES = [
-  'Travel',
-  'Meals & Entertainment',
-  'Lodging',
-  'Supplies',
-  'Equipment/Gear',
-  'Professional Fees',
-  'Marketing/Promotion',
-  'Software/Subscriptions',
-  'Education/Training',
-  'Rent/Studio',
-  'Other',
-];
+const EXPENSE_CATEGORIES = UI_EXPENSE_CATEGORIES;
 
 export function InlineExpensesList({ expenses, onChange }: InlineExpensesListProps) {
   const addExpense = () => {

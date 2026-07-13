@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MAX_REASONABLE_MILES_PER_TRIP } from './mileage';
 import { PAYER_TYPES } from '../constants/payerTypes';
+import { UI_EXPENSE_CATEGORIES } from './categoryMapping';
 
 export const payerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -53,7 +54,7 @@ export type GigFormData = z.infer<typeof gigSchema>;
 
 export const expenseSchema = z.object({
   date: z.string().min(1, 'Date is required'),
-  category: z.enum(['Meals & Entertainment', 'Travel', 'Lodging', 'Equipment/Gear', 'Supplies', 'Software/Subscriptions', 'Marketing/Promotion', 'Professional Fees', 'Education/Training', 'Rent/Studio', 'Other']),
+  category: z.enum(UI_EXPENSE_CATEGORIES),
   description: z.string().min(1, 'Description is required'),
   amount: z.number().positive('Amount must be greater than 0'),
   vendor: z.string().optional(),

@@ -6,7 +6,7 @@ interface DeductibilityHintProps {
 }
 
 const DEDUCTIBILITY_HINTS: Record<string, { hint: string; details: string }> = {
-  'Meals & Entertainment': {
+  'Meals': {
     hint: 'Usually 50% deductible for business meals',
     details: 'Add an internal flag for 50% deductibility calculation (for display purposes only, not official tax filing). Prompt user to note who attended and business purpose in Notes field.',
   },
@@ -45,6 +45,18 @@ const DEDUCTIBILITY_HINTS: Record<string, { hint: string; details: string }> = {
   'Rent/Studio': {
     hint: 'Deductible if space is used for business',
     details: 'Home studio? Only deduct the business-use percentage of your space.',
+  },
+  'Instrument Repair & Maintenance': {
+    hint: 'Repairs and maintenance are generally deductible as ordinary business expenses',
+    details: 'Repairs and maintenance are generally deductible as ordinary business expenses.',
+  },
+  'Dues & Memberships': {
+    hint: 'Union and professional dues are generally deductible',
+    details: 'Union and professional dues are generally deductible.',
+  },
+  'Insurance': {
+    hint: 'Instrument and liability insurance for your business is generally deductible',
+    details: 'Instrument and liability insurance for your business is generally deductible.',
   },
   'Other': {
     hint: 'Keep detailed notes for tax documentation',

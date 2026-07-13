@@ -13,7 +13,7 @@ export function mapCategoryToScheduleCRef(
 ): ScheduleCRefMappingResult {
   const normalized = category as DbExpenseCategory;
 
-  if (normalized === 'Meals & Entertainment') {
+  if (normalized === 'Meals') {
     const pct = typeof mealsPercentAllowed === 'number' ? mealsPercentAllowed : 0.5;
     return { refNumber: 294, deductiblePercent: pct };
   }
@@ -48,6 +48,18 @@ export function mapCategoryToScheduleCRef(
 
   if (normalized === 'Education/Training') {
     return { refNumber: 302, deductiblePercent: 1, otherDescription: 'Bozzy: Education/Training' };
+  }
+
+  if (normalized === 'Instrument Repair & Maintenance') {
+    return { refNumber: 316, deductiblePercent: 1 };
+  }
+
+  if (normalized === 'Insurance') {
+    return { refNumber: 301, deductiblePercent: 1 };
+  }
+
+  if (normalized === 'Dues & Memberships') {
+    return { refNumber: 302, deductiblePercent: 1, otherDescription: 'Bozzy: Dues & Memberships' };
   }
 
   return { refNumber: 302, deductiblePercent: 1, otherDescription: `Bozzy: ${category || 'Other'}` };

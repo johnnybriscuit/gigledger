@@ -7,7 +7,7 @@
 
 // Database enum values (canonical source of truth)
 export const DB_EXPENSE_CATEGORIES = [
-  'Meals & Entertainment',
+  'Meals',
   'Travel',
   'Lodging',
   'Equipment/Gear',
@@ -17,6 +17,9 @@ export const DB_EXPENSE_CATEGORIES = [
   'Professional Fees',
   'Education/Training',
   'Rent/Studio',
+  'Instrument Repair & Maintenance',
+  'Dues & Memberships',
+  'Insurance',
   'Other',
 ] as const;
 
@@ -24,7 +27,7 @@ export type DbExpenseCategory = typeof DB_EXPENSE_CATEGORIES[number];
 
 // UI labels (what users see)
 export const UI_EXPENSE_CATEGORIES = [
-  'Meals & Entertainment',
+  'Meals',
   'Travel',
   'Lodging',
   'Equipment/Gear',
@@ -34,6 +37,9 @@ export const UI_EXPENSE_CATEGORIES = [
   'Professional Fees',
   'Education/Training',
   'Rent/Studio',
+  'Instrument Repair & Maintenance',
+  'Dues & Memberships',
+  'Insurance',
   'Other',
 ] as const;
 
@@ -46,8 +52,8 @@ export type UiExpenseCategory = typeof UI_EXPENSE_CATEGORIES[number];
 export function mapUiToDbCategory(uiCategory: string): DbExpenseCategory {
   // Handle legacy values that might still be in the UI
   const mapping: Record<string, DbExpenseCategory> = {
-    'Meals': 'Meals & Entertainment',
-    'Meals & Entertainment': 'Meals & Entertainment',
+    'Meals': 'Meals',
+    'Meals & Entertainment': 'Meals', // legacy label, pre-rename
     'Equipment': 'Equipment/Gear',
     'Equipment/Gear': 'Equipment/Gear',
     'Software': 'Software/Subscriptions',
@@ -63,6 +69,9 @@ export function mapUiToDbCategory(uiCategory: string): DbExpenseCategory {
     'Travel': 'Travel',
     'Lodging': 'Lodging',
     'Supplies': 'Supplies',
+    'Instrument Repair & Maintenance': 'Instrument Repair & Maintenance',
+    'Dues & Memberships': 'Dues & Memberships',
+    'Insurance': 'Insurance',
     'Other': 'Other',
   };
 

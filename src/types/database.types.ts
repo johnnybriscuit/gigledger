@@ -2156,7 +2156,7 @@ export type Database = {
     }
     Enums: {
       expense_category:
-        | "Meals & Entertainment"
+        | "Meals"
         | "Travel"
         | "Lodging"
         | "Equipment/Gear"
@@ -2166,6 +2166,9 @@ export type Database = {
         | "Professional Fees"
         | "Education/Training"
         | "Rent/Studio"
+        | "Instrument Repair & Maintenance"
+        | "Dues & Memberships"
+        | "Insurance"
         | "Other"
       payer_type:
         | "Venue"
@@ -2311,7 +2314,7 @@ export const Constants = {
   public: {
     Enums: {
       expense_category: [
-        "Meals & Entertainment",
+        "Meals",
         "Travel",
         "Lodging",
         "Equipment/Gear",
@@ -2321,6 +2324,9 @@ export const Constants = {
         "Professional Fees",
         "Education/Training",
         "Rent/Studio",
+        "Instrument Repair & Maintenance",
+        "Dues & Memberships",
+        "Insurance",
         "Other",
       ],
       payer_type: [
