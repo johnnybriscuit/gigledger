@@ -203,7 +203,10 @@ export function AddMileageModal({ visible, onClose, editingMileage, initialDate,
         setCoordsError('Couldn\'t calculate a driving route right now. Please try again or enter miles manually.');
       }
     } catch (error) {
-      console.error('Distance calculation error:', error);
+      // Expected/handled condition (e.g. NO_DRIVING_ROUTE) - the inline message above
+      // is the user-facing surface for this, so warn (not error) to avoid Expo dev-client's
+      // console.error toast duplicating it during local testing.
+      console.warn('Distance calculation error:', error);
       setCoordsError('Couldn\'t calculate a driving route right now. Please try again or enter miles manually.');
     } finally {
       setIsCalculating(false);

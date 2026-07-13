@@ -786,7 +786,10 @@ export function AddGigModal({
           return;
         }
 
-        console.error('Failed to auto-calculate gig mileage:', error);
+        // Expected/handled condition (e.g. NO_DRIVING_ROUTE) - mileageCalculationStatus
+        // drives the inline "Could not calculate" message, so warn (not error) to avoid
+        // Expo dev-client's console.error toast duplicating it during local testing.
+        console.warn('Failed to auto-calculate gig mileage:', error);
         setMileageCalculationStatus('error');
       });
 
