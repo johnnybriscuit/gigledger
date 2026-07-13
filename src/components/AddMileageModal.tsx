@@ -429,6 +429,7 @@ export function AddMileageModal({ visible, onClose, editingMileage, initialDate,
               }}
               helperText="Choose a suggestion for the most accurate mileage"
               error={selectionError && !startPlaceId ? selectionError : startCoordsError || undefined}
+              scrollEnabled={false}
             />
             </View>
 
@@ -461,6 +462,7 @@ export function AddMileageModal({ visible, onClose, editingMileage, initialDate,
               }}
               helperText="Choose a suggestion for the most accurate mileage"
               error={selectionError && !endPlaceId ? selectionError : endCoordsError || undefined}
+              scrollEnabled={false}
             />
             </View>
 
