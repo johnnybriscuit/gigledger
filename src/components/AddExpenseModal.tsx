@@ -23,6 +23,7 @@ import { BusinessUseSlider } from './BusinessUseSlider';
 import { checkAndIncrementLimit } from '../utils/limitChecks';
 import { getSharedUserId } from '../lib/sharedAuth';
 import { processReceipt, processReceiptBeforeCreation, getConfidenceLabel, getConfidenceColor, type ProcessReceiptResponse } from '../lib/receipts/processReceipt';
+import { sanitizeAmountInput } from '../utils/sanitizeAmountInput';
 
 interface AddExpenseModalProps {
   visible: boolean;
@@ -875,7 +876,8 @@ export function AddExpenseModal({ visible, onClose, editingExpense, duplicatingE
                     ref={amountInputRef}
                     style={[styles.input, fieldErrors.amount && styles.inputError]}
                     value={amount}
-                    onChangeText={(text) => {
+                    onChangeText={(rawText) => {
+                      const text = sanitizeAmountInput(rawText);
                       setAmount(text);
                       if (fieldErrors.amount && text && parseFloat(text) > 0) {
                         setFieldErrors({ ...fieldErrors, amount: undefined });

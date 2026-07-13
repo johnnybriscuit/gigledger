@@ -63,6 +63,7 @@ import {
   trackGigValidationFailed,
 } from '../lib/analytics';
 import { useScrollFieldIntoView } from '../hooks/useScrollFieldIntoView';
+import { sanitizeAmountInput } from '../utils/sanitizeAmountInput';
 
 interface AddGigModalProps {
   visible: boolean;
@@ -1379,7 +1380,8 @@ export function AddGigModal({
                       style={styles.amountInput}
                       value={grossAmount}
                       onFocus={() => scrollFieldIntoView(grossAmountInputRef)}
-                      onChangeText={(text) => {
+                      onChangeText={(rawText) => {
+                        const text = sanitizeAmountInput(rawText);
                         setGrossAmount(text);
                         if (fieldErrors.grossAmount && text && parseFloat(text) >= 0) {
                           setFieldErrors({ ...fieldErrors, grossAmount: undefined });
@@ -1687,7 +1689,7 @@ export function AddGigModal({
                     ref={tipsInputRef}
                     style={styles.input}
                     value={tips}
-                    onChangeText={setTips}
+                    onChangeText={(text) => setTips(sanitizeAmountInput(text))}
                     onFocus={() => scrollFieldIntoView(tipsInputRef)}
                     placeholder="0.00"
                     placeholderTextColor={colors.text.subtle}
@@ -1701,7 +1703,7 @@ export function AddGigModal({
                     ref={feesInputRef}
                     style={styles.input}
                     value={fees}
-                    onChangeText={setFees}
+                    onChangeText={(text) => setFees(sanitizeAmountInput(text))}
                     onFocus={() => scrollFieldIntoView(feesInputRef)}
                     placeholder="0.00"
                     placeholderTextColor={colors.text.subtle}
@@ -1715,7 +1717,7 @@ export function AddGigModal({
                     ref={perDiemInputRef}
                     style={styles.input}
                     value={perDiem}
-                    onChangeText={setPerDiem}
+                    onChangeText={(text) => setPerDiem(sanitizeAmountInput(text))}
                     onFocus={() => scrollFieldIntoView(perDiemInputRef)}
                     placeholder="0.00"
                     placeholderTextColor={colors.text.subtle}
@@ -1729,7 +1731,7 @@ export function AddGigModal({
                     ref={otherIncomeInputRef}
                     style={styles.input}
                     value={otherIncome}
-                    onChangeText={setOtherIncome}
+                    onChangeText={(text) => setOtherIncome(sanitizeAmountInput(text))}
                     onFocus={() => scrollFieldIntoView(otherIncomeInputRef)}
                     placeholder="0.00"
                     placeholderTextColor={colors.text.subtle}
