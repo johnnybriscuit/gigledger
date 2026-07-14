@@ -13,6 +13,7 @@ import { Toast } from '../Toast';
 
 interface FinancialStatusRowProps {
   ytdGrossIncome: number;
+  isFiltered?: boolean;
 }
 
 const fmt = (n: number) =>
@@ -47,6 +48,7 @@ function TaxCard({
   ytdGrossIncome: number;
   ytdTaxTotal: number;
   colors: ReturnType<typeof getThemePalette>;
+  isFiltered?: boolean;
 }) {
   const safeBuckets = buckets ?? [];
   const federal = safeBuckets.find(b => b.bucket_type === 'federal_tax');
@@ -101,6 +103,7 @@ function RetirementCard({
   colors,
   updateBucket,
   onShowToast,
+  isFiltered,
 }: {
   buckets: AllocationBucket[];
   ytdGrossIncome: number;
@@ -108,15 +111,16 @@ function RetirementCard({
   colors: ReturnType<typeof getThemePalette>;
   updateBucket: (id: string, input: UpdateBucketInput) => Promise<any>;
   onShowToast: (msg: string) => void;
+  isFiltered?: boolean;
 }) {
   const [showPctModal, setShowPctModal] = useState(false);
   const bucket = (buckets ?? []).find(b => b.bucket_type === 'retirement');
   if (!bucket) return null;
 
   const pct = bucket.percentage;
-  // Actual amount allocated to this bucket (single source of truth — matches
-  // FinancialSnapshot and HealthScoreWidget), not a projection from percentage.
-  const ytd = (ytdTotals ?? []).find(t => t.bucket_id === bucket.id)?.total ?? 0;
+  const ytd = isFiltered
+    ? Math.round(ytdGrossIncome * (pct / 100) * 100) / 100
+    : ((ytdTotals ?? []).find(t => t.bucket_id === bucket.id)?.total ?? 0);
 
   let status: string;
   let statusColor: string;
@@ -150,7 +154,7 @@ function RetirementCard({
       <Ionicons name="trending-up-outline" size={18} color={colors.text.subtle} style={styles.cardIcon} />
       <Text style={[styles.cardTitle, { color: colors.text.muted }]}>RETIREMENT</Text>
       <Text style={[styles.cardPrimary, { color: colors.text.DEFAULT }]}>
-        {fmt(ytd)} this year
+        {fmt(ytd)}{isFiltered ? '' : ' this year'}
       </Text>
       {pct < 5 && ytdGrossIncome > 0 ? (
         <Pressable
@@ -190,6 +194,7 @@ function EmergencyCard({
   colors,
   updateBucket,
   onShowToast,
+  isFiltered,
 }: {
   buckets: AllocationBucket[];
   ytdGrossIncome: number;
@@ -197,15 +202,16 @@ function EmergencyCard({
   colors: ReturnType<typeof getThemePalette>;
   updateBucket: (id: string, input: UpdateBucketInput) => Promise<any>;
   onShowToast: (msg: string) => void;
+  isFiltered?: boolean;
 }) {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const bucket = (buckets ?? []).find(b => b.bucket_type === 'emergency_fund');
   if (!bucket) return null;
 
-  // Actual amount allocated to this bucket (single source of truth — matches
-  // FinancialSnapshot and HealthScoreWidget), not a projection from percentage.
-  const ytd = (ytdTotals ?? []).find(t => t.bucket_id === bucket.id)?.total ?? 0;
-  const goal = bucket.goal_amount;
+  const ytd = isFiltered
+    ? Math.round(ytdGrossIncome * (bucket.percentage / 100) * 100) / 100
+    : ((ytdTotals ?? []).find(t => t.bucket_id === bucket.id)?.total ?? 0);
+  const goal = isFiltered ? null : bucket.goal_amount;
   const progress = goal && goal > 0 ? Math.min(ytd / goal, 1) : null;
   const progressPct = progress !== null ? Math.round(progress * 100) : null;
 
@@ -215,6 +221,9 @@ function EmergencyCard({
   if (ytdGrossIncome === 0) {
     status = '— no income yet';
     statusColor = colors.text.subtle;
+  } else if (isFiltered) {
+    status = `${bucket.percentage}% of income`;
+    statusColor = colors.text.muted;
   } else if (progress === null) {
     status = 'Set a savings target →';
     statusColor = colors.brand.DEFAULT;
@@ -244,9 +253,9 @@ function EmergencyCard({
       <Ionicons name="shield-checkmark-outline" size={18} color={colors.text.subtle} style={styles.cardIcon} />
       <Text style={[styles.cardTitle, { color: colors.text.muted }]}>EMERGENCY FUND</Text>
       <Text style={[styles.cardPrimary, { color: colors.text.DEFAULT }]}>
-        {fmt(ytd)} saved
+        {fmt(ytd)}{isFiltered ? '' : ' saved'}
       </Text>
-      {progress !== null && ytdGrossIncome > 0 && (
+      {!isFiltered && progress !== null && ytdGrossIncome > 0 && (
         <View style={[styles.progressBar, { backgroundColor: colors.border.muted }]}>
           <View
             style={[
@@ -259,7 +268,7 @@ function EmergencyCard({
           />
         </View>
       )}
-      {progress === null && ytdGrossIncome > 0 ? (
+      {progress === null && ytdGrossIncome > 0 && !isFiltered ? (
         <Pressable
           onPress={() => setShowGoalModal(true)}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -269,7 +278,7 @@ function EmergencyCard({
       ) : (
         statusContent
       )}
-      {goal && goal > 0 && (
+      {!isFiltered && goal && goal > 0 && (
         <Text style={[styles.cardMeta, { color: colors.text.subtle }]}>
           Goal: {fmt(goal)}
         </Text>
@@ -300,7 +309,7 @@ function EmergencyCard({
 
 // ─── Main component ──────────────────────────────────────────
 
-export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) {
+export function FinancialStatusRow({ ytdGrossIncome, isFiltered }: FinancialStatusRowProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { buckets: rawBuckets, updateBucket, isLoading: bucketsLoading } = useAllocationBuckets();
@@ -335,9 +344,13 @@ export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) 
           <TaxCard
             buckets={buckets}
             ytdGrossIncome={ytdGrossIncome}
-            ytdTaxTotal={buckets
-              .filter(b => b.bucket_type === 'federal_tax' || b.bucket_type === 'state_tax')
-              .reduce((sum, b) => sum + ((ytdTotals ?? []).find(t => t.bucket_id === b.id)?.total ?? 0), 0)}
+            ytdTaxTotal={isFiltered
+              ? ytdGrossIncome * buckets
+                  .filter(b => b.bucket_type === 'federal_tax' || b.bucket_type === 'state_tax')
+                  .reduce((sum, b) => sum + b.percentage, 0) / 100
+              : buckets
+                  .filter(b => b.bucket_type === 'federal_tax' || b.bucket_type === 'state_tax')
+                  .reduce((sum, b) => sum + ((ytdTotals ?? []).find(t => t.bucket_id === b.id)?.total ?? 0), 0)}
             colors={colors}
           />
         )}
@@ -349,6 +362,7 @@ export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) 
             colors={colors}
             updateBucket={updateBucket}
             onShowToast={handleShowToast}
+            isFiltered={isFiltered}
           />
         )}
         {hasEmergency && (
@@ -359,6 +373,7 @@ export function FinancialStatusRow({ ytdGrossIncome }: FinancialStatusRowProps) 
             colors={colors}
             updateBucket={updateBucket}
             onShowToast={handleShowToast}
+            isFiltered={isFiltered}
           />
         )}
       </View>

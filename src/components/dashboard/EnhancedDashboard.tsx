@@ -29,6 +29,7 @@ import { HealthScoreWidget } from './HealthScoreWidget';
 // import { OpportunityAlertsSection } from './OpportunityAlertsSection'; // replaced by OpportunitiesSection
 import { scheduleQuarterlyReminders } from '../../lib/scheduleQuarterlyReminders';
 import { useAllocationBuckets } from '../../hooks/useAllocationBuckets';
+import { usePayers } from '../../hooks/usePayers';
 
 interface EnhancedDashboardProps {
   dateRange: DateRange;
@@ -67,6 +68,7 @@ export function EnhancedDashboard({
   onNavigateToRateGuide,
 }: EnhancedDashboardProps) {
   const { buckets } = useAllocationBuckets();
+  const { data: payers = [] } = usePayers();
   const { isDesktop, isTablet } = useResponsive();
   const { width } = useWindowDimensions();
   const isPhone = width < 768;
@@ -75,6 +77,23 @@ export function EnhancedDashboard({
 
   // Fetch dashboard data
   const data = useDashboardData(dateRange, customStart, customEnd, payerId);
+
+  // Derive filter state for child components
+  const isFiltered = dateRange !== 'ytd' || !!payerId;
+  const payerName = payerId ? payers.find(p => p.id === payerId)?.name : undefined;
+  const filterLabel = (() => {
+    const rangeLabels: Record<string, string> = {
+      ytd: 'Total Earned This Year',
+      thisYear: 'Total Earned This Year',
+      last30: 'Total Earned — Last 30 Days',
+      last90: 'Total Earned — Last 90 Days',
+      lastYear: 'Total Earned — Last Year',
+      custom: 'Total Earned — Custom Range',
+    };
+    let label = rangeLabels[dateRange] ?? 'Total Earned';
+    if (payerName) label += ` — ${payerName}`;
+    return label;
+  })();
 
   // Schedule quarterly tax reminders when YTD data is available
   useEffect(() => {
@@ -156,13 +175,15 @@ export function EnhancedDashboard({
         <FinancialSnapshot
           ytdGrossIncome={data.totalGrossIncome ?? 0}
           paidGigsCount={data.paidGigsCount ?? 0}
+          isFiltered={isFiltered}
+          filterLabel={filterLabel}
         />
 
         {/* 3. Financial Status Row — Tax / Retirement / Emergency */}
-        <FinancialStatusRow ytdGrossIncome={data.totalGrossIncome ?? 0} />
+        <FinancialStatusRow ytdGrossIncome={data.totalGrossIncome ?? 0} isFiltered={isFiltered} />
 
         {/* 4. Financial Health Score — actual allocations vs. targets */}
-        <HealthScoreWidget ytdGrossIncome={data.totalGrossIncome ?? 0} />
+        <HealthScoreWidget ytdGrossIncome={data.totalGrossIncome ?? 0} isFiltered={isFiltered} />
 
         {/* OLD OpportunityAlertsSection removed — replaced by OpportunitiesSection */}
 

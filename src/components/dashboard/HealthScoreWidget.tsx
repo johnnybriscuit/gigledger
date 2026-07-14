@@ -9,6 +9,7 @@ import { getThemePalette } from '../../styles/theme';
 
 interface HealthScoreWidgetProps {
   ytdGrossIncome: number;
+  isFiltered?: boolean;
 }
 
 const DOT_GREEN = '#16a34a';
@@ -27,7 +28,7 @@ function getCurrentMonthNumber(): number {
   return new Date().getMonth() + 1; // 1–12
 }
 
-export function HealthScoreWidget({ ytdGrossIncome }: HealthScoreWidgetProps) {
+export function HealthScoreWidget({ ytdGrossIncome, isFiltered }: HealthScoreWidgetProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { buckets: rawBuckets, isLoading: bucketsLoading } = useAllocationBuckets();
@@ -38,6 +39,7 @@ export function HealthScoreWidget({ ytdGrossIncome }: HealthScoreWidgetProps) {
   // Race guard: allocation queries can still be in flight on first render —
   // wait for both before reading .find() against them.
   if (bucketsLoading || isLoadingYTD) return null;
+  if (isFiltered) return null;
   if (buckets.length === 0 || ytdGrossIncome === 0) return null;
 
   const rows: IndicatorRow[] = [];

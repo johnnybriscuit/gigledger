@@ -71,9 +71,11 @@ function getBucketIconName(bucket: AllocationBucket): keyof typeof Ionicons.glyp
 interface FinancialSnapshotProps {
   ytdGrossIncome: number;
   paidGigsCount: number;
+  isFiltered?: boolean;
+  filterLabel?: string;
 }
 
-export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSnapshotProps) {
+export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount, isFiltered = false, filterLabel }: FinancialSnapshotProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
   const { buckets: rawBuckets, isLoading: bucketsLoading } = useAllocationBuckets();
@@ -115,7 +117,9 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
   const taxStatusColor = noIncome ? colors.text.subtle : colors.success.DEFAULT;
 
   const spendableAmount = spendableBucket
-    ? (ytdTotals.find(t => t.bucket_id === spendableBucket.id)?.total ?? 0)
+    ? (isFiltered
+        ? getBucketAmount(spendableBucket, ytdGrossIncome)
+        : (ytdTotals.find(t => t.bucket_id === spendableBucket.id)?.total ?? 0))
     : 0;
   const spendablePct = spendableBucket?.percentage ?? 0;
 
@@ -131,7 +135,7 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
     >
       {/* ── HEADER ── */}
       <View style={styles.headerLabelRow}>
-        <Text style={[styles.headerLabel, { color: colors.text.muted }]}>Total Earned This Year</Text>
+        <Text style={[styles.headerLabel, { color: colors.text.muted }]}>{filterLabel ?? 'Total Earned This Year'}</Text>
         <InfoTooltip text="The total gross amount you've been paid for all gigs this year, before subtracting expenses or deductions." />
       </View>
 
@@ -142,15 +146,22 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
         before fees & deductions
       </Text>
       <Text style={[styles.incomeSubLabel, { color: colors.text.subtle }]}>
-        across {paidCount} paid {paidCount === 1 ? 'gig' : 'gigs'} this year
+        across {paidCount} paid {paidCount === 1 ? 'gig' : 'gigs'} {isFiltered ? 'in this period' : 'this year'}
       </Text>
 
       {/* ── DIVIDER ── */}
       <View style={[styles.divider, { backgroundColor: colors.border.muted }]} />
 
       {/* ── ALLOCATION ROWS ── */}
+      {isFiltered && (
+        <Text style={[styles.periodSubtitle, { color: colors.text.muted }]}>
+          From income in this period
+        </Text>
+      )}
       {nonSpendable.map(bucket => {
-        const amount = ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0;
+        const amount = isFiltered
+          ? getBucketAmount(bucket, ytdGrossIncome)
+          : (ytdTotals.find(t => t.bucket_id === bucket.id)?.total ?? 0);
         // Tax buckets default to red in the DB (see getDefaultBuckets), but
         // saving for taxes is desired behavior, not a warning — reserve red
         // for genuinely negative states. Other buckets keep their identity color.
@@ -235,7 +246,7 @@ export function FinancialSnapshot({ ytdGrossIncome, paidGigsCount }: FinancialSn
       )}
 
       {/* ── QUARTERLY TAX REMINDER (only if within 60 days and has income) ── */}
-      {showTaxReminder && !noIncome && (
+      {showTaxReminder && !noIncome && !isFiltered && (
         <View style={[styles.quarterlyRow, { borderTopColor: colors.border.muted }]}>
           <Ionicons name="calendar-outline" size={16} color={colors.text.subtle} style={styles.quarterlyIcon} />
           <View style={styles.quarterlyText}>
@@ -409,5 +420,11 @@ const styles = StyleSheet.create({
   quarterlySub: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  periodSubtitle: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    marginBottom: 6,
+    marginTop: -2,
   },
 });
