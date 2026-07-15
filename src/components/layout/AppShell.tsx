@@ -3,7 +3,6 @@ import { View, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Text, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacingNum } from '../../styles/theme';
 import { useResponsive } from '../../hooks/useResponsive';
-import { ThemeToggleButton } from '../ThemeToggleButton';
 import {
   House,
   CalendarCheck,
@@ -304,7 +303,6 @@ export function AppShell({
             />
             <Text style={styles.mobileTitle}>Bozzy</Text>
             <View style={styles.mobileHeaderSpacer} />
-            <ThemeToggleButton compact />
           </View>
           
           {/* Only render sidebar when hamburger is OPEN - as overlay, not in-flow */}
@@ -379,7 +377,6 @@ export function AppShell({
           </View>
           {/* Right: headerRight slot (e.g. period pill) */}
           <View style={styles.nativeHeaderRight}>
-            <ThemeToggleButton compact />
             {headerRight}
           </View>
         </View>
@@ -463,7 +460,6 @@ export function AppShell({
 
             {/* Footer: Sign Out */}
             <View style={[styles.drawerFooterNative, { paddingBottom: Math.max(insets.bottom + 16, 40) }]}>
-              <ThemeToggleButton />
               {onSignOut && (
                 <TouchableOpacity
                   style={styles.drawerSignOutRow}
@@ -515,7 +511,6 @@ export function AppShell({
               )}
             </View>
             <View style={styles.headerRight}>
-              <ThemeToggleButton />
               {headerActions}
             </View>
           </View>
