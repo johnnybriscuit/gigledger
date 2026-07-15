@@ -559,16 +559,20 @@ export function AccountScreen({
           <RNText style={styles.lastSaved}>Last saved {formatRelativeTime(profile.updated_at)}</RNText>
         )}
 
-        <RNText style={styles.sectionLabel}>Appearance</RNText>
-        <View style={styles.settingsCard}>
-          <View style={[styles.fieldRow, styles.fieldRowLast]}>
-            <View style={styles.fieldLeft}>
-              <RNText style={styles.fieldLabel}>THEME</RNText>
-              <RNText style={styles.fieldValue}>Choose light or dark mode for the app</RNText>
+        {Platform.OS === 'web' && (
+          <>
+            <RNText style={styles.sectionLabel}>Appearance</RNText>
+            <View style={styles.settingsCard}>
+              <View style={[styles.fieldRow, styles.fieldRowLast]}>
+                <View style={styles.fieldLeft}>
+                  <RNText style={styles.fieldLabel}>THEME</RNText>
+                  <RNText style={styles.fieldValue}>Choose light or dark mode for the app</RNText>
+                </View>
+                <ThemeToggleButton />
+              </View>
             </View>
-            <ThemeToggleButton />
-          </View>
-        </View>
+          </>
+        )}
 
         {/* ── Tax Settings Section ── */}
         <RNText style={styles.sectionLabel}>Tax Settings</RNText>
