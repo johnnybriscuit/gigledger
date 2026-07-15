@@ -18,7 +18,7 @@ interface ThemeContextType {
   setTheme: (theme: ThemeMode) => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 function getSystemTheme(): ThemeMode {
   return Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
@@ -46,31 +46,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, []);
 
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      return;
-    }
-
-    let active = true;
-    SecureStore.getItemAsync(THEME_STORAGE_KEY)
-      .then((saved) => {
-        if (!active) {
-          return;
-        }
-
-        if (saved === 'light' || saved === 'dark') {
-          setPreference(saved);
-        }
-      })
-      .catch(() => {
-        // Ignore storage failures and fall back to system preference.
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
+  // Native preference is intentionally never hydrated from SecureStore here
+  // (the toggle UI that wrote it is gone) so stale per-device stored values
+  // can't cause the theme to diverge from the light-locked shell. Writing
+  // below is left as-is; it's just never read back on native.
   useEffect(() => {
     if (Platform.OS === 'web') {
       if (preference) {
@@ -115,4 +94,24 @@ export function useTheme() {
     throw new Error('useTheme must be used within ThemeProvider');
   }
   return context;
+}
+
+/**
+ * Pins the Dashboard's card widgets to the dark "hero card" styling as a
+ * fixed design accent, independent of the (removed) in-app toggle or system
+ * theme. Native only — web keeps its working CSS-variable-driven light/dark
+ * toggle, so it passes the real theme through unchanged.
+ */
+export function DashboardThemeOverride({ children }: { children: ReactNode }) {
+  const outer = useTheme();
+
+  if (Platform.OS === 'web') {
+    return <>{children}</>;
+  }
+
+  return (
+    <ThemeContext.Provider value={{ ...outer, theme: 'dark', preference: 'dark' }}>
+      {children}
+    </ThemeContext.Provider>
+  );
 }

@@ -19,6 +19,7 @@ import { AddExpenseModal } from '../components/AddExpenseModal';
 import { AddMileageModal } from '../components/AddMileageModal';
 import { useDateRange } from '../hooks/useDateRange';
 import { EnhancedDashboard } from '../components/dashboard/EnhancedDashboard';
+import { DashboardThemeOverride } from '../contexts/ThemeContext';
 import { PayerFilter } from '../components/PayerFilter';
 import { usePayers } from '../hooks/usePayers';
 import { useAllocationBuckets } from '../hooks/useAllocationBuckets';
@@ -373,27 +374,29 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
         />;
       default:
         return (
-          <EnhancedDashboard
-            dateRange={range}
-            customStart={customStart}
-            customEnd={customEnd}
-            payerId={selectedPayerId}
-            onDateRangeChange={setRange}
-            onCustomRangeChange={setCustomRange}
-            onPayerChange={setSelectedPayerId}
-            onNavigateToExpenses={() => setActiveTab('expenses')}
-            onNavigateToGigs={(payerFilter) => {
-              // TODO: Pass payer filter to GigsScreen
-              setActiveTab('gigs');
-            }}
-            onNavigateToPayers={() => setActiveTab('payers')}
-            onAddGig={() => setShowAddGigModal(true)}
-            onAddExpense={() => setShowAddExpenseModal(true)}
-            onExport={() => setActiveTab('exports')}
-            onNavigateToBucketSetup={onNavigateToBucketSetup}
-            onNavigateToMyMoney={onNavigateToMyMoney}
-            onNavigateToRateGuide={onNavigateToRateGuide}
-          />
+          <DashboardThemeOverride>
+            <EnhancedDashboard
+              dateRange={range}
+              customStart={customStart}
+              customEnd={customEnd}
+              payerId={selectedPayerId}
+              onDateRangeChange={setRange}
+              onCustomRangeChange={setCustomRange}
+              onPayerChange={setSelectedPayerId}
+              onNavigateToExpenses={() => setActiveTab('expenses')}
+              onNavigateToGigs={(payerFilter) => {
+                // TODO: Pass payer filter to GigsScreen
+                setActiveTab('gigs');
+              }}
+              onNavigateToPayers={() => setActiveTab('payers')}
+              onAddGig={() => setShowAddGigModal(true)}
+              onAddExpense={() => setShowAddExpenseModal(true)}
+              onExport={() => setActiveTab('exports')}
+              onNavigateToBucketSetup={onNavigateToBucketSetup}
+              onNavigateToMyMoney={onNavigateToMyMoney}
+              onNavigateToRateGuide={onNavigateToRateGuide}
+            />
+          </DashboardThemeOverride>
         );
     }
   };

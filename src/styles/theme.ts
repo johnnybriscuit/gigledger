@@ -147,11 +147,14 @@ export function getThemePalette(theme: ThemeMode) {
 }
 
 /**
- * Shared color tokens for dashboard cards. All dashboard cards render as
- * "dark cards" regardless of the in-app light/dark theme toggle (they use
- * the elevated surface color, not the canvas), so new cards should read
- * these instead of hardcoding hex values or reaching for the static
- * `colors` export (which resolves to the light palette on native).
+ * Shared color tokens for dashboard cards. On native, the Dashboard's card
+ * widgets are pinned to the dark palette as a fixed "hero card" design
+ * accent via `DashboardThemeOverride` (src/contexts/ThemeContext.tsx) — the
+ * in-app theme toggle has been removed, so this no longer tracks a live
+ * preference there. On web, `theme` still reflects the real (working)
+ * light/dark toggle. New dashboard widgets should read these instead of
+ * hardcoding hex values or reaching for the static `colors` export (which
+ * resolves to the light palette on native).
  */
 export function getDashboardCardTokens(theme: ThemeMode) {
   const palette = getThemePalette(theme);
