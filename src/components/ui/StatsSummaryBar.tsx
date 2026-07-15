@@ -9,6 +9,7 @@ export interface StatsSummaryBarItem {
   valueColor?: string;
   subtitle?: string;
   tooltip?: string;
+  tooltipTitle?: string;
 }
 
 interface StatsSummaryBarProps {
@@ -32,7 +33,7 @@ export function StatsSummaryBar({ items, style }: StatsSummaryBarProps) {
             <View style={styles.stat}>
               <View style={styles.labelRow}>
                 <Text style={styles.label}>{item.label}</Text>
-                {item.tooltip ? <InfoTooltip text={item.tooltip} /> : null}
+                {item.tooltip ? <InfoTooltip text={item.tooltip} title={item.tooltipTitle} /> : null}
               </View>
               <Text style={valueStyle}>{item.value}</Text>
               {item.subtitle ? (

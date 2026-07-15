@@ -685,10 +685,10 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   }, 0) || 0;
 
   // Derived filter label for dropdown button
-  const filterLabel = tourFilter === 'all' ? 'All Gigs'
+  const filterLabel = tourFilter === 'all' ? 'All Tours'
     : tourFilter === 'none' ? 'No Tour'
     : (tours?.find(t => t.id === tourFilter)?.name || 'Tour');
-  const filterIcon = tourFilter === 'all' ? '📋' : tourFilter === 'none' ? '🗂️' : '🎸';
+  const filterIcon = tourFilter === 'all' ? '�️' : tourFilter === 'none' ? '�' : '🎸';
 
   // Mixed tax type detection
   const mixedTaxGigs = filteredGigs?.filter(
@@ -706,7 +706,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
       <StatsSummaryBar
         items={[
           { label: 'TOTAL GIGS', value: filteredGigs?.length || 0 },
-          { label: 'TAKE-HOME PAY', value: formatCurrency(totalTakeHome), subtitle: 'after fees, expenses & taxes', tooltip: 'What you actually keep after subtracting fees, expenses, and tax set-aside from your gross pay.' },
+          { label: 'TAKE-HOME PAY', value: formatCurrency(totalTakeHome), subtitle: 'after fees, expenses & taxes', tooltipTitle: 'Take-Home Pay', tooltip: 'Take Home = gig pay \u2212 cash deductions (fees, expenses) \u2212 estimated tax set-aside. Mileage and expense deductions never reduce your earnings \u2014 they only lower the tax set-aside by reducing your taxable income. This is a planning estimate only; confirm amounts with a tax professional before filing.' },
           { label: 'SAVED FOR TAXES', value: formatCurrency(totalSavedForTaxes), valueColor: T.amber },
         ]}
       />
@@ -728,9 +728,6 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnGhost} onPress={() => setImportModalVisible(true)}>
               <NativeText style={styles.btnGhostText}>📥 Import</NativeText>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.btnGhost} onPress={() => setCreateTourModalVisible(true)} accessibilityLabel="Create tour — group related gigs">
-              <NativeText style={styles.btnGhostText}>+ Tour</NativeText>
             </TouchableOpacity>
             {hasReachedGigLimit ? (
               <TouchableOpacity style={styles.btnPrimary} onPress={handleUpgradeClick}>
@@ -759,7 +756,9 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
             onPress={handleAddToTour}
             disabled={selectedGigIds.length === 0}
           >
-            <NativeText style={styles.assignBtnText}>Assign to Tour →</NativeText>
+            <NativeText style={styles.assignBtnText}>
+              {selectedGigIds.length > 0 ? `Add ${selectedGigIds.length} to Tour →` : 'Add to Tour'}
+            </NativeText>
           </TouchableOpacity>
         </View>
       ) : (
@@ -778,8 +777,8 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
             {filterDropdownOpen && (
               <View style={styles.filterMenu}>
                 {[
-                  { value: 'all', label: 'All Gigs', icon: '📋' },
-                  { value: 'none', label: 'No Tour', icon: '🗂️' },
+                  { value: 'all', label: 'All Tours', icon: '�️' },
+                  { value: 'none', label: 'No Tour', icon: '�' },
                   ...(tours?.map(t => ({ value: t.id, label: t.name, icon: '🎸' })) || []),
                 ].map((opt) => (
                   <TouchableOpacity
@@ -798,6 +797,19 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
                     )}
                   </TouchableOpacity>
                 ))}
+                {(!tours || tours.length === 0) && (
+                  <View style={styles.filterMenuEmpty}>
+                    <NativeText style={styles.filterMenuEmptyText}>No tours yet</NativeText>
+                  </View>
+                )}
+                <View style={styles.filterMenuDivider} />
+                <TouchableOpacity
+                  style={styles.filterMenuCreateBtn}
+                  onPress={() => { setFilterDropdownOpen(false); setCreateTourModalVisible(true); }}
+                >
+                  <NativeText style={styles.filterMenuCreateIcon}>＋</NativeText>
+                  <NativeText style={styles.filterMenuCreateLabel}>New Tour</NativeText>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -807,8 +819,9 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
             style={styles.selectPill}
             onPress={handleEnterSelectionMode}
             activeOpacity={0.8}
+            accessibilityLabel="Select gigs to add to a tour"
           >
-            <NativeText style={styles.selectPillText}>Select</NativeText>
+            <NativeText style={styles.selectPillText}>Select Gigs</NativeText>
           </TouchableOpacity>
         </View>
       )}
@@ -1270,5 +1283,42 @@ const styles = StyleSheet.create({
   mixedTaxDismissText: {
     fontSize: 16,
     color: T.textMuted,
+  },
+
+  // ── Filter dropdown footer (create + empty state) ──
+  filterMenuDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: T.borderMuted,
+    marginHorizontal: 8,
+    marginVertical: 4,
+  },
+  filterMenuEmpty: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  filterMenuEmptyText: {
+    fontSize: 13,
+    color: T.textMuted,
+    fontStyle: 'italic',
+  },
+  filterMenuCreateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  filterMenuCreateIcon: {
+    fontSize: 16,
+    width: 22,
+    textAlign: 'center',
+    color: T.accent,
+    fontWeight: '700',
+  },
+  filterMenuCreateLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: T.accent,
   },
 });
