@@ -3,12 +3,12 @@ import * as Notifications from 'expo-notifications';
 
 const NOTIFICATION_TITLE = 'Quarterly tax payment coming up';
 
-interface QuarterDeadline {
+export interface QuarterDeadline {
   quarter: number;
   date: Date;
 }
 
-function getQuarterlyDeadlines(year: number): QuarterDeadline[] {
+export function getQuarterlyDeadlines(year: number): QuarterDeadline[] {
   return [
     { quarter: 1, date: new Date(year, 3, 15) },   // Apr 15
     { quarter: 2, date: new Date(year, 5, 15) },   // Jun 15

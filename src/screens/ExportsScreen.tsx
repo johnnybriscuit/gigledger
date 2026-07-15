@@ -26,6 +26,7 @@ import { downloadTXF as downloadTXFWeb, downloadZip } from '../lib/exports/webDo
 import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
 import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
+import { getQuarterlyDeadlines } from '../lib/scheduleQuarterlyReminders';
 
 interface ExportsScreenProps {
   dateRange?: DateRange;
@@ -39,6 +40,10 @@ function getErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback;
+}
+
+function formatDeadlineDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScreenProps = {}) {
@@ -104,6 +109,16 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
 
     return validateTaxExportPackage(taxPackage.data);
   }, [taxPackage.data]);
+
+  const quarterlyDeadlines = useMemo(() => {
+    const now = new Date();
+    const deadlines = getQuarterlyDeadlines(taxYear).map((d) => ({
+      ...d,
+      isPast: d.date < now,
+    }));
+    const nextIndex = deadlines.findIndex((d) => !d.isPast);
+    return deadlines.map((d, i) => ({ ...d, isNext: i === nextIndex }));
+  }, [taxYear]);
 
   const handleDownloadCSVs = async () => {
     setTaxExportError(null);
@@ -526,6 +541,32 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
             <View style={[styles.toggleThumb, includeFees ? styles.toggleThumbOn : styles.toggleThumbOff]} />
           </View>
         </TouchableOpacity>
+      </View>
+
+      {/* ── Quarterly Deadlines ──────────────────────── */}
+      <Text style={styles.sectionLabel}>FEDERAL ESTIMATED TAX DEADLINES</Text>
+      <View style={styles.deadlinesCard}>
+        {quarterlyDeadlines.map((d) => (
+          <View
+            key={d.quarter}
+            style={[styles.deadlineRow, d.quarter !== 1 && styles.deadlineRowBorder]}
+          >
+            <Text style={styles.deadlineQuarter}>Q{d.quarter} {taxYear}</Text>
+            <Text style={styles.deadlineDate}>{formatDeadlineDate(d.date)}</Text>
+            {d.isNext ? (
+              <View style={styles.deadlineBadgeNext}>
+                <Text style={styles.deadlineBadgeNextText}>NEXT</Text>
+              </View>
+            ) : (
+              <Text style={d.isPast ? styles.deadlineStatusPast : styles.deadlineStatusUpcoming}>
+                {d.isPast ? 'Past' : 'Upcoming'}
+              </Text>
+            )}
+          </View>
+        ))}
+        <Text style={styles.deadlineDisclaimer}>
+          Estimates only — verify dates and amounts with your tax professional.
+        </Text>
       </View>
 
       {/* ── Tax Software ────────────────────────────── */}
@@ -993,6 +1034,69 @@ const styles = StyleSheet.create({
   },
   toggleThumbOn: { right: 3 },
   toggleThumbOff: { left: 3 },
+
+  // ── Quarterly deadlines card ─────────────────────
+  deadlinesCard: {
+    backgroundColor: T.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+    marginHorizontal: 10,
+    marginBottom: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  deadlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+  },
+  deadlineRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  deadlineQuarter: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: T.textPrimary,
+    width: 72,
+  },
+  deadlineDate: {
+    fontSize: 13,
+    color: T.textSecondary,
+    flex: 1,
+  },
+  deadlineStatusPast: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: T.textMuted,
+  },
+  deadlineStatusUpcoming: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: T.textSecondary,
+  },
+  deadlineBadgeNext: {
+    backgroundColor: T.accentLight,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  deadlineBadgeNextText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: T.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  deadlineDisclaimer: {
+    fontSize: 11,
+    color: T.textMuted,
+    paddingTop: 4,
+    paddingBottom: 12,
+    lineHeight: 15,
+  },
 
   // ── Export group card ────────────────────────────
   exportGroupCard: {
