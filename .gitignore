@@ -45,3 +45,6 @@ yarn-error.*
 # Internal files
 setup_monthly_reset_cron.sql
 *.backup
+
+# QA screenshots/reports (local verification artifacts, not source)
+qa-screens/
