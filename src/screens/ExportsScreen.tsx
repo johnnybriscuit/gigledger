@@ -621,7 +621,11 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
             <Text style={styles.exportDesc}>7 CSVs in one ZIP — complete data for any preparer.</Text>
           </View>
           <View style={styles.exportActions}>
-            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadCSVs}>
+            <TouchableOpacity
+              style={styles.downloadBtn}
+              onPress={handleDownloadCSVs}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
               <Text style={styles.downloadBtnText}>↓ Download</Text>
             </TouchableOpacity>
           </View>
