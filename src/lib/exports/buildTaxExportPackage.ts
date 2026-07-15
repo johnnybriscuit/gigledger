@@ -509,6 +509,7 @@ export function buildTaxExportPackageFromData(input: {
       otherIncome,
       expenseTotalsByScheduleCRefNumber,
       otherExpensesBreakdown,
+      expensesTotal,
       netProfit,
       warnings,
     },

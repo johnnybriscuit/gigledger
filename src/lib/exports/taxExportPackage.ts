@@ -59,6 +59,7 @@ export interface ScheduleCSection {
   otherIncome: number;
   expenseTotalsByScheduleCRefNumber: Partial<Record<ScheduleCRefNumber, number>>;
   otherExpensesBreakdown: ScheduleCOtherExpenseItem[];
+  expensesTotal: number;
   netProfit: number;
   warnings: string[];
 }

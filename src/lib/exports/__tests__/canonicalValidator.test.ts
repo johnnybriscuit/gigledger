@@ -22,6 +22,7 @@ function makePackage(overrides: Partial<TaxExportPackage> = {}): TaxExportPackag
       otherIncome: 0,
       expenseTotalsByScheduleCRefNumber: {},
       otherExpensesBreakdown: [],
+      expensesTotal: 0,
       netProfit: 1000,
       warnings: [],
     },

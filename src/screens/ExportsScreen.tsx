@@ -27,6 +27,7 @@ import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
 import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 import { getQuarterlyDeadlines } from '../lib/scheduleQuarterlyReminders';
+import { formatCurrency } from '../utils/format';
 
 interface ExportsScreenProps {
   dateRange?: DateRange;
@@ -543,6 +544,32 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
         </TouchableOpacity>
       </View>
 
+      {/* ── Schedule C Totals (live with toggles) ────── */}
+      <Text style={styles.sectionLabel}>SCHEDULE C TOTALS</Text>
+      <View style={styles.totalsCard}>
+        <View style={styles.totalsRow}>
+          <Text style={styles.totalsLabel}>Gross Receipts</Text>
+          <Text style={styles.totalsValue}>
+            {taxPackage.data ? formatCurrency(taxPackage.data.scheduleC.grossReceipts, true) : '—'}
+          </Text>
+        </View>
+        <View style={[styles.totalsRow, styles.totalsRowBorder]}>
+          <Text style={styles.totalsLabel}>Total Deductions</Text>
+          <Text style={styles.totalsValue}>
+            {taxPackage.data ? formatCurrency(taxPackage.data.scheduleC.expensesTotal, true) : '—'}
+          </Text>
+        </View>
+        <View style={[styles.totalsRow, styles.totalsRowBorder]}>
+          <Text style={styles.totalsLabelStrong}>Net Profit</Text>
+          <Text style={styles.totalsValueStrong}>
+            {taxPackage.data ? formatCurrency(taxPackage.data.scheduleC.netProfit, true) : '—'}
+          </Text>
+        </View>
+        <Text style={styles.totalsDisclaimer}>
+          Reflects the Include Tips / Include Fees settings above. Estimates only — verify with your tax professional.
+        </Text>
+      </View>
+
       {/* ── Quarterly Deadlines ──────────────────────── */}
       <Text style={styles.sectionLabel}>FEDERAL ESTIMATED TAX DEADLINES</Text>
       <View style={styles.deadlinesCard}>
@@ -1034,6 +1061,55 @@ const styles = StyleSheet.create({
   },
   toggleThumbOn: { right: 3 },
   toggleThumbOff: { left: 3 },
+
+  // ── Schedule C totals card ───────────────────────
+  totalsCard: {
+    backgroundColor: T.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: T.border,
+    marginHorizontal: 10,
+    marginBottom: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  totalsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  totalsRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: T.border,
+  },
+  totalsLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: T.textSecondary,
+  },
+  totalsValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: T.textPrimary,
+  },
+  totalsLabelStrong: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: T.textPrimary,
+  },
+  totalsValueStrong: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: T.green,
+  },
+  totalsDisclaimer: {
+    fontSize: 11,
+    color: T.textMuted,
+    paddingTop: 4,
+    paddingBottom: 12,
+    lineHeight: 15,
+  },
 
   // ── Quarterly deadlines card ─────────────────────
   deadlinesCard: {
