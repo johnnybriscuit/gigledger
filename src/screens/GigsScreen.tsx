@@ -221,7 +221,7 @@ function GigCard({
 
         {/* RIGHT: money */}
         <View style={cardS.right}>
-          <NativeText style={cardS.takeHomeLabel}>{item.paid ? 'AMOUNT PAID' : 'ESTIMATED PAY'}</NativeText>
+          <NativeText style={cardS.takeHomeLabel}>TAKE HOME</NativeText>
           <NativeText style={cardS.takeHomeValue}>{formatCurrency(takeHome)}</NativeText>
           <TaxBadge
             taxTreatment={item.payer?.tax_treatment}
@@ -729,12 +729,9 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
             <TouchableOpacity style={styles.btnGhost} onPress={() => setImportModalVisible(true)}>
               <NativeText style={styles.btnGhostText}>📥 Import</NativeText>
             </TouchableOpacity>
-            <View style={styles.tourBtnWrap}>
-              <TouchableOpacity style={styles.btnGhost} onPress={() => setCreateTourModalVisible(true)}>
-                <NativeText style={styles.btnGhostText}>+ Tour</NativeText>
-              </TouchableOpacity>
-              <NativeText style={styles.tourBtnHint}>Group related gigs</NativeText>
-            </View>
+            <TouchableOpacity style={styles.btnGhost} onPress={() => setCreateTourModalVisible(true)} accessibilityLabel="Create tour — group related gigs">
+              <NativeText style={styles.btnGhostText}>+ Tour</NativeText>
+            </TouchableOpacity>
             {hasReachedGigLimit ? (
               <TouchableOpacity style={styles.btnPrimary} onPress={handleUpgradeClick}>
                 <NativeText style={styles.btnPrimaryText}>⭐ Upgrade</NativeText>
@@ -1063,6 +1060,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingBottom: 14,
     alignItems: 'center',
+    position: 'relative',
+    zIndex: 20,
   },
   filterDropdownWrap: {
     flex: 1,
@@ -1271,14 +1270,5 @@ const styles = StyleSheet.create({
   mixedTaxDismissText: {
     fontSize: 16,
     color: T.textMuted,
-  },
-  tourBtnWrap: {
-    alignItems: 'center',
-  },
-  tourBtnHint: {
-    fontSize: 9,
-    color: T.textMuted,
-    marginTop: 2,
-    textAlign: 'center',
   },
 });
