@@ -17,10 +17,12 @@ interface FilterBottomSheetProps {
   visible: boolean;
   onClose: () => void;
   title: string;
+  /** Optional fixed content rendered between the title and the scrollable list (e.g. a search input) */
+  header?: React.ReactNode;
   children: React.ReactNode;
 }
 
-export function FilterBottomSheet({ visible, onClose, title, children }: FilterBottomSheetProps) {
+export function FilterBottomSheet({ visible, onClose, title, header, children }: FilterBottomSheetProps) {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   // The static `colors` export falls back to the light palette on native
@@ -40,6 +42,7 @@ export function FilterBottomSheet({ visible, onClose, title, children }: FilterB
           <Text style={[styles.title, { color: colors.text.DEFAULT, borderBottomColor: colors.border.muted }]}>
             {title}
           </Text>
+          {header}
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}

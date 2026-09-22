@@ -500,6 +500,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                 customEnd={customEnd}
                 options={[
                   { value: 'ytd' as DateRange, label: 'YTD' },
+                  { value: 'thisYear' as DateRange, label: 'This Year' },
                   { value: 'last30' as DateRange, label: 'Last 30 Days' },
                   { value: 'last90' as DateRange, label: 'Last 90 Days' },
                   { value: 'lastYear' as DateRange, label: 'Last Year' },
@@ -532,6 +533,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                   customEnd={customEnd}
                   options={[
                     { value: 'ytd' as DateRange, label: 'YTD' },
+                    { value: 'thisYear' as DateRange, label: 'This Year' },
                     { value: 'last30' as DateRange, label: 'Last 30 Days' },
                     { value: 'last90' as DateRange, label: 'Last 90 Days' },
                     { value: 'lastYear' as DateRange, label: 'Last Year' },
@@ -638,6 +640,7 @@ export function DashboardScreen({ onNavigateToBusinessStructures, onNavigateToMF
                 customEnd={customEnd}
                 options={[
                   { value: 'ytd' as DateRange, label: 'YTD' },
+                  { value: 'thisYear' as DateRange, label: 'This Year' },
                   { value: 'last30' as DateRange, label: 'Last 30 Days' },
                   { value: 'last90' as DateRange, label: 'Last 90 Days' },
                   { value: 'lastYear' as DateRange, label: 'Last Year' },

@@ -7,6 +7,7 @@ import React, { ReactNode, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Modal } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemeColors } from '../../lib/charts/colors';
+import { useWidgetCollapsed } from '../../hooks/useWidgetCollapsed';
 
 interface ChartCardProps {
   title: string;
@@ -15,6 +16,12 @@ interface ChartCardProps {
   children: ReactNode;
   onDownload?: () => void;
   minHeight?: number;
+  /** When true, the header becomes a toggle that collapses the card body */
+  collapsible?: boolean;
+  /** Persistence key for collapsed state (defaults to title) */
+  collapseKey?: string;
+  /** Initial collapsed state when no persisted value exists */
+  defaultCollapsed?: boolean;
 }
 
 export function ChartCard({
@@ -24,21 +31,51 @@ export function ChartCard({
   children,
   onDownload,
   minHeight = 300,
+  collapsible,
+  collapseKey,
+  defaultCollapsed,
 }: ChartCardProps) {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
   const [showInfo, setShowInfo] = useState(false);
+  const [collapsed, toggleCollapsed] = useWidgetCollapsed(collapseKey ?? title, defaultCollapsed ?? false);
+  const isCollapsed = collapsible && collapsed;
+
+  const titleContent = (
+    <>
+      <View style={styles.titleRow}>
+        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        {collapsible && (
+          <Text style={[styles.chevron, { color: colors.textMuted }]}>
+            {isCollapsed ? '▾' : '▴'}
+          </Text>
+        )}
+      </View>
+      {subtitle && !isCollapsed && (
+        <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
+      )}
+    </>
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.cardBg, minHeight }]}>
+    <View style={[styles.container, { backgroundColor: colors.cardBg }, !isCollapsed && { minHeight }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          {subtitle && (
-            <Text style={[styles.subtitle, { color: colors.textMuted }]}>{subtitle}</Text>
-          )}
-        </View>
+      <View style={[styles.header, isCollapsed && styles.headerCollapsed]}>
+        {collapsible ? (
+          <TouchableOpacity
+            style={styles.titleContainer}
+            onPress={toggleCollapsed}
+            activeOpacity={0.7}
+            accessibilityLabel={`${isCollapsed ? 'Expand' : 'Collapse'} ${title}`}
+            accessibilityRole="button"
+          >
+            {titleContent}
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.titleContainer}>
+            {titleContent}
+          </View>
+        )}
 
         <View style={styles.actions}>
           {info && (
@@ -59,7 +96,7 @@ export function ChartCard({
       </View>
 
       {/* Chart Content */}
-      <View style={styles.content}>{children}</View>
+      {!isCollapsed && <View style={styles.content}>{children}</View>}
 
       {/* Info Modal */}
       {info && (
@@ -116,6 +153,17 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerCollapsed: {
+    marginBottom: 0,
+  },
+  chevron: {
+    fontSize: 12,
   },
   title: {
     fontSize: 18,

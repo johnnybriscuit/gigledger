@@ -7,6 +7,7 @@ import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
+import { useWidgetCollapsed } from '../../hooks/useWidgetCollapsed';
 
 interface KardProps {
   /** Card title */
@@ -19,20 +20,45 @@ interface KardProps {
   children: ReactNode;
   /** Optional additional styles */
   style?: any;
+  /** When true, the header becomes a toggle that collapses the card body */
+  collapsible?: boolean;
+  /** Persistence key for collapsed state (defaults to title) */
+  collapseKey?: string;
+  /** Initial collapsed state when no persisted value exists */
+  defaultCollapsed?: boolean;
 }
 
-export function Kard({ title, icon, onInfoPress, children, style }: KardProps) {
+export function Kard({ title, icon, onInfoPress, children, style, collapsible, collapseKey, defaultCollapsed }: KardProps) {
   const { theme } = useTheme();
   const colors = getThemePalette(theme);
+  const [collapsed, toggleCollapsed] = useWidgetCollapsed(collapseKey ?? title, defaultCollapsed ?? false);
+  const isCollapsed = collapsible && collapsed;
+
   return (
     <View style={[styles.card, { backgroundColor: colors.surface.elevated, borderColor: colors.border.DEFAULT }, style]}>
       {/* Header Row */}
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          {icon && (typeof icon === 'string' ? <Text style={styles.icon}>{icon}</Text> : icon)}
-          <Text style={[styles.title, { color: colors.text.DEFAULT }]}>{title}</Text>
-        </View>
-        
+      <View style={[styles.header, isCollapsed && styles.headerCollapsed]}>
+        {collapsible ? (
+          <TouchableOpacity
+            style={styles.titleRow}
+            onPress={toggleCollapsed}
+            activeOpacity={0.7}
+            accessibilityLabel={`${isCollapsed ? 'Expand' : 'Collapse'} ${title}`}
+            accessibilityRole="button"
+          >
+            {icon && (typeof icon === 'string' ? <Text style={styles.icon}>{icon}</Text> : icon)}
+            <Text style={[styles.title, { color: colors.text.DEFAULT }]}>{title}</Text>
+            <Text style={[styles.chevron, { color: colors.text.subtle }]}>
+              {isCollapsed ? '▾' : '▴'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.titleRow}>
+            {icon && (typeof icon === 'string' ? <Text style={styles.icon}>{icon}</Text> : icon)}
+            <Text style={[styles.title, { color: colors.text.DEFAULT }]}>{title}</Text>
+          </View>
+        )}
+
         {onInfoPress && (
           <TouchableOpacity
             onPress={onInfoPress}
@@ -46,9 +72,11 @@ export function Kard({ title, icon, onInfoPress, children, style }: KardProps) {
       </View>
 
       {/* Content */}
-      <View style={styles.content}>
-        {children}
-      </View>
+      {!isCollapsed && (
+        <View style={styles.content}>
+          {children}
+        </View>
+      )}
     </View>
   );
 }
@@ -88,6 +116,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18, // text-lg
     fontWeight: '600', // font-semibold
+  },
+  headerCollapsed: {
+    marginBottom: 0,
+  },
+  chevron: {
+    fontSize: 12,
+    marginLeft: 2,
   },
   infoButton: {
     padding: 8,

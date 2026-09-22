@@ -253,6 +253,9 @@ const styles = StyleSheet.create({
   },
   scrollContentDesktop: {
     padding: parseInt(spacing[6]),
+    // AppShell's contentInner already pads the top — avoid double spacing
+    // between the action bar and the first widget.
+    paddingTop: 0,
   },
   chartSection: {
     marginBottom: 16,

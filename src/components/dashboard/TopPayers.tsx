@@ -10,10 +10,11 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, chartPalette, getThemeColors } from '../../lib/charts/colors';
 import { colors as themeColors, getDashboardCardTokens } from '../../styles/theme';
 import { Kard } from './Kard';
+import { useWidgetCollapsed } from '../../hooks/useWidgetCollapsed';
 import type { PayerBreakdown } from '../../hooks/useDashboardData';
 
 // Conditional imports
-let PieChart: any, Pie: any, Cell: any, ResponsiveContainer: any;
+let PieChart: any, Pie: any, Cell: any, ResponsiveContainer: any, Tooltip: any;
 
 if (Platform.OS === 'web') {
   const recharts = require('recharts');
@@ -21,6 +22,7 @@ if (Platform.OS === 'web') {
   Pie = recharts.Pie;
   Cell = recharts.Cell;
   ResponsiveContainer = recharts.ResponsiveContainer;
+  Tooltip = recharts.Tooltip;
 }
 
 interface TopPayersProps {
@@ -37,6 +39,10 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
   // palette on native, so override colors on the mobile card at usage sites.
   const cardColors = getDashboardCardTokens(theme);
   const [showInfo, setShowInfo] = useState(false);
+  // Legend list starts collapsed so this card's bottom edge aligns with the
+  // Expense Breakdown card beside it; the pie hover tooltip covers "who's who".
+  const [legendCollapsed, toggleLegend] = useWidgetCollapsed('top-payers-legend', true);
+  const [cardCollapsed, toggleCard] = useWidgetCollapsed('top-payers', false);
 
   const totalIncome = data.reduce((sum, p) => sum + p.amount, 0);
   const isEmpty = data.length === 0;
@@ -52,6 +58,22 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
 
   const formatPercent = (value: number) => {
     return ((value / totalIncome) * 100).toFixed(1) + '%';
+  };
+
+  // Hover tooltip for pie slices — shows payer, amount, and share
+  const PayerTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const item = payload[0];
+      return (
+        <View style={styles.tooltip}>
+          <Text style={styles.tooltipLabel}>{item.name}</Text>
+          <Text style={styles.tooltipValue}>
+            {formatCurrency(item.value)} ({formatPercent(item.value)})
+          </Text>
+        </View>
+      );
+    }
+    return null;
   };
 
   // Custom label for center of donut
@@ -78,6 +100,9 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
         title="Top Payers"
         icon={<Ionicons name="cash-outline" size={20} color={themeColors.text.subtle} />}
         onInfoPress={() => setShowInfo(true)}
+        collapsible
+        collapseKey="top-payers"
+        style={styles.fillCard}
       >
         {isEmpty ? (
           <View style={styles.emptyState}>
@@ -112,38 +137,53 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
                     />
                   ))}
                 </Pie>
+                <Tooltip content={<PayerTooltip />} />
                 {renderCenterLabel()}
               </PieChart>
             </ResponsiveContainer>
 
-            {/* Custom Legend */}
-            <View style={styles.legendContainer}>
-              {data.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.legendItem}
-                  onPress={() => onPayerClick?.(item.payer)}
-                  accessibilityLabel={`${item.payer}: ${formatCurrency(item.amount)}`}
-                  accessibilityRole="button"
-                >
-                  <View
-                    style={[
-                      styles.legendDot,
-                      { backgroundColor: chartPalette.payers[index % chartPalette.payers.length] },
-                    ]}
-                  />
-                  <Text style={styles.legendLabel} numberOfLines={1}>
-                    {item.payer}
-                  </Text>
-                  <Text style={styles.legendValue}>
-                    {formatCurrency(item.amount)}
-                  </Text>
-                  <Text style={styles.legendPercent}>
-                    ({formatPercent(item.amount)})
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {/* Foldable legend — collapsed by default so this card aligns
+                with Expense Breakdown; hover the pie for who's who */}
+            <TouchableOpacity
+              style={styles.legendToggle}
+              onPress={toggleLegend}
+              activeOpacity={0.7}
+              accessibilityLabel={legendCollapsed ? 'Show payer list' : 'Hide payer list'}
+              accessibilityRole="button"
+            >
+              <Text style={styles.legendToggleText}>
+                {legendCollapsed ? `Show payer list (${data.length}) ▾` : 'Hide payer list ▴'}
+              </Text>
+            </TouchableOpacity>
+            {!legendCollapsed && (
+              <View style={styles.legendContainer}>
+                {data.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.legendItem}
+                    onPress={() => onPayerClick?.(item.payer)}
+                    accessibilityLabel={`${item.payer}: ${formatCurrency(item.amount)}`}
+                    accessibilityRole="button"
+                  >
+                    <View
+                      style={[
+                        styles.legendDot,
+                        { backgroundColor: chartPalette.payers[index % chartPalette.payers.length] },
+                      ]}
+                    />
+                    <Text style={styles.legendLabel} numberOfLines={1}>
+                      {item.payer}
+                    </Text>
+                    <Text style={styles.legendValue}>
+                      {formatCurrency(item.amount)}
+                    </Text>
+                    <Text style={styles.legendPercent}>
+                      ({formatPercent(item.amount)})
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </>
         )}
 
@@ -183,14 +223,23 @@ export function TopPayers({ data, onPayerClick }: TopPayersProps) {
     <View style={[pStyles.card, { backgroundColor: cardColors.background, borderColor: cardColors.border }]}>
       {/* Header: title + total income */}
       <View style={pStyles.header}>
-        <View style={pStyles.titleRow}>
+        <TouchableOpacity
+          style={pStyles.titleRow}
+          onPress={toggleCard}
+          activeOpacity={0.7}
+          accessibilityLabel={cardCollapsed ? 'Expand Top Payers' : 'Collapse Top Payers'}
+          accessibilityRole="button"
+        >
           <Ionicons name="cash-outline" size={18} color={cardColors.title} />
           <Text style={[pStyles.title, { color: cardColors.title }]}>Top Payers</Text>
-        </View>
+          <Text style={[pStyles.chevron, { color: cardColors.subtle }]}>
+            {cardCollapsed ? '▾' : '▴'}
+          </Text>
+        </TouchableOpacity>
         <Text style={[pStyles.totalInHeader, { color: cardColors.subtle }]}>{formatCurrency(totalIncome)}</Text>
       </View>
 
-      {isEmpty ? (
+      {cardCollapsed ? null : isEmpty ? (
         <View style={pStyles.emptyState}>
           <Ionicons name="file-tray-outline" size={36} color={cardColors.subtle} style={pStyles.emptyIcon} />
           <Text style={[pStyles.emptyText, { color: cardColors.title }]}>No payers yet</Text>
@@ -279,6 +328,7 @@ const pStyles = StyleSheet.create({
   emptyIcon: { fontSize: 36, marginBottom: 4 },
   emptyText: { fontSize: 15, fontWeight: '600' },
   emptyHint: { fontSize: 13 },
+  chevron: { fontSize: 11 },
   propBarWrap: {
     flexDirection: 'row',
     height: 6,
@@ -326,6 +376,22 @@ const pStyles = StyleSheet.create({
 
 // Keep old styles for web Kard / modal usage
 const styles = StyleSheet.create({
+  fillCard: { flex: 1 },
+  tooltip: {
+    backgroundColor: themeColors.surface.elevated,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: themeColors.border.DEFAULT,
+    ...Platform.select({
+      web: { boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' } as any,
+      default: { shadowColor: themeColors.text.DEFAULT, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+    }),
+  },
+  tooltipLabel: { fontSize: 14, fontWeight: '600', color: themeColors.text.DEFAULT, marginBottom: 4 },
+  tooltipValue: { fontSize: 15, fontWeight: '700', color: themeColors.text.DEFAULT },
+  legendToggle: { marginTop: 4, paddingVertical: 8, alignItems: 'center' },
+  legendToggleText: { fontSize: 13, fontWeight: '600', color: themeColors.text.subtle },
   emptyState: { alignItems: 'center', paddingVertical: 48, gap: 8 },
   emptyIcon: { fontSize: 48, marginBottom: 8 },
   emptyText: { fontSize: 16, fontWeight: '600', color: themeColors.text.DEFAULT },

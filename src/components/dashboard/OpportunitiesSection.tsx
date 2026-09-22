@@ -5,6 +5,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getThemePalette } from '../../styles/theme';
+import { useWidgetCollapsed } from '../../hooks/useWidgetCollapsed';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -124,6 +125,9 @@ export function OpportunitiesSection({
 
   const [dismissed, setDismissed] = useState<Set<string>>(getStoredDismissed);
   const [showAll, setShowAll] = useState(false);
+  // Default collapsed — this section is large and pushes the charts down;
+  // the header row stays visible so users can expand when interested.
+  const [collapsed, toggleCollapsed] = useWidgetCollapsed('tax-opportunities', true);
 
   const visible = useMemo(
     () => OPPORTUNITIES.filter(o => !dismissed.has(o.id)),
@@ -162,35 +166,48 @@ export function OpportunitiesSection({
 
   return (
     <View style={[styles.section, { backgroundColor: colors.surface.DEFAULT, borderColor: colors.border.DEFAULT }]}>
-      <View style={styles.sectionTitleRow}>
+      <TouchableOpacity
+        style={styles.sectionTitleRow}
+        onPress={toggleCollapsed}
+        activeOpacity={0.7}
+        accessibilityLabel={collapsed ? 'Expand Tax Opportunities' : 'Collapse Tax Opportunities'}
+        accessibilityRole="button"
+      >
         <Ionicons name="bulb-outline" size={18} color={colors.text.DEFAULT} />
         <Text style={[styles.sectionTitle, { color: colors.text.DEFAULT }]}>
           Tax Opportunities for Musicians
         </Text>
-      </View>
-      <Text style={[styles.sectionSub, { color: colors.text.subtle }]}>
-        Provisions and deductions that apply to your work
-      </Text>
-
-      <View style={[styles.grid, !isPhone && styles.gridWide]}>
-        {displayed.map(o => (
-          <OpportunityCard
-            key={o.id}
-            opportunity={o}
-            colors={colors}
-            isPhone={isPhone}
-            onDismiss={() => handleDismiss(o.id)}
-            onCta={() => handleCta(o)}
-          />
-        ))}
-      </View>
-
-      {hasMore && (
-        <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAll(true)}>
-          <Text style={[styles.showMoreText, { color: colors.brand.DEFAULT }]}>
-            {isPhone ? 'Show more →' : 'Show more opportunities →'}
+        <Text style={[styles.chevron, { color: colors.text.subtle }]}>
+          {collapsed ? '▾' : '▴'}
+        </Text>
+      </TouchableOpacity>
+      {!collapsed && (
+        <>
+          <Text style={[styles.sectionSub, { color: colors.text.subtle }]}>
+            Provisions and deductions that apply to your work
           </Text>
-        </TouchableOpacity>
+
+          <View style={[styles.grid, !isPhone && styles.gridWide]}>
+            {displayed.map(o => (
+              <OpportunityCard
+                key={o.id}
+                opportunity={o}
+                colors={colors}
+                isPhone={isPhone}
+                onDismiss={() => handleDismiss(o.id)}
+                onCta={() => handleCta(o)}
+              />
+            ))}
+          </View>
+
+          {hasMore && (
+            <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAll(true)}>
+              <Text style={[styles.showMoreText, { color: colors.brand.DEFAULT }]}>
+                {isPhone ? 'Show more →' : 'Show more opportunities →'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </>
       )}
     </View>
   );
@@ -282,6 +299,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
+    flex: 1,
+  },
+  chevron: {
+    fontSize: 12,
   },
   sectionSub: {
     fontSize: 13,

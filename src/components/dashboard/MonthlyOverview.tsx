@@ -12,6 +12,7 @@ import { chartColors, getThemeColors } from '../../lib/charts/colors';
 import { colors as themeColors, getDashboardCardTokens } from '../../styles/theme';
 import { ChartCard } from '../charts/ChartCard';
 import { Kard } from './Kard';
+import { useWidgetCollapsed } from '../../hooks/useWidgetCollapsed';
 import type { MonthlyPoint } from '../../hooks/useDashboardData';
 
 // Conditional imports for charts
@@ -42,6 +43,7 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
   // static `themeColors` import used by moStyles resolves to the light
   // palette on native, so override colors on the mobile card at usage sites.
   const cardColors = getDashboardCardTokens(theme);
+  const [cardCollapsed, toggleCard] = useWidgetCollapsed('monthly-overview', false);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -107,6 +109,8 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
         title="Monthly Overview"
         subtitle="Income, expenses, and tax set aside by month"
         info="Tax Set Aside = the portion of income allocated to your tax bucket — not what you owe, just what you've set aside"
+        collapsible
+        collapseKey="monthly-overview"
       >
         <ResponsiveContainer width="100%" height={300}>
           <BarChart
@@ -152,12 +156,21 @@ export function MonthlyOverview({ data, onMonthClick }: MonthlyOverviewProps) {
   return (
     <View style={[moStyles.card, { backgroundColor: cardColors.background, borderColor: cardColors.border }]}>
       <View style={moStyles.header}>
-        <View style={moStyles.titleRow}>
+        <TouchableOpacity
+          style={moStyles.titleRow}
+          onPress={toggleCard}
+          activeOpacity={0.7}
+          accessibilityLabel={cardCollapsed ? 'Expand Monthly Overview' : 'Collapse Monthly Overview'}
+          accessibilityRole="button"
+        >
           <Ionicons name="calendar-outline" size={18} color={cardColors.title} />
           <Text style={[moStyles.title, { color: cardColors.title }]}>Monthly Overview</Text>
-        </View>
+          <Text style={[moStyles.chevron, { color: cardColors.subtle }]}>
+            {cardCollapsed ? '▾' : '▴'}
+          </Text>
+        </TouchableOpacity>
       </View>
-      {cumulativeData.map((point, index) => {
+      {!cardCollapsed && cumulativeData.map((point, index) => {
         const netColor =
           point.net > 0 ? cardColors.positive :
           point.net < 0 ? cardColors.negative :
@@ -205,6 +218,7 @@ const moStyles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  chevron: { fontSize: 11 },
   monthRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -7,6 +7,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   Modal,
@@ -29,10 +30,16 @@ interface PayerFilterProps {
 export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [query, setQuery] = useState('');
   const triggerRef = useRef<any>(null);
   const { theme } = useTheme();
 
   const selectedPayer = payers.find(p => p.id === value);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredPayers = normalizedQuery
+    ? payers.filter(p => p.name.toLowerCase().includes(normalizedQuery))
+    : payers;
 
   // The option row styles below are hardcoded for the web popover's light
   // background. On native the same rows now sit inside a dark bottom sheet
@@ -61,6 +68,7 @@ export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps
         });
       }
     }
+    setQuery('');
     setIsOpen(true);
   };
 
@@ -81,6 +89,34 @@ export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
+
+  const searchInput = (
+    <View
+      style={[
+        styles.searchWrap,
+        Platform.OS !== 'web' && { borderBottomColor: nativeColors.border.muted },
+      ]}
+    >
+      <TextInput
+        style={[
+          styles.searchInput,
+          Platform.OS !== 'web' && {
+            color: nativeColors.text.DEFAULT,
+            backgroundColor: nativeColors.surface.muted,
+            borderColor: nativeColors.border.DEFAULT,
+          },
+        ]}
+        placeholder="Search clients…"
+        placeholderTextColor={Platform.OS === 'web' ? '#9ca3af' : nativeColors.text.subtle}
+        value={query}
+        onChangeText={setQuery}
+        autoFocus={Platform.OS === 'web'}
+        autoCorrect={false}
+        autoCapitalize="none"
+        accessibilityLabel="Search clients"
+      />
+    </View>
+  );
 
   const optionsList = (
     <>
@@ -114,7 +150,17 @@ export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps
       </TouchableOpacity>
 
       {/* Individual payers */}
-      {payers.map((payer) => (
+      {filteredPayers.length === 0 && (
+        <Text
+          style={[
+            styles.noResults,
+            Platform.OS !== 'web' && { color: nativeColors.text.subtle },
+          ]}
+        >
+          No clients match “{query.trim()}”
+        </Text>
+      )}
+      {filteredPayers.map((payer) => (
         <TouchableOpacity
           key={payer.id}
           style={[
@@ -189,6 +235,7 @@ export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps
                 <View style={styles.popoverHeader}>
                   <Text style={styles.popoverTitle}>Filter by Client</Text>
                 </View>
+                {searchInput}
                 <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                   {optionsList}
                 </ScrollView>
@@ -201,6 +248,7 @@ export function PayerFilter({ value, onChange, payers, style }: PayerFilterProps
           visible={isOpen}
           onClose={() => setIsOpen(false)}
           title="Filter by Client"
+          header={searchInput}
         >
           {optionsList}
         </FilterBottomSheet>
@@ -263,6 +311,31 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     maxHeight: 320,
+  },
+  searchWrap: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  searchInput: {
+    fontSize: 14,
+    color: '#111827',
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    ...Platform.select({
+      web: { outlineStyle: 'none' } as any,
+    }),
+  },
+  noResults: {
+    fontSize: 13,
+    color: '#6b7280',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   option: {
     flexDirection: 'row',

@@ -10,6 +10,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { chartColors, getThemeColors } from '../../lib/charts/colors';
 import { colors as themeColors, getDashboardCardTokens } from '../../styles/theme';
 import { Kard } from './Kard';
+import { useWidgetCollapsed } from '../../hooks/useWidgetCollapsed';
 import type { ExpenseCategoryPoint } from '../../hooks/useDashboardData';
 
 // Conditional imports
@@ -42,6 +43,7 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
   // palette on native, so override colors on the mobile card at usage sites.
   const cardColors = getDashboardCardTokens(theme);
   const [showInfo, setShowInfo] = useState(false);
+  const [cardCollapsed, toggleCard] = useWidgetCollapsed('expense-breakdown', false);
 
   // Take top 5 for the chart
   const top5 = data.slice(0, 5);
@@ -86,6 +88,9 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
         title="Expense Breakdown"
         icon={<Ionicons name="bar-chart-outline" size={20} color={themeColors.text.subtle} />}
         onInfoPress={() => setShowInfo(true)}
+        collapsible
+        collapseKey="expense-breakdown"
+        style={styles.fillCard}
       >
         {isEmpty ? (
           <View style={styles.emptyState}>
@@ -173,18 +178,27 @@ export function ExpenseBreakdown({ data, onViewAll }: ExpenseBreakdownProps) {
   return (
     <View style={[mStyles.card, { backgroundColor: cardColors.background, borderColor: cardColors.border }]}>
       <View style={mStyles.header}>
-        <View style={mStyles.titleRow}>
+        <TouchableOpacity
+          style={mStyles.titleRow}
+          onPress={toggleCard}
+          activeOpacity={0.7}
+          accessibilityLabel={cardCollapsed ? 'Expand Expense Breakdown' : 'Collapse Expense Breakdown'}
+          accessibilityRole="button"
+        >
           <Ionicons name="bar-chart-outline" size={18} color={cardColors.title} />
           <Text style={[mStyles.title, { color: cardColors.title }]}>Expense Breakdown</Text>
-        </View>
-        {onViewAll && (
+          <Text style={[mStyles.chevron, { color: cardColors.subtle }]}>
+            {cardCollapsed ? '▾' : '▴'}
+          </Text>
+        </TouchableOpacity>
+        {onViewAll && !cardCollapsed && (
           <TouchableOpacity onPress={onViewAll}>
             <Text style={[mStyles.viewAllLink, { color: cardColors.brand }]}>View all →</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {isEmpty ? (
+      {cardCollapsed ? null : isEmpty ? (
         <View style={mStyles.emptyState}>
           <Ionicons name="file-tray-outline" size={36} color={cardColors.subtle} style={mStyles.emptyIcon} />
           <Text style={[mStyles.emptyText, { color: cardColors.title }]}>No expenses yet</Text>
@@ -254,6 +268,7 @@ const mStyles = StyleSheet.create({
   emptyIcon: { fontSize: 36, marginBottom: 4 },
   emptyText: { fontSize: 15, fontWeight: '600' },
   emptyHint: { fontSize: 13 },
+  chevron: { fontSize: 11 },
   expRow: {
     paddingHorizontal: 10,
     paddingVertical: 10,
@@ -287,6 +302,7 @@ const mStyles = StyleSheet.create({
 
 // Keep old styles object for web Kard usage (tooltip, modal, viewAllButton)
 const styles = StyleSheet.create({
+  fillCard: { flex: 1 },
   tooltip: {
     backgroundColor: themeColors.surface.elevated,
     padding: 12,
