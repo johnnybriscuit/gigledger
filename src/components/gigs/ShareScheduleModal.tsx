@@ -14,7 +14,8 @@ import {
   TextInput,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useSharedSchedule } from '../../hooks/useSharedSchedule';
+import { useSharedSchedule, SharedScheduleLink } from '../../hooks/useSharedSchedule';
+import { confirmDialog } from '../../lib/dialog';
 import { colors } from '../../styles/theme';
 
 type WindowDays = 30 | 90 | 180 | 3650;
@@ -34,7 +35,7 @@ export interface ShareScheduleModalProps {
 
 export function ShareScheduleModal({ isVisible, onClose, onNavigateToSettings }: ShareScheduleModalProps) {
   const [tab, setTab] = useState<'schedule' | 'history'>('schedule');
-  const { shareLink, isLoading, shareUrl, createShareLink, updateShareLink } = useSharedSchedule('schedule');
+  const { shareLink, isLoading, shareUrl, createShareLink, updateShareLink, revokeShareLink } = useSharedSchedule('schedule');
 
   const [autoCreating, setAutoCreating] = useState(false);
   const autoCreateAttempted = useRef(false);
@@ -55,6 +56,15 @@ export function ShareScheduleModal({ isVisible, onClose, onNavigateToSettings }:
       setAutoCreating(false)
     );
   }, [isVisible, isLoading, shareLink]);
+
+  const handleCreateLink = async () => {
+    setAutoCreating(true);
+    try {
+      await createShareLink({ showAmounts: true, showVenues: true, shareWindowDays: 90 });
+    } finally {
+      setAutoCreating(false);
+    }
+  };
 
   const handleToggleAmounts = async (val: boolean) => {
     if (!shareLink) return;
@@ -172,6 +182,12 @@ export function ShareScheduleModal({ isVisible, onClose, onNavigateToSettings }:
               })}
             </View>
 
+            <ManageLinkRow
+              link={shareLink}
+              noun="schedule"
+              onRevoke={() => revokeShareLink(shareLink.id)}
+            />
+
             <View style={S.divider} />
 
             {/* Footer nav */}
@@ -186,12 +202,84 @@ export function ShareScheduleModal({ isVisible, onClose, onNavigateToSettings }:
             </TouchableOpacity>
           </>
         ) : (
-          <View style={S.settingUp}>
-            <Text style={S.settingUpText}>Could not load your share link. Please try again.</Text>
-          </View>
+          <CreateLinkPrompt noun="schedule" creating={autoCreating} onCreate={handleCreateLink} />
         )}
       </View>
     </Modal>
+  );
+}
+
+function relativeTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'never';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 2) return 'just now';
+  if (mins < 60) return `${mins} minutes ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours === 1 ? '1 hour' : `${hours} hours`} ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return '1 day ago';
+  return `${days} days ago`;
+}
+
+/** View stats + revoke action shown at the bottom of each share tab. */
+function ManageLinkRow({ link, noun, onRevoke }: {
+  link: SharedScheduleLink;
+  noun: string;
+  onRevoke: () => Promise<unknown>;
+}) {
+  const [revoking, setRevoking] = useState(false);
+
+  const handleRevoke = async () => {
+    const confirmed = await confirmDialog(
+      'Revoke this link?',
+      `Anyone with the link will no longer be able to view your ${noun}. You can create a new one anytime.`
+    );
+    if (!confirmed) return;
+    setRevoking(true);
+    try {
+      await onRevoke();
+    } finally {
+      setRevoking(false);
+    }
+  };
+
+  return (
+    <>
+      <View style={S.divider} />
+      <Text style={S.statsText}>
+        {link.access_count === 0
+          ? 'Not viewed yet'
+          : `Viewed ${link.access_count} time${link.access_count === 1 ? '' : 's'} · Last opened ${relativeTime(link.last_accessed)}`}
+      </Text>
+      <TouchableOpacity style={S.revokeBtn} onPress={handleRevoke} disabled={revoking}>
+        {revoking ? (
+          <ActivityIndicator size="small" color={colors.danger.DEFAULT} />
+        ) : (
+          <Text style={S.revokeBtnText}>Revoke link</Text>
+        )}
+      </TouchableOpacity>
+    </>
+  );
+}
+
+/** Empty state shown when no link exists (first-run failure or after revoke). */
+function CreateLinkPrompt({ noun, creating, onCreate }: {
+  noun: string;
+  creating: boolean;
+  onCreate: () => void;
+}) {
+  return (
+    <View style={S.settingUp}>
+      <Text style={S.settingUpText}>No active {noun} link.</Text>
+      <TouchableOpacity style={S.customApply} onPress={onCreate} disabled={creating}>
+        {creating ? (
+          <ActivityIndicator size="small" color={colors.brand.foreground} />
+        ) : (
+          <Text style={S.customApplyText}>Create a new link</Text>
+        )}
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -265,7 +353,7 @@ function ShareUrlBlock({ url, sectionLabel, shareMessage }: {
 
 /** Gig history tab: a share link scoped to an explicit date range. */
 function HistoryShareBody() {
-  const { shareLink, isLoading, shareUrl, createShareLink, updateShareLink } = useSharedSchedule('history');
+  const { shareLink, isLoading, shareUrl, createShareLink, updateShareLink, revokeShareLink } = useSharedSchedule('history');
 
   const [autoCreating, setAutoCreating] = useState(false);
   const autoCreateAttempted = useRef(false);
@@ -288,6 +376,21 @@ function HistoryShareBody() {
       shareEndDate: `${y}-12-31`,
     }).finally(() => setAutoCreating(false));
   }, [isLoading, shareLink]);
+
+  const handleCreateLink = async () => {
+    setAutoCreating(true);
+    const y = new Date().getFullYear();
+    try {
+      await createShareLink({
+        showAmounts: true,
+        showVenues: true,
+        shareStartDate: `${y}-01-01`,
+        shareEndDate: `${y}-12-31`,
+      });
+    } finally {
+      setAutoCreating(false);
+    }
+  };
 
   // Preset ranges computed from today
   const now = new Date();
@@ -352,9 +455,7 @@ function HistoryShareBody() {
 
   if (!shareLink || !shareUrl) {
     return (
-      <View style={S.settingUp}>
-        <Text style={S.settingUpText}>Could not load your share link. Please try again.</Text>
-      </View>
+      <CreateLinkPrompt noun="history" creating={autoCreating} onCreate={handleCreateLink} />
     );
   }
 
@@ -478,6 +579,12 @@ function HistoryShareBody() {
           </TouchableOpacity>
         </View>
       )}
+
+      <ManageLinkRow
+        link={shareLink}
+        noun="history report"
+        onRevoke={() => revokeShareLink(shareLink.id)}
+      />
     </>
   );
 }
@@ -584,6 +691,9 @@ const S = StyleSheet.create({
     fontWeight: '700',
     color: colors.brand.foreground,
   },
+  statsText: { fontSize: 12, color: colors.text.subtle, marginBottom: 10 },
+  revokeBtn: { paddingVertical: 4, alignItems: 'center' },
+  revokeBtnText: { fontSize: 15, fontWeight: '600', color: colors.danger.DEFAULT },
   sheetTitle: {
     flex: 1,
     fontSize: 17,
