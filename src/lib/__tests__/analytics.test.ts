@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// analytics.ts imports Platform from 'react-native', whose raw package
+// uses Flow syntax (import typeof) that rollup can't parse under vitest.
+vi.mock('react-native', () => ({
+  Platform: {
+    OS: 'web',
+    select: (opts: Record<string, unknown>) => opts.web ?? opts.default,
+  },
+}));
+
 import {
   clearPendingSignup,
   consumePendingSignup,
