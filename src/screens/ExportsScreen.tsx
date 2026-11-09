@@ -22,8 +22,10 @@ import {
 import { getTXFImportInstructions } from '../lib/exports/txf-generator';
 import { useTaxExportPackage } from '../hooks/useTaxExportPackage';
 import { generateTXFv042 } from '../lib/exports/txf-v042-generator';
-import { downloadTXF as downloadTXFWeb, downloadZip } from '../lib/exports/webDownloadHelpers';
+import { downloadTXF as downloadTXFWeb, downloadZip, downloadCSV } from '../lib/exports/webDownloadHelpers';
 import { TaxExportError } from '../lib/exports/buildTaxExportPackage';
+import { buildGigHistoryCsv } from '../lib/exports/gigHistoryCsv';
+import { useGigs } from '../hooks/useGigs';
 import { type DateRange, dateRangeToStrings } from '../lib/dateRangeUtils';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 import { getQuarterlyDeadlines } from '../lib/scheduleQuarterlyReminders';
@@ -101,6 +103,14 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
     dateStart: customDateRange ? startDate : undefined,
     dateEnd: customDateRange ? endDate : undefined,
     enabled: !!resolvedCurrentUserId,
+  });
+
+  // Gig history (paid, unpaid, and upcoming) uses the same effective range
+  const historyStart = customDateRange ? startDate : `${taxYear}-01-01`;
+  const historyEnd = customDateRange ? endDate : `${taxYear}-12-31`;
+  const { data: historyGigs, isLoading: historyGigsLoading } = useGigs({
+    startDate: historyStart,
+    endDate: historyEnd,
   });
 
   const validationResult: ValidationResult | null = useMemo(() => {
@@ -281,6 +291,39 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
     } catch (error: unknown) {
       console.error('PDF export error:', error);
       Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate PDF'));
+    }
+  };
+
+  const handleDownloadGigHistory = async () => {
+    setTaxExportError(null);
+    const userId = await getSharedUserId();
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    const limitCheck = await checkAndIncrementLimit(userId, 'exports');
+    if (!limitCheck.allowed) {
+      Alert.alert(
+        '⚠️ Monthly Limit Reached',
+        limitCheck.message + '\n\nUpgrade to Pro for unlimited exports!',
+        [{ text: 'OK', style: 'cancel' }]
+      );
+      return;
+    }
+
+    try {
+      const csv = buildGigHistoryCsv(historyGigs ?? []);
+      const rangeLabel = customDateRange ? `${startDate}_to_${endDate}` : String(taxYear);
+      await downloadCSV(csv, `Bozzy_Gig_History_${rangeLabel}.csv`);
+
+      const { trackExportCreated } = await import('../lib/analytics');
+      trackExportCreated({ export_type: 'gig_history', source: 'exports_screen' });
+
+      Alert.alert('Gig History Downloaded', 'Your CSV lists every gig in the range — paid, unpaid, and upcoming — with totals at the bottom.');
+    } catch (error: unknown) {
+      console.error('Gig history export error:', error);
+      Alert.alert('Export Error', getErrorMessage(error, 'Failed to generate gig history'));
     }
   };
 
@@ -724,6 +767,25 @@ export function ExportsScreen({ dateRange, customStart, customEnd }: ExportsScre
           </View>
           <View style={styles.exportActions}>
             <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadPDF}>
+              <Text style={styles.downloadBtnText}>↓ Download</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* ── Gig History ─────────────────────────── */}
+      <Text style={styles.sectionLabel}>GIG HISTORY</Text>
+      <View style={styles.exportGroupCard}>
+        <View style={styles.exportRow}>
+          <View style={[styles.exportIconWrap, { backgroundColor: T.accentLight }]}>
+            <Text style={styles.exportIconEmoji}>🎸</Text>
+          </View>
+          <View style={styles.exportInfo}>
+            <Text style={styles.exportName}>Gig History (CSV)</Text>
+            <Text style={styles.exportDesc}>Every gig in the selected range — paid, unpaid, and upcoming — with totals at the bottom. Opens in Excel or Sheets.</Text>
+          </View>
+          <View style={styles.exportActions}>
+            <TouchableOpacity style={styles.downloadBtn} onPress={handleDownloadGigHistory} disabled={historyGigsLoading}>
               <Text style={styles.downloadBtnText}>↓ Download</Text>
             </TouchableOpacity>
           </View>
