@@ -37,7 +37,6 @@ import { DateRangeFilter } from '../components/DateRangeFilter';
 import { StatsSummaryBar } from '../components/ui/StatsSummaryBar';
 import { sumMileageDeduction } from '../lib/mileage';
 import { MapCard } from '../components/dashboard/maps/MapCard';
-import { AllocationCard } from '../components/AllocationCard';
 import { useAllocationTransactions } from '../hooks/useAllocationTransactions';
 import { useAllocationBuckets } from '../hooks/useAllocationBuckets';
 import { scheduleTransferReminder } from '../lib/scheduleTransferReminder';
@@ -379,7 +378,7 @@ interface GigsScreenProps {
   onNavigateToMileage?: (context: { gigId: string; date: string; viewOnly?: boolean }) => void;
 }
 
-export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, onNavigateToRateGuide, onNavigateToAccount, onNavigateToPayers, onNavigateToExpenses, onNavigateToMileage }: GigsScreenProps = {}) {
+export function GigsScreen({ onNavigateToSubscription, onNavigateToRateGuide, onNavigateToAccount, onNavigateToPayers, onNavigateToExpenses, onNavigateToMileage }: GigsScreenProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
@@ -405,8 +404,6 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   const [showShareModal, setShowShareModal] = useState(false);
   const { createAllocationsForGig, ytdTotals } = useAllocationTransactions();
   const { buckets, spendablePercent } = useAllocationBuckets();
-  const [allocationCardGig, setAllocationCardGig] = useState<GigWithPayer | null>(null);
-  const [showAllocationCard, setShowAllocationCard] = useState(false);
   const { data: gigs, isLoading, error } = useGigs(
     queryDateRange
       ? {
@@ -444,11 +441,6 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
     setDuplicatingGig(null);
   };
 
-  const handleAllocationCardDismiss = () => {
-    setShowAllocationCard(false);
-    setAllocationCardGig(null);
-  };
-
   const handleTogglePaid = async (gig: GigWithPayer) => {
     setTogglingGigId(gig.id);
 
@@ -465,9 +457,6 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
         } catch (allocError) {
           console.error('[GigsScreen] Error creating allocations:', allocError);
         }
-
-        setAllocationCardGig(gig);
-        setShowAllocationCard(true);
 
         const spendableAmt = (gig.net_amount ?? 0) * (spendablePercent / 100);
         const transferAmt = Math.round(((gig.net_amount ?? 0) - spendableAmt) * 100) / 100;
@@ -688,7 +677,7 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
   const filterLabel = tourFilter === 'all' ? 'All Tours'
     : tourFilter === 'none' ? 'No Tour'
     : (tours?.find(t => t.id === tourFilter)?.name || 'Tour');
-  const filterIcon = tourFilter === 'all' ? '�️' : tourFilter === 'none' ? '�' : '🎸';
+  const filterIcon = tourFilter === 'all' ? '🗺️' : tourFilter === 'none' ? '🚫' : '🎸';
 
   // Mixed tax type detection
   const mixedTaxGigs = filteredGigs?.filter(
@@ -777,8 +766,8 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
             {filterDropdownOpen && (
               <View style={styles.filterMenu}>
                 {[
-                  { value: 'all', label: 'All Tours', icon: '�️' },
-                  { value: 'none', label: 'No Tour', icon: '�' },
+                  { value: 'all', label: 'All Tours', icon: '🗺️' },
+                  { value: 'none', label: 'No Tour', icon: '🚫' },
                   ...(tours?.map(t => ({ value: t.id, label: t.name, icon: '🎸' })) || []),
                 ].map((opt) => (
                   <TouchableOpacity
@@ -974,18 +963,6 @@ export function GigsScreen({ onNavigateToSubscription, onNavigateToBucketSetup, 
           setSelectedGigIds([]);
         }}
       />
-
-      {allocationCardGig && (
-        <AllocationCard
-          visible={showAllocationCard}
-          onDismiss={handleAllocationCardDismiss}
-          gig={allocationCardGig}
-          onSetUpBuckets={() => {
-            handleAllocationCardDismiss();
-            onNavigateToBucketSetup?.();
-          }}
-        />
-      )}
 
       <ShareScheduleModal
         isVisible={showShareModal}
