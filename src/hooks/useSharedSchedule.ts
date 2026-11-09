@@ -5,14 +5,19 @@ import { useUserId } from './useCurrentUser';
 import { getCachedUserId, getSharedUser } from '../lib/sharedAuth';
 import { generateShareToken, buildShareUrl } from '../utils/shareToken';
 
+export type ShareLinkType = 'schedule' | 'history';
+
 export interface SharedScheduleLink {
   id: string;
   user_id: string;
   token: string;
+  link_type: ShareLinkType;
   display_name: string | null;
   show_amounts: boolean;
   show_venues: boolean;
   share_window_days: number;
+  share_start_date: string | null;
+  share_end_date: string | null;
   expires_at: string | null;
   is_active: boolean;
   created_at: string;
@@ -25,6 +30,8 @@ export interface CreateShareLinkOptions {
   showAmounts?: boolean;
   showVenues?: boolean;
   shareWindowDays?: number | null;
+  shareStartDate?: string | null;
+  shareEndDate?: string | null;
   expiresAt?: string | null;
 }
 
@@ -33,15 +40,17 @@ export interface UpdateShareLinkOptions {
   showAmounts?: boolean;
   showVenues?: boolean;
   shareWindowDays?: number | null;
+  shareStartDate?: string | null;
+  shareEndDate?: string | null;
   expiresAt?: string | null;
 }
 
-export function useSharedSchedule() {
+export function useSharedSchedule(linkType: ShareLinkType = 'schedule') {
   const userId = useUserId();
   const queryClient = useQueryClient();
 
   const query = useQuery({
-    queryKey: userId ? queryKeys.sharedSchedule(userId) : ['sharedSchedule-loading'],
+    queryKey: userId ? [...queryKeys.sharedSchedule(userId), linkType] : ['sharedSchedule-loading'],
     queryFn: async () => {
       if (!userId) throw new Error('Not authenticated');
 
@@ -50,6 +59,7 @@ export function useSharedSchedule() {
         .select('*')
         .eq('user_id', userId)
         .eq('is_active', true)
+        .eq('link_type', linkType)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -75,10 +85,13 @@ export function useSharedSchedule() {
         .insert({
           user_id: user.id,
           token,
+          link_type: linkType,
           display_name: options.displayName ?? null,
           show_amounts: options.showAmounts ?? true,
           show_venues: options.showVenues ?? true,
           share_window_days: options.shareWindowDays ?? 90,
+          share_start_date: options.shareStartDate ?? null,
+          share_end_date: options.shareEndDate ?? null,
           expires_at: options.expiresAt ?? null,
         })
         .select()
@@ -102,6 +115,8 @@ export function useSharedSchedule() {
       if (updates.showAmounts !== undefined) payload.show_amounts = updates.showAmounts;
       if (updates.showVenues !== undefined) payload.show_venues = updates.showVenues;
       if (updates.shareWindowDays !== undefined) payload.share_window_days = updates.shareWindowDays;
+      if (updates.shareStartDate !== undefined) payload.share_start_date = updates.shareStartDate;
+      if (updates.shareEndDate !== undefined) payload.share_end_date = updates.shareEndDate;
       if (updates.expiresAt !== undefined) payload.expires_at = updates.expiresAt;
 
       const { data, error } = await (supabase as any)

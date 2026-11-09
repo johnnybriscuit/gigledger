@@ -23,17 +23,37 @@ interface ScheduleGig {
   status: 'paid' | 'unpaid';
   bookingStatus: 'tentative' | 'confirmed';
   payerName: string | null;
+  played?: boolean;
+  totalIncome?: number | null;
+  fees?: number | null;
+  expenses?: number | null;
+  subPayments?: number | null;
+  net?: number | null;
+}
+
+interface HistoryTotals {
+  gigsCount: number;
+  playedPaidCount: number;
+  playedUnpaidCount: number;
+  upcomingCount: number;
+  playedPaidNet: number | null;
+  playedUnpaidNet: number | null;
+  upcomingNet: number | null;
 }
 
 interface ScheduleData {
+  mode?: 'schedule' | 'history';
   displayName: string;
   showAmounts: boolean;
   showVenues: boolean;
-  shareWindowDays: number | null;
+  shareWindowDays?: number | null;
+  rangeStart?: string;
+  rangeEnd?: string;
   gigs: ScheduleGig[];
   monthlyTotals: Record<string, number>;
   monthlyConfirmed: Record<string, number>;
   monthlyTentative: Record<string, number>;
+  totals?: HistoryTotals;
   generatedAt: string;
 }
 
@@ -128,6 +148,15 @@ export function PublicScheduleView({ token }: { token: string }) {
 
   const handleBozzyLink = () => Linking.openURL('https://bozzygigs.com');
 
+  const csvUrl = `${getBaseUrl()}/api/share/${token}?format=csv`;
+  const handleDownloadCsv = () => {
+    if (Platform.OS === 'web') {
+      window.open(csvUrl, '_blank');
+    } else {
+      Linking.openURL(csvUrl);
+    }
+  };
+
   if (status === 'loading') {
     return (
       <View style={S.fill}>
@@ -192,9 +221,20 @@ export function PublicScheduleView({ token }: { token: string }) {
     gigsByMonth[key].push(gig);
   }
 
-  const allMonths = Array.from(
-    new Set([...Object.keys(gigsByMonth), ...getUpcomingMonths(2)])
-  ).sort();
+  const isHistory = data.mode === 'history';
+
+  // History mode shows only months that contain gigs (past or future);
+  // schedule mode pads the next two upcoming months.
+  const allMonths = isHistory
+    ? Object.keys(gigsByMonth).sort()
+    : Array.from(new Set([...Object.keys(gigsByMonth), ...getUpcomingMonths(2)])).sort();
+
+  const fmtRangeDate = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+    });
+  };
 
   return (
     <ScrollView style={S.scroll} contentContainerStyle={S.scrollContent}>
@@ -203,22 +243,59 @@ export function PublicScheduleView({ token }: { token: string }) {
         <Text style={S.displayName}>{data.displayName}</Text>
         <Text style={S.updatedAt}>Updated {relativeTime(data.generatedAt)}</Text>
         <Text style={S.windowText}>
-          {data.shareWindowDays === null || data.shareWindowDays >= 365
+          {isHistory
+            ? `Gig history: ${data.rangeStart ? fmtRangeDate(data.rangeStart) : ''} – ${data.rangeEnd ? fmtRangeDate(data.rangeEnd) : ''}`
+            : data.shareWindowDays === null || data.shareWindowDays === undefined || data.shareWindowDays >= 365
             ? 'Showing all upcoming gigs'
             : `Showing the next ${Math.round(data.shareWindowDays / 30)} months`}
         </Text>
 
-        <TouchableOpacity style={S.calBtn} onPress={handleOpenCal} activeOpacity={0.8}>
-          <Text style={S.calBtnText}>📅 Subscribe in Google Calendar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={S.calBtnSecondary} onPress={handleAppleCal} activeOpacity={0.8}>
-          <Text style={S.calBtnSecondaryText}>🍎 Add to Apple Calendar / Download .ics</Text>
-        </TouchableOpacity>
+        {isHistory && data.totals && (
+          <View style={S.summaryCard}>
+            <Text style={S.summaryTitle}>{data.totals.gigsCount} gigs</Text>
+            <View style={S.summaryRow}>
+              <Text style={S.summaryLabel}>Played & paid</Text>
+              <Text style={S.summaryValue}>
+                {data.totals.playedPaidCount}
+                {data.totals.playedPaidNet != null ? ` · ${formatCurrency(data.totals.playedPaidNet)}` : ''}
+              </Text>
+            </View>
+            <View style={S.summaryRow}>
+              <Text style={S.summaryLabel}>Played & unpaid</Text>
+              <Text style={S.summaryValue}>
+                {data.totals.playedUnpaidCount}
+                {data.totals.playedUnpaidNet != null ? ` · ${formatCurrency(data.totals.playedUnpaidNet)}` : ''}
+              </Text>
+            </View>
+            <View style={S.summaryRow}>
+              <Text style={S.summaryLabel}>Upcoming</Text>
+              <Text style={S.summaryValue}>
+                {data.totals.upcomingCount}
+                {data.totals.upcomingNet != null ? ` · ${formatCurrency(data.totals.upcomingNet)}` : ''}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {isHistory ? (
+          <TouchableOpacity style={S.calBtn} onPress={handleDownloadCsv} activeOpacity={0.8}>
+            <Text style={S.calBtnText}>⬇ Download CSV</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity style={S.calBtn} onPress={handleOpenCal} activeOpacity={0.8}>
+              <Text style={S.calBtnText}>📅 Subscribe in Google Calendar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={S.calBtnSecondary} onPress={handleAppleCal} activeOpacity={0.8}>
+              <Text style={S.calBtnSecondaryText}>🍎 Add to Apple Calendar / Download .ics</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         {data.gigs.length === 0 ? (
           <View style={S.emptyState}>
             <Text style={S.emptyEmoji}>📅</Text>
-            <Text style={S.emptyHeading}>No upcoming gigs</Text>
+            <Text style={S.emptyHeading}>{isHistory ? 'No gigs in this range' : 'No upcoming gigs'}</Text>
             <Text style={S.emptyBody}>Check back soon!</Text>
           </View>
         ) : (
@@ -397,6 +474,28 @@ const S = StyleSheet.create({
     borderRadius: 6,
   },
   tentativeBadgeText: { fontSize: 11, fontWeight: '700', color: '#92400e', letterSpacing: 0.3 },
+  summaryCard: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 20,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 10,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  summaryLabel: { fontSize: 14, color: '#6b7280' },
+  summaryValue: { fontSize: 14, fontWeight: '600', color: '#111827' },
   footer: {
     marginTop: 40,
     paddingTop: 20,

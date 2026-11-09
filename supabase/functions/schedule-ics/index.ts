@@ -50,6 +50,7 @@ serve(async (req) => {
       .select('*')
       .eq('token', token)
       .eq('is_active', true)
+      .eq('link_type', 'schedule')
       .single()
 
     if (linkError || !shareLink) {
